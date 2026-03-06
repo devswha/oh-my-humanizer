@@ -23,8 +23,16 @@ The "runtime" is `SKILL.md` (the orchestrator): it reads config, auto-discovers 
   - Starts with YAML frontmatter (`---` ... `---`) containing `name`, `version`, `description`, and `allowed-tools`.
   - After the frontmatter: config loading -> `--lang` flag parsing -> pattern auto-discovery -> profile loading -> voice loading -> text processing pipeline.
 
+- `SKILL-MAX.md`
+  - Source/reference doc for the MAX mode workflow.
+
+- `humanizer-max/SKILL.md`
+  - Installable MAX mode skill entrypoint exposed as `/humanizer-max`.
+  - Uses `omx ask` for Claude/Gemini and `codex exec` for Codex.
+  - Scores each result and auto-selects the best (lowest AI score) output.
+
 - `.humanizer.default.yaml`
-  - Default configuration: language, profile, output mode, blocklist/allowlist.
+  - Default configuration: language, profile, output mode, blocklist/allowlist. MAX mode model selection (`max-models` field).
   - Pattern loading uses auto-discovery (`Glob patterns/{lang}-*.md`), not the `patterns` list (which is informational).
 
 - `core/voice.md`
@@ -46,7 +54,7 @@ The "runtime" is `SKILL.md` (the orchestrator): it reads config, auto-discovers 
   - Installation, usage, and pattern overview (in English).
 
 - `LICENSE` - MIT license.
-- `.gitignore` - Excludes `.omc/`, `custom/`, and editor temp files.
+- `.gitignore` - Excludes `.omc/`, `.omx/`, `custom/`, and editor temp files.
 
 ## Common commands
 ### Install the skill into Claude Code
@@ -54,12 +62,14 @@ Recommended (clone directly into Claude Code skills directory):
 ```bash
 mkdir -p ~/.claude/skills
 git clone https://github.com/devswha/oh-my-humanizer.git ~/.claude/skills/humanizer
+ln -snf ~/.claude/skills/humanizer/humanizer-max ~/.claude/skills/humanizer-max
 ```
 
 Manual install/update:
 ```bash
 mkdir -p ~/.claude/skills/humanizer
-cp -r SKILL.md .humanizer.default.yaml core/ patterns/ profiles/ ~/.claude/skills/humanizer/
+cp -a SKILL.md .humanizer.default.yaml core/ patterns/ profiles/ humanizer-max/ ~/.claude/skills/humanizer/
+ln -snf ~/.claude/skills/humanizer/humanizer-max ~/.claude/skills/humanizer-max
 ```
 
 ## How to "run" it (Claude Code)
@@ -68,15 +78,19 @@ Invoke the skill:
 - `/humanizer --lang en` then paste English text
 - `/humanizer --profile blog` for blog-style output
 - `/humanizer --audit` for detection-only mode
+- `/humanizer-max` then paste text (install `~/.claude/skills/humanizer-max` symlink first)
+- `/humanizer-max --models claude,gemini,codex` to specify models
 
 ## Making changes safely
 
 ### Versioning (keep in sync)
 - `SKILL.md` has a `version:` field in its YAML frontmatter.
+- `SKILL-MAX.md` has a `version:` field in its YAML frontmatter.
+- `humanizer-max/SKILL.md` has a `version:` field in its YAML frontmatter.
 - `.humanizer.default.yaml` has a `version:` field.
 - `README.md` has a "Version History" section.
 
-If you bump the version, update all three.
+If you bump the version, update all five.
 
 ### Editing patterns
 - Pattern packs are in `patterns/*.md`. Each has its own YAML frontmatter with `patterns:` count.
