@@ -51,7 +51,7 @@ The "runtime" is `SKILL.md` (the orchestrator): it reads config, loads pattern p
 Recommended (clone directly into Claude Code skills directory):
 ```bash
 mkdir -p ~/.claude/skills
-git clone https://github.com/devswha/humanizer-korean.git ~/.claude/skills/humanizer-kr
+git clone https://github.com/devswha/oh-my-humanizer.git ~/.claude/skills/humanizer-kr
 ```
 
 Manual install/update:
