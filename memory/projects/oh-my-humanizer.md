@@ -13,6 +13,13 @@
 - 영어 en-structure 팩 완성 (현재 placeholder)
 - ouroboros scoring 시스템 안정화
 
+## Autonomous Bot
+
+- Status: active (hourly cron)
+- Mode: `AUTO_MERGE=false` (validation period)
+- Rules: `memory/topics/bot-rules.md`
+- Discord: channel 1484400552262762496
+
 ## Keep here
 
 - project status
