@@ -40,6 +40,43 @@ family's generations by ~9 points (classic self-preference); grok is ~12
 points *harsher* on its own family. The study series' cross-family judging
 rule already neutralizes this.
 
+## Challenger round (2026-07-25) — cheap/fast HTTP judges
+
+Same corpus, same prompt, same pre-registered criteria. Motivation: the
+live-quality judge probes found HTTP judges 4–9x faster and up to 100x
+cheaper than the incumbent seats, with reasoning disabled where the provider
+exposes a switch (reasoning was 93–95% of output tokens and bought nothing on
+this structured verdict). Discrimination was unmeasured, so it was measured.
+192/192 challenger calls parsed (0 lost); latency and token usage are recorded
+per call in the same artifact.
+
+| judge | accuracy | AUC [95% CI] | bias human/AI | repeat SD | median s/call | verdict |
+|---|---:|---|---|---:|---:|---|
+| judge-gemini36flash (gemini-3.6-flash) | 0.91 | **0.96 [0.91, 1.00]** | 13.5 / 79.0 | 2.2 | 4.6 | **PASS** |
+| judge-grok420nr (grok-4.20-non-reasoning) | 0.56 | 0.71 [0.53, 0.86] | 19.7 / 23.6 | 2.7 | **0.7** | WATCH |
+| judge-deepseek-nothink (deepseek-v4-flash, thinking off) | 0.50 | 0.70 [0.54, 0.84] | 21.3 / 30.4 | 12.5 | **0.2** | WATCH |
+
+**Speed bought nothing for the non-reasoning judges.** grok-4.20-nr called
+**23 of 24** AI documents "human"; deepseek-nothink 20 of 24. Their human
+false-positive rate is near zero precisely because they score almost
+everything low: the human/AI mean gap is 4–9 points, versus 53–65 for every
+PASS judge. Low repeat SD (2.7) is not stability here — it is the consistency
+of a judge that always answers ~20. Whether this is the model tier or the
+disabled reasoning is not separated by this run; either way both are unusable
+as a quality gate.
+
+**gemini-3.6-flash is a real judge.** AUC 0.96 sits above grok-4.5 (0.93) and
+below gpt-5.5 (1.00), with gpt-level repeat tightness (SD 2.2) and the
+cleanest separation of the round (13.5 / 79.0). All 24 AI documents are
+cross-family for it (no generator overlap), so no self-preference correction
+applies. At 4.6s per call on a near-free tier it is the cost-effective judge
+this round was looking for — as a **second seat**, not a replacement: gpt-5.5
+still holds the only 1.00.
+
+Operational note: the free Gemini tier may train on submitted text, so a
+free-tier key is fine for this repo-owned fixture corpus and must not be used
+to score customer text.
+
 ## Deterministic stylometry on the same corpus
 
 | layer | AUC [95% CI] | mean score human/AI |
