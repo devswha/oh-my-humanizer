@@ -185,7 +185,13 @@ export async function evaluateModelGradedRewrite(fixture, rawRewrite, options = 
   config.language = fixture.language;
   if (fixture.profile) config.profile = fixture.profile;
   const patterns = loadPatterns(repoRoot, fixture.language);
-  const deadline = judge.timeoutMs ? Date.now() + judge.timeoutMs : undefined;
+  // CLI-seat judges serialize on a local concurrency cap of 1, so parallel
+  // scoring only burns each call's budget inside the slot queue, and one
+  // shared absolute deadline would expire before the later sequential calls
+  // even start. Backend judges therefore score sequentially with a per-call
+  // timeout (enforced inside the backend invocation) and no shared deadline.
+  const sequentialJudge = Boolean(judge.backend);
+  const deadline = !sequentialJudge && judge.timeoutMs ? Date.now() + judge.timeoutMs : undefined;
   const judgeCalls = [];
   const baseCallLLM = options.callLLM
     || (judge.backend ? createBackendJudgeCallLLM(judge, options.backendDeps) : defaultCallLLM);
@@ -200,12 +206,20 @@ export async function evaluateModelGradedRewrite(fixture, rawRewrite, options = 
     logger: options.logger,
   };
 
-  const [beforeScore, afterScore, mpsResult, fidelityResult] = await Promise.all([
-    scoreText({ text: fixture.text, config, patterns, ...common }),
-    scoreText({ text: rewrite, config, patterns, ...common }),
-    scoreMPS({ original: fixture.text, rewritten: rewrite, ...common }),
-    scoreFidelity({ original: fixture.text, rewritten: rewrite, ...common }),
-  ]);
+  let beforeScore, afterScore, mpsResult, fidelityResult;
+  if (sequentialJudge) {
+    beforeScore = await scoreText({ text: fixture.text, config, patterns, ...common });
+    afterScore = await scoreText({ text: rewrite, config, patterns, ...common });
+    mpsResult = await scoreMPS({ original: fixture.text, rewritten: rewrite, ...common });
+    fidelityResult = await scoreFidelity({ original: fixture.text, rewritten: rewrite, ...common });
+  } else {
+    [beforeScore, afterScore, mpsResult, fidelityResult] = await Promise.all([
+      scoreText({ text: fixture.text, config, patterns, ...common }),
+      scoreText({ text: rewrite, config, patterns, ...common }),
+      scoreMPS({ original: fixture.text, rewritten: rewrite, ...common }),
+      scoreFidelity({ original: fixture.text, rewritten: rewrite, ...common }),
+    ]);
+  }
 
   const result = modelGradedResult({
     fixture,
