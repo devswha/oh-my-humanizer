@@ -342,6 +342,7 @@ async function readStreamedCompletion(response, onMetadata) {
  * @param {number} [options.temperature=DEFAULT_TEMPERATURE] Sampling temperature.
  * @param {number|string} [options.seed] Optional deterministic seed forwarded to the provider.
  * @param {object} [options.responseFormat] Optional OpenAI-compatible structured-output request field (sent as response_format) when provided.
+ * @param {object} [options.extraBody] Optional provider-specific fields spread into the OpenAI-compat request body (protocol fields cannot be overridden; ignored on the native Anthropic path).
  * @param {number} [options.timeout=120000] Per-attempt timeout in milliseconds. Budgets above 300s automatically switch the request to SSE streaming so undici's headersTimeout cannot kill long-running local backends (#576).
  * @param {number} [options.maxRetries=2] Retry count after the first attempt.
  * @param {number} [options.deadline] Absolute epoch-millisecond deadline for all attempts.
@@ -368,6 +369,11 @@ export async function callLLM({
   // { type: 'json_object' } or a json_schema spec. Opt-in: when omitted, no
   // response_format is sent so endpoints that reject the field are unaffected.
   responseFormat,
+  // Optional provider-specific body fields spread into the OpenAI-compat
+  // request verbatim (e.g. DeepSeek `thinking: {type:"disabled"}`, Gemini
+  // `reasoning_effort: "low"`, Alibaba `enable_thinking: false`). Known
+  // fields above cannot be overridden. Ignored on the native Anthropic path.
+  extraBody,
   timeout = DEFAULT_TIMEOUT,
   maxRetries = DEFAULT_MAX_RETRIES,
   deadline,
@@ -388,6 +394,8 @@ export async function callLLM({
   const body = native
     ? buildNativeBody({ prompt, model, temperature: modelRejectsTemperature(model) ? undefined : temperature })
     : {
+        // Spread first so callers can never clobber the protocol fields below.
+        ...(extraBody && typeof extraBody === 'object' && !Array.isArray(extraBody) ? extraBody : {}),
         model,
         messages: [{ role: 'user', content: prompt }],
       };
