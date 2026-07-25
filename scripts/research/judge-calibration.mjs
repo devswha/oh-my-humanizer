@@ -70,6 +70,15 @@ const JUDGES = [
       keyEnv: 'GEMINI_API_KEY',
     },
   },
+  {
+    // Confound separator: a strong-tier NON-reasoning chat model. The
+    // 2026-07-25 challengers that failed were both non-reasoning AND lower
+    // tier, so tier and reasoning were confounded. If this one discriminates,
+    // reasoning is not the requirement; if it does not, reasoning is.
+    id: 'judge-gpt53chat',
+    family: 'gpt-family',
+    http: { baseURL: 'https://api.openai.com/v1', model: 'gpt-5.3-chat-latest', keyEnv: 'OPENAI_API_KEY' },
+  },
 ];
 // The pre-registered pooled panel is the original 3-judge 2-of-3 mean.
 // Challengers are reported per-judge and never silently redefine it.

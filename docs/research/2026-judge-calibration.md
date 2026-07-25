@@ -53,6 +53,7 @@ per call in the same artifact.
 | judge | accuracy | AUC [95% CI] | bias human/AI | repeat SD | median s/call | verdict |
 |---|---:|---|---|---:|---:|---|
 | judge-gemini36flash (gemini-3.6-flash) | 0.91 | **0.96 [0.91, 1.00]** | 13.5 / 79.0 | 2.2 | 4.6 | **PASS** |
+| judge-gpt53chat (gpt-5.3-chat-latest, non-reasoning) | 0.94 | **0.99 [0.95, 1.00]** | 39.5 / 86.1 | 2.9 | **2.3** | **PASS** |
 | judge-grok420nr (grok-4.20-non-reasoning) | 0.56 | 0.71 [0.53, 0.86] | 19.7 / 23.6 | 2.7 | **0.7** | WATCH |
 | judge-deepseek-nothink (deepseek-v4-flash, thinking off) | 0.50 | 0.70 [0.54, 0.84] | 21.3 / 30.4 | 12.5 | **0.2** | WATCH |
 
@@ -61,9 +62,16 @@ per call in the same artifact.
 false-positive rate is near zero precisely because they score almost
 everything low: the human/AI mean gap is 4–9 points, versus 53–65 for every
 PASS judge. Low repeat SD (2.7) is not stability here — it is the consistency
-of a judge that always answers ~20. Whether this is the model tier or the
-disabled reasoning is not separated by this run; either way both are unusable
-as a quality gate.
+of a judge that always answers ~20.
+
+**Reasoning is not the requirement — tier is.** Both failures were
+non-reasoning *and* lower tier, so a strong-tier non-reasoning chat model was
+added as a confound separator: `gpt-5.3-chat-latest` reached accuracy 0.94,
+AUC 0.99 [0.95, 1.00], repeat SD 2.9 at 2.3s per call — PASS, and the fastest
+passing judge measured. A judge does not need a reasoning trace to read
+Korean prose style; it needs to be a good model. Its self-preference is −24.4
+(markedly harsher on its own family's generations) — the conservative
+direction for a gate, but it keeps the cross-family judging rule mandatory.
 
 **gemini-3.6-flash is a real judge.** AUC 0.96 sits above grok-4.5 (0.93) and
 below gpt-5.5 (1.00), with gpt-level repeat tightness (SD 2.2) and the
@@ -75,7 +83,8 @@ still holds the only 1.00.
 
 Operational note: the free Gemini tier may train on submitted text, so a
 free-tier key is fine for this repo-owned fixture corpus and must not be used
-to score customer text.
+to score customer text — that lane needs a paid no-training API judge
+(`gpt-5.3-chat-latest` is the measured pick) or a subscription seat.
 
 ## Deterministic stylometry on the same corpus
 
