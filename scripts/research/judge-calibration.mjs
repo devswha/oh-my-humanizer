@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 import { extractTextCandidates } from '../rebaseline-web-collect.mjs';
 import { scoreText } from '../prose-score.mjs';
+import { extractKimiFinalMessage } from '../../src/backends/kimi-cli.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DIR = join(ROOT, 'artifacts', 'judge-calibration-2026');
@@ -32,17 +33,53 @@ const LOG = join(DIR, 'jc-run.log');
 
 const SEED = 20260713;
 const CODEX = join(process.env.HOME || '', '.nvm', 'versions', 'node', 'v22.17.1', 'bin', 'codex');
-const KIMI_ARGS = ['--print', '--input-format', 'text', '--output-format', 'text',
-  '--final-message-only', '--no-thinking', '--max-steps-per-turn', '20'];
 const CODEX_ARGS = ['exec', '--skip-git-repo-check', '--sandbox', 'read-only'];
+
+// Incumbent panel (registered 2026-07-13) + HTTP challengers (added
+// 2026-07-25). The challengers measured 4-9x faster and up to 100x cheaper
+// than the incumbents in the live-quality judge probes, but discrimination
+// was unmeasured — they are admitted here under the SAME pre-registered
+// criteria (PASS: AUC >= 0.75 AND median repeat SD <= 12). Reasoning is
+// disabled where the provider exposes a switch: it is pure cost/latency on
+// this structured verdict (measured 93-95% of output tokens when left on).
 const JUDGES = [
-  { id: 'judge-kimi', family: 'moonshot-family', cmd: 'kimi', args: KIMI_ARGS },
+  { id: 'judge-kimi', family: 'moonshot-family', cmd: 'kimi' },
   { id: 'judge-gpt', family: 'gpt-family', cmd: CODEX, args: CODEX_ARGS },
   { id: 'judge-grok', family: 'xai-family', cmd: 'node', args: [join('scripts', 'research', 'xai-cli.mjs')] },
+  {
+    id: 'judge-grok420nr',
+    family: 'xai-family',
+    http: { baseURL: 'https://api.x.ai/v1', model: 'grok-4.20-0309-non-reasoning', keyEnv: 'XAI_API_KEY' },
+  },
+  {
+    id: 'judge-deepseek-nothink',
+    family: 'deepseek-family',
+    http: {
+      baseURL: 'https://api.deepseek.com',
+      model: 'deepseek-v4-flash',
+      keyEnv: 'DEEPSEEK_API_KEY',
+      extraBody: { thinking: { type: 'disabled' } },
+    },
+  },
+  {
+    id: 'judge-gemini36flash',
+    family: 'google-family',
+    http: {
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
+      model: 'gemini-3.6-flash',
+      keyEnv: 'GEMINI_API_KEY',
+    },
+  },
 ];
+// The pre-registered pooled panel is the original 3-judge 2-of-3 mean.
+// Challengers are reported per-judge and never silently redefine it.
+const PANEL_JUDGE_IDS = ['judge-kimi', 'judge-gpt', 'judge-grok'];
 const JUDGE_TIMEOUT_MS = 120_000;
 const JUDGE_ATTEMPTS = 3;
 const CALL_SPACING_MS = 15_000;
+// HTTP judges have no local seat/session to protect, so they only need enough
+// spacing to stay well under provider rate limits.
+const HTTP_CALL_SPACING_MS = 2_000;
 
 // Corpus shape — S1 Arm-D document filter.
 const MIN_PARAS = 3;
@@ -238,9 +275,10 @@ async function invokeGen(family, prompt) {
     return { text };
   }
   if (cfg.provider === 'kimi-cli') {
-    const res = await run('kimi', KIMI_ARGS, { input: prompt, timeout: 8 * 60 * 1000 });
+    // Kimi Code >= 0.28: prompt is argv, output is NDJSON.
+    const res = await run('kimi', ['--prompt', prompt, '--output-format', 'stream-json'], { timeout: 8 * 60 * 1000 });
     if (!res.ok) return { error: res.error || res.stderr.slice(-300) || `exit ${res.code}` };
-    return { text: res.stdout };
+    return { text: extractKimiFinalMessage(res.stdout) };
   }
   if (cfg.provider === 'xai-api') {
     const res = await run('node', [join('scripts', 'research', 'xai-cli.mjs')], { input: prompt, timeout: 8 * 60 * 1000 });
@@ -342,12 +380,59 @@ function parseJudge(raw) {
   return null;
 }
 
+/**
+ * One judge call. HTTP judges go straight to the OpenAI-compatible endpoint
+ * (recording latency + usage so cost/speed lands in the same artifact as the
+ * verdict); CLI judges keep the spawn transport. Kimi Code >= 0.28 takes the
+ * prompt as argv and emits NDJSON, so it is invoked in that shape.
+ */
+async function callJudge(judge, prompt) {
+  if (judge.http) return httpJudge(judge, prompt);
+  if (judge.cmd === 'kimi') {
+    const res = await run('kimi', ['--prompt', prompt, '--output-format', 'stream-json'], { timeout: JUDGE_TIMEOUT_MS });
+    if (!res.ok) return { error: res.error || res.stderr.slice(-300) || `exit ${res.code}` };
+    return { text: extractKimiFinalMessage(res.stdout) };
+  }
+  const res = await run(judge.cmd, judge.args, { input: prompt, timeout: JUDGE_TIMEOUT_MS });
+  if (!res.ok) return { error: res.error || res.stderr.slice(-300) || `exit ${res.code}` };
+  return { text: res.stdout };
+}
+
+async function httpJudge(judge, prompt) {
+  const { baseURL, model, keyEnv, extraBody } = judge.http;
+  const apiKey = process.env[keyEnv]?.trim();
+  if (!apiKey) return { error: `missing ${keyEnv}` };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), JUDGE_TIMEOUT_MS);
+  const startedAt = Date.now();
+  try {
+    const res = await fetch(`${baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ ...(extraBody || {}), model, messages: [{ role: 'user', content: prompt }] }),
+      signal: controller.signal,
+    });
+    const ms = Date.now() - startedAt;
+    if (!res.ok) return { error: `HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`, ms };
+    const data = await res.json();
+    return { text: data?.choices?.[0]?.message?.content ?? '', ms, usage: data?.usage ?? null };
+  } catch (e) {
+    return { error: String(e?.message ?? e).slice(0, 200), ms: Date.now() - startedAt };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function judgeOnce(judge, text) {
   const attempts = [];
   for (let attempt = 1; attempt <= JUDGE_ATTEMPTS; attempt += 1) {
-    const res = await run(judge.cmd, judge.args, { input: judgePrompt(text), timeout: JUDGE_TIMEOUT_MS });
-    const parsed = parseJudge(res.stdout);
-    if (parsed) return attempt === 1 ? parsed : { ...parsed, retried: true };
+    const res = await callJudge(judge, judgePrompt(text));
+    const parsed = parseJudge(res.text);
+    const meta = {
+      ...(Number.isFinite(res.ms) ? { ms: res.ms } : {}),
+      ...(res.usage ? { usage: res.usage } : {}),
+    };
+    if (parsed) return { ...parsed, ...meta, ...(attempt === 1 ? {} : { retried: true }) };
     attempts.push(res.error || 'unparseable');
   }
   return { error: attempts.join(' | '), retries_exhausted: true };
@@ -368,9 +453,22 @@ function stabilityPicks(docs) {
   return [...ai, ...human];
 }
 
+function judgeFilter() {
+  const argv = process.argv.slice(3);
+  const i = argv.indexOf('--judges');
+  if (i === -1 || !argv[i + 1]) return null;
+  return new Set(argv[i + 1].split(',').map((s) => s.trim()).filter(Boolean));
+}
+
 async function judge() {
   const docs = loadDocs();
   if (!docs.length) { log('judge: no docs'); process.exit(1); }
+  // `--judges a,b` restricts the pass (default: every judge). Existing
+  // judgments are skipped by key either way, so this only bounds a fresh run.
+  const only = judgeFilter();
+  const judges = only ? JUDGES.filter((j) => only.has(j.id)) : JUDGES;
+  if (!judges.length) { log(`judge: no judge matched ${[...(only || [])].join(',')}`); process.exit(2); }
+  log(`judge: ${judges.map((j) => j.id).join(', ')}`);
   const doneKeys = new Set(readJsonl(JUDGMENTS).map((r) => `${r.sample_id}:${r.judge}:${r.repeat}`));
   let consecutiveErrors = 0;
   const doCall = async (j, d, repeat) => {
@@ -390,13 +488,13 @@ async function judge() {
       consecutiveErrors = 0;
       log(`${key}: ${out.authorship} ${out.ai_likeness}`);
     }
-    await sleep(CALL_SPACING_MS);
+    await sleep(j.http ? HTTP_CALL_SPACING_MS : CALL_SPACING_MS);
   };
   // main pass
-  for (const d of docs) for (const j of JUDGES) await doCall(j, d, 0);
+  for (const d of docs) for (const j of judges) await doCall(j, d, 0);
   // stability block
   for (const d of stabilityPicks(docs)) {
-    for (let repeat = 1; repeat <= 4; repeat += 1) for (const j of JUDGES) await doCall(j, d, repeat);
+    for (let repeat = 1; repeat <= 4; repeat += 1) for (const j of judges) await doCall(j, d, repeat);
   }
   log('judge pass complete');
 }
@@ -489,15 +587,24 @@ function analyze() {
     bestAuc.push(a ?? 0);
     const pass = a !== null && a >= 0.75 && stab !== null && stab <= 12;
     const demote = (a !== null && a < 0.65) || (stab !== null && stab > 20);
+    const latencies = mine.filter((r) => Number.isFinite(r.ms)).map((r) => r.ms);
+    const outTokens = mine.map((r) => r.usage?.completion_tokens).filter((v) => Number.isFinite(v));
     console.log(`\n== ${j.id} (cross-family n=${cross.length}: ai ${aiS.length} / human ${huS.length}) ==`);
     console.log(`accuracy ${fmt(acc)} | AUC ${fmt(a)} ${fmtCI(ci)} | bias human ${fmt(mean(huS), 1)} / ai ${fmt(mean(aiS), 1)}`);
     console.log(`stability median per-doc SD ${fmt(stab, 1)} over ${sds.length} docs | self-preference ${fmt(selfPref, 1)}`);
+    if (latencies.length) {
+      console.log(`cost/speed: median ${fmt(median(latencies) / 1000, 1)}s per call over ${latencies.length} calls` +
+        (outTokens.length ? ` | median output ${fmt(median(outTokens), 0)} tok` : ''));
+    }
     console.log(`>>> ${demote ? 'DEMOTE candidate' : pass ? 'PASS' : 'WATCH'} (PASS: AUC≥0.75 & SD≤12; DEMOTE: AUC<0.65 | SD>20)`);
   }
 
-  // pooled panel (2-of-3 mean per doc)
+  // pooled panel — pre-registered 3-judge 2-of-3 mean; challengers excluded so
+  // the registered metric keeps its original definition.
   const byDoc = {};
-  for (const r of main) { (byDoc[r.sample_id] ??= { class: r.class, scores: [] }).scores.push(r.ai_likeness); }
+  for (const r of main.filter((x) => PANEL_JUDGE_IDS.includes(x.judge))) {
+    (byDoc[r.sample_id] ??= { class: r.class, scores: [] }).scores.push(r.ai_likeness);
+  }
   const panel = Object.values(byDoc).filter((d) => d.scores.length >= 2).map((d) => ({ class: d.class, score: mean(d.scores) }));
   const pAi = panel.filter((d) => d.class === 'ai-like').map((d) => d.score);
   const pHu = panel.filter((d) => d.class === 'natural-human').map((d) => d.score);
