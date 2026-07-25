@@ -93,17 +93,20 @@ models and are noisy run-to-run. Pin the grading side to one fixed judge with
 
 | judge | AUC | repeat SD | s/call | what it spends |
 |---|---:|---:|---:|---|
-| `PATINA_LIVE_JUDGE_MODEL=gpt-5.3-chat-latest` (OpenAI HTTP) | **0.99** | 2.9 | **2.3** | provider cash (~2k tok/call); no seat quota, no training |
+| `PATINA_LIVE_JUDGE_MODEL=gpt-5.3-chat-latest` (OpenAI HTTP) | **0.99** | 2.9 | **2.3** | ~$0.02/fixture; no seat quota, no training — but a moving alias |
 | `PATINA_LIVE_JUDGE_MODEL=gemini-3.6-flash` (HTTP) | 0.96 | 2.2 | 4.6 | near-free tier — but it may train on submitted text |
 | `--judge-backend codex-cli --judge-model gpt-5.5` | **1.00** | 2.2 | 14 | **your ChatGPT seat quota** (~12k tok/call incl. agent scaffolding) |
 | non-reasoning lower-tier (grok-4.20-nr, deepseek thinking-off) | 0.70–0.71 | — | 0.2–0.7 | **unusable** — missed 20–23 of 24 AI docs |
 
-Default to **gpt-5.3-chat-latest**: highest measured AUC per second, no seat
-quota, and no training clause, so it is also the only cheap judge allowed on
-customer text. Use **gemini-3.6-flash** when the run must cost nothing and the
-text is repo-owned. Reserve the **gpt-5.5 seat** for final gates and published
+Default to **gpt-5.3-chat-latest** for routine work: highest measured AUC per
+second, no seat quota, no training clause (the only cheap judge allowed on
+customer text), ~$0.02 per fixture. Its one flaw is that `-latest` is a moving
+alias with no dated 5.3 snapshot, so for numbers that must stay comparable
+across weeks use a pinnable judge instead. Use **gemini-3.6-flash** when the
+run must cost nothing and the text is repo-owned (free tier may train on
+submissions). Reserve the **gpt-5.5 seat** for final gates and published
 numbers — a subscription seat is not free, it is your own coding quota
-(a 36-fixture sweep is ~1.7M seat tokens).
+(~12k tok/call, ~1.7M for a 36-fixture sweep).
 
 Reasoning traces are not what makes a judge work: a strong non-reasoning model
 (gpt-5.3-chat-latest) reached 0.99, while lower-tier non-reasoning models
