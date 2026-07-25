@@ -351,6 +351,7 @@ function createLiveCallLLM(callLLM, settings, record) {
       return await callLLM({
         ...args,
         timeout: settings.timeoutMs,
+        ...(settings.extraBody ? { extraBody: settings.extraBody } : {}),
         onResponse,
         onAttempt,
       });
@@ -474,6 +475,7 @@ export function resolveLiveSettings(options = {}) {
   const model = options.model ?? env.PATINA_LIVE_MODEL ?? env.PATINA_MODEL;
   const resolved = resolveProviderConfig({ provider, apiKey, baseURL, model });
   const timeoutMs = parsePositiveInt(options.timeoutMs ?? env.PATINA_LIVE_TIMEOUT_MS, 120000);
+  const extraBody = parseExtraBody(options.extraBody ?? env.PATINA_LIVE_EXTRA_BODY, 'PATINA_LIVE_EXTRA_BODY');
 
   return {
     provider: provider?.name ?? null,
@@ -485,6 +487,7 @@ export function resolveLiveSettings(options = {}) {
     baseURLSource: baseURL ? sourceLabel(options.baseURL, env.PATINA_LIVE_API_BASE, 'baseURL') : resolved.baseURLSource,
     modelSource: model ? sourceLabel(options.model, env.PATINA_LIVE_MODEL, 'model') : resolved.modelSource,
     timeoutMs,
+    ...(extraBody ? { extraBody } : {}),
   };
 }
 
@@ -504,6 +507,7 @@ export function resolveJudgeSettings(options = {}, primary = null) {
   const baseURL = options.judgeBaseURL ?? env.PATINA_LIVE_JUDGE_API_BASE ?? null;
   const explicitApiKey = options.judgeApiKey ?? env.PATINA_LIVE_JUDGE_API_KEY ?? null;
   const backend = options.judgeBackend ?? env.PATINA_LIVE_JUDGE_BACKEND ?? null;
+  const extraBody = parseExtraBody(options.judgeExtraBody ?? env.PATINA_LIVE_JUDGE_EXTRA_BODY, 'PATINA_LIVE_JUDGE_EXTRA_BODY');
   if (!providerName && !model && !baseURL && !explicitApiKey && !backend) return null;
 
   // A subscription CLI backend judge (codex-cli, claude-cli, ...) needs no
@@ -539,7 +543,25 @@ export function resolveJudgeSettings(options = {}, primary = null) {
       ? (options.judgeApiKey ? 'option:judgeApiKey' : 'env:PATINA_LIVE_JUDGE_API_KEY')
       : (apiKey ? 'primary' : null),
     timeoutMs,
+    ...(extraBody ? { extraBody } : {}),
   };
+}
+
+/**
+ * Parse an optional JSON object of provider-specific body fields (e.g.
+ * DeepSeek `{"thinking":{"type":"disabled"}}`, Gemini
+ * `{"reasoning_effort":"low"}`). Reasoning control lives here because it is
+ * the dominant judge cost/latency distortion (measured 93–95% of output
+ * tokens on reasoning-default models).
+ */
+function parseExtraBody(value, label) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(String(value));
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+  } catch {}
+  throw new Error(`${label} must be a JSON object, e.g. '{"reasoning_effort":"low"}'`);
 }
 
 function resolveOptionalApiKey(provider, env, apiKeyFile) {
@@ -692,6 +714,8 @@ export function parseArgs(argv = process.argv.slice(2)) {
     else if (arg === '--judge-base-url') options.judgeBaseURL = argv[++i];
     else if (arg === '--judge-timeout-ms') options.judgeTimeoutMs = Number(argv[++i]);
     else if (arg === '--judge-backend') options.judgeBackend = argv[++i];
+    else if (arg === '--extra-body') options.extraBody = argv[++i];
+    else if (arg === '--judge-extra-body') options.judgeExtraBody = argv[++i];
     else if (arg === '--help' || arg === '-h') options.help = true;
     else throw new Error(`unknown argument: ${arg}`);
   }
@@ -832,6 +856,11 @@ Options:
   --judge-backend <name>  Run the judge on a local subscription CLI backend
                           (codex-cli, claude-cli, gemini-cli, kimi-cli — or
                           PATINA_LIVE_JUDGE_BACKEND); no API key needed
+  --extra-body <json>     Provider-specific request fields for the candidate
+                          (or PATINA_LIVE_EXTRA_BODY), e.g. '{"reasoning_effort":"low"}'
+  --judge-extra-body <json>  Same for judge scoring calls (or
+                          PATINA_LIVE_JUDGE_EXTRA_BODY) — e.g. DeepSeek
+                          '{"thinking":{"type":"disabled"}}' to kill reasoning cost
   --fixtures <path>       Fixture directory or legacy JSONL file
   --candidate-dir <dir>   Score precomputed rewrites named <fixture_id>.md
   --language <lang>       Filter fixtures by language
