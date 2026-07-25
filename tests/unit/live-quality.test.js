@@ -294,6 +294,37 @@ test('createBackendJudgeCallLLM adapts invokeBackendChain to the scoring callLLM
   assert.equal(seen[0].prompt, 'score this');
 });
 
+test('extra body resolves from env JSON, reaches judge calls, and rejects junk', async () => {
+  const judge = resolveJudgeSettings({
+    env: {
+      PATINA_LIVE_JUDGE_MODEL: 'judge-model',
+      PATINA_LIVE_JUDGE_EXTRA_BODY: '{"thinking":{"type":"disabled"}}',
+    },
+  }, { baseURL: 'https://example.test/v1', model: 'candidate', apiKey: 'k', timeoutMs: 1000 });
+  assert.deepEqual(judge.extraBody, { thinking: { type: 'disabled' } });
+
+  assert.throws(
+    () => resolveJudgeSettings({ env: { PATINA_LIVE_JUDGE_EXTRA_BODY: 'not-json' } }),
+    /PATINA_LIVE_JUDGE_EXTRA_BODY must be a JSON object/,
+  );
+
+  const seenExtra = [];
+  const recording = (args) => {
+    seenExtra.push(args.extraBody ?? null);
+    return fakeQualityModel(args);
+  };
+  await evaluateModelGradedRewrite(fixture, rewrite, {
+    settings: { apiKey: 'k', baseURL: 'https://example.test/v1', model: 'candidate', timeoutMs: 1000 },
+    judgeSettings: {
+      apiKey: 'jk', baseURL: 'https://judge.test/v1', model: 'judge-model', timeoutMs: 1000,
+      extraBody: { reasoning_effort: 'low' },
+    },
+    callLLM: recording,
+  });
+  assert.ok(seenExtra.length >= 4);
+  assert.ok(seenExtra.every((extra) => extra && extra.reasoning_effort === 'low'));
+});
+
 test('normalizeUsage maps OpenAI-compat and native Anthropic shapes', () => {
   assert.deepEqual(normalizeUsage({
     prompt_tokens: 100,

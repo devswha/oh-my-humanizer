@@ -112,6 +112,12 @@ npm run quality:live -- --language ko --limit 3
   with `--judge-model` or let the backend use its documented default. CLI
   backends report no token usage, so cost accounting shows calls and wall
   time only.
+- `PATINA_LIVE_JUDGE_EXTRA_BODY` / `--judge-extra-body` — JSON object of
+  provider-specific request fields for the scoring calls (candidate side:
+  `PATINA_LIVE_EXTRA_BODY` / `--extra-body`). Main use is reasoning control,
+  the dominant judge cost/latency distortion (93–95% of output tokens on
+  reasoning-default models): DeepSeek `{"thinking":{"type":"disabled"}}`,
+  Gemini `{"reasoning_effort":"low"}`, Alibaba `{"enable_thinking":false}`.
 
 The report records the judge under `settings.judge`, and the Markdown header
 prints `judge: <model>` (or `self` when unset).
