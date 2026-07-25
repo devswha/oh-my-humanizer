@@ -73,6 +73,16 @@ Korean prose style; it needs to be a good model. Its self-preference is −24.4
 (markedly harsher on its own family's generations) — the conservative
 direction for a gate, but it keeps the cross-family judging rule mandatory.
 
+Caveat that limits this specific pick: `gpt-5.3-chat-latest` is a **moving
+alias** — the 5.3 line publishes no dated snapshot (unlike
+`gpt-5.5-2026-04-23`), so this AUC is "the 5.3 chat model as served on
+2026-07-25". If OpenAI repoints the alias, a "fixed" judge silently changes
+underneath the comparison it exists to stabilize. Re-run this calibration
+before trusting cross-run numbers from it, or use a judge that can be pinned
+(gpt-5.5, gemini-3.6-flash) when the comparison must hold over time. Its unit
+price is also unpublished (the 5.3 line is absent from the pricing table);
+measured usage is 1,907 input / 64 output tokens per call.
+
 **gemini-3.6-flash is a real judge.** AUC 0.96 sits above grok-4.5 (0.93) and
 below gpt-5.5 (1.00), with gpt-level repeat tightness (SD 2.2) and the
 cleanest separation of the round (13.5 / 79.0). All 24 AI documents are
