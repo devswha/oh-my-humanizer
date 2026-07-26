@@ -310,6 +310,25 @@ Campaign state:
   The entitlement layer stays provider-agnostic (injected license validator,
   env-driven checkout URL) so an adapter remains bounded work; do not build it
   speculatively before a trigger fires.
+- Serving engine (2026-07-26, owner-approved): both tiers move to
+  `gemini-3.6-flash`. Measured over all 22 live-quality fixtures with a fixed
+  independent judge — AI-score improvement 13.0 vs 11.8 for the previous Pro
+  pin `claude-sonnet-5`, meaning lost on 7 fixtures vs 10, $0.030 per rewrite
+  vs $0.156, 8.3s vs 27.7s. The previous free default `gpt-4.1-mini` measured
+  an improvement of 0.2 — it returned input nearly unchanged, so free traffic
+  received no real rewrite. Evidence:
+  `docs/operations/serving-engine-cost-20260725.md`. The model is allowlisted
+  and documented; the runtime switch is a hosting env change.
+- **Open, highest remaining quality lever**: five registers (blog,
+  instructional, marketing, product, social) fail on every engine measured,
+  across a 20x price spread, while conversational and documentary registers
+  pass. Two unrelated frontier models fail the identical 11 fixtures, so the
+  ~40% pass rate is set by the prompt or the gate, not the engine. The leading
+  hypothesis is that `scoreFidelity` penalizes the removal of stylistic
+  packaging that `scoreMPS` explicitly exempts — which would make it a scoring
+  bug that partly invalidates this week's engine comparisons. Full data, three
+  hypotheses, and the next three steps:
+  `docs/operations/register-failure-handoff-20260726.md`.
 
 Next recommended order:
 
