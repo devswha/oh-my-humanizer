@@ -74,8 +74,36 @@ comparison is meaningful.
 **Worst-case MPS is the deciding column.** deepseek-v4-flash is 10x cheaper
 than gemini-3.6-flash and ties on pass count, but it dropped to MPS 15 on
 `ko-blog-01` (most of the original meaning gone). gpt-5.3-chat-latest did the
-same. gemini-3.6-flash never fell below 80, which is the behaviour a paid
-surface needs.
+same.
+
+## Expanded run (2026-07-26): the 6-fixture read was wrong
+
+Rerun on all 22 fixtures with `gpt-5.3-chat-latest` as the fixed judge
+(calibrated AUC 0.99, independent of both engines). Two 6-fixture claims from
+the section above did not survive:
+
+| engine | pass | AI-score delta | MPS mean | MPS worst | fidelity mean | meaning-loss fixtures | $/rewrite |
+|---|---|---:|---:|---:|---:|---:|---:|
+| gemini-3.6-flash | 9/22 | **13.0** | 76.3 | 20 | 69.4 | **7** | **$0.030** |
+| claude-sonnet-5 (Pro pin) | 8/22 | 11.8 | 73.1 | 20 | 65.2 | 10 | $0.156 |
+| gpt-4.1-mini (free default) | 10/22 | **0.2** | 84.8 | 33.3 | 81.8 | 4 | $0.008 |
+
+1. "gemini-3.6-flash never falls below MPS 80" was small-sample luck. On 22
+   fixtures its worst case is 20 (`ko-instructional-01`), the same floor as
+   sonnet-5. It still loses meaning on fewer fixtures (7 vs 10) and improves
+   the AI score more (13.0 vs 11.8) at a fifth of the cost and a third of the
+   latency, so the ranking holds — but on margin, not dominance.
+2. `gpt-4.1-mini` topping the pass/MPS columns is an artifact, not a win. Its
+   AI-score delta is **0.2**: it returns the input essentially unchanged, so it
+   trivially preserves meaning while doing none of the product's work. Six of
+   its 22 results carry `ai_not_improved`. **The free tier is currently serving
+   no real rewrite.** Pass counts must always be read next to the AI delta.
+
+Both frontier engines fail the same registers (blog, instructional, social,
+product, marketing) while passing email, public-docs, chat, and academic. Two
+independent frontier models failing identically points at the prompt or the
+gate for those registers, not at the models — that is the larger lever behind
+the ~40% pass rate, and it is untouched by any engine swap.
 
 ## Published rates gathered while comparing (per 1M tokens)
 
