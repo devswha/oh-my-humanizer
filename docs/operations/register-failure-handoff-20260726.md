@@ -60,16 +60,46 @@ suggested gemini-3.6-flash never dropped below MPS 80, and the 22-fixture rerun
 put its floor at 20. Small samples in this harness have produced confident,
 wrong conclusions twice already.
 
-## Three hypotheses, cheapest first
+## Hypothesis 1 is confirmed — it is a scoring bug, and it is live
 
-1. **The fidelity rubric penalizes legitimate rewriting in these registers.**
-   Marketing and social text is mostly the stylistic packaging patina is
-   supposed to strip; if the fidelity judge counts removed hype as
-   infidelity, a correct rewrite is scored as a failure. MPS explicitly
-   exempts hype (`src/scoring.js` extraction rules); check whether
-   `scoreFidelity` has the same exemption. If it does not, this is a scoring
-   bug, not an engine or prompt problem, and it invalidates part of every
-   engine comparison recorded this week.
+Hypothesis 1 below was checked on 2026-07-27 and holds. A real request to the
+production free tier returned an error to the user, `floor_failed` on fidelity,
+for a rewrite that was correct:
+
+- original: "빠르게 변화하는 디지털 환경 속에서, 본 솔루션은 **혁신적인 시너지**를
+  활용하여 고객에게 **전례 없는** 가치를 **원활하게** 제공합니다."
+- rewrite: "디지털 환경이 빠르게 변하고 있다. 이 솔루션은 고객에게 새로운 가치를
+  제공한다."
+- MPS: 100. Fidelity: failed, `length_ratio_pct` 62, rationale "omits the
+  specific claims about 'innovative synergy' and 'seamless delivery'".
+
+The rewrite removed exactly the marketing packaging patina exists to remove,
+and the fidelity judge charged it as omitted claims. Reading the prompt in
+`src/scoring.js` shows three separate mechanisms doing this:
+
+1. `claims_preserved` has no stylistic-packaging exemption. `scoreMPS` has one
+   and states it explicitly ("removing or toning them down is the rewrite's
+   job and must never be penalized"); `scoreFidelity` never received it.
+2. `tone_match` scores whether "register/formality of REWRITTEN matches
+   ORIGINAL". Changing an AI-sounding register is the product's entire
+   function, so this criterion penalizes success by construction.
+3. `length_ratio` penalizes shortening. Removing filler shortens text, so
+   every clean rewrite of hype-dense copy loses points here too.
+
+Consequences: hype-dense registers (marketing, social, product, blog) cannot
+pass regardless of engine, which is exactly the observed failure set; the free
+tier returns errors instead of rewrites on the copy most likely to be pasted
+into a humanizer; and this week's engine comparisons are biased against
+engines that strip hype most thoroughly.
+
+Fixing this changes what the product accepts, so it is an owner decision, not
+a silent patch. The minimal change is to give `scoreFidelity` the same
+packaging exemption `scoreMPS` already has, and to reconsider whether
+`tone_match` and `length_ratio` belong in a gate for a tool whose job is to
+change tone and cut filler.
+
+## Remaining hypotheses
+
 2. **The fixtures are mis-specified.** `*-product-01` fails on both engines
    with MPS 40 — check whether those fixtures carry dense factual anchors
    (spec lists, numbers) that no humanizing rewrite can retain while changing
@@ -80,15 +110,13 @@ wrong conclusions twice already.
 
 ## Next steps
 
-1. Read `scoreFidelity`'s prompt in `src/scoring.js` and compare its
-   treatment of removed stylistic packaging against `scoreMPS`. Hypothesis 1
-   is cheap to confirm and would be the highest-value fix.
-2. Dump the actual rewrites for `en-instructional-01` and `ko-social-01`
-   (`--candidate-dir` keeps precomputed rewrites) and read them next to the
-   fidelity verdicts. The harness currently discards rewrite text, so this
-   needs a small change or a manual run.
-3. Only after 1–2: decide whether the gate threshold (fidelity ≥ 70) is
-   calibrated for these registers.
+1. Decide on the `scoreFidelity` rubric (owner call — it changes what the
+   product accepts). Minimal version: port the packaging exemption from
+   `scoreMPS`, and drop or rescope `tone_match`.
+2. Rerun the 22-fixture comparison after any rubric change. The current
+   engine numbers were produced under the biased gate and should not be cited
+   afterwards.
+3. Only then decide whether the fidelity floor of 70 is calibrated.
 
 ## What is already settled (do not redo)
 
