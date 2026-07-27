@@ -319,16 +319,20 @@ Campaign state:
   received no real rewrite. Evidence:
   `docs/operations/serving-engine-cost-20260725.md`. The model is allowlisted
   and documented; the runtime switch is a hosting env change.
-- **Open, highest remaining quality lever**: five registers (blog,
-  instructional, marketing, product, social) fail on every engine measured,
-  across a 20x price spread, while conversational and documentary registers
-  pass. Two unrelated frontier models fail the identical 11 fixtures, so the
-  ~40% pass rate is set by the prompt or the gate, not the engine. The leading
-  hypothesis is that `scoreFidelity` penalizes the removal of stylistic
-  packaging that `scoreMPS` explicitly exempts — which would make it a scoring
-  bug that partly invalidates this week's engine comparisons. Full data, three
-  hypotheses, and the next three steps:
-  `docs/operations/register-failure-handoff-20260726.md`.
+- Register failures (opened 2026-07-26, **closed 2026-07-27**): five registers
+  appeared to fail on every engine across a 20x price spread. The cause was the
+  fidelity rubric, not the engines — it charged removal of the stylistic
+  packaging patina exists to strip as omitted claims, required the rewritten
+  register to match the original, and penalized the shortening that filler
+  removal causes. A production free-tier request was returning `floor_failed`
+  to users for a correct rewrite. After the fix the same engine on the same 22
+  fixtures went from 9/22 to 17/22 and fidelity mean from 69.4 to 92.4.
+  Evidence: `docs/operations/register-failure-handoff-20260726.md`.
+- **Open**: five fixtures still fail, now on meaning preservation
+  (`ko-blog`, `ko-instructional`, `ko-marketing`, `en-product`, `en-social`;
+  MPS 40–60 with fidelity 75–100). These rewrites strip AI tells thoroughly but
+  drop factual anchors. Check whether the anchors are genuinely lost or whether
+  `scoreMPS` over-extracts from hype-dense copy the way `scoreFidelity` did.
 
 Next recommended order:
 

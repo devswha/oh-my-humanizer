@@ -105,6 +105,29 @@ independent frontier models failing identically points at the prompt or the
 gate for those registers, not at the models — that is the larger lever behind
 the ~40% pass rate, and it is untouched by any engine swap.
 
+## Superseded by the fidelity fix (2026-07-27)
+
+Every number above was produced under a fidelity rubric that charged removal of
+stylistic packaging as omitted claims, required the rewritten register to match
+the original, and penalized the shortening filler removal causes. It therefore
+penalized whichever engine stripped hype most thoroughly — exactly the
+behaviour the product wants — so the engine ranking here is not reliable.
+
+Remeasured after the fix, same 22 fixtures, same fixed judge
+(`gpt-5.3-chat-latest`), same candidate:
+
+| | broken rubric | fixed rubric |
+|---|---:|---:|
+| gemini-3.6-flash pass | 9/22 | **17/22** |
+| fidelity mean | 69.4 | **92.4** |
+| MPS mean | 76.3 | 80.5 |
+
+The engine choice already shipped (gemini-3.6-flash on both tiers) and the
+remeasurement supports keeping it. What is not re-established is the ranking
+against `claude-sonnet-5` and the other candidates: those runs were never
+repeated under the fixed rubric, so treat their pass counts as void. Rerun
+before citing any comparison from this document.
+
 ## Published rates gathered while comparing (per 1M tokens)
 
 | model | input | cached input | output | training on input |
