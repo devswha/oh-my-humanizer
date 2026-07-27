@@ -133,11 +133,34 @@ latency 3x lower".
 `en-marketing-01` fails on both engines, which points at that fixture or the
 prompt rather than at either model.
 
-The other candidates measured on 2026-07-25/26 (deepseek-v4-flash, grok-4.3,
-gpt-5.3-chat-latest, gpt-5.4-mini, gpt-5.6-luna, gpt-4.1-mini) were never rerun
-under the fixed apparatus. Their numbers stay void; rerun before citing any of
-them. That includes the gpt-4.1-mini result that motivated moving the free
-tier — the conclusion may well hold, but it is not currently evidenced.
+Cheaper candidates were rerun on the same fixed apparatus to see whether the
+shipped engine could be undercut. It cannot, and the two failure modes are
+mirror images:
+
+| engine | pass | MPS mean | MPS worst | meaning-loss | not-improved | $/rewrite |
+|---|---|---:|---:|---:|---:|---:|
+| gemini-3.6-flash | **20/22** | 90.4 | 60 | 1 | 1 | $0.030 |
+| claude-sonnet-5 | **20/22** | 91.5 | 50 | 2 | 0 | $0.156 |
+| deepseek-v4-flash | 18/22 | 83.9 | **24** | 4 | 1 | $0.003 |
+| gemini-3.5-flash-lite | 10/22 | 84.9 | 40 | 4 | **8** | $0.007 |
+
+`deepseek-v4-flash` is ten times cheaper and still rewrites hard, but it gutted
+`ko-news-01` to MPS 24 — roughly three quarters of a news item's content gone.
+`gemini-3.5-flash-lite` fails the other way: eight fixtures carry
+`ai_not_improved`, and four Korean ones score MPS 100 while the AI score
+barely moves, meaning it returns the input nearly unchanged. That is the same
+evasion `gpt-4.1-mini` showed and the reason its earlier apparent lead was an
+artifact.
+
+Holding both ends at once is the actual difficulty of this task, and
+`gemini-3.6-flash` is the cheapest model measured that does it. Treat $0.030
+per rewrite as the current floor rather than a number to shave.
+
+Still unmeasured on the fixed apparatus: `gpt-4.1-mini`, `gpt-5.4-mini`,
+`gpt-5.3-chat-latest`, `gpt-5.6-luna`, `grok-4.3`. The OpenAI-hosted ones are
+blocked on an exhausted account balance, not on method. None of them is in
+production, and given that both cheaper models failed in opposite directions,
+none is a promising cost lever.
 
 ## Published rates gathered while comparing (per 1M tokens)
 
