@@ -137,6 +137,13 @@ npm run quality:live -- --language ko --limit 3
   with `--judge-model` or let the backend use its documented default. CLI
   backends report no token usage, so cost accounting shows calls and wall
   time only.
+  A seat is the cheapest bulk option: `--judge-backend gemini-cli
+  --judge-model gemini-3.6-flash` scores through a logged-in Gemini CLI with
+  no API key and no per-token billing. Measured 2026-07-27: 58.7s for one
+  fixture's four scoring calls (~15s each) versus ~9s on the API, so it suits
+  overnight or large sweeps and not iteration. Always pass `--judge-model`;
+  without it the backend uses the frozen CLI default `gemini-2.5-pro`, about
+  twice as slow.
 - `PATINA_LIVE_JUDGE_EXTRA_BODY` / `--judge-extra-body` — JSON object of
   provider-specific request fields for the scoring calls (candidate side:
   `PATINA_LIVE_EXTRA_BODY` / `--extra-body`). Main use is reasoning control,
