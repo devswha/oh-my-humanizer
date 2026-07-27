@@ -98,6 +98,14 @@ models and are noisy run-to-run. Pin the grading side to one fixed judge with
 | `--judge-backend codex-cli --judge-model gpt-5.5` | **1.00** | 2.2 | 14 | **your ChatGPT seat quota** (~12k tok/call incl. agent scaffolding) |
 | non-reasoning lower-tier (grok-4.20-nr, deepseek thinking-off) | 0.70–0.71 | — | 0.2–0.7 | **unusable** — missed 20–23 of 24 AI docs |
 
+Those AUC numbers measure telling AI prose from human prose — not grading
+meaning, which is what the product actually gates on. Run
+`scripts/research/judge-rubric-check.mjs` before adopting a judge; it puts ten
+constructed cases with known-correct verdicts in front of it. Measured
+2026-07-27: `gpt-5.5` on a codex seat 10/10, `gemini-3.6-flash` 9/10 with the
+dangerous kind of miss — it accepted a rewrite that changed 120ms to 12ms at
+MPS 80, where gpt-5.5 caught it at 66.7. Prefer the codex seat for grading.
+
 Default to **gpt-5.3-chat-latest** for routine work: highest measured AUC per
 second, no seat quota, no training clause (the only cheap judge allowed on
 customer text), ~$0.02 per fixture. Its one flaw is that `-latest` is a moving
