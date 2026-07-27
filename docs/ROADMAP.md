@@ -310,15 +310,18 @@ Campaign state:
   The entitlement layer stays provider-agnostic (injected license validator,
   env-driven checkout URL) so an adapter remains bounded work; do not build it
   speculatively before a trigger fires.
-- Serving engine (2026-07-26, owner-approved): both tiers move to
-  `gemini-3.6-flash`. Measured over all 22 live-quality fixtures with a fixed
-  independent judge — AI-score improvement 13.0 vs 11.8 for the previous Pro
-  pin `claude-sonnet-5`, meaning lost on 7 fixtures vs 10, $0.030 per rewrite
-  vs $0.156, 8.3s vs 27.7s. The previous free default `gpt-4.1-mini` measured
-  an improvement of 0.2 — it returned input nearly unchanged, so free traffic
-  received no real rewrite. Evidence:
-  `docs/operations/serving-engine-cost-20260725.md`. The model is allowlisted
-  and documented; the runtime switch is a hosting env change.
+- Serving engine (2026-07-26, owner-approved; evidence re-established
+  2026-07-27): both tiers run `gemini-3.6-flash`. The original comparison was
+  taken under a broken fidelity rubric and a harness prompt missing the
+  persona, so it was void. Rerun with both fixed, on subscription seats:
+  gemini-3.6-flash and claude-sonnet-5 both score **20/22** (ko 11/11,
+  en 9/11), MPS 90.4 vs 91.5, fidelity 92.4 vs 94.7. Quality is level; the case
+  for the swap is cost and latency — $0.030 vs $0.156 per rewrite, 8.3s vs
+  27.7s. Evidence: `docs/operations/serving-engine-cost-20260725.md`.
+- The free tier previously ran `gpt-4.1-mini` and was moved on evidence that it
+  improved the AI score by only 0.2. That measurement predates both fixes and
+  has not been repeated, so the free-tier swap is currently unevidenced even
+  though it is likely correct.
 - Register failures (opened 2026-07-26, **closed 2026-07-27**): five registers
   appeared to fail on every engine across a 20x price spread. Both causes were
   in the measuring apparatus, not the engines. The fidelity rubric charged
