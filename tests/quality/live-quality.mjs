@@ -19,6 +19,7 @@ import { providerHttpKeyEnvVars, resolveHttpApiKey } from '../../src/auth.js';
 import { loadConfig, getRepoRoot } from '../../src/config.js';
 import { loadCoreFile, loadPatterns, loadProfile } from '../../src/loader.js';
 import { formatOutput } from '../../src/output.js';
+import { resolvePersonaForRun } from '../../src/personas/resolve.js';
 import { buildPrompt } from '../../src/prompt-builder.js';
 import { resolveProviderConfig, selectProvider } from '../../src/providers.js';
 import { scoreFidelity, scoreMPS, scoreText } from '../../src/scoring.js';
@@ -122,12 +123,20 @@ export async function buildPatinaRewritePrompt(fixture, { repoRoot = getRepoRoot
   const patterns = loadPatterns(repoRoot, fixture.language);
   const profile = loadProfile(repoRoot, config.profile || 'default');
   const voice = loadCoreFile(repoRoot, 'voice.md');
+  // v6.2 made the persona the sole voice owner, and both shipping surfaces
+  // moved with it: src/cli/run.js and src/web-rewrite.js each resolve a persona
+  // before building the prompt. This harness did not, so it measured a prompt
+  // neither surface sends — missing, for ko, the persona directive that orders
+  // the model to preserve every claim, figure, and quotation and change only
+  // voice. Measurements taken without it understate meaning preservation.
+  const persona = resolvePersonaForRun({ parsed: {}, config, mode: 'rewrite', lang: fixture.language, repoRoot });
 
   return buildPrompt({
     config,
     patterns,
     profile: profile.body ? profile : null,
     voice: voice.body ? voice : null,
+    persona,
     scoring: null,
     text: fixture.text,
     mode: 'rewrite',
