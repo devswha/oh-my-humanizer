@@ -288,6 +288,10 @@ Four criteria, each scored independently by the LLM comparing original → outpu
 ### 10.1 Claims Preserved
 
 Every factual claim in the original appears (perhaps rephrased) in the output.
+Stylistic packaging is not a claim. Hype and intensifiers ("cutting-edge",
+"unprecedented", "seamlessly") carry no checkable content, so removing them is
+the rewrite's job and is never scored as loss — the same exemption the
+Meaning-Preservation Score applies.
 
 | Level | Points | Criteria |
 |-------|--------|----------|
@@ -309,11 +313,14 @@ The output does not add claims, facts, or specifics not present or implied by th
 
 ### 10.3 Tone Match
 
-The output's register matches the original (or the profile's target register, if explicitly overridden).
+The output serves the same audience and domain register as the original (or the
+profile's target register, if explicitly overridden). This judges function, not
+surface polish: stripping AI-ish formality, hype, or ceremony while the audience
+and domain hold is High, not drift.
 
 | Level | Points | Criteria |
 |-------|--------|----------|
-| High | 3 | Tone matches — formality level, domain register, and audience consistent |
+| High | 3 | Same audience and domain — a policy notice still reads as a policy notice, a product page as a product page |
 | Medium | 2 | Slight drift — somewhat more/less formal, but still appropriate for the context |
 | Low | 1 | Noticeable mismatch — formal original made casual (or vice versa) without profile justification |
 | Fail | 0 | Register violation — academic text made into slang, or casual text made into legalese |
@@ -327,10 +334,10 @@ Compares output length to original. Extreme changes suggest content loss or padd
 
 | Ratio | Points | Criteria |
 |-------|--------|----------|
-| 70–130% | 3 | Length preserved — natural variation within ±30% |
-| 50–69% or 131–150% | 2 | Moderate change — some compression or expansion, likely acceptable |
-| 30–49% or 151–200% | 1 | Significant change — substantial content probably lost or padded |
-| < 30% or > 200% | 0 | Extreme change — content almost certainly lost or heavily padded |
+| 50–130% | 3 | Length preserved, or compressed as expected when packaging is stripped |
+| 35–49% or 131–150% | 2 | Moderate change — heavy compression or expansion, likely acceptable |
+| 25–34% or 151–200% | 1 | Significant change — substantial content probably lost or padded |
+| < 25% or > 200% | 0 | Extreme change — content almost certainly lost or heavily padded |
 
 **Calculation:** `length_ratio = len(output) / len(original) × 100`
 
@@ -353,7 +360,8 @@ To reduce variance, apply these guidelines when scoring fidelity criteria:
 - Inventing a statistic, date, or name not in the original → Low or Fail.
 
 ### Tone Match
-- Compare the first and last paragraphs of original vs. output for register cues.
+- Compare the first and last paragraphs of original vs. output for audience and domain cues.
+- Removing hype, ceremony, or AI-ish formality is the rewrite's job → High.
 - Profile-targeted register shifts are expected, not penalized.
 - Mixed register (formal opening, casual middle) counts as Low.
 
@@ -407,12 +415,12 @@ Output: Humanized version.
 |-----------|-------|-----------|
 | Claims preserved | 3 (High) | All policy recommendations and cited figures present |
 | No fabrication | 2 (Medium) | Added "as widely reported" — minor inference stated as fact |
-| Tone match | 3 (High) | Academic register maintained throughout |
-| Length ratio | 2 (Moderate) | Output is 68% of original length (within 50-69% band) |
+| Tone match | 3 (High) | Academic audience and domain held throughout |
+| Length ratio | 3 (High) | Output is 68% of original length (within the 50–130% band) |
 
-Fidelity = (3+2+3+2) / 12 × 100 = **83.3**
+Fidelity = (3+2+3+3) / 12 × 100 = **91.7**
 
-Interpretation: 76-90 range = "높은 충실도" (High fidelity, minor issues)
+Interpretation: 91-100 range = "완벽한 충실도" (Perfect fidelity, all meaning preserved)
 
 ### Fidelity Score Interpretation
 
