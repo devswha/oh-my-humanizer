@@ -879,9 +879,14 @@ export function interpretScore(score) {
 export function lengthRatioPoints(original, rewritten) {
   if (!original || original.length === 0) return 3;
   const ratio = (rewritten.length / original.length) * 100;
-  if (ratio >= 70 && ratio <= 130) return 3;
-  if ((ratio >= 50 && ratio < 70) || (ratio > 130 && ratio <= 150)) return 2;
-  if ((ratio >= 30 && ratio < 50) || (ratio > 150 && ratio <= 200)) return 1;
+  // Compression is the expected shape of a humanizing rewrite: stripping hype,
+  // filler, and ceremony shortens hype-dense copy well past 30%. Meaning loss
+  // is already caught directly by scoreMPS anchors, so the compression side is
+  // scored generously and only guards against gutting the text. Expansion
+  // bands are unchanged — padding still signals fabrication.
+  if (ratio >= 50 && ratio <= 130) return 3;
+  if ((ratio >= 35 && ratio < 50) || (ratio > 130 && ratio <= 150)) return 2;
+  if ((ratio >= 25 && ratio < 35) || (ratio > 150 && ratio <= 200)) return 1;
   return 0;
 }
 
@@ -933,12 +938,17 @@ export async function scoreFidelity({
 
   const prompt = `You are a Fidelity evaluator. Compare ORIGINAL vs REWRITTEN text and score three criteria.
 
+REWRITTEN is the output of a humanizer whose job is to strip AI-sounding
+style: inflated adjectives, marketing hype, boilerplate enthusiasm, filler,
+and formulaic connectives. Removing that packaging is the intended outcome.
+Never score it as drift, loss, or mismatch under any criterion below.
+
 Each criterion: 0-3 points. High=3 (preserved), Medium=2 (minor drift), Low=1 (noticeable drift), Fail=0 (broken).
 
 Criteria:
-1. claims_preserved — every factual claim in ORIGINAL appears (perhaps rephrased) in REWRITTEN.
+1. claims_preserved — every factual claim in ORIGINAL appears (perhaps rephrased) in REWRITTEN. Stylistic packaging is not a claim: hype and intensifiers ("cutting-edge", "unprecedented", "seamlessly", "revolutionary", "transformative") carry no checkable content, so their absence is never a loss. Score only entities, numbers, causal links, conclusions, and polarity.
 2. no_fabrication — REWRITTEN does not add claims/facts not present in ORIGINAL.
-3. tone_match — register/formality of REWRITTEN matches ORIGINAL.
+3. tone_match — REWRITTEN still serves the same audience and domain register as ORIGINAL: a policy notice reads as a policy notice, a product page as a product page. Judge that function, not surface polish. Dropping AI-ish formality, hype, or ceremony while the audience and domain hold is High, not drift. Score Low or Fail only for a real register violation, such as an academic passage rewritten as slang or a casual note rewritten as legalese.
 
 Return ONLY this JSON, no markdown:
 

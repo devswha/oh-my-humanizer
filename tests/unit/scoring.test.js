@@ -36,13 +36,17 @@ test('interpretScore maps documented AI-likeness boundaries', () => {
 
 test('lengthRatioPoints scores bucket boundaries and empty original text', () => {
   const original = 'a'.repeat(100);
+  // Compression is scored generously: stripping hype and filler routinely
+  // takes hype-dense copy under 70%, and scoreMPS already guards real meaning
+  // loss. Expansion bands stay strict because padding signals fabrication.
   const cases = [
-    [29, 0],
-    [30, 1],
-    [49, 1],
-    [50, 2],
-    [69, 2],
-    [70, 3],
+    [24, 0],
+    [25, 1],
+    [34, 1],
+    [35, 2],
+    [49, 2],
+    [50, 3],
+    [62, 3],
     [130, 3],
     [131, 2],
     [150, 2],
@@ -110,6 +114,35 @@ test('combinedScore uses default and profile-specific config weights', () => {
     }),
     39.6
   );
+});
+
+test('fidelity prompt exempts stripped packaging and judges audience, not polish', async () => {
+  // Regression for the 2026-07-27 production failure: a correct rewrite that
+  // removed "혁신적인 시너지 / 전례 없는 / 원활하게" was returned to the user as
+  // floor_failed on fidelity, with the rationale "omits the specific claims
+  // about innovative synergy and seamless delivery" — MPS had scored it 100.
+  let prompt = null;
+  const result = await scoreFidelity({
+    original: '빠르게 변화하는 디지털 환경 속에서, 본 솔루션은 혁신적인 시너지를 활용하여 고객에게 전례 없는 가치를 원활하게 제공합니다.',
+    rewritten: '디지털 환경이 빠르게 변하고 있다. 이 솔루션은 고객에게 새로운 가치를 제공한다.',
+    apiKey: 'k',
+    baseURL: 'https://example.test/v1',
+    model: 'm',
+    callLLM: async (args) => {
+      prompt = args.prompt;
+      return '{ "claims_preserved": 3, "no_fabrication": 3, "tone_match": 3, "rationale": "ok" }';
+    },
+  });
+
+  // The rubric must tell the judge that removed packaging is the goal.
+  assert.match(prompt, /Stylistic packaging is not a claim/);
+  assert.match(prompt, /Removing that packaging is the intended outcome/);
+  // tone_match judges audience and domain, never surface formality alone.
+  assert.match(prompt, /same audience and domain register/);
+  assert.doesNotMatch(prompt, /register\/formality of REWRITTEN matches ORIGINAL/);
+  // That rewrite is 62% of the original; compression alone must not cost points.
+  assert.equal(result.criteria.length_ratio, 3);
+  assert.equal(result.fidelity, 100);
 });
 
 test('score helpers accept an injected callLLM implementation', async () => {
