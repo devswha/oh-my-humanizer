@@ -105,28 +105,39 @@ independent frontier models failing identically points at the prompt or the
 gate for those registers, not at the models — that is the larger lever behind
 the ~40% pass rate, and it is untouched by any engine swap.
 
-## Superseded by the fidelity fix (2026-07-27)
+## Voided and re-run (2026-07-27)
 
-Every number above was produced under a fidelity rubric that charged removal of
-stylistic packaging as omitted claims, required the rewritten register to match
-the original, and penalized the shortening filler removal causes. It therefore
-penalized whichever engine stripped hype most thoroughly — exactly the
-behaviour the product wants — so the engine ranking here is not reliable.
+Every number above is void. Two defects sat under it: a fidelity rubric that
+charged removal of stylistic packaging as omitted claims, and a harness prompt
+built without the persona, so rewrites were graded on meaning they were never
+instructed to preserve. Both penalized whichever engine stripped hype hardest —
+the behaviour the product exists for.
 
-Remeasured after the fix, same 22 fixtures, same fixed judge
-(`gpt-5.3-chat-latest`), same candidate:
+Rerun on the same 22 fixtures with both defects fixed, on subscription seats
+(judge `gpt-5.5` via codex, candidates via their own seats, zero API spend):
 
-| | broken rubric | fixed rubric |
+| | gemini-3.6-flash | claude-sonnet-5 |
 |---|---:|---:|
-| gemini-3.6-flash pass | 9/22 | **17/22** |
-| fidelity mean | 69.4 | **92.4** |
-| MPS mean | 76.3 | 80.5 |
+| pass | **20/22** (ko 11/11, en 9/11) | **20/22** (ko 11/11, en 9/11) |
+| MPS mean | 90.4 | 91.5 |
+| fidelity mean | 92.4 | 94.7 |
+| $/rewrite | **$0.030** | $0.156 |
+| s/rewrite | **8.3** | 27.7 |
 
-The engine choice already shipped (gemini-3.6-flash on both tiers) and the
-remeasurement supports keeping it. What is not re-established is the ranking
-against `claude-sonnet-5` and the other candidates: those runs were never
-repeated under the fixed rubric, so treat their pass counts as void. Rerun
-before citing any comparison from this document.
+**The two engines are level on quality.** Identical pass counts, and sonnet-5's
+1.1-point MPS edge is inside one fixture of noise at n=22. The shipped choice
+(gemini-3.6-flash on both tiers) holds, but the correct justification is not
+"gemini rewrites better" — it is "quality is level, cost is 5x lower and
+latency 3x lower".
+
+`en-marketing-01` fails on both engines, which points at that fixture or the
+prompt rather than at either model.
+
+The other candidates measured on 2026-07-25/26 (deepseek-v4-flash, grok-4.3,
+gpt-5.3-chat-latest, gpt-5.4-mini, gpt-5.6-luna, gpt-4.1-mini) were never rerun
+under the fixed apparatus. Their numbers stay void; rerun before citing any of
+them. That includes the gpt-4.1-mini result that motivated moving the free
+tier — the conclusion may well hold, but it is not currently evidenced.
 
 ## Published rates gathered while comparing (per 1M tokens)
 
