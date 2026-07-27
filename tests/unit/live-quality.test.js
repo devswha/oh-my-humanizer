@@ -238,6 +238,25 @@ test('model-graded scoring calls route to the fixed judge, not the candidate', a
   assert.ok(seenModels.every((model) => model === 'judge-model'));
 });
 
+test('candidate backend env resolves a keyless CLI seat and passes the key gate', async () => {
+  const settings = resolveLiveSettings({ env: { PATINA_LIVE_BACKEND: 'gemini-cli', PATINA_LIVE_MODEL: 'gemini-3.6-flash' } });
+  assert.equal(settings.backend, 'gemini-cli');
+  assert.equal(settings.model, 'gemini-3.6-flash');
+  assert.equal(settings.hasApiKey, false);
+  assert.equal(settings.baseURL, null);
+
+  const report = await runLiveQualityReport({
+    fixtures: [fixture],
+    live: true,
+    env: { PATINA_LIVE_BACKEND: 'gemini-cli' },
+    callLLM: fakeQualityModel,
+  });
+  // Without the backend branch this fails closed on the missing API key.
+  assert.equal(report.results[0].status, 'pass');
+  assert.equal(report.settings.backend, 'gemini-cli');
+  assert.match(renderMarkdownReport(report), /model: gemini-cli\//);
+});
+
 test('judge backend env resolves a keyless CLI judge', () => {
   const judge = resolveJudgeSettings({ env: { PATINA_LIVE_JUDGE_BACKEND: 'codex-cli' } }, {
     baseURL: 'https://example.test/v1',
