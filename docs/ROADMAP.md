@@ -318,10 +318,13 @@ Campaign state:
   en 9/11), MPS 90.4 vs 91.5, fidelity 92.4 vs 94.7. Quality is level; the case
   for the swap is cost and latency — $0.030 vs $0.156 per rewrite, 8.3s vs
   27.7s. Evidence: `docs/operations/serving-engine-cost-20260725.md`.
-- The free tier previously ran `gpt-4.1-mini` and was moved on evidence that it
-  improved the AI score by only 0.2. That measurement predates both fixes and
-  has not been repeated, so the free-tier swap is currently unevidenced even
-  though it is likely correct.
+- Cheaper engines were rerun on the fixed apparatus and none can undercut the
+  shipped one. `deepseek-v4-flash` ($0.003) rewrites hard but gutted
+  `ko-news-01` to MPS 24; `gemini-3.5-flash-lite` ($0.007) preserves meaning
+  and barely rewrites — 8 of 22 fixtures carry `ai_not_improved`, the same
+  evasion that made `gpt-4.1-mini` look like a leader. $0.030 per rewrite is
+  the current floor, not a number to shave. The OpenAI-hosted candidates remain
+  unmeasured on an exhausted account balance; none is in production.
 - Register failures (opened 2026-07-26, **closed 2026-07-27**): five registers
   appeared to fail on every engine across a 20x price spread. Both causes were
   in the measuring apparatus, not the engines. The fidelity rubric charged
