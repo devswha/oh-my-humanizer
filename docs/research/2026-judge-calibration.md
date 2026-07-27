@@ -96,6 +96,29 @@ free-tier key is fine for this repo-owned fixture corpus and must not be used
 to score customer text — that lane needs a paid no-training API judge
 (`gpt-5.3-chat-latest` is the measured pick) or a subscription seat.
 
+## What this study does not measure (2026-07-27)
+
+Every number here is AI-likeness discrimination: can the judge tell AI prose
+from human prose. The product gates on something else — meaning preservation
+and fidelity — and that was never measured. The cost of the omission surfaced
+on 2026-07-27, when a fidelity rubric that charged removal of marketing hype
+as omitted claims was found returning `floor_failed` to production users for
+correct rewrites, unnoticed for as long as it had shipped.
+
+`scripts/research/judge-rubric-check.mjs` closes the gap without human
+labelling: ten constructed pairs whose correct verdict is fixed by
+construction. Hype-only removal must pass; a changed figure, flipped negation,
+dropped causal link, fabricated claim, or deleted claims must fail. First
+results:
+
+| judge | rubric check | note |
+|---|---|---|
+| gpt-5.5 (codex seat) | **10/10** | caught the 120ms → 12ms swap at MPS 66.7 |
+| gemini-3.6-flash | 9/10 | **accepted** the 120ms → 12ms swap at MPS 80 |
+
+A high AUC does not imply a judge grades meaning correctly. Run both checks
+before adopting one.
+
 ## Deterministic stylometry on the same corpus
 
 | layer | AUC [95% CI] | mean score human/AI |
