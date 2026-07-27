@@ -144,6 +144,18 @@ npm run quality:live -- --language ko --limit 3
   overnight or large sweeps and not iteration. Always pass `--judge-model`;
   without it the backend uses the frozen CLI default `gemini-2.5-pro`, about
   twice as slow.
+- `PATINA_LIVE_BACKEND` / `--backend` — run the **rewrite** on a subscription
+  CLI seat too. With both sides on seats a sweep spends nothing:
+
+  ```bash
+  node tests/quality/live-quality.mjs --live --language ko --limit 11 \
+    --backend gemini-cli --model gemini-3.6-flash \
+    --judge-backend codex-cli --judge-model gpt-5.5
+  ```
+
+  This is the default for bulk and overnight work. The codex seat also carries
+  the only judge measured at AUC 1.00, so it is more accurate than the paid
+  HTTP judges, not a downgrade.
 - `PATINA_LIVE_JUDGE_EXTRA_BODY` / `--judge-extra-body` — JSON object of
   provider-specific request fields for the scoring calls (candidate side:
   `PATINA_LIVE_EXTRA_BODY` / `--extra-body`). Main use is reasoning control,
