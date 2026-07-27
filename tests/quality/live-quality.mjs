@@ -422,8 +422,8 @@ export async function runLiveQualityReport(options = {}) {
       results.push(skippedResult(fixture, 'live rewrite disabled; pass --live, set PATINA_LIVE=1, or pass --candidate-dir'));
       continue;
     }
-    if (liveRequested && !settings.hasApiKey) {
-      results.push(failedResult(fixture, new Error('live rewrite requested but no API key was found')));
+    if (liveRequested && !settings.backend && !settings.hasApiKey) {
+      results.push(failedResult(fixture, new Error('live rewrite requested but no API key was found (set PATINA_LIVE_API_KEY or PATINA_LIVE_BACKEND)')));
       continue;
     }
     if (liveRequested && judgeSettings && !judgeSettings.backend && !judgeSettings.hasApiKey) {
@@ -476,6 +476,24 @@ export function resolveLiveSettings(options = {}) {
   const resolved = resolveProviderConfig({ provider, apiKey, baseURL, model });
   const timeoutMs = parsePositiveInt(options.timeoutMs ?? env.PATINA_LIVE_TIMEOUT_MS, 120000);
   const extraBody = parseExtraBody(options.extraBody ?? env.PATINA_LIVE_EXTRA_BODY, 'PATINA_LIVE_EXTRA_BODY');
+  const backend = options.backend ?? env.PATINA_LIVE_BACKEND ?? null;
+
+  // A subscription CLI seat (codex-cli, claude-cli, gemini-cli, kimi-cli) is
+  // the credential, so no API key is required and no endpoint applies.
+  if (backend) {
+    return {
+      provider: null,
+      backend,
+      baseURL: null,
+      model: model ?? null,
+      apiKey: null,
+      hasApiKey: false,
+      apiKeySource: null,
+      baseURLSource: null,
+      modelSource: model ? 'option:model' : 'default',
+      timeoutMs,
+    };
+  }
 
   return {
     provider: provider?.name ?? null,
@@ -659,7 +677,7 @@ export function renderMarkdownReport(reportOrResults) {
     '',
     `schema_version: ${report.schema_version}`,
     `provider: ${report.settings.provider ?? 'default'}`,
-    `model: ${report.settings.model ?? 'default'}`,
+    `model: ${report.settings.backend ? `${report.settings.backend}/${report.settings.model ?? 'default'}` : (report.settings.model ?? 'default')}`,
     `judge: ${judgeLabel(report.settings.judge)}`,
     `api_key: ${report.settings.hasApiKey ? `present (${report.settings.apiKeySource || 'unknown source'})` : 'missing'}`,
     `policy: AI-after<=${report.policy.aiAfterCeiling}, MPS>=${report.policy.mpsFloor}, fidelity>=${report.policy.fidelityFloor}`,
@@ -714,6 +732,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     else if (arg === '--judge-base-url') options.judgeBaseURL = argv[++i];
     else if (arg === '--judge-timeout-ms') options.judgeTimeoutMs = Number(argv[++i]);
     else if (arg === '--judge-backend') options.judgeBackend = argv[++i];
+    else if (arg === '--backend') options.backend = argv[++i];
     else if (arg === '--extra-body') options.extraBody = argv[++i];
     else if (arg === '--judge-extra-body') options.judgeExtraBody = argv[++i];
     else if (arg === '--help' || arg === '-h') options.help = true;
@@ -739,7 +758,12 @@ export async function main(argv = process.argv.slice(2)) {
 async function runWithApi(fixture, options = {}) {
   const prompt = await buildPatinaRewritePrompt(fixture, options);
   const settings = options.settings || resolveLiveSettings(options);
-  const callLLM = createLiveCallLLM(options.callLLM || defaultCallLLM, settings, options.recordCall);
+  // A subscription CLI seat rewrites without an API key, which is what a bulk
+  // or overnight sweep should use: measurement is exactly the workload that
+  // does not need HTTP latency and should not burn a paid balance.
+  const base = options.callLLM
+    || (settings.backend ? createBackendJudgeCallLLM(settings, options.backendDeps) : defaultCallLLM);
+  const callLLM = createLiveCallLLM(base, settings, options.recordCall);
   return callLLM({
     prompt,
     apiKey: settings.apiKey,
@@ -853,6 +877,10 @@ Options:
   --judge-base-url <url>  Judge base URL (or PATINA_LIVE_JUDGE_API_BASE); a judge on a
                           different host needs its own PATINA_LIVE_JUDGE_API_KEY
   --judge-timeout-ms <ms> Judge scoring timeout budget (or PATINA_LIVE_JUDGE_TIMEOUT_MS)
+  --backend <name>        Run the rewrite on a local subscription CLI backend
+                          (codex-cli, claude-cli, gemini-cli, kimi-cli — or
+                          PATINA_LIVE_BACKEND); no API key needed. Pair with
+                          --judge-backend for a sweep that spends nothing.
   --judge-backend <name>  Run the judge on a local subscription CLI backend
                           (codex-cli, claude-cli, gemini-cli, kimi-cli — or
                           PATINA_LIVE_JUDGE_BACKEND); no API key needed
