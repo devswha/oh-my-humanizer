@@ -1,50 +1,52 @@
 # Resolved: the register failures were a scoring bug (2026-07-26 → 07-27)
 
 **Status: closed on 2026-07-27.** The premise of this document — five registers
-failing on every engine, unmovable by engine choice — was largely an artifact
-of the fidelity rubric. Fixing the rubric took the same engine on the same 22
-fixtures from 9/22 to 17/22. What remains is a different, smaller problem and
-is described at the end.
+failing on every engine, unmovable by engine choice — was an artifact of the
+measuring apparatus. Two defects in it, once fixed, took the same engine on the
+same 22 fixtures from 9/22 to 20/22, and Korean from 2/11 to 11/11. What
+remains is two English fixtures, described at the end.
 
-## Outcome after the fix
+## Outcome after both fixes
 
-| | broken rubric | fixed rubric |
-|---|---:|---:|
-| pass | 9/22 (41%) | **17/22 (77%)** |
-| fidelity mean | 69.4 | **92.4** |
-| MPS mean | 76.3 | 80.5 |
+| | broken rubric | fidelity fixed | + prompt parity |
+|---|---:|---:|---:|
+| pass | 9/22 (41%) | 17/22 (77%) | **20/22 (91%)** |
+| MPS mean | 76.3 | 80.5 | **90.4** |
+| ko | 2/11 | 5/11 | **11/11** |
 
-Eight fixtures flipped to pass, and the registers this document called
-systematically broken were the ones that recovered: `en-instructional`
-fidelity 41.7 → 100, `ko-social` 75 → 100, `ko-blog` 50 → 91.7, `en-marketing`
-50 → 83.3, `en-product` 41.7 → 83.3, `en-blog` 58.3 → 83.3. Measured with the
-same fixed judge (`gpt-5.3-chat-latest`) and the same candidate
-(`gemini-3.6-flash`) as the original run, so the rubric is the only variable.
+Two defects, both in the measuring apparatus rather than the product:
+
+1. **The fidelity rubric** charged removal of marketing hype as omitted claims,
+   required the rewritten register to match the original, and penalized the
+   shortening filler removal causes. It was failing correct rewrites in
+   production, not only in the harness.
+2. **The harness prompt** omitted the persona. v6.2 made the persona the sole
+   voice owner and both shipping surfaces moved with it; the harness did not,
+   so for Korean it dropped the directive ordering the model to preserve every
+   claim, figure, and quotation. Meaning was being measured on rewrites that
+   were never told to preserve meaning.
+
+Every register this document called systematically broken now passes:
+`ko-instructional` MPS 20 → 100, `ko-marketing` 50 → 100, `ko-social` 40 → 100,
+`ko-blog` 45 → 70, `ko-product` 50 → 80. Final run used the subscription seats
+(`gemini-3.6-flash` rewriting, `gpt-5.5` judging) and cost nothing.
 
 ## What is actually left
 
-Five fixtures still fail, all on meaning preservation, with fidelity now
-comfortably above the floor:
+Two fixtures, both English, and they fail in opposite directions:
 
-| fixture | MPS | fidelity | AI score |
-|---|---:|---:|---|
-| ko-blog-01 | 45 | 91.7 | 20.5 → 2.9 |
-| ko-instructional-01 | 40 | 83.3 | 8.6 → 0 |
-| en-product-01 | 50 | 83.3 | 25.3 → 4.1 |
-| ko-marketing-01 | 50 | 75 | 9.9 → 5.5 |
-| en-social-01 | 60 | 100 | 20.7 → 5.8 |
+| fixture | status | MPS | fidelity | AI score |
+|---|---|---:|---:|---|
+| en-marketing-01 | fail | 60 | 75 | 35.6 → 5.7 |
+| en-public-docs-01 | warn | 70 | 91.7 | 15.6 → 16.5 |
 
-The failure mode inverted. These rewrites now strip AI tells thoroughly — the
-AI score drops hard on every one — but drop factual anchors while doing it.
-That is a real quality problem in the engine or the rewrite prompt, not a
-scoring artifact, and it is a much narrower target than "five registers are
-broken".
+`en-marketing-01` strips hype thoroughly — the AI score falls from 35.6 to 5.7
+— but loses anchors doing it. `en-public-docs-01` is the reverse: meaning
+holds, and the AI score does not improve, so the rewrite is too timid there.
 
-Next step for whoever picks this up: read the five rewrites against their
-originals and check whether the dropped anchors are genuinely lost or whether
-`scoreMPS` over-extracts anchors from hype-dense copy the way `scoreFidelity`
-did. The rubric bug found on 07-27 is a standing reason to verify the judge
-before trusting a systematic failure pattern.
+Neither is a register-wide failure and both are single fixtures. Add a second
+fixture per register before treating either as a pattern; this document is
+itself the record of what happens when one fixture is read as a trend.
 
 ## Historical record: the original observation
 
