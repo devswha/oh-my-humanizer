@@ -251,4 +251,118 @@ export async function evaluateProMonitor(deps) {
   }
   return { channel, tier, buckets, keys: Object.freeze([...keys]), aggregateAvailable: aggregate.available, histogram, denominators, adapters, logWindows, syntheticTerminal, syntheticStreak, triggers, alerts, recovery, alertReceiptIds: safeReceiptIds(ackedReceiptIds), recoveryReceiptId: recovery?.receiptId ?? null };
 }
+
+/**
+ * Watch the tier that actually serves users.
+ *
+ * The paid monitor above evaluates `tier: 'pro'`, which has no users while
+ * checkout is disabled, so its aggregate is permanently zero and its one live
+ * signal — `monitor_blind` — fires constantly. On 2026-07-27 the free tier
+ * returned provider 429s to real users three times and nothing alerted,
+ * because nothing was looking at it. The counters were being written the whole
+ * time (`patina:mon:v1:<channel>:free:...`); only the reader was missing.
+ *
+ * Two layers, because either alone has a blind spot:
+ * - aggregate: catches failures whenever real users are hitting the service,
+ *   costs nothing, runs every cron tick.
+ * - canary: a real HTTP rewrite, for when traffic is zero and the aggregate
+ *   cannot distinguish "healthy and idle" from "down". It consumes the free
+ *   IP quota (20/day), so it is budgeted by a lease — twice per hour would
+ *   exhaust the quota and manufacture its own alerts.
+ *
+ * @param {object} deps
+ * @param {'production'|'staging'} [deps.channel]
+ * @param {'free'|'byok'} [deps.tier] Tier to evaluate; defaults to free.
+ * @param {object} [deps.aggregateReader] KV reader exposing snapshot/mget.
+ * @param {() => Promise<{ok?: boolean, terminal?: string}>} [deps.canaryRequest] Real rewrite probe.
+ * @param {(payload: object) => Promise<unknown>} deps.discordSender
+ * @param {object} deps.controlStore
+ * @param {() => Date} [deps.clock]
+ * @param {(ms: number) => Promise<void>} [deps.sleep]
+ * @param {number} [deps.canaryIntervalMs] Minimum spacing between canary probes.
+ * @param {number} [deps.deadlineMs]
+ */
+export async function evaluateFreeTierHealth(deps) {
+  const {
+    channel = 'production', tier = 'free', aggregateReader, snapshot, canaryRequest,
+    discordSender, controlStore, clock = () => new Date(), sleep,
+    canaryIntervalMs = TWO_HOURS_MS, deadlineMs = SNAPSHOT_DEADLINE_MS,
+  } = deps || {};
+  if (!dimension(channel, ['staging', 'production']) || !dimension(tier, ['free', 'byok'])) {
+    throw new TypeError('channel and tier are required closed dimensions');
+  }
+
+  const now = asDate(clock());
+  const buckets = overlappingQuarterBuckets(now);
+  const keys = [];
+  for (const bucket of buckets) {
+    for (const outcome of OBSERVED_OUTCOMES) {
+      for (const latencyBucket of OBSERVED_LATENCY_BUCKETS) {
+        keys.push(aggregateKey({ channel, tier, at: bucket, outcome, latencyBucket }));
+      }
+    }
+  }
+  const aggregate = await aggregateSnapshot(snapshot ? { snapshot } : aggregateReader, keys, Math.max(1, Math.min(Number(deadlineMs) || SNAPSHOT_DEADLINE_MS, SNAPSHOT_DEADLINE_MS)));
+
+  let total = 0;
+  let failed = 0;
+  if (aggregate.available) {
+    for (const key of keys) {
+      const value = number(aggregate.values[key]);
+      if (!value) continue;
+      total += value;
+      // Everything that is not a completed rewrite is a user who asked for one
+      // and did not get it. quota_denied is excluded: that is the product
+      // working as designed, not an outage.
+      const outcome = key.split(':')[6];
+      if (outcome !== 'completed' && outcome !== 'quota_denied') failed += value;
+    }
+  }
+
+  let canaryTerminal = null;
+  if (typeof canaryRequest === 'function'
+    && await acquire(controlStore, controlKey(channel, tier, 'canary-budget'), `${now.getTime()}`, canaryIntervalMs)) {
+    try {
+      const response = await canaryRequest({ channel, tier });
+      canaryTerminal = response?.terminal === 'done' && response?.ok === true ? 'done' : 'failed';
+    } catch {
+      canaryTerminal = 'failed';
+    }
+  }
+
+  const triggers = [];
+  if (canaryTerminal === 'failed') {
+    triggers.push({ trigger: 'free_canary_failure', count: 1, window: '30m', evidence: { tier } });
+  }
+  // A ratio needs a denominator; below 5 requests a single blip is not signal.
+  if (total >= 5 && failed / total > 0.5) {
+    triggers.push({ trigger: 'free_failure_ratio', count: failed, window: '30m', evidence: { ratioBand: '>50pct', tier } });
+  }
+
+  const alerts = [];
+  for (const item of triggers) {
+    const leaseKey = controlKey(channel, tier, `dedup:${item.trigger}`);
+    const leaseValue = `${now.getTime()}-${item.trigger}`;
+    if (!await acquire(controlStore, leaseKey, leaseValue, ONE_HOUR_MS)) {
+      alerts.push({ trigger: item.trigger, sent: false, deduped: true });
+      continue;
+    }
+    const delivered = await sendWithRetry(discordSender, discordPayload({ ...item, channel }), sleep);
+    if (!delivered.ok) {
+      await release(controlStore, leaseKey, leaseValue);
+      alerts.push({ trigger: item.trigger, sent: false, attempts: delivered.attempts });
+      continue;
+    }
+    alerts.push({ trigger: item.trigger, sent: true, attempts: delivered.attempts, receiptId: delivered.receiptId });
+  }
+
+  return {
+    channel, tier, buckets,
+    aggregateAvailable: aggregate.available,
+    denominators: { total, failed },
+    canaryTerminal,
+    triggers,
+    alerts,
+  };
+}
 export const runProMonitor = evaluateProMonitor;
