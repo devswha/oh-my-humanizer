@@ -68,7 +68,11 @@ test('real rewrite aggregates flow through protected cron, pending Discord alert
       if (target.startsWith('https://discord.com/')) { if (discordFailures-- > 0) return { ok: false, status: 500, headers: { get: () => 'application/json' }, text: async () => '{}' }; discord.push(JSON.parse(String(options.body))); return { ok: true, status: 200, headers: { get: () => 'application/json' }, text: async () => JSON.stringify({ id: `discord-${discord.length}` }) }; }
       throw new Error(`unexpected ${target}`);
     };
-    const monitor = createProMonitorApiHandler({ env, fetchImpl: fetchFake(fetchImpl) });
+    // The cron also evaluates the free tier now; that path has its own suite
+    // (free-tier-monitor.test.js) and this fixture configures no free provider,
+    // so it is stubbed to keep this test scoped to the paid evidence chain.
+    const freeStub = async () => (/** @type {any} */ ({ channel: 'production', tier: 'free', buckets: [], aggregateAvailable: true, denominators: { total: 0, failed: 0 }, canaryTerminal: null, triggers: [], alerts: [] }));
+    const monitor = createProMonitorApiHandler({ env, fetchImpl: fetchFake(fetchImpl), evaluateFreeTierHealthImpl: freeStub });
     const cron = async (authorization = 'Bearer cron-secret') => { globalThis.Date = /** @type {DateConstructor} */ (/** @type {unknown} */ (class extends RealDate { constructor(value) { super(value === undefined ? clock.ms : value); } static now() { return clock.ms; } })); try { const res = response(); await monitor({ method: 'GET', headers: { authorization } }, res); return res; } finally { globalThis.Date = RealDate; } };
     assert.equal((await cron('Bearer wrong')).statusCode, 401);
     clock.ms = BASE + 130_000; const firstCron = await cron(); assert.equal(firstCron.statusCode, 200, firstCron.body); assert.equal(discord.length, 0);
