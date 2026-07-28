@@ -164,6 +164,14 @@ npm run quality:live -- --language ko --limit 3
   This is the default for bulk and overnight work. The codex seat also carries
   the only judge measured at AUC 1.00, so it is more accurate than the paid
   HTTP judges, not a downgrade.
+- `--repeat <n>` — sample each fixture n times. Reported scores are medians,
+  `result.repeat` carries every sample with its spread, and the status is the
+  **worst** sample, so repeating can only expose instability, never hide it.
+  Measured 2026-07-27: identical configurations swing ±20 MPS per fixture —
+  `ko-blog-01` scored 45 in one sweep and 100 in three consecutive reruns — so a
+  single sample cannot validate any change smaller than that. Use `--repeat 3`
+  for a comparison you intend to act on, and pair it with the seats above so the
+  extra samples cost nothing.
 - `PATINA_LIVE_JUDGE_EXTRA_BODY` / `--judge-extra-body` — JSON object of
   provider-specific request fields for the scoring calls (candidate side:
   `PATINA_LIVE_EXTRA_BODY` / `--extra-body`). Main use is reasoning control,

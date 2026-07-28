@@ -74,17 +74,19 @@ Apply all remaining pattern packs (content, language, style, communication, fill
 1. Scan all patterns for AI tells
 2. Rewrite AI-sounding expressions into natural alternatives
 3. Preserve core meaning, claims, polarity, causation, numbers
-4. Keep overall length close to the original — the fidelity gate measures character length and full marks require staying within 70-130% of the input. Cut filler and hype freely, but replace it with natural phrasing of similar weight; never compress the text into a summary
-5. Match profile tone
-6. Inject personality per voice guidelines
-7. Respect blocklist/allowlist and pattern overrides
+4. Never add a claim, fact, number, guarantee, or commitment the source does not state. When a pattern asks for specificity the source does not supply — a concrete CTA, a named authority, a mechanism, a benefit — cut the vague sentence instead of inventing a replacement. Invented commitments ("cancel anytime", "no hidden fees", "saves you time every day") are the worst case: they publish false promises in the author's name
+5. Keep overall length close to the original — the fidelity gate measures character length and full marks require staying within 50-130% of the input. Cut filler and hype freely, but replace it with natural phrasing of similar weight; never compress the text into a summary
+6. Match profile tone
+7. Inject personality per voice guidelines
+8. Respect blocklist/allowlist and pattern overrides
 
 ### Phase 3: Self-Audit
 
 1. Scan for remaining AI tells
 2. Verify no polarity inversions (negation → positive or vice versa)
-3. Ensure Phase 1 corrections were not reverted in Phase 2
-4. Final check: meaning preserved?
+3. Verify nothing was added: every claim, number, and promise in the output must trace back to the input. Delete anything that does not
+4. Ensure Phase 1 corrections were not reverted in Phase 2
+5. Final check: meaning preserved?
 
 ### Output format (STRICT — v3.11)
 

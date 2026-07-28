@@ -421,6 +421,7 @@ export async function runLiveQualityReport(options = {}) {
   const settings = resolveLiveSettings(options);
   const judgeSettings = resolveJudgeSettings(options, settings);
   const candidateDir = options.candidateDir ? resolve(options.candidateDir) : null;
+  const repeat = Math.max(1, Number.isFinite(options.repeat) ? Math.trunc(options.repeat) : 1);
   const results = [];
 
   if (fixtures.length === 0) throw new Error('no live-quality fixtures selected');
@@ -440,17 +441,29 @@ export async function runLiveQualityReport(options = {}) {
       continue;
     }
 
-    try {
-      const candidateCalls = [];
-      const rawRewrite = candidate ?? await runWithApi(fixture, { ...options, settings, recordCall: (call) => candidateCalls.push(call) });
-      const result = liveRequested
-        ? await evaluateModelGradedRewrite(fixture, rawRewrite, { ...options, settings, judgeSettings, policy, candidateCalls })
-        : evaluateRewriteQuality(fixture, rawRewrite, options);
-      results.push(result);
-    } catch (err) {
-      results.push(failedResult(fixture, err));
+    // Per-fixture scores swing by ±20 MPS between identical runs (measured
+    // 2026-07-27), so a single sample cannot validate a change whose effect is
+    // smaller than that. `--repeat N` samples each fixture N times and reports
+    // the median with its spread; the worst sample is kept as the verdict so a
+    // repeat can only expose instability, never hide it.
+    const samples = [];
+    for (let attempt = 0; attempt < repeat; attempt += 1) {
+      try {
+        const candidateCalls = [];
+        const rawRewrite = candidate ?? await runWithApi(fixture, { ...options, settings, recordCall: (call) => candidateCalls.push(call) });
+        const result = liveRequested
+          ? await evaluateModelGradedRewrite(fixture, rawRewrite, { ...options, settings, judgeSettings, policy, candidateCalls })
+          : evaluateRewriteQuality(fixture, rawRewrite, options);
+        samples.push(result);
+      } catch (err) {
+        samples.push(failedResult(fixture, err));
+      }
+      // A precomputed candidate is deterministic, so repeating it only repeats
+      // the judge; that is still useful, but never rewrite-sampling.
     }
+    results.push(repeat > 1 ? mergeRepeats(samples) : samples[0]);
   }
+
 
   return buildReport({
     results,
@@ -460,6 +473,50 @@ export async function runLiveQualityReport(options = {}) {
     },
     policy,
   });
+}
+
+/**
+ * Collapse N samples of one fixture into a single result. The reported scores
+ * are medians, `samples` carries every value with its spread, and the status is
+ * the worst observed — a fixture that failed once is not clean, and hiding that
+ * behind a median would defeat the point of repeating.
+ */
+export function mergeRepeats(samples) {
+  const usable = samples.filter((sample) => sample && sample.mps !== null && sample.mps !== undefined);
+  const base = usable[0] ?? samples[0];
+  if (!usable.length) return { ...base, repeat: { count: samples.length, usable: 0 } };
+
+  const median = (values) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  };
+  const pick = (key) => usable.map((sample) => sample[key]).filter((value) => Number.isFinite(value));
+  const spread = (values) => (values.length ? Math.max(...values) - Math.min(...values) : null);
+
+  const mpsValues = pick('mps');
+  const fidValues = pick('fidelity');
+  const deltaValues = pick('ai_delta');
+  const rank = { pass: 0, warn: 1, fail: 2, error: 3, skipped: 4 };
+  const worst = usable.reduce((acc, sample) => (rank[sample.status] > rank[acc.status] ? sample : acc), usable[0]);
+
+  return {
+    ...base,
+    status: worst.status,
+    mps: median(mpsValues),
+    fidelity: fidValues.length ? median(fidValues) : base.fidelity,
+    ai_delta: deltaValues.length ? median(deltaValues) : base.ai_delta,
+    policy_violations: worst.policy_violations,
+    repeat: {
+      count: samples.length,
+      usable: usable.length,
+      statuses: usable.map((sample) => sample.status),
+      mps: mpsValues,
+      mps_spread: spread(mpsValues),
+      fidelity: fidValues,
+      fidelity_spread: spread(fidValues),
+    },
+  };
 }
 
 function shouldRunLive(options = {}) {
@@ -742,6 +799,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     else if (arg === '--judge-timeout-ms') options.judgeTimeoutMs = Number(argv[++i]);
     else if (arg === '--judge-backend') options.judgeBackend = argv[++i];
     else if (arg === '--backend') options.backend = argv[++i];
+    else if (arg === '--repeat') options.repeat = Number(argv[++i]);
     else if (arg === '--extra-body') options.extraBody = argv[++i];
     else if (arg === '--judge-extra-body') options.judgeExtraBody = argv[++i];
     else if (arg === '--help' || arg === '-h') options.help = true;
@@ -902,6 +960,11 @@ Options:
   --candidate-dir <dir>   Score precomputed rewrites named <fixture_id>.md
   --language <lang>       Filter fixtures by language
   --limit <n>             Limit selected fixtures
+  --repeat <n>            Sample each fixture n times; scores are medians, the
+                          status is the worst sample, and result.repeat carries
+                          every value with its spread. Per-fixture scores swing
+                          ±20 MPS between identical runs, so n=1 cannot validate
+                          a change smaller than that
   --json                  Emit structured JSON report
   --dry-run               Force skip mode even if PATINA_LIVE_* is set
 `;

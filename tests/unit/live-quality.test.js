@@ -12,6 +12,7 @@ import {
   aggregateCalls,
   createBackendJudgeCallLLM,
   normalizeUsage,
+  mergeRepeats,
   resolveJudgeSettings,
   summarizeUsage,
   resolveLiveSettings,
@@ -236,6 +237,53 @@ test('model-graded scoring calls route to the fixed judge, not the candidate', a
   assert.equal(result.status, 'pass');
   assert.ok(seenModels.length >= 4);
   assert.ok(seenModels.every((model) => model === 'judge-model'));
+});
+
+test('mergeRepeats reports medians but keeps the worst status', () => {
+  const merged = mergeRepeats([
+    { fixture_id: 'f', status: 'pass', mps: 100, fidelity: 100, ai_delta: 12, policy_violations: [] },
+    { fixture_id: 'f', status: 'error', mps: 45, fidelity: 80, ai_delta: 10, policy_violations: ['mps<70'] },
+    { fixture_id: 'f', status: 'pass', mps: 90, fidelity: 90, ai_delta: 11, policy_violations: [] },
+  ]);
+
+  assert.equal(merged.mps, 90);
+  assert.equal(merged.fidelity, 90);
+  assert.equal(merged.ai_delta, 11);
+  // One bad sample means the fixture is not clean, whatever the median says.
+  assert.equal(merged.status, 'error');
+  assert.deepEqual(merged.policy_violations, ['mps<70']);
+  assert.equal(merged.repeat.count, 3);
+  assert.equal(merged.repeat.mps_spread, 55);
+  assert.deepEqual(merged.repeat.mps, [100, 45, 90]);
+});
+
+test('mergeRepeats survives samples that never produced a score', () => {
+  const merged = mergeRepeats([{ fixture_id: 'f', status: 'error', mps: null, errors: ['boom'] }]);
+  assert.equal(merged.repeat.usable, 0);
+  assert.equal(merged.status, 'error');
+});
+
+test('repeat samples each fixture and records the spread', async () => {
+  let call = 0;
+  const varying = (args) => {
+    if (args.prompt.includes('Meaning Preservation evaluator')) {
+      call += 1;
+      return JSON.stringify({ anchors: [], mps: call === 1 ? 100 : 40 });
+    }
+    return fakeQualityModel(args);
+  };
+  const report = await runLiveQualityReport({
+    fixtures: [fixture],
+    live: true,
+    repeat: 2,
+    env: { PATINA_LIVE_API_KEY: 'k', PATINA_LIVE_API_BASE: 'https://example.test/v1', PATINA_LIVE_MODEL: 'm' },
+    callLLM: varying,
+  });
+
+  const [result] = report.results;
+  assert.equal(result.repeat.count, 2);
+  assert.equal(result.repeat.mps_spread, 60);
+  assert.equal(result.status, 'error');
 });
 
 test('harness prompt matches the hosted rewrite prompt byte for byte', async () => {
