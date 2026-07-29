@@ -179,3 +179,67 @@ cost survives the 81% cache hit. Shrinking what is sent per request (pattern
 catalog selection, profile/voice trimming) is the only change that would
 materially raise the allowance without raising the price. Not attempted here:
 it touches the rewrite prompt, which is out of scope without an explicit ask.
+
+## Cost structure, measured per call (gemini-3.6-flash, 2026-07-29)
+
+Where the $0.035 of a cached 177-char KO request actually goes:
+
+| call | input | output | thinking | total |
+|---|---:|---:|---:|---:|
+| rewrite | $0.0082 | $0.0017 | $0.0065 | **$0.0164** |
+| MPS | $0.0012 | $0.0024 | $0.0081 | **$0.0118** |
+| fidelity | $0.0009 | $0.0007 | $0.0053 | **$0.0069** |
+
+Two facts follow, and both were counter-intuitive:
+
+1. **Thinking tokens are 57% of the bill.** They are billed at the output
+   rate and run 3-5x the completion tokens on the scoring calls.
+2. **Scoring costs more than rewriting** ($0.0186 vs $0.0164). Optimizing the
+   rewrite prompt alone therefore cannot fix the economics — the ~20k-token
+   prompt is only $0.0082 of input after an 81% cache hit.
+
+### Reasoning-effort experiment on the scoring calls
+
+`reasoning_effort` on the two scorers only (the rewrite call untouched —
+thinking-off rewrites were previously measured to amputate content):
+
+| setting | scoring thinking tokens | scoring cost |
+|---|---:|---:|
+| default | 1,935 | $0.0188 |
+| `low` | 1,394 | $0.0148 |
+| `none` | ~1,288 | ~$0.0149 |
+
+Gate discrimination under `none` (the safety question — a cheaper gate that
+stops rejecting bad rewrites would be worse than no saving at all):
+
+| case | default | none |
+|---|---|---|
+| faithful rewrite | MPS 100 / fid 100 | identical |
+| dropped fact (loss reported) | 66.7 / 83.3 → reject | identical |
+| polarity inversion (적자→흑자) | 40 / 66.7 → reject | 40 / **58.3** → reject, stricter |
+
+Verdict: safe on the cases tested, but worth **only ~11% of total cost**
+(-$0.004/request). It moves the monthly allowance from ~60 to ~68 — a real
+saving, not a solution.
+
+## The allowance is a pricing decision, not an engineering one
+
+Budget = net revenue x (1 - margin floor). The 60% floor is self-imposed in
+the PAY-B-COST spec, not an external constraint:
+
+| margin floor | monthly budget | allowance at ~$0.045/request |
+|---|---:|---:|
+| 60% (current) | $3.40 | ~75 |
+| 50% | $4.25 | ~95 |
+| 40% | $5.09 | ~113 |
+| 60% at a $14.99 price | $7.92 | ~175 |
+
+**The BYOK tier reframes the question.** BYOK is already free and has no
+daily or monthly request cap — a heavy user's cheapest path is their own API
+key, not a bigger Pro plan. Pro sells *not having to manage a provider key*,
+so its allowance needs to be credible for a normal user, not unlimited for a
+power user. That is the honest case for a number near 100 rather than 500.
+
+Pending owner decision: margin floor (60% vs 50%) and the advertised
+allowance. `PATINA_PRO_REQ_PER_MONTH` makes the number env-tunable either
+way, so the shipped 60 is a safe placeholder, not a commitment.
