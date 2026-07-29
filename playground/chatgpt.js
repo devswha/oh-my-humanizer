@@ -87,6 +87,7 @@ const I18N = {
     floorWarn: 'This rewrite didn’t pass patina’s meaning-preservation floor (MPS / fidelity), so it’s flagged. Try again or pick a stronger model.',
     reportFp: 'Flagged your own writing? Report a false positive →',
     failNote: 'Rewrite failed. Try again, or check the mode/key.',
+    numberSafetyNote: 'The rewrite didn’t keep the numbers/times exactly as written, so patina discarded it for safety. Try again.',
     quotaDaily: 'You’ve used today’s free quota. Try again tomorrow, or switch to BYOK mode with your own API key for unlimited use.',
     quotaHourly: 'Free quota is full for now. Try again shortly, or use BYOK mode with your own API key.',
     proUpsell: 'Upgrade to Pro — $9.99/mo',
@@ -129,6 +130,7 @@ const I18N = {
     floorWarn: '이 리라이트는 patina의 의미 보존 기준(MPS·fidelity)을 통과하지 못해 경고로 표시했어요. 다시 시도하거나 더 강한 모델을 골라보세요.',
     reportFp: '직접 쓴 글인데 잡혔나요? 오탐 신고 →',
     failNote: '리라이트 실패. 다시 시도하거나 모드·키를 확인해 주세요.',
+    numberSafetyNote: '리라이트가 숫자·시간 표기를 원문 그대로 보존하지 못해 안전을 위해 결과를 폐기했어요. 다시 시도해 주세요.',
     quotaDaily: '오늘 무료 사용량을 다 쓰셨어요. 내일 다시 시도하거나, 본인 API 키로 BYOK 모드를 쓰면 제한 없이 이용할 수 있어요.',
     quotaHourly: '무료 사용량이 잠시 가득 찼어요. 잠시 후 다시 시도하거나, 본인 API 키로 BYOK 모드를 쓰면 바로 이용할 수 있어요.',
     proUpsell: 'Pro로 업그레이드 — $9.99/월',
@@ -171,6 +173,7 @@ const I18N = {
     floorWarn: '该改写未通过 patina 的语义保留阈值（MPS·fidelity），已标记。请重试或选择更强的模型。',
     reportFp: '人工撰写却被标记？反馈误报 →',
     failNote: '改写失败。请重试，或检查模式 / 密钥。',
+    numberSafetyNote: '改写未能原样保留数字 / 时间，为安全起见已丢弃结果。请重试。',
     quotaDaily: '今天的免费额度已用完。请明天再试，或切换到 BYOK 模式使用自己的 API 密钥，即可无限制使用。',
     quotaHourly: '免费额度暂时已满。请稍后再试，或使用 BYOK 模式和自己的 API 密钥。',
     proUpsell: '升级到 Pro — 每月 $9.99',
@@ -213,6 +216,7 @@ const I18N = {
     floorWarn: 'この書き換えは patina の意味保持しきい値（MPS・fidelity）を満たさず、警告表示しています。再試行するか、より強力なモデルを選んでください。',
     reportFp: '自分で書いた文章なのに検出？誤検出を報告 →',
     failNote: '書き換えに失敗しました。再試行するか、モード・キーを確認してください。',
+    numberSafetyNote: '書き換えが数値・時刻を原文どおりに保持できなかったため、安全のため結果を破棄しました。もう一度お試しください。',
     quotaDaily: '本日の無料利用枠を使い切りました。明日また試すか、ご自身のAPIキーでBYOKモードに切り替えると無制限で使えます。',
     quotaHourly: '無料利用枠が一時的にいっぱいです。しばらくして再試行するか、ご自身のAPIキーでBYOKモードをお使いください。',
     proUpsell: 'Proにアップグレード — 月額$9.99',
@@ -1113,6 +1117,7 @@ function failureMessage(kind, ff, t) {
     case K.QUOTA_DAILY: return t.quotaDaily;
     case K.QUOTA_HOURLY: return t.quotaHourly;
     case K.QUOTA_CONCURRENT: return t.quotaConcurrent;
+    case K.NUMBER_SAFETY: return t.numberSafetyNote;
     case K.IP_UNAVAILABLE:
     case K.QUOTA_STORAGE:
     case K.QUOTA_SECRET:
