@@ -157,3 +157,34 @@ export function isPolarDefinitiveDenial(status, body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
   return body.error === 'ResourceNotFound';
 }
+
+/**
+ * Response fields that carry customer PII and must NEVER reach a log line, an
+ * error body, a KV value, or a return value.
+ *
+ * Measured against a live sandbox validate response (2026-07-29): alongside
+ * the entitlement fields, Polar returns `user` and `customer` objects with the
+ * purchaser's email, display name, and avatar URL, plus their IDs. This
+ * mirrors the Lemon Squeezy hazard already documented in src/entitlement.js
+ * ("the FULL LS body is never logged — its meta carries customer PII"), and it
+ * is why `evaluatePolarLicenseResponse` reads named fields instead of passing
+ * the body through.
+ */
+export const POLAR_PII_FIELDS = Object.freeze(['user', 'customer', 'user_id', 'customer_id']);
+
+/**
+ * Conservative default for the validate admission bucket, in requests per
+ * minute.
+ *
+ * Measured, not assumed: five validate calls in a few seconds were enough to
+ * draw `429` with `retry-after: 21` from the sandbox endpoint. Polar publishes
+ * no explicit number for this endpoint, so the shipped default is deliberately
+ * far below the observed breaking point — the positive cache means a Pro seat
+ * validates roughly once per cache TTL rather than once per rewrite, so a low
+ * ceiling costs nothing in practice and prevents a burst from turning every
+ * paying customer's request into a 503.
+ *
+ * The LS default was 50/min against a documented 60/min ceiling; Polar's
+ * observed tolerance is far tighter, hence 10.
+ */
+export const POLAR_DEFAULT_VALIDATE_RPM = 10;
