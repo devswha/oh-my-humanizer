@@ -53,7 +53,12 @@ export const TIER_LIMITS = Object.freeze({
   // spends the server key.
   free: Object.freeze({ maxChars: 4000, maxConcurrent: 1, reqPerDay: 20, burstPerHour: 10 }),
   byok: Object.freeze({ maxChars: 20000, maxConcurrent: 2 }),
-  pro: Object.freeze({ maxChars: 20000, reqPerDay: 200, maxConcurrent: 3, charsPerMonth: 1_000_000 }),
+  // charsPerMonth 1,000,000 -> 50,000 (owner-approved 2026-07-29): measured
+  // pipeline COGS is $46-$878 per 1M chars depending on engine/text (docs/
+  // operations/pro-margin-decision-20260729.md), so the old cap was loss-making
+  // ~50-100x at the $9.99 price. 50,000 chars/mo (~30-50 typical rewrites)
+  // clears the 60% margin gate on the shipped gemini serving basis.
+  pro: Object.freeze({ maxChars: 20000, reqPerDay: 200, maxConcurrent: 3, charsPerMonth: 50_000 }),
 });
 
 /**
