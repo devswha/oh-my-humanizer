@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "PAY-LIVE-RUNTIME-POLAR-v1",
+  "evidenceId": "PAY-LIVE-20260729-POLAR-ea8385dc-4c9c3f17",
+  "observedAt": "2026-07-29T23:37:17.096Z",
+  "provider": "polar",
+  "server": "production",
+  "moneyMoved": false,
+  "method": "forever 100% discount code, Polar-sanctioned production verification (no card, no card-testing)",
+  "checkout": {
+    "linkOrigin": "https://buy.polar.sh",
+    "discountDuration": "forever",
+    "discountBasisPoints": 10000,
+    "subtotalCents": 999,
+    "totalCents": 0,
+    "isPaymentRequired": false,
+    "confirmStatus": "confirmed",
+    "organizationStatusAtPurchase": "active"
+  },
+  "license": {
+    "status": "granted",
+    "benefitId": "4c9c3f17-f3b9-47cd-9ca4-4295ad3957b4",
+    "displayKey": "****-CC442E",
+    "keyLength": 43,
+    "prefixApplied": false,
+    "expiresAt": null,
+    "limitActivations": null,
+    "limitUsage": null,
+    "rawKeyRecorded": false,
+    "customerPiiRecorded": false
+  },
+  "proEntitlement": {
+    "url": "https://patina.vibetip.help",
+    "deployedVersion": "6.3.3",
+    "httpStatus": 200,
+    "terminal": "done",
+    "events": [
+      "start",
+      "delta",
+      "done",
+      "claim",
+      "quantifier"
+    ],
+    "numbersPreserved": [
+      "14:30",
+      "23,000"
+    ],
+    "rawLicenseInResponse": false
+  },
+  "priorFailure": {
+    "deployedVersion": "6.3.2",
+    "httpStatus": 403,
+    "cause": "origin/main at 6.3.2 shipped no src/entitlement-polar.js; the configured env had no code to read it"
+  },
+  "notEstablished": [
+    "A card-backed purchase has never been completed; only a zero-amount checkout.",
+    "Payout is unproven: the account review (up to 14 days) governs money reaching the owner, not the ability to sell.",
+    "Refund, cancellation-revocation, and chargeback handling are untested on production.",
+    "The monthly 100-request cap is proven against a local handler, not against this production deployment."
+  ],
+  "factsSha256": "017dd90563dc456c0507060df8be4131aa2f7173286643018909075cda4a7bd2"
+}
