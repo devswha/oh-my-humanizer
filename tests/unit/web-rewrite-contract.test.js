@@ -368,7 +368,7 @@ test('WEB_TIERS exposes the pro tier value', () => {
 });
 
 test('TIER_LIMITS.pro documents the pro caps without regressing free/byok', () => {
-  assert.deepEqual(TIER_LIMITS.pro, { maxChars: 20000, reqPerDay: 200, maxConcurrent: 3, charsPerMonth: 50000 });
+  assert.deepEqual(TIER_LIMITS.pro, { maxChars: 20000, reqPerDay: 200, reqPerMonth: 60, maxConcurrent: 3, charsPerMonth: 50000 });
   // Free/byok caps are unchanged by the pro extension.
   assert.equal(TIER_LIMITS.free.maxChars, 4000);
   assert.equal(TIER_LIMITS.byok.maxChars, 20000);
@@ -376,7 +376,7 @@ test('TIER_LIMITS.pro documents the pro caps without regressing free/byok', () =
 
 test('resolveTierLimits returns the defaults when no env overrides are present', () => {
   const limits = resolveTierLimits();
-  assert.deepEqual(limits.pro, { maxChars: 20000, reqPerDay: 200, maxConcurrent: 3, charsPerMonth: 50000 });
+  assert.deepEqual(limits.pro, { maxChars: 20000, reqPerDay: 200, reqPerMonth: 60, maxConcurrent: 3, charsPerMonth: 50000 });
   assert.equal(limits.free.maxChars, 4000);
   assert.equal(limits.byok.maxChars, 20000);
   // An empty env behaves identically to the no-arg call.
@@ -389,8 +389,9 @@ test('resolveTierLimits applies positive-integer pro env overrides', () => {
     PATINA_PRO_REQ_PER_DAY: '1000',
     PATINA_PRO_MAX_CONCURRENT: '8',
     PATINA_PRO_CHARS_PER_MONTH: '2000000',
+    PATINA_PRO_REQ_PER_MONTH: '500',
   });
-  assert.deepEqual(limits.pro, { maxChars: 50000, reqPerDay: 1000, maxConcurrent: 8, charsPerMonth: 2000000 });
+  assert.deepEqual(limits.pro, { maxChars: 50000, reqPerDay: 1000, reqPerMonth: 500, maxConcurrent: 8, charsPerMonth: 2000000 });
   // Free/byok stay pinned to the defaults regardless of pro env.
   assert.equal(limits.free.maxChars, 4000);
   assert.equal(limits.byok.maxChars, 20000);
@@ -405,7 +406,7 @@ test('resolveTierLimits falls back to defaults for invalid pro overrides', () =>
     });
     assert.deepEqual(
       limits.pro,
-      { maxChars: 20000, reqPerDay: 200, maxConcurrent: 3, charsPerMonth: 50000 },
+      { maxChars: 20000, reqPerDay: 200, reqPerMonth: 60, maxConcurrent: 3, charsPerMonth: 50000 },
       `invalid override ${JSON.stringify(bad)} must fall back to the default`,
     );
   }
