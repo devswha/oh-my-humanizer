@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "PAY-B-BINDING-POLAR-v1",
+  "evidenceId": "PAY-B-20260729-POLAR-ea8385dc-4c9c3f17",
+  "observedAt": "2026-07-29T22:35:41Z",
+  "provider": "polar",
+  "source": "owner supplied the production organization, checkout link, and benefit identities in the operator session; every field below was then read back from Polar rather than transcribed",
+  "verification": {
+    "method": "unauthenticated client checkout-session read",
+    "checkoutLinkStatus": 307,
+    "sessionEndpoint": "https://api.polar.sh/v1/checkouts/client/{client_secret}",
+    "sessionStatus": 200
+  },
+  "organization": {
+    "id": "9a9180b7-2d13-422e-b9a7-316bed61c51d"
+  },
+  "product": {
+    "id": "ea8385dc-e21f-44bd-8ccd-2725437abb70",
+    "name": "patina pro",
+    "isRecurring": true,
+    "recurringInterval": "month",
+    "priceAmountType": "fixed",
+    "priceCents": 999,
+    "currency": "usd",
+    "isArchived": false,
+    "trial": null
+  },
+  "benefit": {
+    "id": "4c9c3f17-f3b9-47cd-9ca4-4295ad3957b4",
+    "type": "license_keys",
+    "description": "patina Pro license",
+    "expires": false,
+    "limitActivations": false,
+    "limitUsage": false
+  },
+  "checkout": {
+    "url": "https://buy.polar.sh/polar_cl_qKqtaZKLhUNJetr1h7XHY6wn8lRJEtG5DAPr02tG1pW",
+    "allowDiscountCodes": true,
+    "requireBillingAddress": false,
+    "successUrlOverridden": false,
+    "returnUrl": "https://patina.vibetip.help/#pricing"
+  },
+  "licenseGateEnv": {
+    "PATINA_LICENSE_PROVIDER": "polar",
+    "POLAR_ORGANIZATION_ID": "9a9180b7-2d13-422e-b9a7-316bed61c51d",
+    "POLAR_PRO_BENEFIT_ID": "4c9c3f17-f3b9-47cd-9ca4-4295ad3957b4"
+  },
+  "notEstablished": [
+    "No production license key exists yet, so an end-to-end production entitlement has never been observed; the gate is proven only against the Polar sandbox.",
+    "The v6.4 preflight hold still pins Lemon Squeezy identities, so this binding is NOT yet in the source-controlled checkout evidence table and the in-app upgrade button stays disabled."
+  ],
+  "factsSha256": "87f731d56b337c9ca3c07b010be7f684026d0949495808110c984c51310afafe"
+}
