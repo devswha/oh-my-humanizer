@@ -218,9 +218,33 @@ stops rejecting bad rewrites would be worse than no saving at all):
 | dropped fact (loss reported) | 66.7 / 83.3 → reject | identical |
 | polarity inversion (적자→흑자) | 40 / 66.7 → reject | 40 / **58.3** → reject, stricter |
 
-Verdict: safe on the cases tested, but worth **only ~11% of total cost**
-(-$0.004/request). It moves the monthly allowance from ~60 to ~68 — a real
+Re-run across the full `tests/fixtures/meaning-proxy/pairs.json` corpus
+(3 preserving + 3 broken, KO+EN): **6/6 identical verdicts** between default
+and `none`. The setting is safe; it is just worth **only ~11% of total cost**
+(-$0.004/request), moving the monthly allowance from ~60 to ~68 — a real
 saving, not a solution.
+
+### Side finding: a mislabeled KO fixture, not a gate defect
+
+That corpus run showed the gate rejecting `ko paraphrase keeps
+claim/numbers`, which reads as a false rejection on the primary market's
+language. It is not. The fixture's rewrite moved the modifier "2024년" from
+the **report** to the **revenue**:
+
+- original: "**2024년 보고서**에 따르면 … 매출이 늘었다" (the report is from 2024)
+- fixture rewrite: "보고서를 보면 … **2024년 매출**이 늘었다" (the revenue is from 2024)
+
+Those are different claims — a 2024 report can discuss 2023 revenue. Both
+scorers identified it precisely (MPS `SOFT_FAIL: 2024년 작성된 보고서의
+내용임`; the fidelity rationale names the modifier move), and a corrected
+rewrite that keeps "2024년" on the report scores **MPS 100 / fidelity 100**.
+
+The fixture was corrected to a genuinely meaning-preserving rewrite. The
+drift version was deliberately NOT added to the `broken` list: that list's
+contract is "the deterministic, LLM-free proxy must fail these", and modifier
+scope is exactly what the deterministic layer cannot see (both numbers
+survive). It is recorded here instead, as evidence that the LLM gate catches
+a class the deterministic layer is documented not to reach.
 
 ## The allowance is a pricing decision, not an engineering one
 
