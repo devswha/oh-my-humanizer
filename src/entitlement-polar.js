@@ -127,3 +127,33 @@ export function evaluatePolarLicenseResponse(data, env = {}, now = Date.now()) {
 
   return { ok: true, status, expiresAt };
 }
+/**
+ * Whether a non-2xx validate response is a DEFINITIVE license verdict rather
+ * than a transient outage.
+ *
+ * This distinction is the difference between a correct 403 and a misleading
+ * 503. Measured against the live endpoint on 2026-07-29: an unknown key
+ * answers **HTTP 404 `{"error":"ResourceNotFound","detail":"Not found"}`** —
+ * unlike Lemon Squeezy, which answers 4xx carrying `valid: false`. Treating
+ * that 404 as "unavailable" would report every invalid license as a service
+ * outage, and would re-charge the admission bucket on every retry of a key
+ * that will never validate.
+ *
+ * Deliberately narrow, because the cost of a false "definitive" is a cached
+ * denial for a paying customer:
+ *   - 429 is Polar's own rate limiting -> transient, never a verdict.
+ *   - 5xx is an outage -> transient.
+ *   - 422 means WE sent a malformed request (e.g. a bad organization ID
+ *     shape) -> server misconfiguration, not an invalid customer key.
+ *   - 401/403 concern the caller's own authorization, not the key's validity.
+ * Only 404 ResourceNotFound is accepted as "this key does not exist here".
+ *
+ * @param {number} status HTTP status of the validate response.
+ * @param {any} body Parsed response body, or null when unparseable.
+ * @returns {boolean}
+ */
+export function isPolarDefinitiveDenial(status, body) {
+  if (status !== 404) return false;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
+  return body.error === 'ResourceNotFound';
+}
