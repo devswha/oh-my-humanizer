@@ -198,31 +198,33 @@ Two facts follow, and both were counter-intuitive:
    rewrite prompt alone therefore cannot fix the economics — the ~20k-token
    prompt is only $0.0082 of input after an 81% cache hit.
 
-### Reasoning-effort experiment on the scoring calls
+### Reasoning-effort experiment — RETRACTED, then redone
 
-`reasoning_effort` on the two scorers only (the rewrite call untouched —
-thinking-off rewrites were previously measured to amputate content):
+**The first run of this experiment was invalid and its numbers must not be
+reused.** `extraBody` was passed to `scoreMPS`/`scoreFidelity`, but scoring.js
+never forwarded it to `callLLM` — the option was silently dropped. Every
+"reasoning_effort" measurement was therefore default-vs-default, and the
+apparent 1,935 → 1,394 → 644 thinking-token differences were nothing but
+Gemini's natural run-to-run variance (a repeat of the default setting alone
+produced 1,138 then 955). The "6/6 identical verdicts proves the setting is
+safe" claim proved only that the gate's verdicts are stable across runs —
+itself worth knowing, but not evidence about reasoning control.
 
-| setting | scoring thinking tokens | scoring cost |
-|---|---:|---:|
-| default | 1,935 | $0.0188 |
-| `low` | 1,394 | $0.0148 |
-| `none` | ~1,288 | ~$0.0149 |
+After wiring `extraBody` through `callAndParseJson` into both scorers, the
+real behavior on gemini-3.6-flash is:
 
-Gate discrimination under `none` (the safety question — a cheaper gate that
-stops rejecting bad rewrites would be worse than no saving at all):
+| setting | result |
+|---|---|
+| `reasoning_effort: 'none'` | **HTTP 400 INVALID_ARGUMENT** — not accepted |
+| `extra_body.google.thinking_config.thinking_budget: 0` | **HTTP 400** — not accepted |
+| `reasoning_effort: 'low'` | accepted, **thinking tokens → 0**, MPS unchanged |
+| `reasoning_effort: 'minimal'` | accepted, thinking tokens → 0, MPS unchanged |
 
-| case | default | none |
-|---|---|---|
-| faithful rewrite | MPS 100 / fid 100 | identical |
-| dropped fact (loss reported) | 66.7 / 83.3 → reject | identical |
-| polarity inversion (적자→흑자) | 40 / 66.7 → reject | 40 / **58.3** → reject, stricter |
-
-Re-run across the full `tests/fixtures/meaning-proxy/pairs.json` corpus
-(3 preserving + 3 broken, KO+EN): **6/6 identical verdicts** between default
-and `none`. The setting is safe; it is just worth **only ~11% of total cost**
-(-$0.004/request), moving the monthly allowance from ~60 to ~68 — a real
-saving, not a solution.
+So the available saving is far larger than the retracted estimate: thinking
+is ~57% of the bill and `low` removes it from the scoring calls entirely
+(~$0.013/request, ~38% of total). Whether it is SAFE is a separate question
+that must be re-answered with the wiring in place — the earlier corpus run
+does not count. Not enabled by default pending that verification.
 
 ### Side finding: a mislabeled KO fixture, not a gate defect
 
