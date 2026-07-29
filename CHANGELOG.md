@@ -12,6 +12,19 @@ All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 Semver rationale: patch | minor | major — explain whether this changes patterns, schemas, CLI behavior, or docs only.
 ```
 
+## 6.3.4 — 2026-07-29
+
+**Corrects the Pro pricing card, which advertised a burst guard as an entitlement and contradicted the real monthly cap.**
+
+Semver rationale: patch — customer-facing copy only. No pattern, schema, limit, or CLI behavior changes. 6.4 remains reserved for the payment launch.
+
+### Fixed
+
+- The Pro card listed **"200 rewrites / day"** beside "100 rewrites / month". The daily figure is `reqPerDay`, an internal burst guard that the contract itself documents as bounding burst rather than spend, and 200 per day is unreachable under 100 per month. Advertising it invited a customer to read 200/day as the entitlement and dispute the charge at request 101. Removed.
+- The two monthly caps read as independent bullets, which implied 100 rewrites *and* 50,000 characters were both fully available. They are separate budgets and the character budget binds first for anything long: at the 20,000-character ceiling it is exhausted after roughly two and a half rewrites, nowhere near 100. The card now says "50,000 characters / month total" and the note states plainly that whichever budget runs out first ends the month.
+
+The underlying mismatch between the two caps is left as a pricing decision rather than silently adjusted: making the character budget non-binding would expose a genuine loss case, since a full-size rewrite costs materially more than a short one while the request cap treats them alike.
+
 ## 6.3.3 — 2026-07-29
 
 **Ships the Polar license gate to the hosted runtime. Without this release the paid tier is unreachable: production accepted the `PATINA_LICENSE_PROVIDER` setting but shipped no code that reads it.**

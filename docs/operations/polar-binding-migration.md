@@ -19,6 +19,35 @@ Neither value is a secret — they are public identifiers that appear in an
 unauthenticated checkout-session read. The license key is the secret, and it
 never leaves the entitlement module.
 
+### The paid tier works on production
+
+A real purchase was completed against the production organization on 2026-07-29
+using a forever 100% discount code — Polar's sanctioned production verification,
+with no card and therefore no card-testing exposure. Full record:
+[`pay-live-runtime-polar-20260729.json`](pay-live-runtime-polar-20260729.json).
+
+| step | observed |
+|---|---|
+| checkout confirm | `confirmed`, 999 → 0 cents, no payment method required |
+| license issued | `granted`, correct benefit, `PATINA_` prefix, no expiry or limits |
+| production pro rewrite | **HTTP 200**, terminal `done`, real rewrite returned |
+| number safety | `14:30` and `23,000` both preserved |
+| license leakage | absent from the response body |
+
+That is the first end-to-end proof that a paying customer can actually use what
+they bought, and it took a released deployment to get there. The same license
+had been rejected with `403` minutes earlier: `origin/main` at 6.3.2 shipped no
+`src/entitlement-polar.js` at all, so the environment variables configured on
+production had no code to read them. Setting env vars had been mistaken for
+shipping the feature, and the resulting `403` had been misread as evidence the
+Polar gate was live — it was the Lemon Squeezy validator declining a key it had
+never issued. Shipped as v6.3.3.
+
+Still unproven: any card-backed purchase, payout (the review governs money
+reaching the owner, not the ability to sell), refund and cancellation-revocation
+behaviour on production, and the monthly 100-request cap against this deployment
+rather than a local handler.
+
 ### Payment readiness: blocked, then opened
 
 The organization was `status: "created"` with `details_submitted_at: null`, and
