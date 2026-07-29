@@ -382,3 +382,36 @@ test('number safety fails closed for ambiguous or changed numeric claims', () =>
     assert.ok(proxy.reasons.includes(`number safety failed: ${reason}`), `${name}: explicit failure reason`);
   }
 });
+test('number safety claims clock times instead of rejecting chat-log pastes (v2.2)', () => {
+  // Live web failure: pasting a KakaoTalk-style timeline ("16:47 – 16:50",
+  // "16:52") always 422-blocked as unsupported_numeric_syntax because
+  // digit:digit hit the operator check — even for an identity rewrite. Clock
+  // times are now exact claims, so preserving rewrites pass and time drift
+  // still fails closed.
+  const timeline = '아침 자동화 구상\n16:47 – 16:50\n원천 자료는 2022년 이전 출간본이 최고.\n16:52\n요약봇의 다음 모습\n17:00 – 17:08';
+  const passing = [
+    ['ko chat-log timeline identity', 'ko', timeline, timeline],
+    ['time preserved across rephrase', 'ko', '16:52 요약봇의 다음 모습', '요약봇의 다음 모습은 16:52에 나왔다', ['time:16:52']],
+    ['leading-zero hour normalizes', 'en', 'Standup at 09:05.', 'Standup at 9:05.', ['time:9:05']],
+    ['seconds precision', 'en', 'Logged at 16:47:30.', 'Logged at 16:47:30.', ['time:16:47:30']],
+  ];
+  for (const [name, lang, original, rewrite, claims] of passing) {
+    const result = evaluateNumberSafety(original, rewrite, lang);
+    assert.equal(result.ok, true, `${name}: ${result.reason}`);
+    if (claims) assert.deepEqual(result.originalClaims, claims, name);
+  }
+  const failing = [
+    ['time drift', 'ko', '회의는 16:47에 시작했다.', '회의는 16:45에 시작했다.', 'numeric_claim_changed'],
+    ['dropped time', 'ko', '16:52 요약봇의 다음 모습', '요약봇의 다음 모습', 'numeric_claim_changed'],
+    // Ratios/scores and invalid times keep the pre-v2.2 fail-closed behavior.
+    ['single-digit ratio stays unsupported', 'en', 'Ratio 1:2.', 'Ratio 1:2.', 'unsupported_numeric_syntax'],
+    ['score 3:1 stays unsupported', 'ko', '점수는 3:1이다.', '점수는 3:1이다.', 'unsupported_numeric_syntax'],
+    ['invalid hour stays unsupported', 'en', 'At 25:30 sharp.', 'At 25:30 sharp.', 'unsupported_numeric_syntax'],
+    ['invalid minutes stay unsupported', 'en', 'At 16:75 sharp.', 'At 16:75 sharp.', 'unsupported_numeric_syntax'],
+  ];
+  for (const [name, lang, original, rewrite, reason] of failing) {
+    const result = evaluateNumberSafety(original, rewrite, lang);
+    assert.equal(result.ok, false, name);
+    assert.equal(result.reason, reason, name);
+  }
+});
