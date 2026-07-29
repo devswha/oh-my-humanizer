@@ -38,13 +38,29 @@ after everything is demonstrable.
    identity verification and fraud prevention, and that accurate entries
    speed the review. The live playground and the GitHub repo are the two
    strongest items available.
-3. **Enable the sandbox** and note the **organization ID** (Settings). The org
-   ID is not a secret — it is sent on every validate call. Create a sandbox
-   API token if the dashboard asks for one.
+3. **Note the production organization ID** (Settings). It is not a secret — it
+   is sent on every validate call.
+4. **Set up the sandbox separately** (see the gotcha below): create an account
+   and organization at `sandbox.polar.sh/start`, recreate the product and the
+   License Key benefit there, open the product's **Checkout Link**, and pay
+   with Stripe's test card `4242 4242 4242 4242` (any future expiry, any CVC).
+   Use an organization-member email — sandbox only delivers customer emails to
+   members. Then hand over the **sandbox** organization ID, the benefit ID,
+   and the issued license key.
 
-### Agent — as soon as the org ID exists
+> **Gotcha: the sandbox is a separate server, not a test mode.** Polar states
+> you must "create a dedicated user account and organization" at
+> sandbox.polar.sh. Nothing crosses over: the production organization ID does
+> not resolve there, products and benefits must be recreated, and access
+> tokens are environment-specific. Probing `sandbox-api.polar.sh` with a
+> production organization ID returns the same `404 ResourceNotFound` as an
+> unknown key, so a wrong-environment ID is indistinguishable from a bad key —
+> which is exactly why the sandbox IDs must be captured explicitly rather than
+> assumed.
 
-4. **Entitlement adapter** behind the existing injected `licenseValidator`
+### Agent — as soon as the sandbox IDs exist
+
+5. **Entitlement adapter** behind the existing injected `licenseValidator`
    interface. Polar's endpoint is
    `POST https://api.polar.sh/v1/customer-portal/license-keys/validate`
    with `{ key, organization_id }`; the response carries `status`
@@ -59,24 +75,24 @@ after everything is demonstrable.
      boundary, so `PATINA_PRO_REQ_PER_MONTH` stays the enforcement point.
    - Acceptance criterion is unchanged: the handler, quota, and redteam
      suites need **no** modification.
-5. **Checkout wiring** — rebind `scripts/checkout-evidence-bindings.mjs` and
+6. **Checkout wiring** — rebind `scripts/checkout-evidence-bindings.mjs` and
    the launch config to the Polar checkout origin/path, rename `LS_*` env.
-6. **Sandbox end-to-end**: purchase → license issued → `tier=pro` rewrite →
+7. **Sandbox end-to-end**: purchase → license issued → `tier=pro` rewrite →
    monthly cap → revoke on cancellation.
 
 ### Owner — once the integration demonstrably works
 
-7. **Create the product**: recurring, monthly, fixed price $9.99 USD, with
+8. **Create the production product**: recurring, monthly, fixed price $9.99 USD, with
    the **License Keys** benefit attached. Description should match the
    application framing (style editor + meaning gate, not "AI humanizer").
-8. **Finance → Account → Submit for approval**: business/product/intended-use
+9. **Finance → Account → Submit for approval**: business/product/intended-use
    description (reuse the prepared text).
-9. **KYC**: passport / ID card / driver's licence + selfie via Stripe
+10. **KYC**: passport / ID card / driver's licence + selfie via Stripe
    Identity, completed by the org owner.
-10. **Payout account**: Stripe Connect Express. Stripe requires a **domestic
+11. **Payout account**: Stripe Connect Express. Stripe requires a **domestic
     KR bank account in KRW** — Wise/Payoneer/Revolut style accounts are
     generally rejected.
-11. Wait: initial review takes **up to 14 days**.
+12. Wait: initial review takes **up to 14 days**.
 
 ## Rules that carry real risk
 
