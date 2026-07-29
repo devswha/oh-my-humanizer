@@ -119,6 +119,7 @@ function summarizeDiff(before, after) {
  * @param {number} [options.timeout] Timeout in milliseconds.
  * @param {(input: {tier: string, outcome: string, status: number, latencyMs: number}) => unknown} [options.observe] Closed telemetry sink.
  * @param {() => number} [options.now] Injectable clock.
+ * @param {number} [options.numberSafetyRetries] Buffered LLM retries after a number-safety failure (default 1).
  * @returns {Promise<object>} Small result summary.
  */
 export async function runWebRewriteStream({
@@ -132,6 +133,7 @@ export async function runWebRewriteStream({
   timeout,
   observe,
   now = () => Date.now(),
+  numberSafetyRetries = 1,
 }) {
   if (typeof emit !== 'function') throw new TypeError('emit must be a function');
   let startedAt;
@@ -195,34 +197,55 @@ export async function runWebRewriteStream({
   };
   let attemptsClosed = false;
   let rewrite = '';
-  try {
-    const streamResult = await callLLMStream({
-      prompt,
-      apiKey: request.apiKey,
-      baseURL: request.baseURL,
-      model: request.model,
-      signal,
-      timeout,
-      onDelta: (text) => {
-        emit({ type: STREAM_FRAME_TYPES.DELTA, text });
-      },
-      onAttempt: (record) => recordAttempt('rewrite', record),
-      onAttemptInvalid: recordInvalidAttempt,
-    });
-    rewrite = formatRewriteBodyForBrowser(streamResult.text);
-  } catch (err) {
-    const error = safeError(err, request.apiKey);
-    closeAttempts();
-    emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'stream_failed', error });
-    return { ok: false, code: 'stream_failed', error, attempts, observed: observeTerminal('terminal_failed', 500) };
-  }
-
   const original = String(request.original ?? request.text ?? '');
-  const numberSafety = evaluateNumberSafety(original, rewrite, request.lang);
-  if (!numberSafety.ok) {
-    closeAttempts();
-    emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'number_safety_failed' });
-    return { ok: false, code: 'number_safety_failed', numberSafety, attempts, observed: observeTerminal('number_safety_failed', 422) };
+  let numberSafety = null;
+  // Attempt 1 streams deltas live for UX. If the rewrite fails the
+  // deterministic number-safety gate, retry the LLM call up to
+  // `numberSafetyRetries` more times WITHOUT emitting deltas (the client has
+  // already rendered attempt 1's text; the done frame carries the full
+  // accepted rewrite and the playground replaces the bubble content with it,
+  // so no protocol change is needed). Motivated by live gemini-3.6-flash
+  // serving: sampling variance sometimes clears a numeric-drift habit that a
+  // first attempt trips (docs/operations/pro-margin-decision-20260729.md).
+  // Every paid attempt is still recorded in the private attempts metadata.
+  const maxRuns = 1 + Math.max(0, Number.isSafeInteger(numberSafetyRetries) ? numberSafetyRetries : 1);
+  for (let run = 1; run <= maxRuns; run += 1) {
+    // Each callLLMStream invocation numbers its own attempts from 1; offset
+    // retry-run indices so the stage's private attempt ledger stays one-based
+    // and contiguous across runs (the fields and values are otherwise
+    // untouched — every paid attempt is recorded).
+    const indexBase = attemptCounts.rewrite;
+    try {
+      const streamResult = await callLLMStream({
+        prompt,
+        apiKey: request.apiKey,
+        baseURL: request.baseURL,
+        model: request.model,
+        signal,
+        timeout,
+        onDelta: (text) => {
+          if (run === 1) emit({ type: STREAM_FRAME_TYPES.DELTA, text });
+        },
+        onAttempt: (record) => recordAttempt('rewrite', Number.isInteger(/** @type {any} */ (record)?.attemptIndex)
+          ? { .../** @type {any} */ (record), attemptIndex: /** @type {any} */ (record).attemptIndex + indexBase }
+          : record),
+        onAttemptInvalid: recordInvalidAttempt,
+      });
+      rewrite = formatRewriteBodyForBrowser(streamResult.text);
+    } catch (err) {
+      const error = safeError(err, request.apiKey);
+      closeAttempts();
+      emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'stream_failed', error });
+      return { ok: false, code: 'stream_failed', error, attempts, observed: observeTerminal('terminal_failed', 500) };
+    }
+    numberSafety = evaluateNumberSafety(original, rewrite, request.lang);
+    if (numberSafety.ok) break;
+    // An externally aborted signal must not spend another paid attempt.
+    if (run === maxRuns || signal?.aborted) {
+      closeAttempts();
+      emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'number_safety_failed' });
+      return { ok: false, code: 'number_safety_failed', numberSafety, attempts, observed: observeTerminal('number_safety_failed', 422) };
+    }
   }
 
   const mpsScore = scoreFns.scoreMPS || scoreMPS;
