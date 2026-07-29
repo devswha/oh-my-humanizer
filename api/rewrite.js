@@ -5,6 +5,7 @@ import { encodeStreamFrame, QUOTA_REASONS, resolveTierLimits, WEB_TIERS } from '
 import { createWebObserver } from '../src/web-observability.js';
 import { runWebRewriteStream } from '../src/web-rewrite-stream.js';
 import { createLemonSqueezyLicenseValidator } from '../src/entitlement.js';
+import { createPolarLicenseValidator } from '../src/entitlement-polar.js';
 
 /**
  * @param {unknown} value
@@ -250,11 +251,20 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
   const envTimeout = Number(env.PATINA_WEB_REWRITE_TIMEOUT_MS);
   const streamTimeoutMs = Number.isFinite(envTimeout) && envTimeout > 0 ? envTimeout : WEB_REWRITE_TIMEOUT_MS;
   const concurrencyTtlMs = Math.max(5 * 60 * 1000, streamTimeoutMs + 30_000);
-  // The pro tier's revenue gate: a fail-closed Lemon Squeezy validate-only
-  // license validator sharing the rate limiter's KV. It turns the caller's
-  // Authorization: Bearer license into an HMAC subject; the raw license never
-  // leaves entitlement.js (never a return value, log line, or KV key).
-  const licenseValidator = createLemonSqueezyLicenseValidator({
+  // The pro tier's revenue gate: a fail-closed validate-only license validator
+  // sharing the rate limiter's KV. It turns the caller's Authorization: Bearer
+  // license into an HMAC subject; the raw license never leaves the entitlement
+  // module (never a return value, log line, or KV key).
+  //
+  // Vendor selection is explicit and defaults to Lemon Squeezy so an existing
+  // deployment cannot change gate behavior by upgrading. Set
+  // PATINA_LICENSE_PROVIDER=polar to serve the Polar gate; both share the same
+  // security core, and cache/lock keys are provider-namespaced so switching
+  // never serves a decision cached under the other vendor.
+  const licenseProvider = env.PATINA_LICENSE_PROVIDER === 'polar'
+    ? createPolarLicenseValidator
+    : createLemonSqueezyLicenseValidator;
+  const licenseValidator = licenseProvider({
     kv,
     hmacSecret: env.PATINA_LICENSE_HMAC_SECRET || env.PATINA_QUOTA_HMAC_SECRET,
     env,
