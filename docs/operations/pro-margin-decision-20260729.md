@@ -220,11 +220,28 @@ real behavior on gemini-3.6-flash is:
 | `reasoning_effort: 'low'` | accepted, **thinking tokens → 0**, MPS unchanged |
 | `reasoning_effort: 'minimal'` | accepted, thinking tokens → 0, MPS unchanged |
 
-So the available saving is far larger than the retracted estimate: thinking
-is ~57% of the bill and `low` removes it from the scoring calls entirely
-(~$0.013/request, ~38% of total). Whether it is SAFE is a separate question
-that must be re-answered with the wiring in place — the earlier corpus run
-does not count. Not enabled by default pending that verification.
+So the available saving is far larger than the retracted estimate. Redone
+verification with the wiring live, across the full
+`tests/fixtures/meaning-proxy/pairs.json` corpus (3 preserving + 3 broken,
+KO+EN):
+
+| | result |
+|---|---|
+| verdict agreement vs default | **6/6 identical** |
+| verdict correctness | **6/6 match the expected verdict** |
+| scoring cost | $0.0916 → **$0.0416 (-55%)** |
+
+Live end-to-end confirmation on the paid path: rewrite keeps its thinking
+(1,077 tokens, untouched by design), the scorers drop to 493 and 0, and the
+gate still returns MPS 100 / fidelity 100 on a faithful rewrite. `low`
+reduces scoring thinking sharply rather than always to exactly zero.
+
+**Shipped**: `scoringExtraBody(provider, env)` in `src/web-rewrite-stream.js`
+sends `reasoning_effort: 'low'` to both scorers, scoped to `provider ===
+'gemini'` (the only provider it was measured on — the same field is hard-400
+rejected in other forms, so it is never sent blind to a BYOK caller's
+provider) and killable with `PATINA_SCORING_REASONING=off`. The rewrite call
+is excluded.
 
 ### Side finding: a mislabeled KO fixture, not a gate defect
 
@@ -270,15 +287,15 @@ power user. That is the honest case for a number near 100 rather than 500.
 
 `TIER_LIMITS.pro.reqPerMonth = 100`, env `PATINA_PRO_REQ_PER_MONTH`. At the
 measured blended cost (~$0.045/request) that is ~$4.5 COGS against $8.49 net
-revenue — **~47% margin**, deliberately under the 60% floor the PAY-B-COST
-spec pins. The reasoning: the free BYOK tier already serves heavy users with
+revenue — **~47% margin** before the scoring reasoning cut, **~55% after it**
+(~$3.83 COGS), just under the 60% floor the PAY-B-COST spec pins. The reasoning: the free BYOK tier already serves heavy users with
 no request cap, so Pro sells key management rather than volume, and a
 credible allowance matters more than a maximal margin on a first paid
 product. Landing copy states "100 rewrites / month".
 
-Worst case (every request long and uncached at $0.075) is ~$7.5 COGS and ~12%
-margin — thin but never loss-making. If the reasoning cut passes its (redone)
-safety verification, the same 100 requests rise to roughly 60-65% margin.
+Worst case with the cut applied (every request long and uncached, $0.052) is
+~$5.2 COGS and **~39% margin** — thin but never loss-making, and materially
+better than the ~12% worst case before the cut.
 
 The PAY-B-COST receipt spec still hard-pins `unitChars` to 1,000,000 and a 60%
 floor, so issuing a receipt against the shipped caps needs the v2 rework
