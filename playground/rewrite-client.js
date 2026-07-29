@@ -239,6 +239,7 @@ export const REWRITE_ERROR_KINDS = Object.freeze({
   QUOTA_SECRET: 'quota_secret',
   SERVICE_UNAVAILABLE: 'service_unavailable',
   TEXT_TOO_LONG: 'text_too_long',
+  NUMBER_SAFETY: 'number_safety_failed',
   FLOOR_FAILED: 'floor_failed',
   UNKNOWN: 'unknown',
 });
@@ -262,6 +263,7 @@ export function classifyRewriteError(frame) {
   const code = typeof frame?.code === 'string' ? frame.code : '';
   const reason = typeof frame?.error === 'string' ? frame.error.toLowerCase() : '';
   if (code === 'floor_failed') return K.FLOOR_FAILED;
+  if (code === 'number_safety_failed') return K.NUMBER_SAFETY;
   if (reason.includes(R.DAILY)) return K.QUOTA_DAILY;
   if (reason.includes(R.HOURLY)) return K.QUOTA_HOURLY;
   if (reason.includes(R.CONCURRENT)) return K.QUOTA_CONCURRENT;
