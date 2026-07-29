@@ -11,7 +11,9 @@ import {
   POLAR_DEFAULT_VALIDATE_RPM,
   POLAR_PII_FIELDS,
   polarValidateUrl,
+  createPolarLicenseValidator,
 } from '../../src/entitlement-polar.js';
+import { createLemonSqueezyLicenseValidator } from '../../src/entitlement.js';
 import { QUOTA_REASONS } from '../../src/web-rewrite-contract.js';
 
 const ORG = 'fda84e25-7b55-4d67-916d-60ead04ff61f';
@@ -191,4 +193,146 @@ test('the validate admission ceiling stays well under the observed 429 threshold
   assert.equal(POLAR_DEFAULT_VALIDATE_RPM, 10);
   assert.ok(POLAR_DEFAULT_VALIDATE_RPM > 0 && Number.isSafeInteger(POLAR_DEFAULT_VALIDATE_RPM));
   assert.ok(POLAR_DEFAULT_VALIDATE_RPM < 50, 'must stay below the Lemon Squeezy-era default, which this endpoint will not tolerate');
+});
+
+// --- validator integration (mocked transport) -------------------------------
+
+/** Minimal in-process KV with the shape the entitlement core expects. */
+function memoryKv() {
+  const map = new Map();
+  return {
+    async get(k) { return map.get(k); },
+    async set(k, v) { map.set(k, v); },
+    async incr(k) { const n = (Number(map.get(k)) || 0) + 1; map.set(k, n); return n; },
+  };
+}
+
+/** Minimal Response stand-in; the entitlement core only reads ok/status/json. */
+function jsonResponse(status, body) {
+  return /** @type {Response} */ (/** @type {unknown} */ ({ ok: status >= 200 && status < 300, status, json: async () => body }));
+}
+
+const validatorEnv = {
+  POLAR_ORGANIZATION_ID: ORG,
+  POLAR_PRO_BENEFIT_ID: BENEFIT,
+  PATINA_LICENSE_HMAC_SECRET: 'unit-secret',
+};
+
+test('a granted license is allowed once and served from cache afterwards', async () => {
+  let calls = 0;
+  const validator = createPolarLicenseValidator({
+    kv: memoryKv(),
+    env: validatorEnv,
+    logger: { warn() {} },
+    fetchImpl: (async () => { calls += 1; return jsonResponse(200, grantedResponse()); }),
+  });
+
+  const first = await validator.validate({ licenseKey: 'LICENSE-A' });
+  assert.equal(first.ok, true);
+  assert.equal(first.ok === true && first.tier, 'pro');
+  assert.equal(first.ok === true && first.cache, 'miss');
+
+  const second = await validator.validate({ licenseKey: 'LICENSE-A' });
+  assert.equal(second.ok === true && second.cache, 'hit');
+  // The cache is what keeps this endpoint's tight rate limit from turning
+  // paying customers' requests into 503s.
+  assert.equal(calls, 1, 'a cached decision must not re-hit the provider');
+});
+
+test('an unknown key is a 403 denial, not a 503 outage', async () => {
+  // The distinction this pins: Polar answers an unknown key with 404, unlike
+  // Lemon Squeezy's 4xx-with-valid:false. Reading it as an outage would report
+  // invalid licenses as service failures and re-hit the rate budget forever.
+  let calls = 0;
+  const validator = createPolarLicenseValidator({
+    kv: memoryKv(),
+    env: validatorEnv,
+    logger: { warn() {} },
+    fetchImpl: async () => { calls += 1; return jsonResponse(404, { error: 'ResourceNotFound', detail: 'Not found' }); },
+  });
+
+  const denied = await validator.validate({ licenseKey: 'LICENSE-MISSING' });
+  assert.equal(denied.ok, false);
+  assert.equal(denied.ok === false && denied.status, 403);
+  assert.equal(denied.ok === false && denied.reason, QUOTA_REASONS.LICENSE_INVALID);
+
+  // Negatively cached: a retry of a permanently invalid key must not spend
+  // another provider call.
+  await validator.validate({ licenseKey: 'LICENSE-MISSING' });
+  assert.equal(calls, 1);
+});
+
+test('rate limiting and outages stay transient and are never cached', async () => {
+  for (const [status, body] of /** @type {Array<[number, unknown]>} */ ([[429, { error: 'RateLimited' }], [500, { error: 'Internal' }]])) {
+    let calls = 0;
+    const validator = createPolarLicenseValidator({
+      kv: memoryKv(),
+      env: validatorEnv,
+      logger: { warn() {} },
+      fetchImpl: async () => { calls += 1; return jsonResponse(status, body); },
+    });
+    const first = await validator.validate({ licenseKey: 'LICENSE-B' });
+    assert.equal(first.ok, false, `HTTP ${status}`);
+    assert.equal(first.ok === false && first.status, 503, `HTTP ${status} must be transient`);
+    await validator.validate({ licenseKey: 'LICENSE-B' });
+    assert.equal(calls, 2, `HTTP ${status} must not be cached — a retry has to re-validate`);
+  }
+});
+
+test('missing provider configuration fails closed without any network call', async () => {
+  let calls = 0;
+  const validator = createPolarLicenseValidator({
+    kv: memoryKv(),
+    env: { PATINA_LICENSE_HMAC_SECRET: 'unit-secret' },
+    logger: { warn() {} },
+    fetchImpl: (async () => { calls += 1; return jsonResponse(200, grantedResponse()); }),
+  });
+  const result = await validator.validate({ licenseKey: 'LICENSE-C' });
+  assert.equal(result.ok, false);
+  assert.equal(result.ok === false && result.status, 503);
+  assert.equal(calls, 0, 'an unconfigured provider must never reach the network');
+});
+
+test('the validator leaks neither the license nor the PII Polar returns', async () => {
+  const license = 'LICENSE-SECRET-VALUE';
+  const logs = [];
+  const validator = createPolarLicenseValidator({
+    kv: memoryKv(),
+    env: validatorEnv,
+    logger: { warn: (message, meta) => logs.push([message, meta]) },
+    fetchImpl: (async () => jsonResponse(200, {
+      ...grantedResponse({ key: license, status: 'revoked' }),
+      user: { email: 'buyer@example.com', public_name: 'Buyer' },
+      customer: { email: 'buyer@example.com', name: 'Buyer' },
+    })),
+  });
+  const result = await validator.validate({ licenseKey: license });
+  assert.equal(result.ok, false);
+  const everything = JSON.stringify(logs) + JSON.stringify(result);
+  assert.equal(everything.includes(license), false, 'the raw license must never surface');
+  assert.equal(everything.includes('buyer@example.com'), false, 'the purchaser email must never surface');
+  assert.equal(everything.includes('Buyer'), false, 'the purchaser name must never surface');
+});
+
+test('provider namespacing keeps a Polar decision from being served to Lemon Squeezy', async () => {
+  // Cache and lock keys are derived from the provider id, so a vendor switch
+  // cannot reuse a decision cached under the previous one.
+  const kv = memoryKv();
+  const polar = createPolarLicenseValidator({
+    kv,
+    env: validatorEnv,
+    logger: { warn() {} },
+    fetchImpl: (async () => jsonResponse(200, grantedResponse())),
+  });
+  await polar.validate({ licenseKey: 'SHARED-KEY' });
+
+  let lsCalls = 0;
+  const ls = createLemonSqueezyLicenseValidator({
+    kv,
+    env: { LS_STORE_ID: '1', LS_PRO_VARIANT_ID: '2', PATINA_LICENSE_HMAC_SECRET: 'unit-secret' },
+    logger: { warn() {} },
+    fetchImpl: (async () => { lsCalls += 1; return jsonResponse(200, { valid: false }); }),
+  });
+  await ls.validate({ licenseKey: 'SHARED-KEY' });
+  assert.equal(lsCalls, 1, 'the LS validator must not read a decision cached by Polar');
 });

@@ -31,6 +31,7 @@
 // carried only in `detail` for server-side logging. `detail` never contains
 // the license key.
 
+import { createLicenseValidator } from './entitlement.js';
 import { QUOTA_REASONS } from './web-rewrite-contract.js';
 
 /** Polar's customer-portal validate endpoint (no server credential required). */
@@ -188,3 +189,48 @@ export const POLAR_PII_FIELDS = Object.freeze(['user', 'customer', 'user_id', 'c
  * observed tolerance is far tighter, hence 10.
  */
 export const POLAR_DEFAULT_VALIDATE_RPM = 10;
+
+/**
+ * Polar provider descriptor for the shared entitlement core.
+ *
+ * @type {import('./entitlement.js').LicenseProvider}
+ */
+export const POLAR_PROVIDER = {
+  id: 'polar',
+  url: (env) => polarValidateUrl(env),
+  configured: (env) => Boolean(env.POLAR_ORGANIZATION_ID && env.POLAR_PRO_BENEFIT_ID),
+  request: (license, env) => {
+    const built = buildPolarValidateRequest(license, env);
+    // `configured` already gated the only failure this can hit; throwing here
+    // would surface as a transient 503 from the core's fetch guard, which is
+    // the correct fail-closed direction anyway.
+    if (built.ok !== true) throw new Error(`polar validate request: ${built.detail}`);
+    return {
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(built.body),
+    };
+  },
+  isDefinitiveDenial: isPolarDefinitiveDenial,
+  evaluate: evaluatePolarLicenseResponse,
+  defaultRpm: POLAR_DEFAULT_VALIDATE_RPM,
+  // Polar's error field is a short machine code ("ResourceNotFound"), safe to
+  // log. The rest of the body — user/customer objects — is PII and is never
+  // passed anywhere; see POLAR_PII_FIELDS.
+  errorText: (data) => (data && typeof data.error === 'string' ? data.error : undefined),
+};
+
+/**
+ * Build the Polar license validator. Shares the entire security machinery with
+ * the Lemon Squeezy path (HMAC subjects, two-layer cache, cross-instance
+ * single-flight lock, RPM admission, redaction, fail-closed defaults) and only
+ * swaps the vendor surface.
+ *
+ * Cache and lock keys are namespaced by the provider id, so switching vendors
+ * cannot serve a decision cached under the previous one.
+ *
+ * @param {Omit<Parameters<typeof createLicenseValidator>[0], 'provider'>} [options]
+ * @returns {ReturnType<typeof createLicenseValidator>}
+ */
+export function createPolarLicenseValidator(options = {}) {
+  return createLicenseValidator({ ...options, provider: POLAR_PROVIDER });
+}
