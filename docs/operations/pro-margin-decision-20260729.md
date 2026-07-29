@@ -114,3 +114,23 @@ so **capture is owner-side**: Vercel → patina project → Logs → filter
 `/api/pro-monitor` → record the first `200` response summary (post-deploy)
 in the Gate B ledger. A `503 monitor_unavailable` there now indicates a real
 adapter/secret gap, not deployment identity.
+
+## Decisions taken (owner-approved 2026-07-29, same day)
+
+1. **Cap**: `PATINA_PRO_CHARS_PER_MONTH` default 1,000,000 → **50,000**
+   (`TIER_LIMITS.pro.charsPerMonth`, env-overridable as before). Production
+   env note: if the deployment sets the env var explicitly, it overrides this
+   default and must be updated (or removed) at the secret manager.
+2. **Public copy**: landing pricing drops the engine name ("Premium AI
+   engine") and states 50,000 chars/month. `.env.example` already carried the
+   gemini pin (07-26); the go-live checklist secret map now matches it.
+3. **KO reliability**: server-side buffered retry on `number_safety_failed`
+   (`runWebRewriteStream numberSafetyRetries`, default 1). Attempt ledger
+   stays one-based across runs. Verified live: the deterministic
+   quarter-opener drift still fails closed after 2 attempts (correct); the
+   retry exists for sampling-variance cases.
+
+Follow-up owned by the agent: PAY-B-COST v2 (margin evaluated at the shipped
+50,000-char cap instead of the pinned 1M `unitChars`, and a retry-aware
+`validateSequence` that accepts a success-outcome preterminal rewrite attempt
+with a `number_safety` retry reason) — then re-run the gemini receipt.

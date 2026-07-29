@@ -81,7 +81,7 @@ validates the key against Lemon Squeezy's validate-only endpoint
 (`POST /v1/licenses/validate`), caches the decision (default 5 min), and meters
 per license by an HMAC subject — the **raw license key is never stored, logged,
 put in a KV key, or forwarded to the runner**. Defaults: 20000 chars / 200 req
-per day / 3 concurrent / 1,000,000 chars per month, each env-overridable.
+per day / 3 concurrent / 50,000 chars per month, each env-overridable.
 
 Pro env (see `.env.example` for the full annotated list):
 
@@ -98,7 +98,7 @@ Pro env (see `.env.example` for the full annotated list):
   missing value fails pro requests closed instead of silently serving the free
   provider/model); outside production they fall back to the free provider/model.
 - `PATINA_PRO_MAX_CHARS` (20000) / `PATINA_PRO_REQ_PER_DAY` (200) /
-  `PATINA_PRO_MAX_CONCURRENT` (3) / `PATINA_PRO_CHARS_PER_MONTH` (1000000, the
+  `PATINA_PRO_MAX_CONCURRENT` (3) / `PATINA_PRO_CHARS_PER_MONTH` (50000, the
   per-license monthly total-character cap — over it returns 429
   `monthly character limit reached` with `remainingMonthlyChars`/`limitMonthlyChars`).
 - `PATINA_LS_CACHE_TTL_MS` (300000) / `PATINA_LS_NEGATIVE_CACHE_TTL_MS` (60000) /
