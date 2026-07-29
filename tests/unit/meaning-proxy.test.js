@@ -334,7 +334,7 @@ test('number safety leaves bare KO discourse counters claim-free (v2.1 regressio
   assert.equal(evaluateNumberSafety('하나를 선택한다.', '선택한다.', 'ko').ok, false);
   assert.equal(evaluateNumberSafety('하나만 남았다.', '남았다.', 'ko').ok, false);
 });
-test('number safety claims KO digit+magnitude and fail-closes chained magnitudes', () => {
+test('number safety claims KO digit+magnitude, compounds, and descending chains (v2.2)', () => {
   const passing = [
     ['single magnitude with counter', '참석자가 3만 명이다.', '참석자가 3만 명이다.', ['number:30000/1']],
     ['grouped digits + magnitude', '매출이 1,200만 원 늘었다.', '매출이 1,200만 원 늘었다.', ['number:12000000/1']],
@@ -347,12 +347,32 @@ test('number safety claims KO digit+magnitude and fail-closes chained magnitudes
     assert.equal(result.ok, true, `${name}: ${result.reason}`);
     assert.deepEqual(result.originalClaims, claims, name);
   }
+  // v2.2: strictly descending digit-anchored chains and 백/천 compounds are
+  // exact notation equivalences (live gemini serving writes "23,000" as
+  // "2만 3천"); drift inside them still fails, and ascending/decimal/residual
+  // magnitude shapes keep the fail-closed behavior.
+  const chains = [
+    ['spaced chain', '예산은 1억 2천만 원이다.', '예산은 1억 2천만 원이다.', ['number:120000000/1']],
+    ['attached chain', '가격은 3만5천 원이다.', '가격은 3만5천 원이다.', ['number:35000/1']],
+    ['chain == grouped digits', '신규 고객이 23,000명이다.', '신규 고객이 2만 3천 명이다.', ['number:23000/1']],
+    ['single compound magnitude', '비용은 3천만 원이다.', '비용은 30000000원이다.', ['number:30000000/1']],
+    ['compound inside chain', '인구는 1억 2천만 명이다.', '인구는 120000000명이다.', ['number:120000000/1']],
+    // Pre-v2.2 behavior retained: ascending single-char magnitudes are two
+    // independent claims (identity-safe both ways; cross-form drift against a
+    // summed chain still mismatches).
+    ['ascending magnitudes stay independent claims', '예산은 2천 3만 원이다.', '예산은 2천 3만 원이다.', ['number:2000/1', 'number:30000/1']],
+    ['ascending compound magnitudes stay independent claims', '예산은 1억 2천억 원이다.', '예산은 1억 2천억 원이다.', ['number:100000000/1', 'number:200000000000/1']],
+    ['decimal term breaks the chain into independent claims', '예산은 1.5억 2천만 원이다.', '예산은 1.5억 2천만 원이다.', ['number:150000000/1', 'number:20000000/1']],
+  ];
+  for (const [name, original, rewrite, claims] of chains) {
+    const result = evaluateNumberSafety(original, rewrite, 'ko');
+    assert.equal(result.ok, true, `${name}: ${result.reason}`);
+    assert.deepEqual(result.originalClaims, claims, name);
+  }
   const failing = [
     ['dropped magnitude value', '매출이 1,200만 원 늘었다.', '매출이 늘었다.', 'numeric_claim_changed'],
     ['changed magnitude value', '참석자가 3만 명이다.', '참석자가 5만 명이다.', 'numeric_claim_changed'],
-    ['spaced chain fails closed', '예산은 1억 2천만 원이다.', '예산은 1억 2천만 원이다.', 'unsupported_word_number'],
-    ['chain drift never compares partial claims', '예산은 1억 2천만 원이다.', '예산은 1억 2천억 원이다.', 'unsupported_word_number'],
-    ['attached chain fails closed', '가격은 3만5천 원이다.', '가격은 3만5천 원이다.', 'unsupported_word_number'],
+    ['chain drift', '예산은 1억 2천만 원이다.', '예산은 1억 3천만 원이다.', 'numeric_claim_changed'],
   ];
   for (const [name, original, rewrite, reason] of failing) {
     const result = evaluateNumberSafety(original, rewrite, 'ko');
