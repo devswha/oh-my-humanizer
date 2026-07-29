@@ -693,6 +693,50 @@ test('pro tier: a valid license streams with the server pro key and no legacy me
   }
 });
 
+test('the license provider is selected by env and defaults to Lemon Squeezy', async () => {
+  // Selecting the gate vendor must be explicit: an existing deployment that
+  // upgrades without setting PATINA_LICENSE_PROVIDER keeps the LS gate.
+  const RAW = 'PROVIDER-SELECT-RAW';
+  const baseEnv = {
+    NODE_ENV: 'test',
+    PATINA_FREE_PROVIDER: 'openai', PATINA_FREE_MODEL: 'gpt-5.5',
+    PATINA_FREE_API_KEY: 'sk-server-free-key',
+    PATINA_PRO_API_KEY: 'sk-server-pro-key',
+    PATINA_LICENSE_HMAC_SECRET: 'license-secret',
+    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
+    POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
+  };
+  const injected = async ({ emit }) => emit({ type: 'done', rewrite: 'ok' });
+  const originalFetch = globalThis.fetch;
+  try {
+    for (const [label, envOverride, expectedHost] of /** @type {Array<[string, Record<string,string>, string]>} */ ([
+      ['default (unset)', {}, 'api.lemonsqueezy.com'],
+      ['explicit lemonsqueezy', { PATINA_LICENSE_PROVIDER: 'lemonsqueezy' }, 'api.lemonsqueezy.com'],
+      ['polar', { PATINA_LICENSE_PROVIDER: 'polar' }, 'api.polar.sh'],
+      // An unrecognized value must not silently pick the newer vendor.
+      ['unknown value', { PATINA_LICENSE_PROVIDER: 'paddle' }, 'api.lemonsqueezy.com'],
+    ])) {
+      let calledUrl = '';
+      globalThis.fetch = /** @type {any} */ (async (url) => {
+        calledUrl = String(url);
+        // Shape both vendors' "definitively invalid" answer so the request
+        // completes as a denial rather than hanging on a retry path.
+        return { ok: false, status: 404, json: async () => ({ valid: false, error: 'ResourceNotFound' }) };
+      });
+      const api = createRewriteApiHandler({ env: { ...baseEnv, ...envOverride }, runWebRewriteStreamImpl: injected });
+      const res = makeRes();
+      await api({
+        method: 'POST',
+        headers: { 'x-real-ip': '203.0.113.77', authorization: `Bearer ${RAW}` },
+        body: JSON.stringify({ mode: 'first', lang: 'en', tier: 'pro', text: 'Rewrite this sentence.' }),
+      }, res);
+      assert.ok(calledUrl.includes(expectedHost), `${label}: expected ${expectedHost}, called ${calledUrl}`);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('pro tier: fails closed with 503 when no pro key and no free-key fallback are configured', async () => {
   const RAW = 'LS-LICENSE-RAW-nokey';
   const env = {

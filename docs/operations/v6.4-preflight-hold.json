@@ -33,7 +33,7 @@
       "together": { "name": "together", "baseURL": "https://api.together.xyz/v1", "apiKeyEnv": "TOGETHER_API_KEY", "defaultModel": "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free", "freeTier": true, "note": "Free models available (suffix \"-Free\"). Get a key at https://api.together.xyz/settings/api-keys" }
     },
     "sourceHashes": {
-      ".env.example": "e8497437fa7f6d5f49a543195980a24a143a8b06f59d1b718441cd8baf5f1505",
+      ".env.example": "ed39e3edd12739e3c901824a786b28a7dc172e9710307425def88eee9c29bc30",
       "src/model-defaults.js": "c568977fcac8ea44d5387a8a8745b062675ec94d73d39ce528c492ad35f87176",
       "src/providers.js": "92415eacaf87da2d0f2aed7db97feeb98b8b087adfe584a02c4478353b807d90",
       "src/web-rewrite-contract.js": "b8a9d0fc28921740b68faf464b7848721ddf6b40696139447c16560811c036f7",
