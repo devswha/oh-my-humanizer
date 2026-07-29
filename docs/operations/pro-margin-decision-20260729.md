@@ -134,3 +134,48 @@ Follow-up owned by the agent: PAY-B-COST v2 (margin evaluated at the shipped
 50,000-char cap instead of the pinned 1M `unitChars`, and a retry-aware
 `validateSequence` that accepts a success-outcome preterminal rewrite attempt
 with a `number_safety` retry reason) — then re-run the gemini receipt.
+
+## Correction (same day): the char cap does not bound cost — requests do
+
+Measuring the shipped gemini-3.6-flash serving pin directly (not scaled from
+the claude bundles) changed the conclusion above:
+
+| measured | value |
+|---|---|
+| prompt size per request | ~20,100 tokens (81% prompt-cache hit, reproducible across runs) |
+| thinking tokens (billed as output) | 872 / 1,083 / 700 for rewrite / MPS / fidelity — **4x the completion tokens** |
+| cost per request (177-char KO) | $0.035 cached · $0.057 uncached |
+| cost per request (732-char EN) | $0.075 |
+| **allowed requests/month at 60% margin** | **45-78** ($3.40 budget ÷ $0.043-0.075) |
+
+The decisive fact: **cost tracks request count, not characters.** Three LLM
+calls behind a ~20k-token prompt cost nearly the same for a 100-char input as
+for a 1,000-char one. So `charsPerMonth: 50,000` is not a cost control on its
+own — 500 x 100-char requests satisfy it while costing ~$17.50 against $8.49
+of net revenue. `reqPerDay: 200` (6,000/month) bounds burst, not spend.
+
+The earlier "$0.030 per rewrite" figure in serving-engine-cost-20260725.md is
+not wrong, but it is **rewrite-only**; the paid path always bills rewrite +
+MPS + fidelity, and the meaning gate is the feature Pro is sold on, so those
+two calls cannot be dropped to save cost.
+
+### Shipped fix
+
+`TIER_LIMITS.pro.reqPerMonth = 60` (env `PATINA_PRO_REQ_PER_MONTH`), enforced
+per license subject in the same UTC-month bucket as the char counter, checked
+*before* it, and counted on every request (the char counter only engages when
+a positive char count is supplied). Denial is 429 `monthly rewrite limit
+reached` with `remainingMonthlyRequests` / `limitMonthlyRequests`.
+
+60 requests ≈ $2.6 COGS ≈ 70% margin, inside the measured 45-78 band with
+room for the uncached worst case. `charsPerMonth: 50,000` is retained as a
+secondary bound against a single enormous document. Landing copy now states
+"60 rewrites / month" alongside the character limit.
+
+### Open lever, not yet pulled
+
+The ~20k-token prompt is the cost driver, and roughly half the per-request
+cost survives the 81% cache hit. Shrinking what is sent per request (pattern
+catalog selection, profile/voice trimming) is the only change that would
+materially raise the allowance without raising the price. Not attempted here:
+it touches the rewrite prompt, which is out of scope without an explicit ask.

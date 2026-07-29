@@ -286,6 +286,28 @@ export function createRateLimiter({ kv, hmacSecret, env = {}, now = () => Date.n
             if (dayCount > proLimits.reqPerDay) {
               return { allowed: false, status: 429, reason: QUOTA_REASONS.DAILY };
             }
+            // Monthly REQUEST cap (per license subject) — the primary margin
+            // control. Pipeline cost tracks request count, not characters: each
+            // paid rewrite spends three LLM calls behind a ~20k-token prompt, so
+            // the char cap alone lets many tiny requests exceed the plan's
+            // economics. Counted before the char cap so the binding limit is the
+            // one that actually bounds spend, and it engages on EVERY request
+            // (unlike the char counter, which needs a positive char count).
+            const monthDate = new Date(timestamp);
+            const monthBucket = monthDate.getUTCFullYear() * 12 + monthDate.getUTCMonth();
+            const nextMonthStart = Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth() + 1, 1);
+            const monthTtlMs = nextMonthStart - timestamp;
+            const reqMonthlyCap = proLimits.reqPerMonth;
+            if (Number.isSafeInteger(reqMonthlyCap) && reqMonthlyCap > 0) {
+              const reqMonthKey = quotaKeyHmac(secret, 'pro', 'req-month', subject, monthBucket);
+              const reqMonthCount = await kv.incr(reqMonthKey, { ttlMs: monthTtlMs });
+              if (!Number.isSafeInteger(reqMonthCount) || reqMonthCount < 1) {
+                return { allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE };
+              }
+              if (reqMonthCount > reqMonthlyCap) {
+                return { allowed: false, status: 429, reason: QUOTA_REASONS.MONTHLY_REQUESTS, remainingMonthlyRequests: 0, limitMonthlyRequests: reqMonthlyCap };
+              }
+            }
             // Monthly total-character cap (per license subject), the margin
             // defense against a single seat burning far more than the $9.99/mo
             // subscription value under the daily/per-request caps. Only engages
@@ -295,11 +317,7 @@ export function createRateLimiter({ kv, hmacSecret, env = {}, now = () => Date.n
             const monthlyCap = proLimits.charsPerMonth;
             const reqChars = Number.isSafeInteger(chars) && chars > 0 ? chars : 0;
             if (reqChars > 0 && Number.isSafeInteger(monthlyCap) && monthlyCap > 0) {
-              const monthDate = new Date(timestamp);
-              const monthBucket = monthDate.getUTCFullYear() * 12 + monthDate.getUTCMonth();
               const monthKey = quotaKeyHmac(secret, 'pro', 'chars-month', subject, monthBucket);
-              const nextMonthStart = Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth() + 1, 1);
-              const monthTtlMs = nextMonthStart - timestamp;
               const monthTotal = await kv.incrBy(monthKey, reqChars, { ttlMs: monthTtlMs });
               if (!Number.isSafeInteger(monthTotal) || monthTotal < 1) {
                 return { allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE };
