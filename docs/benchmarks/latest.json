@@ -6,8 +6,8 @@
   "regressionRanges": "tests/fixtures/suspect-zones/expected-ranges.json",
   "schemaVersion": 3,
   "fixtureSchemaVersion": 1,
-  "nodeVersion": "v22.17.1",
-  "generatedAt": "2026-07-02T06:03:59.188Z",
+  "nodeVersion": "v24.18.0",
+  "generatedAt": "2026-07-29T08:50:08.132Z",
   "fixtureCount": 49,
   "overallAccuracy": 1,
   "overall": {
