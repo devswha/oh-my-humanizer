@@ -73,7 +73,7 @@ Apply all remaining pattern packs (content, language, style, communication, fill
 
 1. Scan all patterns for AI tells
 2. Rewrite AI-sounding expressions into natural alternatives
-3. Preserve core meaning, claims, polarity, causation, numbers
+3. Preserve core meaning, claims, polarity, causation, numbers. Numbers are frozen tokens: render every numeral exactly as the source writes it (digits stay digits, grouping and units unchanged) and exactly as many times as the source states it — never repeat a number into a sentence that did not carry it, and never move one earlier or later in the text
 4. Never add a claim, fact, number, guarantee, or commitment the source does not state. When a pattern asks for specificity the source does not supply — a concrete CTA, a named authority, a mechanism, a benefit — cut the vague sentence instead of inventing a replacement. Invented commitments ("cancel anytime", "no hidden fees", "saves you time every day") are the worst case: they publish false promises in the author's name
 5. Keep overall length close to the original — the fidelity gate measures character length and full marks require staying within 50-130% of the input. Cut filler and hype freely, but replace it with natural phrasing of similar weight; never compress the text into a summary
 6. Match profile tone

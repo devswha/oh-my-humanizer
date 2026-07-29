@@ -22,9 +22,14 @@ import { join } from 'node:path';
 import { runWebRewriteStream } from '../src/web-rewrite-stream.js';
 import { collectPayBCostSourceBundle, derivePayBCostFinancial, issuePayBCostReceipt, sha256Canonical, canonicalJson } from './pay-b-cost-receipt.mjs';
 
+// Provider parameterization (2026-07-29): the serving decision moved both
+// tiers to gemini-3.6-flash (serving-engine-cost-20260725.md), so this
+// collector must be able to measure the engine that will actually serve Pro.
+// Defaults preserve the original claude-sonnet-5 run shape byte-for-byte.
 const MODEL = process.env.G002_MODEL || 'claude-sonnet-5';
-const BASE = 'https://api.anthropic.com/v1';
-const PROVIDER = 'claude';
+const PROVIDER = process.env.G002_PROVIDER || 'claude';
+const BASE = process.env.G002_BASE_URL
+  || (PROVIDER === 'gemini' ? 'https://generativelanguage.googleapis.com/v1beta/openai' : 'https://api.anthropic.com/v1');
 const EVIDENCE_ID = 'PAY-B-20260723-1236551-1932893';
 const COLLECTOR_VERSION = 'g002-inproc-v1';
 
@@ -83,13 +88,15 @@ let effectiveModel = null;
 for (const probe of PROBES) {
   // The rewrite model is nondeterministic: a run can trip the number-safety
   // guard (rewrite mutated a numeric claim -> scoring never runs) and a probe
-  // then lacks complete stage records. Retry the probe wholesale, up to three
-  // runs, and keep the first run whose three stages all terminated in success.
+  // then lacks complete stage records. Retry the probe wholesale (bounded by
+  // G002_PROBE_TRIES, default 3) and keep the first run whose three stages all
+  // terminated in success.
   // floor_failed is acceptable: scoring completed, so its cost data is whole;
   // probe-level retry overhead is covered by the receipt's retry_failure
   // sensitivity cases.
   let accepted = null;
-  for (let attempt = 1; attempt <= 3 && !accepted; attempt += 1) {
+  const tries = Math.max(1, Number(process.env.G002_PROBE_TRIES) || 3);
+  for (let attempt = 1; attempt <= tries && !accepted; attempt += 1) {
     console.error(`[g002] running ${probe.id} (${probe.text.length} chars), try ${attempt}…`);
     const result = await runWebRewriteStream({
       request: { mode: 'first', lang: probe.lang, tier: 'pro', text: probe.text, apiKey, baseURL: BASE, model: MODEL },
