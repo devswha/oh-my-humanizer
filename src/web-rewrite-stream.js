@@ -105,6 +105,38 @@ function summarizeDiff(before, after) {
 }
 
 /**
+ * Provider-specific request fields for the two scoring calls.
+ *
+ * The MPS and fidelity judges are rubric-application tasks, and on
+ * gemini-3.6-flash their thinking tokens dominate the bill: measured
+ * 2026-07-29, thinking is ~57% of a request's cost and the two scorers
+ * together cost more than the rewrite itself. `reasoning_effort: 'low'` cuts
+ * scoring thinking sharply (measured 0-493 tokens per scorer against a
+ * 700-1,900 baseline) for a ~55% cut in scoring cost.
+ *
+ * Safety was the deciding question — a cheaper gate that stops rejecting bad
+ * rewrites would be worse than no saving. Verified across
+ * tests/fixtures/meaning-proxy/pairs.json (3 preserving + 3 broken, KO+EN):
+ * 6/6 verdicts identical to the default and 6/6 matching the expected verdict.
+ *
+ * Scoped to `gemini` because that is the provider it was measured on: the
+ * same field is rejected outright by some providers (gemini itself returns
+ * HTTP 400 for `reasoning_effort: 'none'`), so it is never sent blind to a
+ * BYOK caller's provider. `PATINA_SCORING_REASONING=off` disables it.
+ *
+ * The rewrite call is deliberately excluded: reduced thinking on rewrites was
+ * previously measured to amputate content.
+ *
+ * @param {string|undefined} provider
+ * @param {Record<string,string|undefined>} [env]
+ * @returns {{reasoning_effort: string}|undefined}
+ */
+export function scoringExtraBody(provider, env = {}) {
+  if (env.PATINA_SCORING_REASONING === 'off') return undefined;
+  return provider === 'gemini' ? { reasoning_effort: 'low' } : undefined;
+}
+
+/**
  * Stream a web rewrite and emit contract frames. A successful stream is start -> delta* -> done;
  * stream failures and scoring floor failures emit terminal error frames with no success done.
  *
@@ -120,6 +152,7 @@ function summarizeDiff(before, after) {
  * @param {(input: {tier: string, outcome: string, status: number, latencyMs: number}) => unknown} [options.observe] Closed telemetry sink.
  * @param {() => number} [options.now] Injectable clock.
  * @param {number} [options.numberSafetyRetries] Buffered LLM retries after a number-safety failure (default 1).
+ * @param {Record<string,string|undefined>} [options.env] Server env, read only for scoring reasoning control.
  * @returns {Promise<object>} Small result summary.
  */
 export async function runWebRewriteStream({
@@ -134,6 +167,7 @@ export async function runWebRewriteStream({
   observe,
   now = () => Date.now(),
   numberSafetyRetries = 1,
+  env = typeof process === 'undefined' ? {} : process.env,
 }) {
   if (typeof emit !== 'function') throw new TypeError('emit must be a function');
   let startedAt;
@@ -251,12 +285,13 @@ export async function runWebRewriteStream({
   const mpsScore = scoreFns.scoreMPS || scoreMPS;
   const fidelityScore = scoreFns.scoreFidelity || scoreFidelity;
   const deterministicScore = scoreFns.scoreDeterministicSignals || scoreDeterministicSignals;
+  const scoringExtra = scoringExtraBody(request.provider, env);
 
   let mps, fidelity, signals, diff;
   try {
     const scoreResults = await Promise.allSettled([
-      Promise.resolve().then(() => mpsScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, signal, timeout, onAttempt: (record) => recordAttempt('mps', record), onAttemptInvalid: recordInvalidAttempt })),
-      Promise.resolve().then(() => fidelityScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, signal, timeout, onAttempt: (record) => recordAttempt('fidelity', record), onAttemptInvalid: recordInvalidAttempt })),
+      Promise.resolve().then(() => mpsScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, extraBody: scoringExtra, signal, timeout, onAttempt: (record) => recordAttempt('mps', record), onAttemptInvalid: recordInvalidAttempt })),
+      Promise.resolve().then(() => fidelityScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, extraBody: scoringExtra, signal, timeout, onAttempt: (record) => recordAttempt('fidelity', record), onAttemptInvalid: recordInvalidAttempt })),
     ]);
     const [mpsResult, fidelityResult] = scoreResults;
     if (mpsResult.status === 'rejected') throw mpsResult.reason;
