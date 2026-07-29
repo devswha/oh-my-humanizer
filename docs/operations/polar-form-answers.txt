@@ -82,17 +82,49 @@ The free browser tier and the bring-your-own-key tier remain available at no cos
 
 
 ================================================
-나중 단계 (상품 생성 후)
+CHECKOUT LINK 만들기
 ================================================
 
-1. 생성된 상품에서 Checkout Link 만들기
-   - Success URL: https://patina.vibetip.help/?checkout=success
-   - Return URL:  https://patina.vibetip.help/#pricing
-   - Trial: 비움
+  Products              patina Pro
 
-2. 저에게 알려주실 것 (프로덕션 값)
-   - 조직 ID
-   - benefit ID  (License Keys benefit 상세 페이지)
-   - Checkout Link URL
+  Discount (프리셋)      비움
+                        (링크 열자마자 자동 할인 적용됨. 상시 할인 아님)
 
-3. 그다음: Finance → Account → 심사 제출 → KYC → 정산계좌(한국 은행, 원화)
+  Allow discount codes  켜기  ← 권장
+                        Polar 심사관이 결제 흐름을 직접 걸어보려고
+                        100% 할인 코드를 요청하는 경우가 있습니다.
+                        미리 켜두면 그때 코드만 만들어 주면 됩니다.
+
+  Success URL           비움  ← 주의
+
+     ※ 앞서 https://patina.vibetip.help/?checkout=success 를
+        적어뒀는데 잘못된 안내였습니다. playground에 그 파라미터를
+        처리하는 코드가 없어서(UTM만 읽음) 고객은 홈으로 튕기고
+        "이제 뭘 해야 하는지" 안내를 못 받습니다.
+
+     비워두면 Polar 확인 페이지에 남는데, 그 페이지가 바로
+     라이선스 키를 보여주는 화면입니다. 지금은 이게 맞습니다.
+     (benefit Visibility = Visible 이라서 가능)
+
+     나중에 자체 완료 페이지를 만들면 그때 바꾸면 됩니다.
+     그때 쓸 형식: .../?checkout=success&checkout_id={CHECKOUT_ID}
+
+  Return URL            https://patina.vibetip.help/#pricing
+                        (체크아웃 화면의 뒤로가기 버튼 목적지.
+                         안 넣으면 버튼이 아예 안 나옵니다)
+
+  Trial                 비움
+  Metadata              비움
+
+
+================================================
+저에게 알려주실 것 (프로덕션 값)
+================================================
+
+  1. 조직 ID
+  2. benefit ID       (License Keys benefit 상세 페이지)
+  3. Checkout Link URL  (https://buy.polar.sh/polar_cl_... 형태)
+
+  → 받으면 환경변수와 체크아웃 바인딩을 프로덕션으로 맞춥니다.
+
+그다음: Finance → Account → 심사 제출 → KYC → 정산계좌(한국 은행, 원화)
