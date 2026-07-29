@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>patina — make AI text sound human</title>
-  <meta name="description" content="patina humanizer — rewrite AI-sounding text naturally, keeping the claim, numbers, and tone. KO, EN, ZH, JA." />
+  <title>patina — rewrite AI-sounding drafts, keep every claim</title>
+  <meta name="description" content="Deterministic writing-style editor for Korean, English, Chinese, and Japanese. patina rewrites formulaic AI-sounding phrasing while a meaning-preservation gate keeps claims, numbers, polarity, and causation unchanged. Open source (MIT). Not an authorship detector and not an AI-detection bypass tool." />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
   <link rel="icon" type="image/svg+xml" href="/assets/brand/patina-icon.svg" />
@@ -169,7 +169,8 @@
         <div class="sec__head">
           <p class="eyebrow"><span>pricing</span></p>
           <h2 class="sec__title">Simple pricing</h2>
-          <p class="sec__lede">Try it free in the browser, bring your own key, or go Pro for higher limits on Claude Sonnet 5.</p>
+          <p class="sec__lede">Try it free in the browser, bring your own key, or go Pro for higher limits.</p>
+          <p class="sec__note">patina is an editing tool for writing you are allowed to produce with AI assistance: it changes wording, never your claims, numbers, or causation. It is not an authorship detector and not a tool for evading one — see the <a href="https://github.com/devswha/patina/blob/main/docs/ETHICS.md">ethics policy</a>.</p>
         </div>
         <div class="pricing__grid">
           <div class="price">
@@ -199,10 +200,11 @@
             <h3 class="price__name">Pro</h3>
             <p class="price__cost">$9.99<span>/mo</span></p>
             <ul class="price__feats">
-              <li>Claude Sonnet 5</li>
+              <li>Premium AI engine</li>
               <li>200 rewrites / day</li>
               <li>Up to 20,000 characters</li>
-              <li>1,000,000 characters / month</li>
+              <li>100 rewrites / month</li>
+              <li>50,000 characters / month</li>
             </ul>
             <a class="price__cta price__cta--pro is-soon" id="pro-buy" role="button" aria-disabled="true" rel="noopener">Pro — coming soon</a>
           </div>
@@ -219,7 +221,7 @@
       </section>
 
       <footer class="foot">
-        <div class="foot__brand"><img class="foot__icon" src="/assets/brand/patina-mark.svg" alt="" width="20" height="20" /> patina <span class="ver-badge">v6.3.2</span></div>
+        <div class="foot__brand"><img class="foot__icon" src="/assets/brand/patina-mark.svg" alt="" width="20" height="20" /> patina <span class="ver-badge">v6.3.3</span></div>
         <nav class="foot__links" aria-label="Footer">
           <a href="https://github.com/devswha/patina">GitHub</a>
           <a href="#pricing">Pricing</a>
@@ -242,7 +244,7 @@
         </div>
         <nav class="sidebar__history" id="history" aria-label="Conversations"></nav>
         <div class="sidebar__foot">
-          <div class="brandmark"><img class="brandmark__icon" src="/assets/brand/patina-mark.svg" alt="" width="22" height="22" /> patina <span class="ver-badge">v6.3.2</span></div>
+          <div class="brandmark"><img class="brandmark__icon" src="/assets/brand/patina-mark.svg" alt="" width="22" height="22" /> patina <span class="ver-badge">v6.3.3</span></div>
           <div class="sidebar__note">Deterministic humanizer —<br />same claim, numbers, tone.</div>
         </div>
       </aside>

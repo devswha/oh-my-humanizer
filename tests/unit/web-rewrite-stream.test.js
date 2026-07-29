@@ -1,7 +1,7 @@
 // @ts-check
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runWebRewriteStream } from '../../src/web-rewrite-stream.js';
+import { runWebRewriteStream, scoringExtraBody } from '../../src/web-rewrite-stream.js';
 
 const request = {
   mode: 'refine',
@@ -267,6 +267,7 @@ test('runWebRewriteStream rejects changed numeric claims before paid scoring', a
     },
     scoreFns,
     emit: (frame) => frames.push(frame),
+    numberSafetyRetries: 0,
   });
 
   assert.equal(result.ok, false);
@@ -284,6 +285,105 @@ test('runWebRewriteStream rejects changed numeric claims before paid scoring', a
     { type: 'error', code: 'number_safety_failed' },
   ]);
   assertFramesDoNotLeakPrivateMetadata(frames);
+});
+test('runWebRewriteStream retries a number-safety failure without re-emitting deltas', async () => {
+  const frames = [];
+  let llmCalls = 0;
+  const result = await runWebRewriteStream({
+    request: { ...request, original: 'We shipped 3 units.' },
+    callLLMStream: async ({ onDelta, onAttempt }) => {
+      llmCalls += 1;
+      onAttempt(privateAttempt());
+      if (llmCalls === 1) {
+        onDelta('We shipped 4 units.');
+        return { text: 'We shipped 4 units.' };
+      }
+      onDelta('We shipped 3 units, done.');
+      return { text: 'We shipped 3 units, done.' };
+    },
+    scoreFns: {
+      scoreMPS: async () => ({ mps: 95 }),
+      scoreFidelity: async () => ({ fidelity: 92 }),
+      scoreDeterministicSignals: () => ({ signalScore: 0 }),
+    },
+    emit: (frame) => frames.push(frame),
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(llmCalls, 2);
+  assert.equal(result.rewrite, 'We shipped 3 units, done.');
+  // Deltas come only from the live first run; the retry is buffered and the
+  // done frame carries the accepted rewrite (the client replaces bubble text).
+  assert.deepEqual(frames.filter((f) => f.type === 'delta'), [{ type: 'delta', text: 'We shipped 4 units.' }]);
+  assert.equal(frames.at(-1).type, 'done');
+  assert.equal(frames.at(-1).rewrite, 'We shipped 3 units, done.');
+  // Both paid attempts are ledgered with contiguous one-based indices.
+  assert.equal(result.attempts.valid, true);
+  assert.deepEqual(result.attempts.rewrite.map((a) => a.attemptIndex), [1, 2]);
+  assertFramesDoNotLeakPrivateMetadata(frames);
+});
+
+test('runWebRewriteStream exhausts number-safety retries and fails closed', async () => {
+  const frames = [];
+  let llmCalls = 0;
+  const result = await runWebRewriteStream({
+    request: { ...request, original: 'We shipped 3 units.' },
+    callLLMStream: async ({ onAttempt }) => {
+      llmCalls += 1;
+      onAttempt(privateAttempt());
+      return { text: 'We shipped 4 units.' };
+    },
+    scoreFns: {
+      scoreMPS: async () => { throw new Error('scoring must not run'); },
+      scoreFidelity: async () => { throw new Error('scoring must not run'); },
+      scoreDeterministicSignals: () => { throw new Error('scoring must not run'); },
+    },
+    emit: (frame) => frames.push(frame),
+  });
+
+  // Default budget: one live run + one buffered retry, then fail closed.
+  assert.equal(llmCalls, 2);
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'number_safety_failed');
+  assert.equal(result.attempts.valid, true);
+  assert.deepEqual(result.attempts.rewrite.map((a) => a.attemptIndex), [1, 2]);
+  assert.deepEqual(frames.at(-1), { type: 'error', code: 'number_safety_failed' });
+  assertFramesDoNotLeakPrivateMetadata(frames);
+});
+
+test('scoringExtraBody sends reasoning control only to the provider it was measured on', () => {
+  // gemini is the only provider the setting was measured against; sending an
+  // unrecognized field blind to a BYOK caller's provider risks a hard 400
+  // (gemini itself rejects reasoning_effort 'none' that way).
+  assert.deepEqual(scoringExtraBody('gemini'), { reasoning_effort: 'low' });
+  for (const provider of ['openai', 'claude', 'deepseek', 'kimi', 'glm', undefined, '']) {
+    assert.equal(scoringExtraBody(provider), undefined, `${provider} must keep the provider default`);
+  }
+  // Explicit kill switch for operators.
+  assert.equal(scoringExtraBody('gemini', { PATINA_SCORING_REASONING: 'off' }), undefined);
+  assert.deepEqual(scoringExtraBody('gemini', { PATINA_SCORING_REASONING: 'on' }), { reasoning_effort: 'low' });
+});
+
+test('runWebRewriteStream forwards scoring reasoning control to both scorers, never to the rewrite', async () => {
+  const seen = { rewrite: undefined, mps: undefined, fidelity: undefined };
+  await runWebRewriteStream({
+    request: { ...request, provider: 'gemini', original: 'We shipped 3 units.' },
+    callLLMStream: async (args) => {
+      seen.rewrite = 'extraBody' in args ? args.extraBody : 'absent';
+      return { text: 'We shipped 3 units.' };
+    },
+    scoreFns: {
+      scoreMPS: async (args) => { seen.mps = args.extraBody; return { mps: 95 }; },
+      scoreFidelity: async (args) => { seen.fidelity = args.extraBody; return { fidelity: 92 }; },
+      scoreDeterministicSignals: () => ({ signalScore: 0 }),
+    },
+    emit() {},
+  });
+  assert.deepEqual(seen.mps, { reasoning_effort: 'low' });
+  assert.deepEqual(seen.fidelity, { reasoning_effort: 'low' });
+  // Reduced thinking on the rewrite call was previously measured to amputate
+  // content, so the rewrite must never carry it.
+  assert.equal(seen.rewrite, 'absent');
 });
 
 test('runWebRewriteStream fail-closes floor failures with error and no done', async () => {
@@ -483,6 +583,7 @@ test('runWebRewriteStream fails closed for unchanged ambiguous dates before scor
       },
     },
     emit: (frame) => frames.push(frame),
+    numberSafetyRetries: 0,
   });
 
   assert.equal(result.ok, false);

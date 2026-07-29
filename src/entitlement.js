@@ -180,11 +180,54 @@ function readCacheEntry(entry, nowMs) {
 }
 
 /**
- * Build a fail-closed, validate-only Lemon Squeezy license validator with a
- * two-layer cache (positive + negative) and an admission guard (per-minute RPM
- * bucket + per-license single-flight lock) that runs BEFORE any LS network call.
+ * Provider descriptor: the ONLY parts of the entitlement gate that differ
+ * between license vendors. Everything else in `createLicenseValidator` —
+ * HMAC subjects, the two-layer cache, the cross-instance single-flight lock,
+ * the RPM admission bucket, timeout handling, redaction, and the fail-closed
+ * defaults — is vendor-independent and must never be duplicated per provider.
+ *
+ * @typedef {object} LicenseProvider
+ * @property {string} id Short namespace for HMAC key prefixes and env names. Changing it invalidates cached decisions, which is intended on a provider switch.
+ * @property {(env: Record<string, string|undefined>) => string} url Validate endpoint.
+ * @property {(env: Record<string, string|undefined>) => boolean} configured Whether the entitlement-deciding config is present; false fails closed.
+ * @property {(license: string, env: Record<string, string|undefined>) => {headers: Record<string,string>, body: string}} request Request headers and serialized body.
+ * @property {(status: number, body: any) => boolean} isDefinitiveDenial Whether a non-2xx answer is a license verdict rather than an outage.
+ * @property {(data: any, env: Record<string, string|undefined>, now: number) => {ok: true, status: string, expiresAt: number|null}|{ok: false, status: 403, reason: string, detail: string}} evaluate
+ * @property {number} defaultRpm Per-minute admission ceiling when unconfigured.
+ * @property {(data: any) => string|undefined} [errorText] Vendor error string for triage logging; must never return PII.
+ */
+
+/** @type {LicenseProvider} */
+export const LEMON_SQUEEZY_PROVIDER = {
+  id: 'ls',
+  url: () => LS_LICENSE_VALIDATE_URL,
+  configured: (env) => Boolean(env.LS_STORE_ID && env.LS_PRO_VARIANT_ID),
+  request: (license) => ({
+    headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new globalThis.URLSearchParams({ license_key: license }).toString(),
+  }),
+  // LS answers an unknown/malformed key with a 4xx whose body still carries
+  // `valid: false`; that is a verdict, not an outage. A 429 (LS's own rate
+  // limit) or any 5xx stays transient.
+  isDefinitiveDenial: (status, body) =>
+    status >= 400 && status < 500 && status !== 429
+    && Boolean(body) && typeof body === 'object' && body.valid === false,
+  evaluate: evaluateLicenseResponse,
+  defaultRpm: DEFAULT_VALIDATE_RPM,
+  errorText: (data) => (data && typeof data.error === 'string' ? data.error : undefined),
+};
+
+/**
+ * Build a fail-closed, validate-only license validator with a two-layer cache
+ * (positive + negative) and an admission guard (per-minute RPM bucket +
+ * per-license single-flight lock) that runs BEFORE any provider network call.
+ *
+ * The vendor-specific surface is supplied as a `provider` descriptor; this
+ * function holds the security machinery that must stay identical across
+ * vendors rather than being duplicated per integration.
  *
  * @param {{
+ *   provider?: LicenseProvider,
  *   kv?: EntitlementKv|null,
  *   hmacSecret?: string,
  *   env?: Record<string, string|undefined>,
@@ -194,7 +237,8 @@ function readCacheEntry(entry, nowMs) {
  * }} [options]
  * @returns {{validate(input: {licenseKey: string}): Promise<EntitlementResult>}}
  */
-export function createLemonSqueezyLicenseValidator({
+export function createLicenseValidator({
+  provider = LEMON_SQUEEZY_PROVIDER,
   kv,
   hmacSecret,
   env = {},
@@ -202,6 +246,10 @@ export function createLemonSqueezyLicenseValidator({
   now = () => Date.now(),
   logger = console,
 } = {}) {
+  // Tunable env names are namespaced per provider so a vendor switch cannot
+  // silently inherit the previous vendor's settings — its RPM ceiling above
+  // all, since Polar's tolerance is a fraction of Lemon Squeezy's.
+  const tunable = (/** @type {string} */ name) => env[`PATINA_${provider.id.toUpperCase()}_${name}`];
   // Non-production fallback store, created at most once and only when no KV is
   // injected (production already requires a real shared KV below). When a KV is
   // injected this is that same reference.
@@ -246,13 +294,13 @@ export function createLemonSqueezyLicenseValidator({
     if (production && (!kv || kv.__memory)) return unavailable();
     if (production && !configuredSecret) return unavailable();
     // Config is required in every posture: without store/variant we cannot decide entitlement.
-    if (!env.LS_STORE_ID || !env.LS_PRO_VARIANT_ID) return unavailable();
+    if (!provider.configured(env)) return unavailable();
 
     const secret = configuredSecret || DEV_FALLBACK_SECRET;
 
     // 2. Derive HMAC keys. The raw license never appears in any key.
-    const subject = quotaKeyHmac(secret, 'ls-license-subject', licenseKey);
-    const cacheKey = quotaKeyHmac(secret, 'ls-license-cache', licenseKey);
+    const subject = quotaKeyHmac(secret, `${provider.id}-license-subject`, licenseKey);
+    const cacheKey = quotaKeyHmac(secret, `${provider.id}-license-cache`, licenseKey);
     const nowMs = now();
 
     // 3. Cache lookup. A broken cache read must NOT fail open; fall through to LS.
@@ -278,12 +326,12 @@ export function createLemonSqueezyLicenseValidator({
     const warnSafe = (/** @type {string} */ message, /** @type {Record<string, unknown>} */ meta) =>
       warn(message, /** @type {Record<string, unknown>} */ (scrubLicense(meta, licenseKey)));
 
-    const timeoutMs = readPositiveInt(env.PATINA_LS_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
+    const timeoutMs = readPositiveInt(tunable('TIMEOUT_MS'), DEFAULT_TIMEOUT_MS);
     // The lock MUST outlive the fetch it guards, or it could self-heal mid-flight
     // and let a second instance call LS. Floor at LOCK_TTL_MS; extend past the
     // fetch deadline when a longer timeout is configured.
     const lockTtlMs = Math.max(LOCK_TTL_MS, timeoutMs + 5_000);
-    const lockKey = quotaKeyHmac(secret, 'ls-lock', licenseKey);
+    const lockKey = quotaKeyHmac(secret, `${provider.id}-lock`, licenseKey);
     let lockCount;
     try {
       lockCount = await store.incr(lockKey, { ttlMs: lockTtlMs });
@@ -300,8 +348,8 @@ export function createLemonSqueezyLicenseValidator({
       // is bounded by ITERATION COUNT, never the wall clock, so an injected or
       // frozen `now` cannot spin it forever; when the winner crashed or LS is
       // down, nothing gets cached and this stays fail-closed 503.
-      const pollIntervalMs = readPositiveInt(env.PATINA_LS_LOCK_POLL_INTERVAL_MS, DEFAULT_LOCK_POLL_INTERVAL_MS);
-      const lockWaitMs = readPositiveInt(env.PATINA_LS_LOCK_WAIT_MS, Math.min(lockTtlMs, timeoutMs + 1_000));
+      const pollIntervalMs = readPositiveInt(tunable('LOCK_POLL_INTERVAL_MS'), DEFAULT_LOCK_POLL_INTERVAL_MS);
+      const lockWaitMs = readPositiveInt(tunable('LOCK_WAIT_MS'), Math.min(lockTtlMs, timeoutMs + 1_000));
       const attempts = Math.max(1, Math.ceil(lockWaitMs / pollIntervalMs));
       for (let i = 0; i < attempts; i += 1) {
         await sleep(pollIntervalMs);
@@ -357,9 +405,9 @@ export function createLemonSqueezyLicenseValidator({
 
       // 4c. Per-minute RPM bucket keeps us under LS's 60 rpm ceiling. Charged
       //     only by the winner that will actually call LS.
-      const rpmLimit = readPositiveInt(env.PATINA_LS_VALIDATE_RPM, DEFAULT_VALIDATE_RPM);
+      const rpmLimit = readPositiveInt(tunable('VALIDATE_RPM'), provider.defaultRpm);
       const minute = Math.floor(nowMs / 60_000);
-      const rpmKey = quotaKeyHmac(secret, 'ls-rpm', minute);
+      const rpmKey = quotaKeyHmac(secret, `${provider.id}-rpm`, minute);
       let rpmCount;
       try {
         rpmCount = await store.incr(rpmKey, { ttlMs: 60_000 });
@@ -368,28 +416,26 @@ export function createLemonSqueezyLicenseValidator({
       }
       if (!Number.isSafeInteger(rpmCount) || rpmCount < 1) return unavailable();
       if (rpmCount > rpmLimit) {
-        warnSafe('entitlement: LS validate RPM bucket saturated', { subject, minute, rpmCount, rpmLimit });
+        warnSafe('entitlement: validate RPM bucket saturated', { provider: provider.id, subject, minute, rpmCount, rpmLimit });
         return unavailable();
       }
 
-      // 5. LS validate-only call with a hard timeout.
+      // 5. Validate-only call with a hard timeout.
       const controller = new AbortController();
       const timer = setTimeout(() => {
         try { controller.abort(); } catch { /* noop */ }
       }, timeoutMs);
       let response;
       try {
-        response = await fetchImpl(LS_LICENSE_VALIDATE_URL, {
+        const built = provider.request(licenseKey, env);
+        response = await fetchImpl(provider.url(env), {
           method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new globalThis.URLSearchParams({ license_key: licenseKey }).toString(),
+          headers: built.headers,
+          body: built.body,
           signal: controller.signal,
         });
       } catch (err) {
-        warnSafe('entitlement: LS validate request failed', { subject, error: errorMessage(err) });
+        warnSafe('entitlement: validate request failed', { provider: provider.id, subject, error: errorMessage(err) });
         return unavailable();
       } finally {
         clearTimeout(timer);
@@ -397,24 +443,25 @@ export function createLemonSqueezyLicenseValidator({
 
       if (!response || typeof response.ok !== 'boolean') return unavailable();
 
-      // Non-2xx: LS answers an unknown/malformed key with a 4xx whose body still
-      // carries `valid: false` (e.g. 404 "license_key not found"). That is a
-      // definitive license verdict, not an outage, so it falls through to the
-      // deny path below (403 + negative cache) — treating it as a 503 would break
-      // the client contract AND leave every same-key retry re-charging the global
-      // LS RPM bucket. A 429 (LS's own rate limit), any 5xx, or a 4xx without a
-      // parseable valid:false body stays a transient 503 and is never cached.
+      // Non-2xx: some answers are a definitive license verdict rather than an
+      // outage (LS returns 4xx with `valid: false`; Polar returns 404
+      // ResourceNotFound). A verdict falls through to the deny path below
+      // (403 + negative cache) — treating it as a 503 would break the client
+      // contract AND leave every same-key retry re-charging the provider's
+      // rate budget. Anything the provider does not call definitive stays a
+      // transient 503 and is never cached.
       /** @type {any} */
       let data;
       if (!response.ok) {
         const status = response.status;
-        const verdictCandidate = typeof status === 'number' && status >= 400 && status < 500 && status !== 429;
+        // Only 4xx bodies are worth parsing for a verdict; a 5xx body is an
+        // outage payload and parsing it would just waste the deadline.
         let body = null;
-        if (verdictCandidate) {
+        if (typeof status === 'number' && status >= 400 && status < 500) {
           try { body = await response.json(); } catch { body = null; }
         }
-        if (!body || typeof body !== 'object' || body.valid !== false) {
-          warnSafe('entitlement: LS validate non-2xx', { subject, status });
+        if (!provider.isDefinitiveDenial(status, body)) {
+          warnSafe('entitlement: validate non-2xx', { provider: provider.id, subject, status });
           return unavailable();
         }
         data = body;
@@ -429,11 +476,11 @@ export function createLemonSqueezyLicenseValidator({
 
       // 6. Evaluate + cache. A denial is cached negatively (bounded); a transient
       //    503 is NEVER cached so a retry re-attempts validation.
-      const decision = evaluateLicenseResponse(data, env, nowMs);
+      const decision = provider.evaluate(data, env, nowMs);
 
       // `=== true` (not truthiness) so the fall-through below narrows to the deny shape.
       if (decision.ok === true) {
-        const posDefault = readPositiveInt(env.PATINA_LS_CACHE_TTL_MS, DEFAULT_CACHE_TTL_MS);
+        const posDefault = readPositiveInt(tunable('CACHE_TTL_MS'), DEFAULT_CACHE_TTL_MS);
         let ttl = posDefault;
         if (decision.expiresAt !== null && Number.isFinite(decision.expiresAt)) {
           const untilExpiry = decision.expiresAt - nowMs;
@@ -444,13 +491,13 @@ export function createLemonSqueezyLicenseValidator({
         return { ok: true, subject, tier: 'pro', status: decision.status, cache: 'miss' };
       }
 
-      const negTtl = readPositiveInt(env.PATINA_LS_NEGATIVE_CACHE_TTL_MS, DEFAULT_NEGATIVE_CACHE_TTL_MS);
+      const negTtl = readPositiveInt(tunable('NEGATIVE_CACHE_TTL_MS'), DEFAULT_NEGATIVE_CACHE_TTL_MS);
       await safeSet(store, cacheKey, { decision: 'deny', tier: 'pro', status: decision.status, reason: decision.reason, expiresAt: nowMs + negTtl }, negTtl, warnSafe, subject);
       // The concrete failing check (plus LS's own error string, if any) is logged
       // for triage; the FULL LS body is never logged — its `meta` carries customer
       // PII (customer_email / customer_name) that secret-name redaction won't catch.
-      const lsError = data && typeof data.error === 'string' ? data.error : undefined;
-      warnSafe('entitlement: license denied', { subject, detail: decision.detail, error: lsError });
+      const vendorError = provider.errorText ? provider.errorText(data) : undefined;
+      warnSafe('entitlement: license denied', { subject, detail: decision.detail, error: vendorError });
       return /** @type {EntitlementDeny} */ ({ ok: false, status: decision.status, reason: decision.reason });
     } finally {
       await releaseLock();
@@ -458,6 +505,18 @@ export function createLemonSqueezyLicenseValidator({
   };
 
   return { validate };
+}
+
+/**
+ * Lemon Squeezy validator. Thin wrapper over `createLicenseValidator` kept as
+ * the historical entry point so the existing behavioral and redteam suites
+ * pin the shared machinery unchanged.
+ *
+ * @param {Parameters<typeof createLicenseValidator>[0]} [options]
+ * @returns {ReturnType<typeof createLicenseValidator>}
+ */
+export function createLemonSqueezyLicenseValidator(options = {}) {
+  return createLicenseValidator({ ...options, provider: LEMON_SQUEEZY_PROVIDER });
 }
 
 /**
