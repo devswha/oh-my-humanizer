@@ -266,6 +266,21 @@ key, not a bigger Pro plan. Pro sells *not having to manage a provider key*,
 so its allowance needs to be credible for a normal user, not unlimited for a
 power user. That is the honest case for a number near 100 rather than 500.
 
-Pending owner decision: margin floor (60% vs 50%) and the advertised
-allowance. `PATINA_PRO_REQ_PER_MONTH` makes the number env-tunable either
-way, so the shipped 60 is a safe placeholder, not a commitment.
+## Decision: 100 rewrites/month (owner-approved 2026-07-29)
+
+`TIER_LIMITS.pro.reqPerMonth = 100`, env `PATINA_PRO_REQ_PER_MONTH`. At the
+measured blended cost (~$0.045/request) that is ~$4.5 COGS against $8.49 net
+revenue — **~47% margin**, deliberately under the 60% floor the PAY-B-COST
+spec pins. The reasoning: the free BYOK tier already serves heavy users with
+no request cap, so Pro sells key management rather than volume, and a
+credible allowance matters more than a maximal margin on a first paid
+product. Landing copy states "100 rewrites / month".
+
+Worst case (every request long and uncached at $0.075) is ~$7.5 COGS and ~12%
+margin — thin but never loss-making. If the reasoning cut passes its (redone)
+safety verification, the same 100 requests rise to roughly 60-65% margin.
+
+The PAY-B-COST receipt spec still hard-pins `unitChars` to 1,000,000 and a 60%
+floor, so issuing a receipt against the shipped caps needs the v2 rework
+recorded above. Until then this margin position is documented here, not
+certified by a receipt — that gap is explicit, not an oversight.
