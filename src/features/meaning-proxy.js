@@ -28,6 +28,13 @@ const SLASH_NUMERIC_RE = /[-+]?\d[\d,.]*\s*\/\s*[-+]?\d[\d,.]*/;
 const SYMBOL_CURRENCY_RE = /[$€£¥₩]\s*\d|\d\s*[$€£¥₩]/;
 const COMPOUND_UNIT_RE = /\d[\d,.]*\s*(?:km|cm|mm|m|kg|g|lb|L|mL)\s*\/\s*[A-Za-z]+/i;
 const DEGREE_TEMPERATURE_RE = /[-+−]?\d[\d,.]*\s*°\s*[CF]\b/gi;
+// Clock times as they appear in chat logs, meeting notes, and timelines
+// ("16:47", "9:05", "16:47:30", ranges like "16:47 – 16:50"). Minutes/seconds
+// require two digits so ratios and scores ("1:2", "3:1") stay fail-closed as
+// unsupported operator syntax. Claimed BEFORE the operator check; without this
+// pass any digit:digit pair hits NUMERIC_OPERATOR_RE and 422-blocks the whole
+// paste even when the rewrite preserves every time verbatim.
+const CLOCK_TIME_RE = /(?<![\d:])(?:[01]?\d|2[0-3]):(?:[0-5]\d)(?::(?:[0-5]\d))?(?!\d)/g;
 const EN_MONTH_DATE_RE = /\b(?:(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+\d{1,2},\s*\d{4}|\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+\d{4})\b/gi;
 const UNIT_FACTORS_V1 = Object.freeze({
   mm: ['length-mm', 1],
@@ -266,6 +273,13 @@ function addClaims(text, lang) {
     if (monthIndex >= 0 && validDate(year, monthIndex + 1, day)) {
       add(m.index, m[0].length, `date:${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
     }
+  });
+  // Clock times, claimed after dates (a claimed date span is already occupied)
+  // and before every digit-token pass. The claim keeps the exact time value —
+  // only a leading-zero hour is normalized ("09:05" === "9:05") — so a rewrite
+  // must reproduce every time, and time drift fails as numeric_claim_changed.
+  matchAll(CLOCK_TIME_RE, (m) => {
+    add(m.index, m[0].length, `time:${m[0].replace(/^0(?=\d:)/, '')}`);
   });
   if (hasUnoccupiedMatch(source, occupied, EN_MONTH_DATE_RE) || hasUnoccupiedMatch(source, occupied, DEGREE_TEMPERATURE_RE)) {
     return { ok: false, reason: 'ambiguous_numeric_syntax', claims: [] };
