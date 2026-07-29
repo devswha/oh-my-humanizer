@@ -85,6 +85,9 @@ The free browser tier and the bring-your-own-key tier remain available at no cos
 CHECKOUT LINK 만들기
 ================================================
 
+  Label                 patina pro
+                        (내부용 이름. 고객에게 안 보입니다)
+
   Products              patina Pro
 
   Discount (프리셋)      비움
@@ -113,7 +116,16 @@ CHECKOUT LINK 만들기
                         (체크아웃 화면의 뒤로가기 버튼 목적지.
                          안 넣으면 버튼이 아예 안 나옵니다)
 
-  Trial                 비움
+  Require billing address   끄기
+
+     끄면 고객은 "국가"만 고르면 됩니다. 켜면 전체 주소를 받습니다.
+     $9.99 구독에서 입력칸을 늘리면 결제 이탈이 늘어납니다.
+
+     켤 때: 주소가 있으면 카드사 주소검증(AVS)이 걸려서 도용 결제가
+     줄어듭니다. Polar은 차지백 0.4%를 넘기면 계정을 문제 삼으므로,
+     나중에 차지백이 보이기 시작하면 그때 켜세요. 지금은 매출이 0이라
+     방어보다 전환이 우선입니다.
+
   Metadata              비움
 
 
