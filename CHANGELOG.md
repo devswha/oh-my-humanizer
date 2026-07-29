@@ -12,6 +12,25 @@ All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 Semver rationale: patch | minor | major — explain whether this changes patterns, schemas, CLI behavior, or docs only.
 ```
 
+## 6.3.3 — 2026-07-29
+
+**Ships the Polar license gate to the hosted runtime. Without this release the paid tier is unreachable: production accepted the `PATINA_LICENSE_PROVIDER` setting but shipped no code that reads it.**
+
+Semver rationale: patch — a hosted-runtime provider adapter and its handler wiring. No pattern, schema, or CLI behavior changes. 6.4 remains reserved for the payment launch.
+
+### Added
+
+- **Polar entitlement adapter** (`src/entitlement-polar.js`). Validates a license against Polar's customer-portal endpoint, requiring status `granted`, a matching organization, a matching `POLAR_PRO_BENEFIT_ID`, and an unexpired key. The benefit check is a hard gate rather than a nicety: Polar issues `granted` for *any* license-key benefit an organization owns, so without it a key minted for some future free benefit would entitle the paid tier. Only `404 ResourceNotFound` counts as a definitive denial — `429` and `5xx` stay transient, because caching a denial for a paying customer is worse than a retry.
+- **Provider selection** in `api/rewrite.js` via `PATINA_LICENSE_PROVIDER`. Unset, `lemonsqueezy`, or an unrecognized value all keep the Lemon Squeezy gate; only the exact value `polar` switches. Selection is deliberately not "newest wins" so an upgrade cannot silently change which vendor guards revenue, and a typo cannot promote the newer one.
+
+### Changed
+
+- `src/entitlement.js` refactored into a provider-independent security core (HMAC subjects, positive and negative caching, single-flight locking, request admission, redaction, fail-closed defaults) behind a `LicenseProvider` descriptor. `createLemonSqueezyLicenseValidator` is now a thin wrapper over it. Cache, lock, and rate-limit keys are namespaced by provider ID so a vendor switch cannot serve a decision cached under the previous vendor.
+
+### Fixed
+
+- A real Polar license was rejected with `403` on production. The gate logic was correct — it was never deployed. `origin/main` at 6.3.2 contains no `src/entitlement-polar.js` at all, so the environment variables configured on the deployment had nothing to read them. A `403` observed while probing that deployment was misread as evidence the Polar gate was live; it was the Lemon Squeezy validator rejecting a key it had never issued.
+
 ## 6.3.2 — 2026-07-29
 
 **Hosted-rewrite fixes (chat-log pastes no longer 422), a fidelity-gate scoring fix, backend compatibility, and opt-in LLM plumbing. 6.4 stays reserved for the payment launch.**
