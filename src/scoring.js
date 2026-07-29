@@ -149,6 +149,11 @@ async function callAndParseJson({
   // { type: 'json_object' }). Forwarded to callLLM on every attempt; the strict
   // JSON parse + temperature-0 retry below remains the fallback regardless.
   responseFormat,
+  // Opt-in provider-specific request fields (e.g. reasoning/thinking control),
+  // spread into the request body by callLLM. Undefined by default so the
+  // provider's own defaults apply; callers are responsible for sending only
+  // fields the target provider accepts.
+  extraBody = undefined,
   onAttempt,
   onAttemptInvalid,
 }) {
@@ -171,6 +176,7 @@ async function callAndParseJson({
         now,
         sleep,
         responseFormat,
+        extraBody,
         // Buffer provider records so a response which fails strict parsing can
         // be reported as a score-schema retry rather than a transport success.
         onAttempt: (record) => reportedAttempts.push(record),
@@ -313,6 +319,7 @@ function notifyInvalidAttempt(onAttemptInvalid) {
  * @param {Function} [options.now] Clock returning epoch milliseconds.
  * @param {Function} [options.sleep] Sleep helper for tests.
  * @param {object} [options.responseFormat] Opt-in OpenAI-compatible structured-output request field forwarded to callLLM.
+ * @param {object} [options.extraBody] Opt-in provider-specific request fields (e.g. reasoning control) spread into the request body.
  * @param {Function} [options.onAttempt] Safe callback for one-based paid-attempt metadata records.
  * @param {Function} [options.onAttemptInvalid] Safe callback when transport evidence is malformed; receives no provider metadata.
  * @returns {Promise<object>} Score payload with overall, interpretation, llmScore, and deterministicScore.
@@ -742,6 +749,7 @@ export function reconcileScoreOverall({
  * @param {Function} [options.now] Clock returning epoch milliseconds.
  * @param {Function} [options.sleep] Sleep helper for tests.
  * @param {object} [options.responseFormat] Opt-in OpenAI-compatible structured-output request field forwarded to callLLM.
+ * @param {object} [options.extraBody] Opt-in provider-specific request fields (e.g. reasoning control) spread into the request body.
  * @param {Function} [options.onAttempt] Safe callback for one-based paid-attempt metadata records.
  * @param {Function} [options.onAttemptInvalid] Safe callback when transport evidence is malformed; receives no provider metadata.
  * @returns {Promise<Object>} MPS result.
@@ -764,6 +772,8 @@ export async function scoreMPS({
   sleep,
   // Opt-in structured-output request field; defaults off (undefined).
   responseFormat,
+  // Provider-specific request fields (e.g. reasoning control); see callAndParseJson.
+  extraBody,
   onAttempt,
   onAttemptInvalid,
 }) {
@@ -837,6 +847,7 @@ ${rewritten}
       now,
       sleep,
       responseFormat,
+      extraBody,
       onAttempt,
       onAttemptInvalid,
     });
@@ -907,6 +918,7 @@ export function lengthRatioPoints(original, rewritten) {
  * @param {Function} [options.now] Clock returning epoch milliseconds.
  * @param {Function} [options.sleep] Sleep helper for tests.
  * @param {object} [options.responseFormat] Opt-in OpenAI-compatible structured-output request field forwarded to callLLM.
+ * @param {object} [options.extraBody] Opt-in provider-specific request fields (e.g. reasoning control) spread into the request body.
  * @param {Function} [options.onAttempt] Safe callback for one-based paid-attempt metadata records.
  * @param {Function} [options.onAttemptInvalid] Safe callback when transport evidence is malformed; receives no provider metadata.
  * @returns {Promise<Object>} Fidelity result.
@@ -929,6 +941,8 @@ export async function scoreFidelity({
   sleep,
   // Opt-in structured-output request field; defaults off (undefined).
   responseFormat,
+  // Provider-specific request fields (e.g. reasoning control); see callAndParseJson.
+  extraBody,
   onAttempt,
   onAttemptInvalid,
 }) {
@@ -984,6 +998,7 @@ ${rewritten}
       now,
       sleep,
       responseFormat,
+      extraBody,
       onAttempt,
       onAttemptInvalid,
     });
