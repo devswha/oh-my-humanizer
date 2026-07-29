@@ -98,7 +98,7 @@ Pro env (see `.env.example` for the full annotated list):
   missing value fails pro requests closed instead of silently serving the free
   provider/model); outside production they fall back to the free provider/model.
 - `PATINA_PRO_MAX_CHARS` (20000) / `PATINA_PRO_REQ_PER_DAY` (200) /
-  `PATINA_PRO_MAX_CONCURRENT` (3) / `PATINA_PRO_REQ_PER_MONTH` (60, the per-license monthly rewrite cap and the
+  `PATINA_PRO_MAX_CONCURRENT` (3) / `PATINA_PRO_REQ_PER_MONTH` (100, the per-license monthly rewrite cap and the
   primary margin control) / `PATINA_PRO_CHARS_PER_MONTH` (50000, a secondary
   per-license monthly total-character cap — over it returns 429
   `monthly character limit reached` with `remainingMonthlyChars`/`limitMonthlyChars`).
