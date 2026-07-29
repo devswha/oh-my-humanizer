@@ -7,13 +7,58 @@
 > flip from HOLD → live is mechanical once approvals land. **No secret values
 > live here or anywhere in the repo** — only names and non-secret identifiers.
 
-## Current state (2026-07-23, evening)
+## TERMINAL (2026-07-29): Lemon Squeezy rejected the store application
 
-- **First live payment landed.** The owner's real $9.99 subscription was
-  accepted on the live checkout; the issued license validates against store
-  425473 / product 1236551 / variant 1932893 — the exact PAY-B binding
-  identity. The tax-review question is settled functionally: the store takes
-  live payments (dashboard status lagged behind).
+**The LS path is dead.** The store application was declined ("we cannot
+approve your store application for Lemon Squeezy… guided by regulations
+imposed on us by Stripe, PayPal and card companies"). `LS_APPROVAL` is not a
+pending blocker any more — it is unsatisfiable on this provider. Everything
+below that assumes a Lemon Squeezy checkout is retained as a record of the
+built path, not as an executable plan. Replacement-provider analysis:
+[`payment-provider-reset-20260729.md`](payment-provider-reset-20260729.md).
+
+### Evidence correction — there was never a live payment
+
+API-verified 2026-07-29 (`GET /v1/orders`, `/subscriptions`, `/stores/425473`):
+
+| fact | value |
+|---|---|
+| store `total_sales` / `total_revenue` | **0 / 0** |
+| order 2026-07-06, $9.99 | `test_mode: **true**` |
+| order 2026-07-16, $9.99 | `test_mode: **true**` |
+| subscription (renews 08-16) | `test_mode: **true**`, active |
+| issued license keys | status `inactive` |
+
+The previous entry in this slot claimed "**First live payment landed** — the
+owner's real $9.99 subscription was accepted on the live checkout" and
+concluded that "the store takes live payments (dashboard status lagged
+behind)". **Both statements were false.** The orders were test-mode; no card
+was ever charged and no revenue exists. The store was never approved, so a
+live payment was never possible — the same misreading that this file already
+warned about once ("a rendering checkout page must never be recorded as
+review clearance again") recurred in a stronger form: a *test-mode order* was
+recorded as live revenue.
+
+Consequences:
+- The Gate B "First live payment" row below is **void**.
+- Any PAY-B/entitlement evidence that inherits its force from "a real
+  purchased license" is downgraded to *test-mode license evidence*: it proves
+  the code path, not the commercial path.
+- `PATINA_SYNTHETIC_PRO_LICENSE` in production is a **test-mode** license.
+  The monitor's pro synthetic probe therefore proves entitlement plumbing
+  only, and will break whenever LS retires the rejected store's test data.
+
+### What survives the rejection
+
+Provider-independent and still valid: the deterministic rewrite/scoring
+pipeline, the tier contract, the quota/HMAC metering, the fail-closed
+entitlement *architecture* (`licenseValidator` is an injected interface, not
+an LS import, at the handler boundary), the observability schema, and the
+50,000-char margin decision. Provider-specific and now dead: the LS validate
+adapter internals, the LS store/product/variant identity, the checkout
+evidence bindings, and every `LS_*` env name.
+
+## Current state (superseded — 2026-07-23, evening)
 - **Live pro path proven end-to-end**: license -> entitlement -> claude-sonnet-5
   rewrite -> floors passed (fidelity 83.3 / MPS 100) with numeric claims
   byte-preserved. Two env defects found and fixed the same day: 17-day-old
@@ -74,8 +119,8 @@ Owner provisions these under the `SECRET_MANAGER` blocker. Only names appear her
 
 ### Pro provider + entitlement (secrets)
 - `PATINA_PRO_API_KEY` — Pro provider key (required in production; fail-closed 503 if absent)
-- `PATINA_PRO_PROVIDER` = `claude`
-- `PATINA_PRO_MODEL` = `claude-sonnet-5`
+- `PATINA_PRO_PROVIDER` = `gemini` (owner-approved 2026-07-26; previous claude pin kept in .env.example for rollback)
+- `PATINA_PRO_MODEL` = `gemini-3.6-flash`
 - `PATINA_LICENSE_HMAC_SECRET` — long random; meters per-license by HMAC subject
 - `PATINA_PRO_ALLOW_FREE_KEY` — **leave unset** in production (keeps the fail-closed 503)
 - Optional caps (defaults fine): `PATINA_PRO_MAX_CHARS`, `PATINA_PRO_REQ_PER_DAY`, `PATINA_PRO_MAX_CONCURRENT`, `PATINA_PRO_CHARS_PER_MONTH`
@@ -139,9 +184,9 @@ Non-secret working ledger for the GATE_B blocker. Timestamps are UTC.
 |---|---|
 | Production source-binding integration | patina main `f16e414` (PR #655): binding tuple + sealed `pay-b-binding-20260723.json` (factsSha256), hold ledgers revised, CI-validated on every commit |
 | Owner PAY-B approval | `PAY-B-20260723-1236551-1932893`, owner repo commit `487b51c` |
-| First live payment | Live checkout accepted a real $9.99 subscription (owner card, 2026-07-23). License meta from the public validate endpoint: store 425473, product 1236551, variant 1932893 — exact binding identity match |
+| ~~First live payment~~ **VOID** | Corrected 2026-07-29: the 07-06 and 07-16 $9.99 orders were `test_mode: true` and the store shows `total_sales: 0` / `total_revenue: 0`. No card was ever charged. This row previously asserted a real subscription; it proves the checkout *code path*, not a commercial payment |
 | Hosted identity / dedicated runtime | Pro path pinned to provider `claude`, model claude-sonnet-5, dedicated `PATINA_PRO_API_KEY` (separate from free); production requires explicit PRO env (503 fail-closed otherwise, verified live) |
-| Live pro runtime proof | 2026-07-23: `tier=pro` + purchased license -> HTTP 200 `done`; claims preserved ("1,200만 원", "3만 명" byte-exact), fidelity 83.3 / MPS 100; catalog patterns #35/#36/#37 applied on the paid path |
+| Live pro runtime proof (test-mode license) | 2026-07-23: `tier=pro` + a **test-mode** license -> HTTP 200 `done`; claims preserved ("1,200만 원", "3만 명" byte-exact), fidelity 83.3 / MPS 100; catalog patterns #35/#36/#37 applied on the paid path. Valid as plumbing evidence only |
 | Entitlement fail-closed proofs | Dummy license -> 403 `license not entitled`; stale product/variant env (17-day-old staging IDs) also 403 until corrected to live IDs — the filter never passed a mismatch |
 | Synthetic monitoring inputs | `PATINA_SYNTHETIC_PRO_LICENSE` (the purchased license) registered in Production; `CRON_SECRET` rotated to a fresh 64-hex value. Note: `vercel env pull` writes `[Sensitive]` (11 chars) for sensitive vars — an earlier read of that mask was misdiagnosed as a weak secret; sensitive values are write-only by design |
 

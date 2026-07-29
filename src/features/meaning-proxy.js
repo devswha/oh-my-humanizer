@@ -308,12 +308,47 @@ function addClaims(text, lang) {
   // KO digit+magnitude ("3만", "1,200만", "1.5억") is the dominant Korean way
   // to write large numbers; v1 rejected it wholesale as unsupported, which
   // 422-blocked most business/news prose. A single digit-anchored magnitude is
-  // deterministically convertible, so claim it as a scaled rational. Chained
-  // magnitude terms ("1억2천만", "3만5천") stay unclaimed and fall through to
-  // the fail-closed magnitude-context check on the uncovered residue.
+  // deterministically convertible, so claim it as a scaled rational.
+  //
+  // v2.2 extends the accepted notation-equivalence class (previously
+  // "3만" == "30000") to two more digit-anchored, exactly-computable forms:
+  //  - compound magnitude units: 백/천 multiplying a large base ("3천만",
+  //    "2백억") — the factor is the exact product of the two magnitudes;
+  //  - STRICTLY DESCENDING integer chains ("1억 2천만", "3만5천", "2만 3천")
+  //    claimed as one summed value, so "23,000" == "2만 3천". Live
+  //    gemini-3.6-flash serving rewrites grouped digits into this form and was
+  //    422-blocked on otherwise meaning-preserving output.
+  // Anything else — ascending or repeated magnitudes ("2천 3만"), decimal
+  // digits inside a chain ("1.5억 2천만"), or unattached magnitude residue —
+  // is NOT claimed and falls through to the fail-closed magnitude-context
+  // check on the uncovered residue, exactly as before.
   if (lang === 'ko') {
-    const koScaled = new RegExp(String.raw`(?<![\w.])(${number})\s*([백천만억조경해])(?![\d백천만억조경해])`, 'g');
-    matchAll(koScaled, (m) => add(m.index, m[0].length, `number:${scaledRational(normalizedNumber(m[1]), KO_MAGNITUDE_FACTORS[m[2]])}`));
+    // 백/천 may multiply 만억조경 (천만=1e7, 2백억=2e10). 해(1e20) is excluded
+    // as a compound base: 천해(1e23) exceeds exact float64 range and does not
+    // occur in real usage, so it stays fail-closed.
+    const koMag = String.raw`(?:[백천]\s*[만억조경]|[백천만억조경해])`;
+    const magFactor = (unit) => {
+      let factor = 1n;
+      for (const character of unit.replace(/\s+/g, '')) factor *= BigInt(KO_MAGNITUDE_FACTORS[character]);
+      return factor;
+    };
+    const chainDigits = String.raw`\d{1,3}(?:,\d{3})+|\d+`;
+    const koChain = new RegExp(String.raw`(?<![\w.])(?:${chainDigits})\s*${koMag}(?:\s*(?:${chainDigits})\s*${koMag})+(?![\d.백천만억조경해])`, 'g');
+    matchAll(koChain, (m) => {
+      const terms = [...m[0].matchAll(new RegExp(String.raw`(${chainDigits})\s*(${koMag})`, 'g'))];
+      let previousFactor = null;
+      let sum = 0n;
+      for (const [, digits, unit] of terms) {
+        const factor = magFactor(unit);
+        // Not strictly descending -> leave unclaimed, fail closed downstream.
+        if (previousFactor !== null && factor >= previousFactor) return;
+        previousFactor = factor;
+        sum += BigInt(normalizedNumber(digits)) * factor;
+      }
+      add(m.index, m[0].length, `number:${sum}/1`);
+    });
+    const koScaled = new RegExp(String.raw`(?<![\w.])(${number})\s*(${koMag})(?![\d백천만억조경해])`, 'g');
+    matchAll(koScaled, (m) => add(m.index, m[0].length, `number:${scaledRational(normalizedNumber(m[1]), Number(magFactor(m[2])))}`));
   }
   if (hasUnsupportedNumericSyntax(source, occupied)) {
     return { ok: false, reason: 'unsupported_numeric_syntax', claims: [] };

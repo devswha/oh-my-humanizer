@@ -1,0 +1,142 @@
+POLAR 상품 생성 폼 — 입력값
+================================================
+
+[ Name ]
+patina Pro
+
+[ Pricing ]
+  Recurring subscription  ← 선택
+  Billing cycle: Monthly
+
+[ Currencies ]
+USD 하나만.  (추가하지 마세요. Polar이 고객 위치로 통화를 고르는데,
+              통화를 늘리면 가격 구조를 모든 통화에 맞춰야 하고
+              나중에 바꾸기 번거롭습니다. USD 단일이 가장 단순합니다.)
+
+[ Fixed price ]
+9.99
+
+[ Trial ]
+설정하지 마세요.  체험을 주면 1인당 월 100회를 무료로 주는 셈이라
+                  (원가 약 $3.8) 첫 유료 상품에서 부담이 큽니다.
+
+[ Visibility ]
+Public
+
+[ Metadata ]
+비움
+
+
+================================================
+⚠️ Automated Benefits — 가장 중요한 부분
+================================================
+
+License Keys benefit을 반드시 부착하세요.
+
+지금 목록에 "test"라는 benefit이 보이는데, 프로덕션이라면
+이름을 바꾸거나 새로 만드세요.  예: "patina Pro license"
+(고객 화면과 심사 자료에 그대로 노출됩니다)
+
+benefit 설정 3가지 — 전부 "설정 안 함"이어야 합니다:
+
+  1) Activation limit  →  비활성 / 비움
+     켜면 라이선스 검증에 activation_id가 필요해집니다.
+     제 검증기는 그 흐름을 쓰지 않아서(key + organization_id만 전송)
+     정상 라이선스가 전부 거부될 것으로 보입니다.
+     ※ Polar 문서 근거이고, 실제로 켜서 테스트해보지는 못했습니다.
+        (샌드박스 benefit은 limit_activations = null)
+
+  2) Expiration (자동 만료)  →  비움
+     구독이 접근을 통제합니다. 해지하면 Polar이 알아서 회수해요.
+     여기에 기간을 넣으면 결제 중인 고객이 갑자기 차단됩니다.
+     ※ 실측 확인: 검증기가 expires_at을 실제로 읽고 만료 시 거부합니다.
+
+  3) Usage limit (사용량 한도)  →  비움
+     ※ 앞서 "유료 고객의 남은 달이 짧아진다"고 말씀드린 건 틀렸습니다.
+     실측 결과 usage 카운터는 increment_usage를 보낼 때만 올라가는데,
+     patina는 보내지 않습니다. (샌드박스 실측: 11회 검증 후에도 usage = 0)
+     즉 한도를 걸어도 아무 일도 일어나지 않습니다.
+
+     그래도 비워두는 게 맞는 이유:
+       - 고객 화면에 "남은 사용량"이 표시되는데 영원히 안 줄어듭니다.
+         숫자가 안 맞으니 문의만 생깁니다.
+       - 나중에 누군가 increment_usage를 추가하면 그때부터 갑자기
+         작동하는 지뢰가 됩니다. patina의 100회는 매월 1일(UTC)
+         리셋되지만 Polar 카운터는 리셋이 없어서, 그 시점에
+         유료 고객이 조용히 잘립니다.
+
+
+================================================
+[ Checkout Page → Description ]  ← 아래 전체 복사
+================================================
+
+patina Pro removes the AI-sounding phrasing from your drafts while a meaning-preservation gate verifies that your claims, numbers, and causation stay exactly as you wrote them. A rewrite that drifts is rejected rather than shown.
+
+Included:
+- 100 rewrites per month on our provider capacity — no AI API key to obtain or manage
+- Korean, English, Chinese, and Japanese
+- Up to 20,000 characters per rewrite
+- The same deterministic detector and audit trail as the open-source CLI
+
+The free browser tier and the bring-your-own-key tier remain available at no cost. patina is an editing tool, not an authorship detector and not a tool for evading one.
+
+
+================================================
+CHECKOUT LINK 만들기
+================================================
+
+  Label                 patina pro
+                        (내부용 이름. 고객에게 안 보입니다)
+
+  Products              patina Pro
+
+  Discount (프리셋)      비움
+                        (링크 열자마자 자동 할인 적용됨. 상시 할인 아님)
+
+  Allow discount codes  켜기  ← 권장
+                        Polar 심사관이 결제 흐름을 직접 걸어보려고
+                        100% 할인 코드를 요청하는 경우가 있습니다.
+                        미리 켜두면 그때 코드만 만들어 주면 됩니다.
+
+  Success URL           비움  ← 주의
+
+     ※ 앞서 https://patina.vibetip.help/?checkout=success 를
+        적어뒀는데 잘못된 안내였습니다. playground에 그 파라미터를
+        처리하는 코드가 없어서(UTM만 읽음) 고객은 홈으로 튕기고
+        "이제 뭘 해야 하는지" 안내를 못 받습니다.
+
+     비워두면 Polar 확인 페이지에 남는데, 그 페이지가 바로
+     라이선스 키를 보여주는 화면입니다. 지금은 이게 맞습니다.
+     (benefit Visibility = Visible 이라서 가능)
+
+     나중에 자체 완료 페이지를 만들면 그때 바꾸면 됩니다.
+     그때 쓸 형식: .../?checkout=success&checkout_id={CHECKOUT_ID}
+
+  Return URL            https://patina.vibetip.help/#pricing
+                        (체크아웃 화면의 뒤로가기 버튼 목적지.
+                         안 넣으면 버튼이 아예 안 나옵니다)
+
+  Require billing address   끄기
+
+     끄면 고객은 "국가"만 고르면 됩니다. 켜면 전체 주소를 받습니다.
+     $9.99 구독에서 입력칸을 늘리면 결제 이탈이 늘어납니다.
+
+     켤 때: 주소가 있으면 카드사 주소검증(AVS)이 걸려서 도용 결제가
+     줄어듭니다. Polar은 차지백 0.4%를 넘기면 계정을 문제 삼으므로,
+     나중에 차지백이 보이기 시작하면 그때 켜세요. 지금은 매출이 0이라
+     방어보다 전환이 우선입니다.
+
+  Metadata              비움
+
+
+================================================
+저에게 알려주실 것 (프로덕션 값)
+================================================
+
+  1. 조직 ID
+  2. benefit ID       (License Keys benefit 상세 페이지)
+  3. Checkout Link URL  (https://buy.polar.sh/polar_cl_... 형태)
+
+  → 받으면 환경변수와 체크아웃 바인딩을 프로덕션으로 맞춥니다.
+
+그다음: Finance → Account → 심사 제출 → KYC → 정산계좌(한국 은행, 원화)

@@ -105,6 +105,38 @@ function summarizeDiff(before, after) {
 }
 
 /**
+ * Provider-specific request fields for the two scoring calls.
+ *
+ * The MPS and fidelity judges are rubric-application tasks, and on
+ * gemini-3.6-flash their thinking tokens dominate the bill: measured
+ * 2026-07-29, thinking is ~57% of a request's cost and the two scorers
+ * together cost more than the rewrite itself. `reasoning_effort: 'low'` cuts
+ * scoring thinking sharply (measured 0-493 tokens per scorer against a
+ * 700-1,900 baseline) for a ~55% cut in scoring cost.
+ *
+ * Safety was the deciding question — a cheaper gate that stops rejecting bad
+ * rewrites would be worse than no saving. Verified across
+ * tests/fixtures/meaning-proxy/pairs.json (3 preserving + 3 broken, KO+EN):
+ * 6/6 verdicts identical to the default and 6/6 matching the expected verdict.
+ *
+ * Scoped to `gemini` because that is the provider it was measured on: the
+ * same field is rejected outright by some providers (gemini itself returns
+ * HTTP 400 for `reasoning_effort: 'none'`), so it is never sent blind to a
+ * BYOK caller's provider. `PATINA_SCORING_REASONING=off` disables it.
+ *
+ * The rewrite call is deliberately excluded: reduced thinking on rewrites was
+ * previously measured to amputate content.
+ *
+ * @param {string|undefined} provider
+ * @param {Record<string,string|undefined>} [env]
+ * @returns {{reasoning_effort: string}|undefined}
+ */
+export function scoringExtraBody(provider, env = {}) {
+  if (env.PATINA_SCORING_REASONING === 'off') return undefined;
+  return provider === 'gemini' ? { reasoning_effort: 'low' } : undefined;
+}
+
+/**
  * Stream a web rewrite and emit contract frames. A successful stream is start -> delta* -> done;
  * stream failures and scoring floor failures emit terminal error frames with no success done.
  *
@@ -119,6 +151,8 @@ function summarizeDiff(before, after) {
  * @param {number} [options.timeout] Timeout in milliseconds.
  * @param {(input: {tier: string, outcome: string, status: number, latencyMs: number}) => unknown} [options.observe] Closed telemetry sink.
  * @param {() => number} [options.now] Injectable clock.
+ * @param {number} [options.numberSafetyRetries] Buffered LLM retries after a number-safety failure (default 1).
+ * @param {Record<string,string|undefined>} [options.env] Server env, read only for scoring reasoning control.
  * @returns {Promise<object>} Small result summary.
  */
 export async function runWebRewriteStream({
@@ -132,6 +166,8 @@ export async function runWebRewriteStream({
   timeout,
   observe,
   now = () => Date.now(),
+  numberSafetyRetries = 1,
+  env = typeof process === 'undefined' ? {} : process.env,
 }) {
   if (typeof emit !== 'function') throw new TypeError('emit must be a function');
   let startedAt;
@@ -195,45 +231,67 @@ export async function runWebRewriteStream({
   };
   let attemptsClosed = false;
   let rewrite = '';
-  try {
-    const streamResult = await callLLMStream({
-      prompt,
-      apiKey: request.apiKey,
-      baseURL: request.baseURL,
-      model: request.model,
-      signal,
-      timeout,
-      onDelta: (text) => {
-        emit({ type: STREAM_FRAME_TYPES.DELTA, text });
-      },
-      onAttempt: (record) => recordAttempt('rewrite', record),
-      onAttemptInvalid: recordInvalidAttempt,
-    });
-    rewrite = formatRewriteBodyForBrowser(streamResult.text);
-  } catch (err) {
-    const error = safeError(err, request.apiKey);
-    closeAttempts();
-    emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'stream_failed', error });
-    return { ok: false, code: 'stream_failed', error, attempts, observed: observeTerminal('terminal_failed', 500) };
-  }
-
   const original = String(request.original ?? request.text ?? '');
-  const numberSafety = evaluateNumberSafety(original, rewrite, request.lang);
-  if (!numberSafety.ok) {
-    closeAttempts();
-    emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'number_safety_failed' });
-    return { ok: false, code: 'number_safety_failed', numberSafety, attempts, observed: observeTerminal('number_safety_failed', 422) };
+  let numberSafety = null;
+  // Attempt 1 streams deltas live for UX. If the rewrite fails the
+  // deterministic number-safety gate, retry the LLM call up to
+  // `numberSafetyRetries` more times WITHOUT emitting deltas (the client has
+  // already rendered attempt 1's text; the done frame carries the full
+  // accepted rewrite and the playground replaces the bubble content with it,
+  // so no protocol change is needed). Motivated by live gemini-3.6-flash
+  // serving: sampling variance sometimes clears a numeric-drift habit that a
+  // first attempt trips (docs/operations/pro-margin-decision-20260729.md).
+  // Every paid attempt is still recorded in the private attempts metadata.
+  const maxRuns = 1 + Math.max(0, Number.isSafeInteger(numberSafetyRetries) ? numberSafetyRetries : 1);
+  for (let run = 1; run <= maxRuns; run += 1) {
+    // Each callLLMStream invocation numbers its own attempts from 1; offset
+    // retry-run indices so the stage's private attempt ledger stays one-based
+    // and contiguous across runs (the fields and values are otherwise
+    // untouched — every paid attempt is recorded).
+    const indexBase = attemptCounts.rewrite;
+    try {
+      const streamResult = await callLLMStream({
+        prompt,
+        apiKey: request.apiKey,
+        baseURL: request.baseURL,
+        model: request.model,
+        signal,
+        timeout,
+        onDelta: (text) => {
+          if (run === 1) emit({ type: STREAM_FRAME_TYPES.DELTA, text });
+        },
+        onAttempt: (record) => recordAttempt('rewrite', Number.isInteger(/** @type {any} */ (record)?.attemptIndex)
+          ? { .../** @type {any} */ (record), attemptIndex: /** @type {any} */ (record).attemptIndex + indexBase }
+          : record),
+        onAttemptInvalid: recordInvalidAttempt,
+      });
+      rewrite = formatRewriteBodyForBrowser(streamResult.text);
+    } catch (err) {
+      const error = safeError(err, request.apiKey);
+      closeAttempts();
+      emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'stream_failed', error });
+      return { ok: false, code: 'stream_failed', error, attempts, observed: observeTerminal('terminal_failed', 500) };
+    }
+    numberSafety = evaluateNumberSafety(original, rewrite, request.lang);
+    if (numberSafety.ok) break;
+    // An externally aborted signal must not spend another paid attempt.
+    if (run === maxRuns || signal?.aborted) {
+      closeAttempts();
+      emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'number_safety_failed' });
+      return { ok: false, code: 'number_safety_failed', numberSafety, attempts, observed: observeTerminal('number_safety_failed', 422) };
+    }
   }
 
   const mpsScore = scoreFns.scoreMPS || scoreMPS;
   const fidelityScore = scoreFns.scoreFidelity || scoreFidelity;
   const deterministicScore = scoreFns.scoreDeterministicSignals || scoreDeterministicSignals;
+  const scoringExtra = scoringExtraBody(request.provider, env);
 
   let mps, fidelity, signals, diff;
   try {
     const scoreResults = await Promise.allSettled([
-      Promise.resolve().then(() => mpsScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, signal, timeout, onAttempt: (record) => recordAttempt('mps', record), onAttemptInvalid: recordInvalidAttempt })),
-      Promise.resolve().then(() => fidelityScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, signal, timeout, onAttempt: (record) => recordAttempt('fidelity', record), onAttemptInvalid: recordInvalidAttempt })),
+      Promise.resolve().then(() => mpsScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, extraBody: scoringExtra, signal, timeout, onAttempt: (record) => recordAttempt('mps', record), onAttemptInvalid: recordInvalidAttempt })),
+      Promise.resolve().then(() => fidelityScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, extraBody: scoringExtra, signal, timeout, onAttempt: (record) => recordAttempt('fidelity', record), onAttemptInvalid: recordInvalidAttempt })),
     ]);
     const [mpsResult, fidelityResult] = scoreResults;
     if (mpsResult.status === 'rejected') throw mpsResult.reason;
