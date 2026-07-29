@@ -19,10 +19,26 @@ Neither value is a secret — they are public identifiers that appear in an
 unauthenticated checkout-session read. The license key is the secret, and it
 never leaves the entitlement module.
 
-The **checkout link sells today**. `https://buy.polar.sh/polar_cl_qKqt…`
-returns a 307 into a live session priced at 999 USD/month with the license-key
-benefit attached. Nothing in this repository has to change for a customer to
-buy through that URL.
+The **checkout link is configured and reachable**, but whether it can take a
+real card is NOT established. `https://buy.polar.sh/polar_cl_qKqt…` returns a
+307 into an `open` session priced at 999 USD/month with the license-key benefit
+attached and Stripe as the processor. An earlier note in this file claimed the
+link "sells today"; that overstated the evidence. Creating a session is not the
+same as capturing a payment, and the organization still reads
+`status: "created"` with `details_submitted_at: null`.
+
+Polar's documented model is that the account review happens **before the first
+payout**, not before the first sale, and that during review "new purchases keep
+going through" while the payout shows as held. That is consistent with money
+being collectable now. It is not proof, and it must not be tested with a real
+card — Polar treats that as card testing and it triggers a review.
+
+The sanctioned way to settle the question is Polar's own recommendation for
+production verification: a **100% discount code**. It walks the real production
+checkout with no money moving, and it issues a real production license key,
+which is the one thing the gate has never been exercised against. Polar's
+reviewers ask for exactly such a code anyway, which is why
+`allow_discount_codes` is already enabled on the link.
 
 They were set with `vercel env add … production`, then applied by
 **redeploying the existing production deployment** rather than deploying from
