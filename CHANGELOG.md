@@ -12,6 +12,29 @@ All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 Semver rationale: patch | minor | major — explain whether this changes patterns, schemas, CLI behavior, or docs only.
 ```
 
+## 6.3.2 — 2026-07-29
+
+**Hosted-rewrite fixes (chat-log pastes no longer 422), a fidelity-gate scoring fix, backend compatibility, and opt-in LLM plumbing. 6.4 stays reserved for the payment launch.**
+
+Semver rationale: patch — bug fixes on the hosted rewrite surface, scoring, and CLI backends, plus strictly opt-in or allowlist-only additions; no default contract, tier limit, or pinned model changes. The v6.4 payment-launch hold (tag/publish prohibitions for 6.4.x) is untouched.
+
+### Fixed
+
+- **Chat-log/timeline pastes no longer fail the web rewrite**: clock times (`16:47`, `16:47 – 16:50`, `9:05:30`) hit the numeric-operator check as `digit:digit`, so the number-safety gate 422-rejected the whole paste before scoring — even for an identity rewrite — and the playground showed a misleading generic "check the mode/key" failure. Clock times are now first-class exact `time:` claims (leading-zero hour normalized); a rewrite that drops or drifts a time still fails closed as `numeric_claim_changed`, and ratios/scores (`1:2`, `3:1`) plus invalid times (`25:30`) keep the old fail-closed behavior. `number_safety_failed` also gets its own localized (en/ko/zh/ja) error copy in the playground.
+- **Fidelity gate no longer punishes the rewrite it exists to grade**: the fidelity judge rubric penalized register normalization that the rewrite prompt itself mandates; live-quality fixtures went from 9/22 to 20/22 after the rubric fix plus prompt parity between the CLI and web surfaces.
+- **Rewrite prompt forbids invented claims**: the strict rewrite prompt now explicitly prohibits adding claims the source does not state, closing a fabrication path the meaning floors could only catch after the fact.
+- **`gemini-cli` backend disables MCP servers** on its invocations, so a user's local MCP config can never inject tools into a patina rewrite call.
+- **`kimi-cli` ≥ 0.28 compatibility**: the backend now parses the stream-json assistant output of newer Kimi Code releases (with the legacy plain-text fallback retained).
+- **SSE streams request usage accounting** (`include_usage`), so streamed rewrites report token usage like buffered calls.
+- **Playground approval status line is screen-reader-only**: the visible "Unapproved — checks have not passed" line under every streaming message read as an alarming warning during normal in-flight rewrites; it is now visually clipped while the `role="status"` live region and localized copy stay intact for assistive tech.
+
+### Added
+
+- **`gemini-3.6-flash` allowlisted** on the web BYOK surface and eligible for `PATINA_FREE_MODEL` / `PATINA_PRO_MODEL`, after a 22-fixture live-quality comparison (better AI-score improvement and fewer meaning-loss fixtures than the prior Pro pin at ~1/5 the cost). All pinned defaults are unchanged; this only widens the allowlist.
+- **Native Anthropic adapter with prompt caching (opt-in)** plus thinking control for OpenAI-compatible providers via `extraBody` pass-through — both dormant unless explicitly enabled.
+- **Free-tier observability**: the pro monitor now also watches the free tier (the tier that actually has users), with the same closed outcome schema.
+- **Live-quality harness upgrades** (dev tooling): fixed-judge override, `--judge-backend` / `--backend` subscription-CLI seats, per-call usage/latency capture, and `--repeat` for variance-aware sweeps.
+
 ## 6.3.1 — 2026-07-07
 
 **Launch polish for the hosted playground and README — no CLI/engine changes.**
