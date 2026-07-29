@@ -8,6 +8,8 @@ import {
   buildPolarValidateRequest,
   evaluatePolarLicenseResponse,
   isPolarDefinitiveDenial,
+  POLAR_DEFAULT_VALIDATE_RPM,
+  POLAR_PII_FIELDS,
   polarValidateUrl,
 } from '../../src/entitlement-polar.js';
 import { QUOTA_REASONS } from '../../src/web-rewrite-contract.js';
@@ -155,4 +157,38 @@ test('only a 404 ResourceNotFound is a definitive denial; everything else stays 
   for (const body of [null, undefined, 'Not found', [], {}, { error: 'SomethingElse' }, { error: 404 }]) {
     assert.equal(isPolarDefinitiveDenial(404, body), false, `404 with body ${JSON.stringify(body)} must not be a verdict`);
   }
+});
+
+test('the evaluator reads named fields and never carries the PII Polar returns alongside them', () => {
+  // Measured on a live sandbox response: the validate body includes user and
+  // customer objects with the purchaser's email, name, and avatar URL. The
+  // evaluator must never pass any of that through to a caller or a log.
+  const withPii = {
+    ...grantedResponse(),
+    user_id: '273b34da-78f3-4fdf-bf3d-77c4fb2d85e8',
+    customer_id: '273b34da-78f3-4fdf-bf3d-77c4fb2d85e8',
+    user: { id: '273b34da', email: 'buyer@example.com', public_name: 'Buyer', avatar_url: 'https://example.com/a.png' },
+    customer: { id: '273b34da', email: 'buyer@example.com', name: 'Buyer' },
+  };
+  const allowed = evaluatePolarLicenseResponse(withPii, env);
+  assert.equal(allowed.ok, true);
+  const serialized = JSON.stringify(allowed);
+  for (const field of POLAR_PII_FIELDS) {
+    assert.equal(serialized.includes(field), false, `${field} must not survive into the result`);
+  }
+  assert.equal(serialized.includes('buyer@example.com'), false, 'the purchaser email must never survive');
+  assert.equal(serialized.includes('Buyer'), false, 'the purchaser name must never survive');
+
+  // The denial path must be equally clean.
+  const denied = evaluatePolarLicenseResponse({ ...withPii, status: 'revoked' }, env);
+  assert.equal(denied.ok, false);
+  assert.equal(JSON.stringify(denied).includes('buyer@example.com'), false);
+});
+
+test('the validate admission ceiling stays well under the observed 429 threshold', () => {
+  // Five rapid sandbox calls drew 429 with retry-after 21s, so the shipped
+  // ceiling is deliberately conservative rather than a documented maximum.
+  assert.equal(POLAR_DEFAULT_VALIDATE_RPM, 10);
+  assert.ok(POLAR_DEFAULT_VALIDATE_RPM > 0 && Number.isSafeInteger(POLAR_DEFAULT_VALIDATE_RPM));
+  assert.ok(POLAR_DEFAULT_VALIDATE_RPM < 50, 'must stay below the Lemon Squeezy-era default, which this endpoint will not tolerate');
 });
