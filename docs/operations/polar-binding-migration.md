@@ -19,34 +19,52 @@ Neither value is a secret — they are public identifiers that appear in an
 unauthenticated checkout-session read. The license key is the secret, and it
 never leaves the entitlement module.
 
-The **checkout link cannot take money yet, and this is now proven rather than
-suspected.** Walking the real production checkout with the owner's 100% discount
-code — Polar's own sanctioned way to verify production without moving money —
-reduced the total to 0 USD with `is_payment_required: false`, and confirming
-that zero-amount session was still refused:
+### Payment readiness: blocked, then opened
+
+The organization was `status: "created"` with `details_submitted_at: null`, and
+a checkout confirm — even one discounted to 0 USD with
+`is_payment_required: false` — was refused outright:
 
 ```
 HTTP 403  {"error":"PaymentNotReady",
            "detail":"Organization is not ready to accept payments"}
 ```
 
-Two earlier statements in this file were wrong and are retracted. The first
-claimed the link "sells today" on the strength of a 307 into a priced session;
-the second softened that to "consistent with money being collectable now" by
-reading Polar's review-at-first-payout policy. Both conflated a reachable
-checkout with a payable one. The organization reads `status: "created"` with
-`details_submitted_at: null`, and Polar refuses payment for it outright.
+That retracts two successive claims made earlier in this file: first that the
+link "sells today" (argued from a 307 into a priced session), then that money
+was "collectable now" (argued from Polar's review-at-first-payout policy). Both
+reasoned from documentation instead of from an attempt, and both were wrong. No
+purchase succeeded at any price, including free.
 
-**This inverts the priority order.** Account approval is not trailing paperwork
-to be done while sales accumulate — it is the single hard blocker on any revenue
-at all. Until the owner completes Finance → Account (submit for approval → KYC
-via Stripe Identity → Stripe Connect Express payout account to a domestic KR
-bank account in KRW), nobody can buy, at any price, including free. Everything
-else in this document — the binding tuple, the hold migration, the in-app
-button — is downstream of that and cannot produce a single won before it.
+After the owner submitted the account for review the organization flipped to
+`status: "active"` with `details_submitted_at` set, and the refusal changed —
+`PaymentNotReady` is gone. Payment readiness is therefore **granted at
+submission, not at approval**; the up-to-14-day review governs the payout, not
+the ability to sell.
 
-The discount code is retained: it is the verification path once payments open,
-and Polar's reviewers request exactly such a code to walk the flow themselves.
+### The verification code needs `duration: forever`
+
+The end-to-end walk still cannot complete, for a reason specific to the code
+rather than the account. Confirm now fails with:
+
+```
+HTTP 422  confirmation_token_id — "Confirmation token is required."
+```
+
+The discount reads `duration: "once"`, `basis_points: 10000`. A 100% discount
+for a single period leaves every renewal at 999 USD, so Stripe must store a
+payment method up front and the confirm demands a card-backed confirmation
+token. `is_payment_required: false` describes only the first charge.
+
+A verification code has to waive **every** period, so it must be created with
+**duration = forever** at 100%. Then no payment method is needed and the confirm
+should complete card-free — expected from the schema, not yet observed.
+
+A forever-free code is a standing liability if it leaks, so it should be bounded
+on creation: **max redemptions in the low single digits and an expiry date**.
+Without those, anyone who finds the string holds patina Pro free permanently.
+This is also the shape Polar's reviewers ask for when they request a code to
+walk the purchase flow themselves — a `once` code would make them supply a card.
 
 They were set with `vercel env add … production`, then applied by
 **redeploying the existing production deployment** rather than deploying from
