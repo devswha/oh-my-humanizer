@@ -74,8 +74,8 @@ Owner provisions these under the `SECRET_MANAGER` blocker. Only names appear her
 
 ### Pro provider + entitlement (secrets)
 - `PATINA_PRO_API_KEY` — Pro provider key (required in production; fail-closed 503 if absent)
-- `PATINA_PRO_PROVIDER` = `claude`
-- `PATINA_PRO_MODEL` = `claude-sonnet-5`
+- `PATINA_PRO_PROVIDER` = `gemini` (owner-approved 2026-07-26; previous claude pin kept in .env.example for rollback)
+- `PATINA_PRO_MODEL` = `gemini-3.6-flash`
 - `PATINA_LICENSE_HMAC_SECRET` — long random; meters per-license by HMAC subject
 - `PATINA_PRO_ALLOW_FREE_KEY` — **leave unset** in production (keeps the fail-closed 503)
 - Optional caps (defaults fine): `PATINA_PRO_MAX_CHARS`, `PATINA_PRO_REQ_PER_DAY`, `PATINA_PRO_MAX_CONCURRENT`, `PATINA_PRO_CHARS_PER_MONTH`
