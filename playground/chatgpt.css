@@ -170,6 +170,10 @@ a { color: inherit; }
 .eyebrow::after { content: ""; flex: 1 1 auto; height: 1px; background: var(--border); }
 .sec__title { font-size: clamp(30px, 4.4vw, 44px); font-weight: 600; letter-spacing: -1.2px; margin: 0; }
 .sec__lede { margin: 14px 0 0; color: var(--text-dim); font-size: 16px; max-width: 640px; line-height: 1.6; text-wrap: balance; word-break: keep-all; }
+/* Scope-and-ethics note under a section lede (pricing). Smaller and dimmer than
+   the lede: it qualifies the offer rather than selling it. */
+.sec__note { margin: 10px 0 0; color: var(--text-faint); font-size: 13.5px; max-width: 640px; line-height: 1.6; text-wrap: balance; word-break: keep-all; }
+.sec__note a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 
 .how, .examples, .bench, .cta { max-width: var(--page); margin: 0 auto; padding: 104px 24px; }
 .how__grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center; }
