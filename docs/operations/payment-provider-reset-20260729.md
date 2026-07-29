@@ -17,6 +17,32 @@
 No appeal path is offered and no specific defect is named. Treat
 `LS_APPROVAL` as unsatisfiable on this provider rather than pending.
 
+### This is NOT a ToS violation — verified
+
+The decline is a **risk-underwriting decision**, not a policy breach, and the
+email says so in its own words: decisions are *"more complex than a simple
+glance at the ToS list of requirements"* and are *"guided by regulations
+imposed on us by Stripe, PayPal and card companies"*. That sentence
+pre-empts the "but we comply with every ToS bullet" argument — compliance
+was never the question.
+
+Checked against LS's published prohibited-products list
+(docs.lemonsqueezy.com/help/getting-started/prohibited-products, retrieved
+2026-07-29): **patina appears on none of the ~22 prohibited categories**, and
+"Software & SaaS" is the first named *acceptable* category. The single
+adjacency worth naming is **"Homework/Essay mills"** — patina is not one, but
+a product marketed as removing AI traces from text can be *read* as serving
+that market. That is a perception exposure in the product description, not a
+rule that was broken.
+
+Practical consequences of the distinction:
+- Nothing was done wrong; there is no violation to remediate or disclose.
+- Appealing by citing ToS compliance would not work — the decision does not
+  rest on the list.
+- Applying to another provider is ordinary business, not ban evasion. There
+  is no suspension, no chargeback history, and no revenue to explain.
+- The fix is the *framing* of the same product, not a change to the product.
+
 ## Financial exposure: none
 
 Verified against the LS API on 2026-07-29: store `total_sales: 0`,
