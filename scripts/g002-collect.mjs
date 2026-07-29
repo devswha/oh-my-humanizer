@@ -109,7 +109,7 @@ for (const probe of PROBES) {
     if (complete) accepted = result;
     else console.error(`[g002] ${probe.id}: incomplete stages, retrying`);
   }
-  if (!accepted) throw new Error(`${probe.id}: no complete run in 3 tries`);
+  if (!accepted) throw new Error(`${probe.id}: no complete run in ${tries} tries`);
   for (const stage of ['rewrite', 'mps', 'fidelity']) {
     const terminal = accepted.attempts[stage].at(-1);
     if (effectiveModel === null) effectiveModel = terminal.effectiveModel;
