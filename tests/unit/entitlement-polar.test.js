@@ -7,6 +7,7 @@ import {
   POLAR_SANDBOX_LICENSE_VALIDATE_URL,
   buildPolarValidateRequest,
   evaluatePolarLicenseResponse,
+  isPolarDefinitiveDenial,
   polarValidateUrl,
 } from '../../src/entitlement-polar.js';
 import { QUOTA_REASONS } from '../../src/web-rewrite-contract.js';
@@ -125,5 +126,33 @@ test('the evaluator never echoes the license key into its result', () => {
   ];
   for (const result of results) {
     assert.equal(JSON.stringify(result).includes(license), false);
+  }
+});
+test('only a 404 ResourceNotFound is a definitive denial; everything else stays transient', () => {
+  // Measured against the live endpoint 2026-07-29: an unknown key answers
+  // 404 {"error":"ResourceNotFound","detail":"Not found"}. Misreading that as
+  // an outage would report invalid licenses as 503 and re-charge the
+  // admission bucket on every retry of a key that can never validate.
+  assert.equal(isPolarDefinitiveDenial(404, { error: 'ResourceNotFound', detail: 'Not found' }), true);
+
+  // Transient or caller-side; must never be cached as a denial.
+  const transient = /** @type {Array<[number, unknown]>} */ ([
+    [429, { error: 'RateLimited' }],
+    [500, { error: 'InternalServerError' }],
+    [502, null],
+    [503, { error: 'ServiceUnavailable' }],
+    [422, { error: 'ValidationError' }],
+    [401, { error: 'Unauthorized' }],
+    [403, { error: 'Forbidden' }],
+    [200, { error: 'ResourceNotFound' }],
+  ]);
+  for (const [status, body] of transient) {
+    assert.equal(isPolarDefinitiveDenial(status, body), false, `HTTP ${status} must not be a verdict`);
+  }
+
+  // A 404 whose body is missing, unparseable, or carries a different error is
+  // NOT a verdict either — the narrow shape is the whole safety property.
+  for (const body of [null, undefined, 'Not found', [], {}, { error: 'SomethingElse' }, { error: 404 }]) {
+    assert.equal(isPolarDefinitiveDenial(404, body), false, `404 with body ${JSON.stringify(body)} must not be a verdict`);
   }
 });
