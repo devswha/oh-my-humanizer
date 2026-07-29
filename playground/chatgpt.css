@@ -348,7 +348,11 @@ a { color: inherit; }
 .msg__text { white-space: pre-wrap; word-break: break-word; }
 .msg__text--flagged { opacity: .72; }
 .msg__text--unapproved { border-inline-start: 2px solid var(--warn, #b7791f); padding-inline-start: 8px; }
-.output-status { margin: 8px 0 0; color: var(--text-muted, var(--text-faint)); font-size: 13px; }
+/* Screen-reader-only approval live region (role="status"). Sighted users already
+   get the flagged border + floor/error notes; the visible "unapproved/approved"
+   line read as an alarming warning during normal streaming, so it is clipped
+   out visually while staying announced to assistive tech. */
+.output-status { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
 .msg__text.streaming::after { content: "▍"; color: var(--accent); margin-left: 1px; animation: blink 1s step-start infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
