@@ -1,0 +1,260 @@
+commit 1477136d2b9d3d21048a7352422d5b10c79009e8
+Author: devswha <devswha@gmail.com>
+Date:   Tue Jul 21 21:28:57 2026 +0900
+
+    fix(score): keep hard deterministic evidence floor on short (skipped) text
+    
+    reconcileScoreOverall discarded ALL deterministic evidence whenever
+    deterministicScore.skipped was set — which analyzeText sets for any
+    <=2-paragraph / <=2-sentence input. That silently dropped the near-proof
+    markup-leakage floor (#332) and the structural-classifier floor on short
+    text, so a short AI-leaked snippet scored 0 whenever the LLM returned 0.
+    analyzeText documents skip as "advisory only" (it still computes the raw
+    signals), so the scorer reading skipped as "distrust all deterministic
+    evidence" was a code-contract mismatch.
+    
+    - scoreDeterministicSignals exposes evidenceFloor: the hard document-level
+      floors (leakage + structural) separated from the coarse per-paragraph
+      hot ratio (1/1 = 100 on one paragraph, unreliable on short text).
+      overall is unchanged: max(hotRatio, evidenceFloor).
+    - reconcileScoreOverall enforces evidenceFloor inside the skipped branch
+      only (reason: deterministic-evidence-floor). Clean short prose has no
+      hard floor and still defers to the LLM; non-skipped text keeps the
+      existing divergence path untouched.
+    
+    Regression tests: exposed evidenceFloor, reconcile skipped/non-skipped
+    paths, and a scoreText integration where a short leaked snippet + LLM=0
+    floors to LEAKAGE_SCORE_FLOOR while a clean short reply stays 0.
+    
+    Reviewed via insane-review (GPT-5.6 Pro). Full unit+e2e (1555) + lint +
+    benchmark (100%) green.
+
+ src/scoring.js             | 40 ++++++++++++++++++--
+ tests/unit/scoring.test.js | 94 ++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 131 insertions(+), 3 deletions(-)
+commit 1477136d2b9d3d21048a7352422d5b10c79009e8
+Author: devswha <devswha@gmail.com>
+Date:   Tue Jul 21 21:28:57 2026 +0900
+
+    fix(score): keep hard deterministic evidence floor on short (skipped) text
+    
+    reconcileScoreOverall discarded ALL deterministic evidence whenever
+    deterministicScore.skipped was set — which analyzeText sets for any
+    <=2-paragraph / <=2-sentence input. That silently dropped the near-proof
+    markup-leakage floor (#332) and the structural-classifier floor on short
+    text, so a short AI-leaked snippet scored 0 whenever the LLM returned 0.
+    analyzeText documents skip as "advisory only" (it still computes the raw
+    signals), so the scorer reading skipped as "distrust all deterministic
+    evidence" was a code-contract mismatch.
+    
+    - scoreDeterministicSignals exposes evidenceFloor: the hard document-level
+      floors (leakage + structural) separated from the coarse per-paragraph
+      hot ratio (1/1 = 100 on one paragraph, unreliable on short text).
+      overall is unchanged: max(hotRatio, evidenceFloor).
+    - reconcileScoreOverall enforces evidenceFloor inside the skipped branch
+      only (reason: deterministic-evidence-floor). Clean short prose has no
+      hard floor and still defers to the LLM; non-skipped text keeps the
+      existing divergence path untouched.
+    
+    Regression tests: exposed evidenceFloor, reconcile skipped/non-skipped
+    paths, and a scoreText integration where a short leaked snippet + LLM=0
+    floors to LEAKAGE_SCORE_FLOOR while a clean short reply stays 0.
+    
+    Reviewed via insane-review (GPT-5.6 Pro). Full unit+e2e (1555) + lint +
+    benchmark (100%) green.
+
+diff --git a/src/scoring.js b/src/scoring.js
+index c728229..160d429 100644
+--- a/src/scoring.js
++++ b/src/scoring.js
+@@ -452,6 +452,7 @@ export function scoreDeterministicSignals({
+   if (Array.isArray(enabledLanguages) && !enabledLanguages.includes(lang)) {
+     return {
+       overall: null,
++      evidenceFloor: 0,
+       interpretation: null,
+       skipped: true,
+       skipReason: 'language-disabled',
+@@ -505,11 +506,18 @@ export function scoreDeterministicSignals({
+     // high structural floor was capped at the (lower) leakage floor — a near-proof
+     // leakage token could LOWER the overall score. Take the max of every signal so
+     // a floor can only ever raise the score (#527 H5).
+-    const overall = Math.max(
+-      hotRatioOverall,
++    // Hard, document-level evidence floors: near-proof markup leakage (#332)
++    // and the trained structural classifier. Each is decisive on its own, so it
++    // must survive even when the text is too short for the stylometry meta-block
++    // (skipped=true): reconcileScoreOverall applies this floor before deferring
++    // to the LLM. The coarse per-paragraph hot ratio (1/1 = 100 on a single
++    // paragraph) is deliberately NOT part of this floor — only calibrated hard
++    // signals are — so short prose cannot manufacture a false positive.
++    const evidenceFloor = Math.max(
+       leaked ? LEAKAGE_SCORE_FLOOR : 0,
+       structuralFloor,
+     );
++    const overall = Math.max(hotRatioOverall, evidenceFloor);
+     const signalScore = roundScore(summarizeSignalStrength(paragraphs, {
+       burstinessBands: config.stylometry?.burstiness?.bands,
+       mattrBands: config.stylometry?.ttr?.bands,
+@@ -518,6 +526,7 @@ export function scoreDeterministicSignals({
+ 
+     return {
+       overall,
++      evidenceFloor,
+       interpretation: interpretScore(overall),
+       skipped: Boolean(result?.skipped),
+       skipReason: result?.skipReason ?? null,
+@@ -556,6 +565,7 @@ export function scoreDeterministicSignals({
+   } catch (err) {
+     return {
+       overall: null,
++      evidenceFloor: 0,
+       interpretation: null,
+       skipped: true,
+       skipReason: 'deterministic-failure',
+@@ -628,7 +638,31 @@ export function reconcileScoreOverall({
+   const deterministic = toFiniteScore(deterministicScore?.overall);
+   if (llm === null) return { overall: null, scorePreference: null };
+   if (deterministic === null) return { overall: llm, scorePreference: null };
+-  if (deterministicScore?.skipped) return { overall: llm, scorePreference: null };
++  // `skipped` means the long-form stylometry/meta block was suppressed (text is
++  // ≤2 paragraphs / ≤2 sentences). That must NOT discard the hard evidence
++  // floor: near-proof markup leakage (#332) and the structural classifier stay
++  // decisive on short text. Enforce that floor here — only the calibrated hard
++  // floor, never the coarse per-paragraph hot ratio (1/1 = 100 on one
++  // paragraph) — so a short AI-leaked snippet can't be scored 0 just because it
++  // was too short for the meta-block, while clean short prose (no hard floor)
++  // still defers to the LLM. Non-skipped text keeps the existing divergence path.
++  if (deterministicScore?.skipped) {
++    const skippedFloor = toFiniteScore(deterministicScore?.evidenceFloor);
++    if (skippedFloor !== null && skippedFloor > 0 && llm < skippedFloor) {
++      return {
++        overall: skippedFloor,
++        scorePreference: {
++          reason: 'deterministic-evidence-floor',
++          selected: 'deterministic',
++          llmOverall: llm,
++          deterministicOverall: deterministic,
++          evidenceFloor: skippedFloor,
++          overall: skippedFloor,
++        },
++      };
++    }
++    return { overall: llm, scorePreference: null };
++  }
+ 
+   const threshold = deterministicScoringOptions(config).divergenceThreshold;
+   const delta = Math.abs(llm - deterministic);
+diff --git a/tests/unit/scoring.test.js b/tests/unit/scoring.test.js
+index 95877bf..fbe9d50 100644
+--- a/tests/unit/scoring.test.js
++++ b/tests/unit/scoring.test.js
+@@ -8,7 +8,9 @@ import {
+   scoreFidelity,
+   scoreMPS,
+   scoreDeterministicSignals,
++  reconcileScoreOverall,
+   scoreText,
++  LEAKAGE_SCORE_FLOOR,
+ } from '../../src/scoring.js';
+ import { getRepoRoot, loadConfig } from '../../src/config.js';
+ import { loadPatterns } from '../../src/loader.js';
+@@ -405,6 +407,98 @@ test('deterministic skipped and failure payloads pin signalScore to zero', () =>
+   assert.strictEqual(failed.skipped, true);
+   assert.strictEqual(failed.signalScore, 0);
+ });
++
++// --- P0: short-text hard-evidence floor survives skipped bypass -------------
++// Regression for the scorer discarding deterministic evidence on ≤2-paragraph
++// text: analyzeText marks short input skipped=true, but near-proof markup
++// leakage (#332) still fires. reconcileScoreOverall must honor that hard floor
++// instead of silently returning the LLM's (possibly 0) score.
++
++test('scoreDeterministicSignals exposes an evidenceFloor that survives short-text skip', () => {
++  const shortLeaked = scoreDeterministicSignals({
++    text: 'According to turn0search1 the phrasing still needs work.',
++    config: loadConfig(),
++  });
++  // One sentence / one paragraph is below the stylometry meta-block threshold.
++  assert.strictEqual(shortLeaked.skipped, true);
++  // The near-proof leakage token still lifts the hard evidence floor.
++  assert.strictEqual(shortLeaked.bands.markupLeakage.leaked, true);
++  assert.strictEqual(shortLeaked.evidenceFloor, LEAKAGE_SCORE_FLOOR);
++  assert.strictEqual(shortLeaked.overall, LEAKAGE_SCORE_FLOOR);
++
++  const shortClean = scoreDeterministicSignals({
++    text: 'I rewrote the parser this morning and it finally works.',
++    config: loadConfig(),
++  });
++  assert.strictEqual(shortClean.skipped, true);
++  // No hard floor for ordinary short prose — must stay 0 so the LLM decides.
++  assert.strictEqual(shortClean.evidenceFloor, 0);
++});
++
++test('reconcileScoreOverall enforces the hard evidence floor on skipped short text', () => {
++  const config = loadConfig();
++
++  // Skipped + hard floor above the LLM score => floor wins (was discarded).
++  const floored = reconcileScoreOverall({
++    llmOverall: 0,
++    deterministicScore: { overall: 90, evidenceFloor: 90, skipped: true },
++    config,
++  });
++  assert.strictEqual(floored.overall, 90);
++  assert.strictEqual(floored.scorePreference?.reason, 'deterministic-evidence-floor');
++  assert.strictEqual(floored.scorePreference?.selected, 'deterministic');
++
++  // Skipped + LLM already at/above the floor => LLM stands, no forced floor.
++  const llmWins = reconcileScoreOverall({
++    llmOverall: 95,
++    deterministicScore: { overall: 90, evidenceFloor: 90, skipped: true },
++    config,
++  });
++  assert.strictEqual(llmWins.overall, 95);
++  assert.strictEqual(llmWins.scorePreference, null);
++
++  // Skipped + no hard floor (ordinary short prose) => unchanged: defer to LLM.
++  const cleanSkip = reconcileScoreOverall({
++    llmOverall: 0,
++    deterministicScore: { overall: 0, evidenceFloor: 0, skipped: true },
++    config,
++  });
++  assert.strictEqual(cleanSkip.overall, 0);
++  assert.strictEqual(cleanSkip.scorePreference, null);
++
++  // Non-skipped divergence path must be untouched by the floor change.
++  const diverged = reconcileScoreOverall({
++    llmOverall: 0,
++    deterministicScore: { overall: 60, evidenceFloor: 0, skipped: false },
++    config,
++  });
++  assert.strictEqual(diverged.overall, 60);
++  assert.strictEqual(diverged.scorePreference?.reason, 'deterministic-divergence');
++});
++
++test('scoreText floors a short AI-leaked snippet even when the LLM returns 0', async () => {
++  const callLLM = async () =>
++    JSON.stringify({ categories: {}, overall: 0, interpretation: 'human' });
++
++  const leaked = await scoreText({
++    text: 'According to turn0search1 the phrasing still needs work.',
++    config: loadConfig(),
++    patterns: [],
++    callLLM,
++  });
++  assert.strictEqual(leaked.overall, LEAKAGE_SCORE_FLOOR);
++  assert.strictEqual(leaked.scorePreference?.reason, 'deterministic-evidence-floor');
++
++  // Control: an ordinary short reply with no hard floor keeps the LLM's 0.
++  const clean = await scoreText({
++    text: 'same here, this saves me a ton of time every week.',
++    config: loadConfig(),
++    patterns: [],
++    callLLM,
++  });
++  assert.strictEqual(clean.overall, 0);
++  assert.strictEqual(clean.scorePreference, undefined);
++});
+ // --- C2: opt-in structured output ------------------------------------------
+ 
+ test('scoreText forwards responseFormat to callLLM on both attempts and keeps strict-JSON fallback (#C2)', async () => {
