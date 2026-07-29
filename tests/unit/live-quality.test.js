@@ -9,6 +9,12 @@ import {
   evaluateRewriteQuality,
   loadLiveFixtures,
   renderMarkdownReport,
+  aggregateCalls,
+  createBackendJudgeCallLLM,
+  normalizeUsage,
+  mergeRepeats,
+  resolveJudgeSettings,
+  summarizeUsage,
   resolveLiveSettings,
   runLiveQuality,
   runLiveQualityReport,
@@ -144,6 +150,347 @@ test('live report is structured and fail-closed when credentials are missing', a
   const markdown = renderMarkdownReport(report);
   assert.match(markdown, /schema_version: 1/);
   assert.match(markdown, /api_key: missing/);
+});
+
+test('judge settings resolve to null when no judge override is configured', () => {
+  assert.equal(resolveJudgeSettings({ env: {} }), null);
+  assert.equal(resolveJudgeSettings({ env: { PATINA_LIVE_MODEL: 'candidate' } }), null);
+});
+
+test('judge model alone inherits the primary endpoint and credential', () => {
+  const primary = {
+    baseURL: 'https://example.test/v1',
+    model: 'candidate-model',
+    apiKey: 'primary-key',
+    timeoutMs: 120000,
+  };
+  const judge = resolveJudgeSettings({ env: { PATINA_LIVE_JUDGE_MODEL: 'judge-model' } }, primary);
+
+  assert.equal(judge.model, 'judge-model');
+  assert.equal(judge.baseURL, 'https://example.test/v1');
+  assert.equal(judge.apiKey, 'primary-key');
+  assert.equal(judge.hasApiKey, true);
+  assert.equal(judge.apiKeySource, 'primary');
+  assert.equal(judge.timeoutMs, 120000);
+});
+
+test('judge on a different host never reuses the primary credential', () => {
+  const primary = {
+    baseURL: 'https://example.test/v1',
+    model: 'candidate-model',
+    apiKey: 'primary-key',
+    timeoutMs: 120000,
+  };
+  const judge = resolveJudgeSettings({
+    env: {
+      PATINA_LIVE_JUDGE_MODEL: 'judge-model',
+      PATINA_LIVE_JUDGE_API_BASE: 'https://other.test/v1',
+    },
+  }, primary);
+
+  assert.equal(judge.baseURL, 'https://other.test/v1');
+  assert.equal(judge.apiKey, null);
+  assert.equal(judge.hasApiKey, false);
+});
+
+test('live report fails closed when the judge lacks a credential', async () => {
+  const report = await runLiveQualityReport({
+    fixtures: [fixture],
+    live: true,
+    env: {
+      PATINA_LIVE_API_KEY: 'primary-key',
+      PATINA_LIVE_API_BASE: 'https://example.test/v1',
+      PATINA_LIVE_MODEL: 'candidate-model',
+      PATINA_LIVE_JUDGE_MODEL: 'judge-model',
+      PATINA_LIVE_JUDGE_API_BASE: 'https://other.test/v1',
+    },
+  });
+
+  assert.equal(report.summary.error, 1);
+  assert.match(report.results[0].errors[0], /judge API key/);
+  assert.equal(report.settings.judge.model, 'judge-model');
+  assert.equal(report.settings.judge.apiKey, undefined);
+});
+
+test('model-graded scoring calls route to the fixed judge, not the candidate', async () => {
+  const seenModels = [];
+  const recordingModel = (args) => {
+    seenModels.push(args.model);
+    return fakeQualityModel(args);
+  };
+  const result = await evaluateModelGradedRewrite(fixture, rewrite, {
+    settings: {
+      apiKey: 'candidate-key',
+      baseURL: 'https://example.test/v1',
+      model: 'candidate-model',
+      timeoutMs: 1000,
+    },
+    judgeSettings: {
+      apiKey: 'judge-key',
+      baseURL: 'https://judge.test/v1',
+      model: 'judge-model',
+      timeoutMs: 2000,
+    },
+    callLLM: recordingModel,
+  });
+
+  assert.equal(result.status, 'pass');
+  assert.ok(seenModels.length >= 4);
+  assert.ok(seenModels.every((model) => model === 'judge-model'));
+});
+
+test('mergeRepeats reports medians but keeps the worst status', () => {
+  const merged = mergeRepeats([
+    { fixture_id: 'f', status: 'pass', mps: 100, fidelity: 100, ai_delta: 12, policy_violations: [] },
+    { fixture_id: 'f', status: 'error', mps: 45, fidelity: 80, ai_delta: 10, policy_violations: ['mps<70'] },
+    { fixture_id: 'f', status: 'pass', mps: 90, fidelity: 90, ai_delta: 11, policy_violations: [] },
+  ]);
+
+  assert.equal(merged.mps, 90);
+  assert.equal(merged.fidelity, 90);
+  assert.equal(merged.ai_delta, 11);
+  // One bad sample means the fixture is not clean, whatever the median says.
+  assert.equal(merged.status, 'error');
+  assert.deepEqual(merged.policy_violations, ['mps<70']);
+  assert.equal(merged.repeat.count, 3);
+  assert.equal(merged.repeat.mps_spread, 55);
+  assert.deepEqual(merged.repeat.mps, [100, 45, 90]);
+});
+
+test('mergeRepeats survives samples that never produced a score', () => {
+  const merged = mergeRepeats([{ fixture_id: 'f', status: 'error', mps: null, errors: ['boom'] }]);
+  assert.equal(merged.repeat.usable, 0);
+  assert.equal(merged.status, 'error');
+});
+
+test('repeat samples each fixture and records the spread', async () => {
+  let call = 0;
+  const varying = (args) => {
+    if (args.prompt.includes('Meaning Preservation evaluator')) {
+      call += 1;
+      return JSON.stringify({ anchors: [], mps: call === 1 ? 100 : 40 });
+    }
+    return fakeQualityModel(args);
+  };
+  const report = await runLiveQualityReport({
+    fixtures: [fixture],
+    live: true,
+    repeat: 2,
+    env: { PATINA_LIVE_API_KEY: 'k', PATINA_LIVE_API_BASE: 'https://example.test/v1', PATINA_LIVE_MODEL: 'm' },
+    callLLM: varying,
+  });
+
+  const [result] = report.results;
+  assert.equal(result.repeat.count, 2);
+  assert.equal(result.repeat.mps_spread, 60);
+  assert.equal(result.status, 'error');
+});
+
+test('harness prompt matches the hosted rewrite prompt byte for byte', async () => {
+  // The harness measured a prompt neither shipping surface sent: v6.2 made the
+  // persona the sole voice owner and both src/cli/run.js and src/web-rewrite.js
+  // resolve one, but this harness did not. For ko that dropped the directive
+  // ordering the model to preserve every claim and figure, so every meaning
+  // measurement taken here was biased against the product.
+  const { buildPatinaRewritePrompt } = await import('../../tests/quality/live-quality.mjs');
+  const { loadWebAssets, buildWebRewritePrompt } = await import('../../src/web-rewrite.js');
+  const { loadWebConfig } = await import('../../src/web-config.js');
+
+  const text = '오늘날 빠르게 변화하는 환경에서 본 솔루션은 혁신적인 가치를 제공합니다.';
+  const harness = await buildPatinaRewritePrompt({ fixture_id: 'parity', language: 'ko', text });
+  const config = { ...loadWebConfig(), language: 'ko' };
+  const assets = loadWebAssets({ lang: 'ko', profile: config.profile || 'default', config });
+  const web = buildWebRewritePrompt({ request: { mode: 'first', lang: 'ko', text }, assets, config });
+
+  assert.equal(harness, web);
+  assert.match(harness, /페르소나/);
+});
+
+test('candidate backend env resolves a keyless CLI seat and passes the key gate', async () => {
+  const settings = resolveLiveSettings({ env: { PATINA_LIVE_BACKEND: 'gemini-cli', PATINA_LIVE_MODEL: 'gemini-3.6-flash' } });
+  assert.equal(settings.backend, 'gemini-cli');
+  assert.equal(settings.model, 'gemini-3.6-flash');
+  assert.equal(settings.hasApiKey, false);
+  assert.equal(settings.baseURL, null);
+
+  const report = await runLiveQualityReport({
+    fixtures: [fixture],
+    live: true,
+    env: { PATINA_LIVE_BACKEND: 'gemini-cli' },
+    callLLM: fakeQualityModel,
+  });
+  // Without the backend branch this fails closed on the missing API key.
+  assert.equal(report.results[0].status, 'pass');
+  assert.equal(report.settings.backend, 'gemini-cli');
+  assert.match(renderMarkdownReport(report), /model: gemini-cli\//);
+});
+
+test('judge backend env resolves a keyless CLI judge', () => {
+  const judge = resolveJudgeSettings({ env: { PATINA_LIVE_JUDGE_BACKEND: 'codex-cli' } }, {
+    baseURL: 'https://example.test/v1',
+    model: 'candidate-model',
+    apiKey: 'primary-key',
+    timeoutMs: 120000,
+  });
+
+  assert.equal(judge.backend, 'codex-cli');
+  assert.equal(judge.model, null);
+  assert.equal(judge.apiKey, null);
+  assert.equal(judge.hasApiKey, false);
+  assert.equal(judge.timeoutMs, 120000);
+});
+
+test('a backend judge passes the key fail-closed gate and reaches evaluation', async () => {
+  const report = await runLiveQualityReport({
+    fixtures: [fixture],
+    live: true,
+    env: {
+      PATINA_LIVE_API_KEY: 'primary-key',
+      PATINA_LIVE_API_BASE: 'https://example.test/v1',
+      PATINA_LIVE_MODEL: 'candidate-model',
+      PATINA_LIVE_JUDGE_BACKEND: 'claude-cli',
+      PATINA_LIVE_JUDGE_MODEL: 'claude-sonnet-5',
+    },
+    callLLM: fakeQualityModel,
+  });
+
+  assert.equal(report.results[0].status, 'pass');
+  assert.equal(report.settings.judge.backend, 'claude-cli');
+  const markdown = renderMarkdownReport(report);
+  assert.match(markdown, /judge: claude-cli\/claude-sonnet-5/);
+});
+
+test('createBackendJudgeCallLLM adapts invokeBackendChain to the scoring callLLM shape', async () => {
+  const seen = [];
+  const judge = { backend: 'codex-cli', model: 'gpt-5.5', timeoutMs: 5000 };
+  const callLLM = createBackendJudgeCallLLM(judge, {
+    resolveBackend: (name) => ({ name }),
+    invokeBackendChain: async (args) => {
+      seen.push(args);
+      return '{"ok":true}';
+    },
+  });
+
+  const out = await callLLM({ prompt: 'score this', apiKey: 'ignored', baseURL: 'https://ignored.test' });
+  assert.equal(out, '{"ok":true}');
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].backends[0].name, 'codex-cli');
+  assert.equal(seen[0].model, 'gpt-5.5');
+  assert.equal(seen[0].modelSource, 'option:judgeModel');
+  assert.equal(seen[0].timeout, 5000);
+  assert.equal(seen[0].prompt, 'score this');
+});
+
+test('extra body resolves from env JSON, reaches judge calls, and rejects junk', async () => {
+  const judge = resolveJudgeSettings({
+    env: {
+      PATINA_LIVE_JUDGE_MODEL: 'judge-model',
+      PATINA_LIVE_JUDGE_EXTRA_BODY: '{"thinking":{"type":"disabled"}}',
+    },
+  }, { baseURL: 'https://example.test/v1', model: 'candidate', apiKey: 'k', timeoutMs: 1000 });
+  assert.deepEqual(judge.extraBody, { thinking: { type: 'disabled' } });
+
+  assert.throws(
+    () => resolveJudgeSettings({ env: { PATINA_LIVE_JUDGE_EXTRA_BODY: 'not-json' } }),
+    /PATINA_LIVE_JUDGE_EXTRA_BODY must be a JSON object/,
+  );
+
+  const seenExtra = [];
+  const recording = (args) => {
+    seenExtra.push(args.extraBody ?? null);
+    return fakeQualityModel(args);
+  };
+  await evaluateModelGradedRewrite(fixture, rewrite, {
+    settings: { apiKey: 'k', baseURL: 'https://example.test/v1', model: 'candidate', timeoutMs: 1000 },
+    judgeSettings: {
+      apiKey: 'jk', baseURL: 'https://judge.test/v1', model: 'judge-model', timeoutMs: 1000,
+      extraBody: { reasoning_effort: 'low' },
+    },
+    callLLM: recording,
+  });
+  assert.ok(seenExtra.length >= 4);
+  assert.ok(seenExtra.every((extra) => extra && extra.reasoning_effort === 'low'));
+});
+
+test('normalizeUsage maps OpenAI-compat and native Anthropic shapes', () => {
+  assert.deepEqual(normalizeUsage({
+    prompt_tokens: 100,
+    completion_tokens: 60,
+    completion_tokens_details: { reasoning_tokens: 40 },
+    prompt_tokens_details: { cached_tokens: 80 },
+  }), {
+    prompt_tokens: 100,
+    completion_tokens: 60,
+    reasoning_tokens: 40,
+    cached_read_tokens: 80,
+    cache_write_tokens: null,
+  });
+  assert.deepEqual(normalizeUsage({
+    input_tokens: 50,
+    output_tokens: 30,
+    cache_read_input_tokens: 20,
+    cache_creation_input_tokens: 10,
+  }), {
+    prompt_tokens: 50,
+    completion_tokens: 30,
+    reasoning_tokens: null,
+    cached_read_tokens: 20,
+    cache_write_tokens: 10,
+  });
+  assert.equal(normalizeUsage(null), null);
+});
+
+test('aggregateCalls sums per-attempt usages so failed paid retries stay billed', () => {
+  const totals = aggregateCalls([
+    {
+      ms: 1000,
+      attempts: 2,
+      usages: [
+        { prompt_tokens: 100, completion_tokens: 10 },
+        { prompt_tokens: 100, completion_tokens: 50, completion_tokens_details: { reasoning_tokens: 30 } },
+      ],
+    },
+    { ms: 500, attempts: 1, usages: [] },
+  ]);
+
+  assert.equal(totals.calls, 2);
+  assert.equal(totals.duration_ms, 1500);
+  assert.equal(totals.attempts, 3);
+  assert.equal(totals.prompt_tokens, 200);
+  assert.equal(totals.completion_tokens, 60);
+  assert.equal(totals.reasoning_tokens, 30);
+  assert.equal(totals.cached_read_tokens, null);
+});
+
+test('model-graded results carry judge usage aggregates from live calls', async () => {
+  const withUsage = async (args) => {
+    if (typeof args.onAttempt === 'function') {
+      args.onAttempt({ attemptIndex: 1, usage: { prompt_tokens: 10, completion_tokens: 5 } });
+    }
+    return fakeQualityModel(args);
+  };
+  const result = await evaluateModelGradedRewrite(fixture, rewrite, {
+    settings: {
+      apiKey: 'test-key',
+      baseURL: 'https://example.test/v1',
+      model: 'test-model',
+      timeoutMs: 1000,
+    },
+    candidateCalls: [{ ms: 2000, attempts: 1, usages: [{ prompt_tokens: 900, completion_tokens: 300 }] }],
+    callLLM: withUsage,
+  });
+
+  assert.equal(result.usage.judge.calls, 4);
+  assert.equal(result.usage.judge.attempts, 4);
+  assert.equal(result.usage.judge.prompt_tokens, 40);
+  assert.equal(result.usage.judge.completion_tokens, 20);
+  assert.equal(result.usage.candidate.calls, 1);
+  assert.equal(result.usage.candidate.prompt_tokens, 900);
+
+  const summary = summarizeUsage([result]);
+  assert.equal(summary.judge.prompt_tokens, 40);
+  assert.equal(summary.candidate.completion_tokens, 300);
+  assert.equal(summarizeUsage([{ fixture_id: 'x' }]), null);
 });
 
 async function fakeQualityModel({ prompt }) {

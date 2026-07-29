@@ -10,6 +10,10 @@ export const supportsImages = true;
 export const loginCommand = 'gemini';
 export const installHint = 'Install Gemini CLI first, then run `patina auth login gemini-cli` again.';
 
+// `--allowed-mcp-server-names` is an allowlist; naming one server that cannot
+// exist is how the CLI expresses "no MCP servers".
+const NO_MCP_SERVERS = '__patina_no_mcp__';
+
 export function isAvailable() {
   try {
     const result = spawnSync('gemini', ['--version'], { stdio: 'ignore' });
@@ -56,9 +60,18 @@ export async function invoke({ prompt, model, modelSource, signal, timeout = DEF
   // directory for the same prompt-injection containment reason as codex-cli;
   // --skip-trust is required because the temp dir isn't in gemini's trusted
   // workspace list (otherwise gemini exits 55).
+  //
+  // MCP servers are disabled by allowing only a name that cannot exist. A
+  // rewrite or score is a pure text transform with no tool need, while the
+  // user's configured MCP servers are arbitrary third-party processes the CLI
+  // starts on every invocation: they add startup cost, log "MCP issues
+  // detected" noise into stdout, and a wedged server can hang the call until
+  // the backend timeout (observed 2026-07-27: one scoring call sat for the
+  // full 600s budget while sibling calls finished in ~30s). Same containment
+  // rationale as the temp cwd — the agent gets nothing it does not need.
   const dir = mkdtempSync(join(tmpdir(), 'patina-gemini-'));
   const cliModel = resolveLocalCliModel({ backendName: name, model, modelSource });
-  const args = ['-p', '', '--output-format', 'text', '--skip-trust', '-m', cliModel];
+  const args = ['-p', '', '--output-format', 'text', '--skip-trust', '--allowed-mcp-server-names', NO_MCP_SERVERS, '-m', cliModel];
 
   // Vision input: gemini's @-includes are confined to the workspace root, so
   // images are staged into the temp cwd and referenced as @<filename>.

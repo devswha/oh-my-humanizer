@@ -1,5 +1,6 @@
 // @ts-check
 import { validateBaseURL } from './security.js';
+import { buildNativeBody, nativeAnthropicEnabled, nativeEndpoint, nativeHeaders, normalizeNativeResponse } from './anthropic-native.js';
 import { DEFAULT_BEST_MODELS } from './model-defaults.js';
 
 const DEFAULT_TIMEOUT = 120000;
@@ -341,6 +342,7 @@ async function readStreamedCompletion(response, onMetadata) {
  * @param {number} [options.temperature=DEFAULT_TEMPERATURE] Sampling temperature.
  * @param {number|string} [options.seed] Optional deterministic seed forwarded to the provider.
  * @param {object} [options.responseFormat] Optional OpenAI-compatible structured-output request field (sent as response_format) when provided.
+ * @param {object} [options.extraBody] Optional provider-specific fields spread into the OpenAI-compat request body (protocol fields cannot be overridden; ignored on the native Anthropic path).
  * @param {number} [options.timeout=120000] Per-attempt timeout in milliseconds. Budgets above 300s automatically switch the request to SSE streaming so undici's headersTimeout cannot kill long-running local backends (#576).
  * @param {number} [options.maxRetries=2] Retry count after the first attempt.
  * @param {number} [options.deadline] Absolute epoch-millisecond deadline for all attempts.
@@ -367,6 +369,11 @@ export async function callLLM({
   // { type: 'json_object' } or a json_schema spec. Opt-in: when omitted, no
   // response_format is sent so endpoints that reject the field are unaffected.
   responseFormat,
+  // Optional provider-specific body fields spread into the OpenAI-compat
+  // request verbatim (e.g. DeepSeek `thinking: {type:"disabled"}`, Gemini
+  // `reasoning_effort: "low"`, Alibaba `enable_thinking: false`). Known
+  // fields above cannot be overridden. Ignored on the native Anthropic path.
+  extraBody,
   timeout = DEFAULT_TIMEOUT,
   maxRetries = DEFAULT_MAX_RETRIES,
   deadline,
@@ -379,16 +386,24 @@ export async function callLLM({
   now = () => Date.now(),
 }) {
   validateBaseURL(baseURL, { allowInsecure: allowInsecureBaseURL });
-  const url = `${baseURL}/chat/completions`;
-  const body = {
-    model,
-    messages: [{ role: 'user', content: prompt }],
-  };
+  // Native Anthropic branch (opt-in): buffered /v1/messages with a cached
+  // prompt prefix. seed/response_format have no native equivalent and are
+  // omitted there — schema-retry already covers structured-output parsing.
+  const native = nativeAnthropicEnabled({ baseURL });
+  const url = native ? nativeEndpoint(baseURL) : `${baseURL}/chat/completions`;
+  const body = native
+    ? buildNativeBody({ prompt, model, temperature: modelRejectsTemperature(model) ? undefined : temperature })
+    : {
+        // Spread first so callers can never clobber the protocol fields below.
+        ...(extraBody && typeof extraBody === 'object' && !Array.isArray(extraBody) ? extraBody : {}),
+        model,
+        messages: [{ role: 'user', content: prompt }],
+      };
   // Skip `temperature` up front when this process already saw the model
   // reject it (e.g. claude-sonnet-5) — avoids a guaranteed 400 round trip.
-  if (!modelRejectsTemperature(model)) body.temperature = temperature;
-  if (seed !== undefined && seed !== null) body.seed = seed;
-  if (responseFormat) body.response_format = responseFormat;
+  if (!native && !modelRejectsTemperature(model)) body.temperature = temperature;
+  if (!native && seed !== undefined && seed !== null) body.seed = seed;
+  if (!native && responseFormat) body.response_format = responseFormat;
 
 
   let lastError;
@@ -417,7 +432,9 @@ export async function callLLM({
       // Past undici's headersTimeout a non-streaming request cannot survive:
       // headers for a buffered completion only arrive after generation ends.
       // Stream instead and assemble the response client-side (#576).
-      const useStream = attemptTimeout > UNDICI_HEADERS_TIMEOUT_MS;
+      // The native path stays buffered: its SSE framing differs and our
+      // attempt timeouts sit under the undici headers ceiling.
+      const useStream = !native && attemptTimeout > UNDICI_HEADERS_TIMEOUT_MS;
       timer = setTimeout(() => controller.abort(), attemptTimeout);
       if (signal) {
         const onAbort = () => controller.abort();
@@ -437,7 +454,7 @@ export async function callLLM({
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
+        headers: native ? nativeHeaders(apiKey) : {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
@@ -464,7 +481,7 @@ export async function callLLM({
           attemptRecord.effectiveModel = metadata.effectiveModel;
           attemptRecord.usage = metadata.usage;
         })
-        : await response.json();
+        : native ? normalizeNativeResponse(await response.json()) : await response.json();
       const effectiveModel = typeof data.model === 'string' ? data.model : null;
       const usage = data.usage && typeof data.usage === 'object' && !Array.isArray(data.usage)
         ? data.usage
@@ -476,7 +493,7 @@ export async function callLLM({
         throw new Error('Empty response from LLM API');
       }
       const metadata = {
-        provider: 'openai-http',
+        provider: native ? 'anthropic-native' : 'openai-http',
         model: effectiveModel,
         effectiveModel,
         requestedModel: model,

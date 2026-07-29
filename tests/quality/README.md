@@ -81,6 +81,118 @@ Supported live settings:
   `PATINA_API_KEY`.
 - `PATINA_LIVE_MODEL` / `PATINA_LIVE_API_BASE` / `PATINA_LIVE_TIMEOUT_MS`.
 
+### Fixed judge (recommended for cross-model comparisons)
+
+By default the candidate model also grades its own rewrite (`scoreText`,
+`scoreMPS`, `scoreFidelity`), so scores are not comparable across candidate
+models and are noisy run-to-run. Pin the grading side to one fixed judge with
+`--judge-*` flags or `PATINA_LIVE_JUDGE_*` env vars:
+
+**Which judge:** measured on the 44-doc KO calibration corpus
+([docs/research/2026-judge-calibration.md](../../docs/research/2026-judge-calibration.md)).
+
+| judge | AUC | repeat SD | s/call | what it spends |
+|---|---:|---:|---:|---|
+| `PATINA_LIVE_JUDGE_MODEL=gpt-5.3-chat-latest` (OpenAI HTTP) | **0.99** | 2.9 | **2.3** | ~$0.02/fixture; no seat quota, no training — but a moving alias |
+| `PATINA_LIVE_JUDGE_MODEL=gemini-3.6-flash` (HTTP) | 0.96 | 2.2 | 4.6 | near-free tier — but it may train on submitted text |
+| `--judge-backend codex-cli --judge-model gpt-5.5` | **1.00** | 2.2 | 14 | **your ChatGPT seat quota** (~12k tok/call incl. agent scaffolding) |
+| non-reasoning lower-tier (grok-4.20-nr, deepseek thinking-off) | 0.70–0.71 | — | 0.2–0.7 | **unusable** — missed 20–23 of 24 AI docs |
+
+Those AUC numbers measure telling AI prose from human prose — not grading
+meaning, which is what the product actually gates on. Run
+`scripts/research/judge-rubric-check.mjs` before adopting a judge; it puts ten
+constructed cases with known-correct verdicts in front of it. Measured
+2026-07-27: `gpt-5.5` on a codex seat 10/10, `gemini-3.6-flash` 9/10 with the
+dangerous kind of miss — it accepted a rewrite that changed 120ms to 12ms at
+MPS 80, where gpt-5.5 caught it at 66.7. Prefer the codex seat for grading.
+
+Default to **gpt-5.3-chat-latest** for routine work: highest measured AUC per
+second, no seat quota, no training clause (the only cheap judge allowed on
+customer text), ~$0.02 per fixture. Its one flaw is that `-latest` is a moving
+alias with no dated 5.3 snapshot, so for numbers that must stay comparable
+across weeks use a pinnable judge instead. Use **gemini-3.6-flash** when the
+run must cost nothing and the text is repo-owned (free tier may train on
+submissions). Reserve the **gpt-5.5 seat** for final gates and published
+numbers — a subscription seat is not free, it is your own coding quota
+(~12k tok/call, ~1.7M for a 36-fixture sweep).
+
+Reasoning traces are not what makes a judge work: a strong non-reasoning model
+(gpt-5.3-chat-latest) reached 0.99, while lower-tier non-reasoning models
+missed nearly every AI document. Pick on measured discrimination, not on
+whether the model "thinks".
+
+```bash
+PATINA_LIVE=1 \
+PATINA_LIVE_API_BASE=https://token-plan.example/compatible-mode/v1 \
+PATINA_LIVE_API_KEY=... \
+PATINA_LIVE_MODEL=candidate-model \
+PATINA_LIVE_JUDGE_API_BASE=https://api.anthropic.com/v1 \
+PATINA_LIVE_JUDGE_MODEL=claude-sonnet-5 \
+PATINA_LIVE_JUDGE_API_KEY=... \
+npm run quality:live -- --language ko --limit 3
+```
+
+- `PATINA_LIVE_JUDGE_MODEL` / `--judge-model` — judge model id. With only this
+  set, the judge reuses the primary endpoint and credential.
+- `PATINA_LIVE_JUDGE_PROVIDER` / `PATINA_LIVE_JUDGE_API_BASE` — judge endpoint.
+  A judge on a different host never reuses the primary key; supply
+  `PATINA_LIVE_JUDGE_API_KEY` or the run fails closed.
+- `PATINA_LIVE_JUDGE_TIMEOUT_MS` / `--judge-timeout-ms` — scoring budget
+  (defaults to the primary timeout).
+- `PATINA_LIVE_JUDGE_BACKEND` / `--judge-backend` — run the judge on a local
+  **subscription CLI seat** (`codex-cli`, `claude-cli`, `gemini-cli`,
+  `kimi-cli`) instead of a paid HTTP API; no judge API key required. Pair
+  with `--judge-model` or let the backend use its documented default. CLI
+  backends report no token usage, so cost accounting shows calls and wall
+  time only.
+  A seat is the cheapest bulk option: `--judge-backend gemini-cli
+  --judge-model gemini-3.6-flash` scores through a logged-in Gemini CLI with
+  no API key and no per-token billing. Measured 2026-07-27: 58.7s for one
+  fixture's four scoring calls (~15s each) versus ~9s on the API, so it suits
+  overnight or large sweeps and not iteration. Always pass `--judge-model`;
+  without it the backend uses the frozen CLI default `gemini-2.5-pro`, about
+  twice as slow.
+- `PATINA_LIVE_BACKEND` / `--backend` — run the **rewrite** on a subscription
+  CLI seat too. With both sides on seats a sweep spends nothing:
+
+  ```bash
+  node tests/quality/live-quality.mjs --live --language ko --limit 11 \
+    --backend gemini-cli --model gemini-3.6-flash \
+    --judge-backend codex-cli --judge-model gpt-5.5
+  ```
+
+  This is the default for bulk and overnight work. The codex seat also carries
+  the only judge measured at AUC 1.00, so it is more accurate than the paid
+  HTTP judges, not a downgrade.
+- `--repeat <n>` — sample each fixture n times. Reported scores are medians,
+  `result.repeat` carries every sample with its spread, and the status is the
+  **worst** sample, so repeating can only expose instability, never hide it.
+  Measured 2026-07-27: identical configurations swing ±20 MPS per fixture —
+  `ko-blog-01` scored 45 in one sweep and 100 in three consecutive reruns — so a
+  single sample cannot validate any change smaller than that. Use `--repeat 3`
+  for a comparison you intend to act on, and pair it with the seats above so the
+  extra samples cost nothing.
+- `PATINA_LIVE_JUDGE_EXTRA_BODY` / `--judge-extra-body` — JSON object of
+  provider-specific request fields for the scoring calls (candidate side:
+  `PATINA_LIVE_EXTRA_BODY` / `--extra-body`). Main use is reasoning control,
+  the dominant judge cost/latency distortion (93–95% of output tokens on
+  reasoning-default models): DeepSeek `{"thinking":{"type":"disabled"}}`,
+  Gemini `{"reasoning_effort":"low"}`, Alibaba `{"enable_thinking":false}`.
+
+The report records the judge under `settings.judge`, and the Markdown header
+prints `judge: <model>` (or `self` when unset).
+
+### Usage & latency capture (judge cost accounting)
+
+Every live call records wall time, paid attempt count, and normalized token
+usage (`prompt_tokens`, `completion_tokens`, `reasoning_tokens`,
+`cached_read_tokens`, `cache_write_tokens` — OpenAI-compat and native
+Anthropic shapes both map in). Per-fixture results carry
+`usage.candidate` / `usage.judge` aggregates and the JSON report sums them
+under `summary.usage`. Failed paid retries are billed into the totals via
+per-attempt usage, so schema-retry doubling and hidden reasoning tokens are
+visible instead of silently distorting judge cost comparisons.
+
 The fixture set lives in `tests/fixtures/live-quality/{en,ko}/*.md` with YAML
 frontmatter (`fixture_id`, `language`, optional `profile`, `anchors`,
 `expected_focus`) plus the body text. The legacy
