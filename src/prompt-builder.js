@@ -29,6 +29,26 @@ export const DEFAULT_SEVERITY_POINTS = Object.freeze({ high: 3, medium: 2, low: 
 // matters for `--batch` and score modes over third-party documents, where
 // the LLM-judged score is otherwise subvertible by adversarial input.
 const INPUT_DATA_FENCE = '⟦⟦⟦PATINA_INPUT_DATA⟧⟧⟧';
+/**
+ * Split a built prompt into a cacheable static prefix and a dynamic tail for
+ * provider prompt caching. The prefix is everything before the FIRST input
+ * fence: on a first-turn prompt that is the full static catalog (identical
+ * across requests for a given lang/profile/persona), while refine prompts
+ * carry variable fenced references near the top, so their prefix falls under
+ * the minimum and caching is skipped — avoiding cache writes that would never
+ * be re-read.
+ *
+ * @param {string} prompt Built prompt text.
+ * @param {number} [minPrefixChars] Minimum prefix size worth caching (~1k tokens).
+ * @returns {{ prefix: string|null, tail: string }}
+ */
+export function splitPromptForCaching(prompt, minPrefixChars = 4096) {
+  const text = String(prompt);
+  const index = text.indexOf(INPUT_DATA_FENCE);
+  if (index < minPrefixChars) return { prefix: null, tail: text };
+  return { prefix: text.slice(0, index), tail: text.slice(index) };
+}
+
 function neutralizeInputFenceCollisions(text) {
   return String(text).replaceAll(
     INPUT_DATA_FENCE,
@@ -359,18 +379,19 @@ function buildRewriteInstructions(
   inst += `\n1. Scan all patterns for AI tells\n`;
   inst += `2. Rewrite AI-sounding expressions into natural alternatives\n`;
   inst += `3. Preserve core meaning, claims, polarity, causation, numbers\n`;
-  inst += `4. Keep overall length close to the original — the fidelity gate measures character length and full marks require staying within 70-130% of the input. Cut filler and hype freely, but replace it with natural phrasing of similar weight; never compress the text into a summary\n`;
+  inst += `4. Never add a claim, fact, number, guarantee, or commitment the source does not state. When a pattern asks for specificity the source does not supply — a concrete CTA, a named authority, a mechanism, a benefit — cut the vague sentence instead of inventing a replacement. Invented commitments ("cancel anytime", "no hidden fees", "saves you time every day") are the worst case: they publish false promises in the author's name\n`;
+  inst += `5. Keep overall length close to the original — the fidelity gate measures character length and full marks require staying within 50-130% of the input. Cut filler and hype freely, but replace it with natural phrasing of similar weight; never compress the text into a summary\n`;
   if (personaActive) {
     // v6.2: persona is the sole voice owner; the profile contributes pattern
     // policy only, so the strict instructions must not tell the model to take
     // tone/personality from the (now voice-retired) profile body.
-    inst += `5. Follow the active persona's voice — the profile contributes pattern policy only\n`;
-    inst += `6. Do not apply profile-body voice guidance while a persona is active\n`;
+    inst += `6. Follow the active persona's voice — the profile contributes pattern policy only\n`;
+    inst += `7. Do not apply profile-body voice guidance while a persona is active\n`;
   } else {
-    inst += `5. Match profile tone\n`;
-    inst += `6. Inject personality per voice guidelines\n`;
+    inst += `6. Match profile tone\n`;
+    inst += `7. Inject personality per voice guidelines\n`;
   }
-  inst += `7. Respect blocklist/allowlist and pattern overrides\n\n`;
+  inst += `8. Respect blocklist/allowlist and pattern overrides\n\n`;
   const cjkGuard = buildCjkClauseRewriteGuard(lang);
   if (cjkGuard) {
     inst += `${cjkGuard}\n`;
@@ -385,8 +406,9 @@ function buildRewriteInstructions(
     inst += `### Phase 3: Self-Audit\n\n`;
     inst += `1. Scan for remaining AI tells\n`;
     inst += `2. Verify no polarity inversions (negation → positive or vice versa)\n`;
-    inst += `3. Ensure Phase 1 corrections were not reverted in Phase 2\n`;
-    inst += `4. Final check: meaning preserved?\n\n`;
+    inst += `3. Verify nothing was added: every claim, number, and promise in the output must trace back to the input. Delete anything that does not\n`;
+    inst += `4. Ensure Phase 1 corrections were not reverted in Phase 2\n`;
+    inst += `5. Final check: meaning preserved?\n\n`;
 
     inst += buildOutputFormatBlock();
   } else {

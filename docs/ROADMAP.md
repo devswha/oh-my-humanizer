@@ -310,6 +310,36 @@ Campaign state:
   The entitlement layer stays provider-agnostic (injected license validator,
   env-driven checkout URL) so an adapter remains bounded work; do not build it
   speculatively before a trigger fires.
+- Serving engine (2026-07-26, owner-approved; evidence re-established
+  2026-07-27): both tiers run `gemini-3.6-flash`. The original comparison was
+  taken under a broken fidelity rubric and a harness prompt missing the
+  persona, so it was void. Rerun with both fixed, on subscription seats:
+  gemini-3.6-flash and claude-sonnet-5 both score **20/22** (ko 11/11,
+  en 9/11), MPS 90.4 vs 91.5, fidelity 92.4 vs 94.7. Quality is level; the case
+  for the swap is cost and latency — $0.030 vs $0.156 per rewrite, 8.3s vs
+  27.7s. Evidence: `docs/operations/serving-engine-cost-20260725.md`.
+- Cheaper engines were rerun on the fixed apparatus and none can undercut the
+  shipped one. `deepseek-v4-flash` ($0.003) rewrites hard but gutted
+  `ko-news-01` to MPS 24; `gemini-3.5-flash-lite` ($0.007) preserves meaning
+  and barely rewrites — 8 of 22 fixtures carry `ai_not_improved`, the same
+  evasion that made `gpt-4.1-mini` look like a leader. $0.030 per rewrite is
+  the current floor, not a number to shave. The OpenAI-hosted candidates remain
+  unmeasured on an exhausted account balance; none is in production.
+- Register failures (opened 2026-07-26, **closed 2026-07-27**): five registers
+  appeared to fail on every engine across a 20x price spread. Both causes were
+  in the measuring apparatus, not the engines. The fidelity rubric charged
+  removal of the stylistic packaging patina exists to strip as omitted claims —
+  production was returning `floor_failed` to real users for correct rewrites —
+  and the live-quality harness built its prompt without the persona, so it
+  measured meaning preservation on rewrites that were never told to preserve
+  meaning. Fixing both took the same engine on the same 22 fixtures from 9/22
+  to **20/22**, and Korean from 2/11 to **11/11**. Evidence:
+  `docs/operations/register-failure-handoff-20260726.md`.
+- **Open**: two English fixtures, failing in opposite directions.
+  `en-marketing-01` strips hype thoroughly (AI 35.6 → 5.7) but drops anchors
+  (MPS 60); `en-public-docs-01` preserves meaning and barely improves the AI
+  score (15.6 → 16.5). Add a second fixture per register before treating either
+  as a register-wide pattern.
 
 Next recommended order:
 

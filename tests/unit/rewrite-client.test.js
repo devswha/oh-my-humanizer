@@ -232,6 +232,9 @@ test('classifyRewriteError maps every server reason string to a stable kind', ()
   assert.equal(classifyRewriteError({ status: 413, error: 'text exceeds 4000 characters for tier free' }), K.TEXT_TOO_LONG);
   assert.equal(classifyRewriteError({ status: 413, error: 'original exceeds 20000 characters for tier byok' }), K.TEXT_TOO_LONG);
   assert.equal(classifyRewriteError({ code: 'floor_failed', error: 'floors failed' }), K.FLOOR_FAILED);
+  // number_safety_failed frames carry no error string/status; the code alone
+  // must map to dedicated copy instead of the generic "check the mode/key".
+  assert.equal(classifyRewriteError({ code: 'number_safety_failed' }), K.NUMBER_SAFETY);
 });
 
 test('classifyRewriteError falls back conservatively for unrecognized failures', () => {

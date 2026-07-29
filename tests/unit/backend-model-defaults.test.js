@@ -129,7 +129,9 @@ test('local CLI backends pass default best-model flags to child processes', asyn
     const kimi = JSON.parse(await kimiCli.invoke({ prompt: 'rewrite this', modelSource: 'default' }));
     assert.strictEqual(basename(kimi.command), 'kimi');
     assertArgValue(kimi.args, '--model', DEFAULT_BEST_MODELS.kimiCli);
-    assert.strictEqual(kimi.stdin, 'rewrite this');
+    // Kimi Code >= 0.28 takes the one-shot prompt as an argv value, not stdin.
+    assertArgValue(kimi.args, '--prompt', 'rewrite this');
+    assert.strictEqual(kimi.stdin, '');
   });
 });
 

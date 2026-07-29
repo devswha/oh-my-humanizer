@@ -141,6 +141,14 @@ export const STREAM_FRAME_VALUES = new Set(Object.values(STREAM_FRAME_TYPES));
 // offered strictly under its opt_in_only ceiling). New entries mirror the CLI
 // provider presets (src/providers.js / src/model-defaults.js) so the web BYOK
 // surface never lags the models the CLI already documents.
+//
+// 2026-07-26: gemini-3.6-flash added as an opt-in entry. Measured on 22
+// live-quality fixtures with a fixed judge (docs/operations/
+// serving-engine-cost-20260725.md): AI-score improvement 13.0 vs 11.8 for the
+// current Pro pin claude-sonnet-5, 7 meaning-loss fixtures vs 10, at $0.030
+// per rewrite vs $0.156 and 8.3s vs 27.7s. Allowlisting only makes it
+// selectable for BYOK and available to PATINA_PRO_MODEL / PATINA_FREE_MODEL;
+// every held default, including the Pro pin, is untouched here.
 export const PROVIDER_PRESETS = Object.freeze({
   openai: Object.freeze({
     baseURL: 'https://api.openai.com/v1',
@@ -152,7 +160,7 @@ export const PROVIDER_PRESETS = Object.freeze({
   }),
   gemini: Object.freeze({
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    models: Object.freeze(['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-3.1-pro-preview']),
+    models: Object.freeze(['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-3.1-pro-preview', 'gemini-3.6-flash']),
   }),
   deepseek: Object.freeze({
     baseURL: 'https://api.deepseek.com/v1',

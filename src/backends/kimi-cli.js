@@ -21,9 +21,7 @@ export function isAvailable() {
 }
 
 export function isAuthenticated() {
-  const root = kimiDataDir();
-  return hasKimiCredential(root) ||
-    hasNonEmptyKimiConfig(root) ||
+  return kimiDataDirs().some((root) => hasKimiCredential(root) || hasNonEmptyKimiConfig(root)) ||
     KIMI_ENV_KEYS.some((key) => Boolean(process.env[key]?.trim()));
 }
 
@@ -49,34 +47,79 @@ export async function invoke({ prompt, model, modelSource, signal, timeout = DEF
     throw new Error('kimi-cli backend: prompt must be a non-empty string');
   }
   if (Array.isArray(images) && images.length > 0) {
-    // kimi --print runs with tools hard-disabled by design (see the security
-    // comment below) — there is no safe way for it to open an image file.
+    // Non-interactive prompt mode runs with tools unapprovable by design (see
+    // the security comment below) — there is no safe way for it to open an
+    // image file.
     throw new Error('kimi-cli backend: image input is not supported');
   }
   throwIfAborted(signal);
 
-  const dir = mkdtempSync(join(tmpdir(), 'patina-kimi-'));
   const cliModel = resolveLocalCliModel({ backendName: name, model, modelSource });
-  // `--print` runs non-interactively WITHOUT `--yolo`, so the agent cannot
-  // auto-approve any tool action — there is no terminal to confirm at, so
-  // shell/file tools stay blocked even if user text tries a prompt injection.
-  // (Verified: an injected "run this shell command" prompt produced no tool
-  // execution.) `--max-steps-per-turn 20` only lets the model take more
-  // reasoning/formatting steps within that sandboxed-by-non-interactivity turn;
-  // it does NOT grant tool execution. Keep `--print` and never add `--yolo`.
-  const args = [
-    '--print',
-    '--input-format',
-    'text',
-    '--output-format',
-    'text',
-    '--final-message-only',
-    '--no-thinking',
-    '--max-steps-per-turn',
-    '20',
-  ];
-  if (cliModel) args.push('--model', cliModel);
+  // Kimi Code >= 0.28 removed `--print`/`--input-format`/`--final-message-only`/
+  // `--no-thinking`/`--max-steps-per-turn`. The modern one-shot surface is
+  // `--prompt <text>` (argv — the CLI no longer reads the prompt from stdin;
+  // accepted local-process-list visibility tradeoff) with
+  // `--output-format stream-json`, whose NDJSON events let us recover the
+  // final assistant message exactly like the retired `--final-message-only`.
+  //
+  // Security stance is unchanged: prompt mode runs WITHOUT `--yolo`/`--auto`,
+  // so the agent cannot auto-approve any tool action — there is no terminal
+  // to confirm at, so shell/file tools stay blocked even if user text tries a
+  // prompt injection. NEVER add `--yolo` or `--auto` here.
+  const modernArgs = ['--prompt', prompt, '--output-format', 'stream-json'];
+  if (cliModel) modernArgs.push('--model', cliModel);
+  try {
+    const stdout = await runKimi(modernArgs, { signal, timeout });
+    return extractKimiFinalMessage(stdout);
+  } catch (err) {
+    // Older Kimi CLI generations reject the modern flags; keep them working
+    // through the legacy stdin `--print` invocation.
+    if (!/unknown option '(?:--prompt|--output-format)'/i.test(err?.message || '')) throw err;
+    throwIfAborted(signal);
+    const legacyArgs = [
+      '--print',
+      '--input-format',
+      'text',
+      '--output-format',
+      'text',
+      '--final-message-only',
+      '--no-thinking',
+      '--max-steps-per-turn',
+      '20',
+    ];
+    if (cliModel) legacyArgs.push('--model', cliModel);
+    const stdout = await runKimi(legacyArgs, { signal, timeout, stdinText: prompt });
+    return stripKimiNoise(stdout);
+  }
+}
 
+/**
+ * Recover the final assistant message from `--output-format stream-json`
+ * NDJSON output (one `{role, content}` event per line; `meta` events carry
+ * the resume banner). Falls back to the banner-stripped raw text when no
+ * assistant event parses, so an unexpected output shape degrades instead of
+ * returning an empty rewrite.
+ */
+export function extractKimiFinalMessage(stdout) {
+  let last = null;
+  for (const line of String(stdout).split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('{')) continue;
+    let event;
+    try {
+      event = JSON.parse(trimmed);
+    } catch {
+      continue;
+    }
+    if (event?.role === 'assistant' && typeof event.content === 'string' && event.content.length > 0) {
+      last = event.content;
+    }
+  }
+  return last !== null ? last.trim() : stripKimiNoise(String(stdout));
+}
+
+function runKimi(args, { signal, timeout, stdinText } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), 'patina-kimi-'));
   return new Promise((resolve, reject) => {
     const proc = spawn('kimi', args, { stdio: ['pipe', 'pipe', 'pipe'], cwd: dir });
 
@@ -120,7 +163,7 @@ export async function invoke({ prompt, model, modelSource, signal, timeout = DEF
         finishReject(new Error(`kimi-cli backend: kimi ${how}\n${stderr}`));
         return;
       }
-      finishResolve(stripKimiNoise(stdout));
+      finishResolve(stdout);
     });
 
     // A child that exits before draining a large prompt makes the buffered
@@ -132,7 +175,7 @@ export async function invoke({ prompt, model, modelSource, signal, timeout = DEF
         finishReject(new Error(`kimi-cli backend: stdin error (${err.message})`), { kill: true });
       }
     });
-    proc.stdin.write(prompt);
+    if (typeof stdinText === 'string') proc.stdin.write(stdinText);
     proc.stdin.end();
 
     function cleanup() {
@@ -187,8 +230,12 @@ export function stripKimiNoise(text) {
   return lines.join('\n').trimStart();
 }
 
-function kimiDataDir() {
-  return process.env.KIMI_SHARE_DIR || join(homedir(), '.kimi');
+// Kimi Code (the migrated successor of the legacy kimi-cli) keeps its data in
+// ~/.kimi-code; legacy installs used ~/.kimi. Check both so authentication
+// detection survives a legacy-directory cleanup after `kimi migrate`.
+function kimiDataDirs() {
+  if (process.env.KIMI_SHARE_DIR) return [process.env.KIMI_SHARE_DIR];
+  return [join(homedir(), '.kimi-code'), join(homedir(), '.kimi')];
 }
 
 function hasKimiCredential(root) {

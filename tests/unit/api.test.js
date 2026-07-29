@@ -548,6 +548,33 @@ test('callLLM sends response_format only when responseFormat is provided (#C2)',
   }
 });
 
+test('callLLM spreads extraBody into the request without clobbering protocol fields', async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    let body;
+    globalThis.fetch = async (_url, opts) => {
+      body = JSON.parse(opts.body);
+      return { ok: true, json: async () => ({ model: 'm', choices: [{ message: { content: 'ok' } }] }) };
+    };
+    await callLLM({
+      prompt: 'x',
+      apiKey: 'k',
+      model: 'm',
+      extraBody: { thinking: { type: 'disabled' }, reasoning_effort: 'low', model: 'evil', messages: 'evil' },
+    });
+    assert.deepEqual(body.thinking, { type: 'disabled' });
+    assert.equal(body.reasoning_effort, 'low');
+    // Protocol fields win over extraBody collisions.
+    assert.equal(body.model, 'm');
+    assert.deepEqual(body.messages, [{ role: 'user', content: 'x' }]);
+    // Omitted by default.
+    await callLLM({ prompt: 'x', apiKey: 'k', model: 'm' });
+    assert.equal('thinking' in body, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('callLLM makes exactly maxRetries+1 transport attempts on a persistent retryable error (#C3)', async () => {
   const originalFetch = globalThis.fetch;
   const attempts = [];
