@@ -428,7 +428,10 @@ test('category 9 pro is subject-keyed and never IP-keyed: same subject/diff IP s
 test('category 10 pro daily boundary: the request AT the cap is allowed with remainingDay 0 and the next crosses to 429 DAILY', async () => {
   assert.equal(TIER_LIMITS.pro.reqPerDay, 200, 'boundary pinned to the frozen default (200)');
   const cap = TIER_LIMITS.pro.reqPerDay;
-  const limiter = createRateLimiter({ kv: createMemoryKv(), hmacSecret: 'secret', now: () => 0 });
+  // The monthly request cap (60) would gate first under the shipped defaults;
+  // lift it so this test exercises the DAILY boundary it is named for.
+  const limits = { ...TIER_LIMITS, pro: { ...TIER_LIMITS.pro, reqPerMonth: 1_000_000 } };
+  const limiter = createRateLimiter({ kv: createMemoryKv(), hmacSecret: 'secret', now: () => 0, limits });
   const subject = 'seat-boundary';
   let last;
   for (let i = 0; i < cap; i += 1) last = await limiter.check({ tier: PRO, subject });
