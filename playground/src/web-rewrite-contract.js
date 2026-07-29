@@ -59,15 +59,18 @@ export const TIER_LIMITS = Object.freeze({
   // much as a 1,000-char one. Measured 2026-07-29 on the shipped gemini-3.6-flash
   // serving pin: $0.035-0.075 per request (81% prompt-cache hit included).
   //
-  // Against net revenue of $8.49/mo ($9.99 less fee and refund reserve), the 60%
-  // margin gate allows ~45-78 requests/month. reqPerMonth 60 sits inside that
-  // band (~$2.6 COGS, ~70% margin) and is the PRIMARY cost bound.
+  // reqPerMonth 100 (owner-approved 2026-07-29) is the PRIMARY cost bound, set
+  // against net revenue of $8.49/mo ($9.99 less fee and refund reserve): ~$4.5
+  // COGS, ~47% margin at the measured blended cost. That is below the 60% floor
+  // the PAY-B-COST spec pins, which is a deliberate pricing choice — the free
+  // BYOK tier already serves heavy users without limit, so Pro sells key
+  // management and needs a credible allowance more than a maximal margin.
   //
   // charsPerMonth 50,000 is retained as a SECONDARY bound only: on its own it is
-  // not a cost control (500 x 100-char requests satisfy it while costing ~$17.5),
-  // which is why the monthly request cap exists. reqPerDay 200 likewise bounds
-  // burst, not spend. See docs/operations/pro-margin-decision-20260729.md.
-  pro: Object.freeze({ maxChars: 20000, reqPerDay: 200, reqPerMonth: 60, maxConcurrent: 3, charsPerMonth: 50_000 }),
+  // not a cost control (500 x 100-char requests satisfy it while costing ~$17.5).
+  // reqPerDay 200 likewise bounds burst, not spend.
+  // See docs/operations/pro-margin-decision-20260729.md.
+  pro: Object.freeze({ maxChars: 20000, reqPerDay: 200, reqPerMonth: 100, maxConcurrent: 3, charsPerMonth: 50_000 }),
 });
 
 /**
