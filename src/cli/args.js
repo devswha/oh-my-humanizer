@@ -15,7 +15,7 @@ const VALUE_OPTIONS = new Set([
 // catch a flag name swallowed as another option's value.
 const FLAG_OPTIONS = new Set([
   '--help', '-h', '--version', '-v', '--preview', '--ocr',
-  '--serve', '--diff', '--no-color', '--audit', '--score', '--quiet',
+  '--serve', '--diff', '--no-color', '--audit', '--score', '--offline', '--quiet',
   '--batch', '--in-place', '--allow-private-base-url',
   '--stop-on-retryable-storm', '--no-stop-on-retryable-storm',
   '--list-backends', '--allow-insecure-base-url', '--no-interactive',
@@ -136,6 +136,9 @@ export function parseArgs(rawArgs) {
         break;
       case '--score':
         parsed.score = true;
+        break;
+      case '--offline':
+        parsed.offline = true;
         break;
       case '--format': {
         const value = readOptionValue(args, i, arg);
@@ -316,6 +319,38 @@ export function validateModeExclusivity(parsed) {
       'The diff / audit / score output modes are mutually exclusive.',
       `Pick one of --diff, --audit, or --score.`
     );
+  }
+}
+
+export function validateOfflineScoreRequest(parsed) {
+  if (!parsed.offline) return;
+  if (!parsed.score) {
+    throw inputError(
+      '--offline requires --score',
+      'Offline mode runs only the deterministic scoring layer; it is not a rewrite, audit, or diff backend.',
+      'Run `patina --score --offline <file>`.',
+    );
+  }
+  const backendOptions = [
+    ['backend', '--backend'],
+    ['provider', '--provider'],
+    ['model', '--model'],
+    ['apiKeyFile', '--api-key-file'],
+    ['baseURL', '--base-url'],
+    ['timeoutMs', '--timeout-ms'],
+    ['maxConcurrency', '--max-concurrency'],
+    ['maxRetries', '--max-retries'],
+    ['allowInsecureBaseURL', '--allow-insecure-base-url'],
+    ['allowPrivateBaseURL', '--allow-private-base-url'],
+  ];
+  for (const [key, flag] of backendOptions) {
+    if (parsed[key] !== undefined && parsed[key] !== false) {
+      throw inputError(
+        `${flag} cannot be combined with --offline`,
+        '--offline performs no backend call, so backend, model, credential, and request options do not apply.',
+        `Drop ${flag}, or drop --offline to use LLM-backed scoring.`,
+      );
+    }
   }
 }
 
@@ -621,6 +656,7 @@ export function validateXliffRequest(parsed) {
     ['preview', '--preview'], ['ocr', '--ocr'], ['serve', '--serve'],
     ['gate', '--exit-on'], ['persona', '--persona'], ['jargon', '--jargon'],
     ['tone', '--tone'], ['profile', '--profile'], ['rewriteHeadings', '--rewrite-headings'],
+    ['offline', '--offline'],
   ];
   for (const [key, flag] of incompatible) {
     if (parsed[key] !== undefined && parsed[key] !== false) {
@@ -741,6 +777,8 @@ MODES
   --audit                 Detect patterns only (no rewrite)
   --score                 Output AI-likeness score (0-100)
   --exit-on <n>           With --score, exit 3 when overall score > n
+  --offline               With --score, skip all backends and report deterministic
+                          signals only; LLM-judged categories are unavailable
   --verify                Rewrite, then verify meaning (MPS/fidelity floors) with
                           one conservative retry; fail-closed to the best candidate
   --preview               Rewrite one http(s) URL or local .html file in place on a snapshot
@@ -809,7 +847,7 @@ MODEL & AUTH
   --max-retries <n>       Retry budget per backend (local CLIs default to 0)
   --provider <name>       Provider preset: openai, gemini, groq, kimi, moonshot, together
 ADVANCED
-  --config <path>         Load config from <path> instead of .patina.default.yaml
+  --config <path>         Layer explicit config after defaults and .patina.yaml
   --allow-insecure-base-url  Permit plaintext http:// to non-localhost endpoints
   --allow-private-base-url   Permit private/IMDS base URLs
   -h, --help              Show this help message
@@ -818,6 +856,7 @@ ADVANCED
 EXAMPLES
   echo "This is a draft." | patina --lang en --backend codex-cli
   patina --score --exit-on 30 --format json draft.md
+  patina --score --offline --exit-on 30 --format json draft.md
   patina doctor --json
 
 ENVIRONMENT
@@ -828,8 +867,8 @@ ENVIRONMENT
 EXIT CODES
   0 success · 1 runtime/backend · 2 input/usage · 3 score gate exceeded · 130 interrupted
 
-If no API key is set, pass --backend codex-cli to use a logged-in codex CLI
-(no key required). Auto-fallback was removed in v3.9 to keep agent-mode
-backends opt-in (issue #88).
+LLM-backed modes require an API key or a logged-in local CLI backend. Use
+--score --offline for deterministic scoring with no backend call. Auto-fallback
+was removed in v3.9 to keep agent-mode backends opt-in (issue #88).
 `);
 }

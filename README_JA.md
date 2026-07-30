@@ -116,8 +116,9 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 |---|---|
 | `patina input.txt` | デフォルトで書き換え |
 | `patina --audit input.txt` | パターン検出のみ |
-| `patina --score input.txt` | 0-100 の AI 類似度スコアを出力 |
-| `patina --score --exit-on 30 input.txt` | `overall > 30` で終了コード `3` を返す CI ゲート |
+| `patina --score input.txt` | LLM 判定と決定論的シグナルを併用して 0-100 のスコアを出力 |
+| `patina --score --offline input.txt` | バックエンドや API キーを使わず、決定論的シグナルのみでスコアを計算 |
+| `patina --score --offline --exit-on 30 input.txt` | `overall > 30` で終了コード `3` を返すオフライン CI ゲート |
 | `patina --diff input.txt` | 変更をパターンごとに表示 |
 | `patina --preview page.html` | 保存済み HTML ページ上に書き換えを反映し、トグルとインライン diff を表示 |
 | `patina --verify input.txt` | 書き換え後、1 回のリトライで MPS/忠実度フロアを検査 |

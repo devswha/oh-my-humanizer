@@ -20,11 +20,17 @@ allowed-tools:
 
 ## 1단계: 설정 로드
 
-`.patina.default.yaml`을 읽어 설정을 로드한다.
+먼저 이 `SKILL.md`와 같은 설치 디렉터리의 `.patina.default.yaml`을 기본 설정으로 읽는다. 이 파일은 배포 기본값이며 프로젝트 설정 파일이 아니다.
+
+그다음 존재하는 사용자/프로젝트 설정을 아래 순서대로 읽어 병합한다. 프로젝트 설정의 정본 파일명은 CLI와 동일한 `.patina.yaml`이다.
 
 ```
-Glob .patina.default.yaml → Read
+Read <skill-directory>/.patina.default.yaml
+Glob ~/.patina.yaml → 있으면 Read
+Glob ./.patina.yaml → 있으면 Read
 ```
+
+우선순위는 `.patina.default.yaml` → `~/.patina.yaml` → `./.patina.yaml` → `$ARGUMENTS`다. YAML 매핑은 재귀 병합하고 `blocklist`, `allowlist`, `skip-patterns`는 중복 없이 합친다. 다른 배열은 뒤 설정의 값으로 교체한다.
 
 설정에서 다음을 확인:
 - `profile`: 사용할 프로필 (기본: `default`)
