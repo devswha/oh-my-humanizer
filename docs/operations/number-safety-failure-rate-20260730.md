@@ -32,8 +32,28 @@ the gate working exactly as designed.
 "increment fail-closed with no refund path". So a Pro request that terminates in
 `number_safety_failed` still consumes one of the customer's 100 monthly requests
 and its characters against the 50,000 monthly total — and returns an error
-instead of a rewrite. Both rewrite attempts are billed to us as well, roughly
-$0.09 for a 2,700-character document.
+instead of a rewrite. Both rewrite attempts are billed to us as well: measured
+at **$0.069–$0.089** across two runs of the 19,540-character probe. The failed
+path never reaches scoring, so that is rewrite cost alone.
+
+### A measurement trap worth naming
+
+The scoring reasoning cut is scoped to `request.provider === 'gemini'`. Omitting
+that field — as the first pass of this measurement did — silently serves the
+**pre-cut** cost and inflates the scorers. Isolated on the same 518-character
+input:
+
+| `request.provider` | scorer thinking (MPS / fidelity) | full pipeline |
+|---|---|---:|
+| unset | 923 / 497 | $0.0573 |
+| `'gemini'` | **0 / 0** | **$0.0311** |
+
+So the cut behaves exactly as documented, and the production-path cost of a
+518-character English request is **$0.0311** — about $3.11 of COGS for a full
+100-request month against $8.49 net revenue, roughly **63% margin**. That is
+better than the ~55% on record, which stands as the conservative figure. An
+earlier draft of this note reported $0.05–$0.058 per request and read that as a
+margin problem; it was measuring the pre-cut path.
 
 A customer working on number-bearing drafts can therefore spend a paid month
 receiving nothing. That is a refund request at best and a chargeback at worst,
