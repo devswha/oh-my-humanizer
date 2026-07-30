@@ -50,7 +50,7 @@ INPUT          ENGINE (deterministic, LLM-free)                 SURFACES
 Hot decision = OR of the per-paragraph signals (`burstiness_low`, `mattr_low`,
 `lexicon_hot`, `ko_diagnostics`, `candor`, `thematic_break`, `ko_ending_monotony`)
 plus the document-level `markup_leakage` / `structural_model`. The signal-impact
-harness below ablates each one to report its marginal contribution.
+analysis below ablates each one to report its marginal contribution.
 
 ## Quality & regression (deterministic, CI-safe)
 
@@ -82,7 +82,7 @@ harness below ablates each one to report its marginal contribution.
 |---|---|---|---|
 | Live rewrite quality | `npm run quality:live` (`PATINA_LIVE=1` to call a model) | before/after AI score, MPS, fidelity on rewrites | [tests/quality/README.md](../tests/quality/README.md) |
 | Adversarial MPS | `npm run quality:adversarial-mps` | Guards against MPS hiding unchanged AI style | [tests/quality/README.md](../tests/quality/README.md) |
-| Rewrite A/B | `npm run quality:rewrite-ab` (`--live`) | Compares two rewrite configs (default `single` vs `ouroboros` multi-pass) on the same fixtures: after-AI/MPS/fidelity/edit-churn + per-fixture winner. Answers "does the multi-pass pipeline rewrite better?" | [tests/quality/README.md](../tests/quality/README.md) |
+| Rewrite A/B | `npm run quality:rewrite-ab` (`--live`) | Compares two rewrite configs (default `single` vs `iterative-baseline`) on the same fixtures: after-AI/MPS/fidelity/edit-churn + per-fixture winner. Answers whether the baseline comparison flow produces a better rewrite. | [tests/quality/README.md](../tests/quality/README.md) |
 
 ## Gates (deterministic, run in CI / pre-publish)
 

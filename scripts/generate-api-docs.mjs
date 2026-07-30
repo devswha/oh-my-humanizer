@@ -18,7 +18,6 @@ const SOURCES = [
   'src/errors.js',
   'src/loader.js',
   'src/logger.js',
-  'src/ouroboros.js',
   'src/output.js',
   'src/prompt-builder.js',
   'src/providers.js',

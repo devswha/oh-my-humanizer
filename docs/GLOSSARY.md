@@ -60,13 +60,6 @@ survive the rewrite pipeline and whether polarity is preserved. See
 [the FAQ](FAQ.md#what-is-mps) and
 [MPS scoring](../core/scoring.md#16-mps-scoring-formula).
 
-## Ouroboros loop
-
-An iterative rewrite loop that keeps trying to lower AI-likeness while obeying
-meaning-preservation gates. The standalone CLI replaced it with `--verify`
-(rewrite + meaning-floor retry); the loop still lives in the `/patina` skill
-and the `quality:rewrite-ab` research baseline. See
-[Ouroboros Termination](../core/scoring.md#ouroboros-termination).
 
 ## Pattern
 

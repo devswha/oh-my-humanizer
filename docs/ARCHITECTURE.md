@@ -141,7 +141,6 @@ option, not a standalone mode.
   benchmark/gate layer)
 - `src/verify.js` — post-rewrite meaning verification + one strict retry
   (`deterministicMeaningGuard` is its LLM-free part)
-- `src/ouroboros.js` — iterative multi-pass rewrite with regression rollback
 - `src/web-rewrite.js`, `web-rewrite-contract.js`, `web-rewrite-stream.js`,
   `rewrite-handler.js`, `streaming-api.js` — web / hosted rewrite path
 - `src/web-config.js`, `web-observability.js`, `rate-limit.js`, `security.js` —
@@ -157,7 +156,13 @@ option, not a standalone mode.
   kept as shared transport)
 - `src/auth.js`, `commands/auth.js`, `commands/doctor.js`
 - `src/ocr.js` — image → text input extraction
+- `scoring` and `verification` are separate configuration namespaces; persona
+  thresholds remain in persona definitions.
 
+### Packaged research comparator (unsupported)
+
+- `scripts/iterative-rewrite-baseline.mjs` — `iterative-baseline`, a packaged
+  research comparator outside the product API, CLI help, and configuration surface. The package has no `exports` map, so the module remains deep-importable but unsupported.
 ---
 
 ## Seams: resolved and remaining
@@ -216,11 +221,6 @@ of them; what remains is named here as the surface for later work.
    proving ~0 false positives on legitimate rewrites (live-quality + dogfood +
    the local calibration corpus) and true positives on the meaning-broken
    fixtures, recording `source: calibrated`.
-7. **`ouroboros.js` persona drift — won't-do.** The iterative loop is a
-   research-only A/B baseline (`scripts/rewrite-ab.mjs`; the `--ouroboros` CLI
-   flag was removed and `--verify` replaced it). The live path (`--verify` + the
-   always-on persona gate) already runs `persona-match`, so wiring it into a
-   research-only loop is not worth it.
 
 ### Remaining
 

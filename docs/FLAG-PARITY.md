@@ -1,6 +1,6 @@
 # CLI / Skill Flag Parity
 
-Basis: local checkout plus `node bin/patina.js --help` and `SKILL.md` reviewed on 2026-06-04. This table separates the standalone CLI surface from the prompt-based `/patina` skill; a missing check is not always a bug when the flag is backend-, auth-, or CLI-automation-only.
+Basis: local checkout plus `node bin/patina.js --help` and `SKILL.md` reviewed on 2026-07-31. This table separates the standalone CLI surface from the prompt-based `/patina` skill; a missing check is not always a bug when the flag is backend-, auth-, or CLI-automation-only.
 
 | Flag / command | Standalone CLI | `/patina` (`SKILL.md`) | Notes |
 |---|:---:|:---:|---|
@@ -9,8 +9,9 @@ Basis: local checkout plus `node bin/patina.js --help` and `SKILL.md` reviewed o
 | `--audit` | ✓ | ✓ | Detection-only mode. |
 | `--score` | ✓ | ✓ | Score mode is available on both surfaces. |
 | `--exit-on <n>` | ✓ | — | CLI score-gate spelling for CI. |
-| `--verify` | ✓ | — | Rewrite + MPS/fidelity meaning-floor check with one retry (replaces the old loop). |
-| `--ouroboros` | — | ✓ | Removed from the CLI; the `/patina` skill still runs its own iterative loop. |
+| `--offline` | ✓ | — | With `--score`, runs deterministic signals only and resolves no backend or credential. |
+| `--verify` | ✓ | — | Node CLI rewrite + MPS/fidelity meaning-floor check with one retry. |
+| `--strict` | — | ✓ | Agent-skill-only strict rewrite flow. |
 | `--format <markdown\|text\|json>` | ✓ | — | CLI output-envelope feature. |
 | `--quiet` | ✓ | — | CLI stderr log suppression for scripts. |
 | `--batch` | ✓ | ✓ | Multi-file CLI/skill rewrite flow. |

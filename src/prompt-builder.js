@@ -8,7 +8,7 @@ import { formatPersonaDirective } from './personas/compose.js';
 /**
  * Default per-detection severity points.
  *
- * Mirrors `ouroboros.severity-points` in .patina.default.yaml and the
+ * Mirrors `scoring.severity-points` in .patina.default.yaml and the
  * core/scoring.md §1 table (both gated by tests/unit/threshold-parity.test.js).
  * `buildScoreMathCore` derives the prompt's severity-scale line and the
  * category-score denominator from these values via `resolveSeverityPoints`,
@@ -88,7 +88,7 @@ export function fenceReferenceText(text, { lang = 'en', label = '' } = {}) {
  * Resolve the effective per-detection severity points for a config.
  *
  * Single resolution path for every prompt surface: yaml
- * `ouroboros.severity-points` overrides the documented defaults key-by-key.
+ * `scoring.severity-points` overrides the documented defaults key-by-key.
  *
  * @param {object} [config] Effective patina config.
  * @returns {{high: number, medium: number, low: number}} Effective severity points.
@@ -98,7 +98,7 @@ export function fenceReferenceText(text, { lang = 'en', label = '' } = {}) {
 export function resolveSeverityPoints(config) {
   return {
     ...DEFAULT_SEVERITY_POINTS,
-    ...(config?.ouroboros?.['severity-points'] || {}),
+    ...(config?.scoring?.['severity-points'] || {}),
   };
 }
 
@@ -166,8 +166,8 @@ export function buildPrompt(options) {
     mode = 'rewrite',
     tone = null,
     documentSignals = null,
-    // The rewrite loop (runOuroboros) passes false so it does not pay self-audit
-    // tokens it strips anyway; the loop's external scorers do the AI-tell/meaning
+    // The iterative rewrite runner passes false so it does not pay self-audit
+    // tokens it strips anyway; external scorers perform the AI-tell/meaning
     // checks (#444). Default true keeps the standalone rewrite contract unchanged.
     includeSelfAudit = true,
     jargon = 'keep',
@@ -528,8 +528,8 @@ function buildAuditInstructions() {
  * const core = buildScoreMathCore(config, 'ko', 'Draft', patterns);
  */
 export function buildScoreMathCore(config, lang, text = '', patterns = []) {
-  const weights = config.ouroboros?.['category-weights']?.[lang] || {};
-  // Same config-read pattern as the weights above: yaml `severity-points`
+  const weights = config.scoring?.['category-weights']?.[lang] || {};
+  // Same config-read pattern as the weights above: yaml `scoring.severity-points`
   // overrides the documented defaults, and the prompt text follows it.
   const severityPoints = resolveSeverityPoints(config);
   let inst = `Calculate an AI-likeness score (0-100) using EXACTLY these category weights. Do NOT invent extra categories (no "discord", no "tone", no "general"). Use only the categories listed:\n\n`;

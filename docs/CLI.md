@@ -49,7 +49,7 @@ patina --lang en --score --exit-on 30 draft.md
 
 ## Meaning verification: `--verify`
 
-`--verify` folds a meaning-preservation check into the normal rewrite. After the rewrite it scores MPS and fidelity; if either is below the floor (`ouroboros.mps-floor` / `ouroboros.fidelity-floor`, default 70) it runs **one** conservative retry that re-rewrites from the original with a strict meaning-preservation directive. If the retry still misses, patina emits the closest (highest-fidelity) candidate and warns on stderr — fail-closed but non-destructive, so stdout always carries usable text.
+`--verify` folds a meaning-preservation check into the normal rewrite. After the rewrite it scores MPS and fidelity; if either is below the floor (`verification.{mps-floor,fidelity-floor}`, default 70) it runs **one** conservative retry that re-rewrites from the original with a strict meaning-preservation directive. If the retry still misses, patina emits the closest (highest-fidelity) candidate and warns on stderr — fail-closed but non-destructive, so stdout always carries usable text.
 
 ```bash
 patina --verify draft.md
@@ -58,7 +58,9 @@ patina --verify --lang ko --backend codex-cli draft.md
 
 - It is a rewrite modifier, not a separate mode: combining it with `--score`, `--audit`, `--diff`, or `--preview` is an input error (those do not rewrite).
 - The MPS/fidelity scorers run through the **selected backend**, so `--verify` works with HTTP and local CLI backends alike. It adds up to four extra model calls (two scorers, plus a retry that re-scores), so the plain rewrite stays the fast/cheap default.
-- `--ouroboros` was **removed**. The iterative loop is gone; `--verify` is its meaning-floor replacement. (The multi-pass loop survives only as a research baseline in `npm run quality:rewrite-ab`.)
+The Node CLI keeps `scoring` and `verification` separate; `--verify` uses
+`verification.{mps-floor,fidelity-floor}`, while persona thresholds remain in
+persona definitions.
 
 ### Deterministic meaning guard (always on, no LLM)
 
@@ -148,12 +150,8 @@ In every depth, facts, numbers, names, and causal claims must never be invented,
 
 ## Stderr logs
 
-Human-facing status, warnings, and progress indicators go to stderr so stdout
-stays reserved for the transformed text or JSON envelope.
-
-- `--quiet` suppresses stderr logs, including Ouroboros progress.
-- Ouroboros reports per-iteration score movement and latency.
-
+Human-facing status and warnings go to stderr so stdout stays reserved for the
+transformed text or JSON envelope. `--quiet` suppresses those stderr logs.
 
 ## In-place preview: `--preview`
 

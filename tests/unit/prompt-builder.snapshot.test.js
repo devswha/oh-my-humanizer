@@ -24,12 +24,7 @@ const config = {
   profile: 'default',
   blocklist: ['never say pivotal'],
   allowlist: ['OpenClaw'],
-  ouroboros: {
-    'target-score': 30,
-    'max-iterations': 3,
-    'plateau-threshold': 10,
-    'fidelity-floor': 70,
-    'mps-floor': 70,
+  scoring: {
     'category-weights': {
       en: {
         content: 0.25,
@@ -231,10 +226,10 @@ describe('CJK clause-level rewrite guard', () => {
   const koConfig = {
     ...config,
     language: 'ko',
-    ouroboros: {
-      ...config.ouroboros,
+    scoring: {
+      ...config.scoring,
       'category-weights': {
-        ...config.ouroboros['category-weights'],
+        ...config.scoring['category-weights'],
         ko: { content: 1 },
       },
     },
@@ -296,10 +291,10 @@ describe('Korean advisory rewrite metadata wording', () => {
   const koConfig = {
     ...config,
     language: 'ko',
-    ouroboros: {
-      ...config.ouroboros,
+    scoring: {
+      ...config.scoring,
       'category-weights': {
-        ...config.ouroboros['category-weights'],
+        ...config.scoring['category-weights'],
         ko: { content: 1 },
       },
     },

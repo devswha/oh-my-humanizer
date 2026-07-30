@@ -12,6 +12,44 @@ All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 Semver rationale: patch | minor | major — explain whether this changes patterns, schemas, CLI behavior, or docs only.
 ```
 
+## 7.0.0 — 2026-07-30
+
+**Removes the retired iterative rewrite product contract, gives scoring and verification settings neutral ownership, and preserves the comparator only as unsupported research.**
+
+Semver rationale: major — removes public configuration keys and the obsolete agent-skill mode without compatibility aliases. Existing custom configurations must migrate the shared score and verification settings below.
+
+### Removed
+
+- The retired iterative mode is gone from the agent skill, CLI migration tombstone, default configuration, help/support surfaces, generated API, and current documentation. Node users keep `--verify`; agent-skill users keep the independent `/patina --strict` flow.
+- Loop-only `enabled`, `target-score`, `max-iterations`, and `plateau-threshold` settings are no longer product configuration.
+- The unused top-level `structured-output` setting is deleted. The scorer's explicit runtime `responseFormat` API remains available to supported callers.
+
+### Changed (breaking)
+
+- Move `category-weights`, `combined-weights`, and `severity-points` from the former top-level loop-settings block to `scoring`.
+- Move the shared `mps-floor` and `fidelity-floor` values to `verification`. Their defaults remain 70/70.
+- Keep `personas.thresholds.mps_floor` and `personas.thresholds.fidelity_floor` separate; persona gate overrides do not affect `--verify`, and verification overrides do not affect persona gates.
+- Rename the opt-in A/B arm to `iterative-baseline` and move its runner under `scripts/`. It remains packaged for `npm run quality:rewrite-ab`, but is unsupported research and is absent from CLI/help/config, hosted APIs, and generated public API docs.
+- Persona, profile, and tone behavior is unchanged. Persona remains the reusable voice axis, tone remains the KO/EN register override, and profile-policy consolidation remains follow-up work.
+
+### Migration
+
+```yaml
+scoring:
+  category-weights: { ... }
+  combined-weights: { ... }
+  severity-points:
+    high: 3
+    medium: 2
+    low: 1
+
+verification:
+  mps-floor: 70
+  fidelity-floor: 70
+```
+
+No legacy alias is read. Move custom values before upgrading.
+
 ## 6.3.4 — 2026-07-29
 
 **Corrects the Pro pricing card, which advertised a burst guard as an entitlement and contradicted the real monthly cap.**
