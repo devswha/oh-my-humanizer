@@ -20,7 +20,7 @@ The user provides:
 config:
   language: ko        # ko | en | zh | ja
   profile: default    # default | blog | academic | technical | formal | social | email | legal | medical | marketing
-  output: rewrite     # rewrite | diff | audit | score | ouroboros
+  output: rewrite     # rewrite | diff | audit | score
   skip-patterns: []   # e.g., [ko-filler]
   blocklist: []       # extra words to flag
   allowlist: []       # words to never flag
@@ -29,7 +29,7 @@ text: |
   [The user's text to humanize goes here]
 ```
 
-Override per-run: the host system may allow `--lang`, `--profile`, `--diff`, `--audit`, `--score`, `--ouroboros` flags.
+Override per-run: the host system may allow `--lang`, `--profile`, `--diff`, `--audit`, and `--score` flags.
 
 ---
 
@@ -51,7 +51,7 @@ Read `profiles/{profile}.md`. Parse `voice-overrides` and `pattern-overrides`.
 ### 4. Load Voice Guidelines
 Read `core/voice.md`. Apply `voice-overrides` from the profile.
 
-### 5. Load Scoring Reference (if score or ouroboros mode)
+### 5. Load Scoring Reference (if score mode)
 Read `core/scoring.md`.
 
 ---
@@ -62,7 +62,7 @@ Read `core/scoring.md`.
 
 Before rewriting, extract semantic anchors from the input text. These are internal working memory only — do NOT show them to the user.
 
-**Skip condition**: If text is ≤1 paragraph and ≤2 sentences, skip extraction. MPS is marked N/A and ouroboros MPS gating is bypassed.
+**Skip condition**: If text is ≤1 paragraph and ≤2 sentences, skip extraction. MPS is marked N/A and no MPS floor is applied.
 
 **Anchor types**:
 
@@ -114,7 +114,7 @@ FOR each anchor IN anchor_list:
 2. Inject constraint: "You must preserve: {anchor content}".
 3. Compare retry result against the anchor.
 4. If retry also fails → HARD FAIL (restore original).
-5. Max 1 retry per anchor (no retry loops).
+5. Max 1 retry per anchor (no repeated retries).
 
 ---
 
@@ -151,7 +151,7 @@ Same logic as 5a-v. Additionally:
 2. **Final anchor check** — any HARD FAIL anchors not yet handled? Restore original sentences (safety net).
 3. **Polarity inversion scan** — explicitly search where original negation became positive (or vice versa). Focus on negatives, comparatives, conditionals.
 4. **Regression check** — compare 5a output vs final output. Re-apply any reverted 5a corrections.
-5. **MPS calculation** — calculate Meaning Preservation Score from anchor verification results. Include in output for score/ouroboros modes.
+5. **MPS calculation** — calculate Meaning Preservation Score from anchor verification results. Include it in score output when available.
 
 ---
 
@@ -211,7 +211,7 @@ Fidelity criteria (each 0-3):
 
 Combined = `(ai_likeness × ai_weight) + ((100 - fidelity) × fidelity_weight)`
 
-Weights per profile (from `.patina.default.yaml`):
+Weights per profile (from `scoring.combined-weights` in `.patina.default.yaml`):
 - default: AI 0.60, fidelity 0.40
 - academic: AI 0.40, fidelity 0.60
 - blog: AI 0.70, fidelity 0.30
@@ -222,28 +222,6 @@ Weights per profile (from `.patina.default.yaml`):
 - medical: AI 0.35, fidelity 0.65
 - marketing: AI 0.65, fidelity 0.35
 
-### Ouroboros Mode
-
-Iterative self-improvement loop:
-
-1. Measure initial score
-2. If already ≤ target-score, stop immediately
-3. Repeat (max 3 iterations by default):
-   a. Run 5a → 5b → 5c pipeline
-   b. Score the result
-   c. delta = previous - current (positive = improvement)
-   d. Check termination:
-      - Score ≤ target-score → **target met**
-      - delta < 0 → **regression** → rollback
-      - 0 ≤ delta ≤ plateau-threshold → **plateau**
-      - iteration ≥ max-iterations → **max iterations**
-      - fidelity < fidelity-floor → **fidelity violation** → rollback
-      - MPS < mps-floor → **MPS violation** → rollback
-4. Output iteration log and final text
-
-**Ouroboros cannot be combined with diff, audit, or score modes.**
-
----
 
 ## Batch Mode
 
@@ -281,7 +259,7 @@ Special cases:
 ### Per-Category Score
 
 ```
-category_score = (sum of adjusted severities / (pattern_count × 3)) × 100
+category_score = (sum of adjusted severities / (pattern_count × high severity points)) × 100
 ```
 
 ### Overall Score
@@ -329,7 +307,7 @@ If no anchors extracted: `MPS = N/A`
 - **Match profile tone**: or the profile's target tone if explicitly overridden.
 - **Inject voice**: follow `core/voice.md` per language.
 - **Apply overrides**: respect `pattern-overrides` and `voice-overrides`.
-- **No infinite loops**: self-audit runs once. Ouroboros has max-iterations cap.
+- **Bounded verification**: self-audit runs once; each anchor has at most one retry before its original sentence is restored.
 - **Scores have variance**: ±8-10 points between runs due to LLM severity assignment. Interpret ranges, not exact numbers.
 
 ---

@@ -9,8 +9,8 @@ Basis: local checkout plus `node bin/patina.js --help` and `SKILL.md` reviewed o
 | `--audit` | ✓ | ✓ | Detection-only mode. |
 | `--score` | ✓ | ✓ | Score mode is available on both surfaces. |
 | `--exit-on <n>` | ✓ | — | CLI score-gate spelling for CI. |
-| `--verify` | ✓ | — | Rewrite + MPS/fidelity meaning-floor check with one retry (replaces the old loop). |
-| `--ouroboros` | — | ✓ | Removed from the CLI; the `/patina` skill still runs its own iterative loop. |
+| `--verify` | ✓ | — | Node CLI rewrite + MPS/fidelity meaning-floor check with one retry. |
+| `--strict` | — | ✓ | Agent-skill-only strict rewrite flow. |
 | `--format <markdown\|text\|json>` | ✓ | — | CLI output-envelope feature. |
 | `--quiet` | ✓ | — | CLI stderr log suppression for scripts. |
 | `--batch` | ✓ | ✓ | Multi-file CLI/skill rewrite flow. |

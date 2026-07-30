@@ -122,13 +122,29 @@ test('verifyRewrite treats a null MPS as a floor miss (fail closed)', async () =
   assert.equal(result.verified, true);
   assert.equal(result.text, 'retry');
 });
+test('verifyRewrite treats a null fidelity as a floor miss (fail closed)', async () => {
+  let fidelityCalls = 0;
+  const result = await verifyRewrite({
+    ...baseArgs,
+    rewrite: 'first',
+    callLLM: async () => 'retry',
+    scoreFns: {
+      scoreMPS: async () => ({ mps: 90 }),
+      scoreFidelity: async () => (fidelityCalls++ === 0 ? { fidelity: null } : { fidelity: 90 }),
+    },
+  });
+  assert.equal(result.retried, true);
+  assert.equal(result.verified, true);
+  assert.equal(result.text, 'retry');
+});
+
 
 test('verifyRewrite honors configured floors', async () => {
   // fidelity 75 passes the default 70 floor but fails an 80 floor → retry.
   let calls = 0;
   const result = await verifyRewrite({
     ...baseArgs,
-    config: { ouroboros: { 'mps-floor': 80, 'fidelity-floor': 80 } },
+    config: { verification: { 'mps-floor': 80, 'fidelity-floor': 80 } },
     rewrite: 'first',
     callLLM: async () => { calls += 1; return 'retry'; },
     scoreFns: {
@@ -139,6 +155,25 @@ test('verifyRewrite honors configured floors', async () => {
   assert.equal(calls, 1);
   assert.equal(result.verified, true);
   assert.equal(result.retried, true);
+});
+test('verifyRewrite keeps persona thresholds isolated from verification floors', async () => {
+  let calls = 0;
+  const result = await verifyRewrite({
+    ...baseArgs,
+    config: {
+      verification: { 'mps-floor': 80, 'fidelity-floor': 80 },
+      personas: { thresholds: { mps_floor: 95, fidelity_floor: 95 } },
+    },
+    rewrite: 'first',
+    callLLM: async () => { calls += 1; return 'retry'; },
+    scoreFns: {
+      scoreMPS: async () => ({ mps: 85 }),
+      scoreFidelity: async () => ({ fidelity: 85 }),
+    },
+  });
+  assert.equal(calls, 0);
+  assert.equal(result.verified, true);
+  assert.equal(result.retried, false);
 });
 
 // ---------- validateVerifyRequest ----------
@@ -158,6 +193,17 @@ test('validateVerifyRequest allows a plain verified rewrite and is a no-op witho
   assert.doesNotThrow(() => validateVerifyRequest({}));
 });
 
-test('the removed --ouroboros flag is rejected at parse time', () => {
-  assert.throws(() => parseArgs(['--ouroboros', 'draft.md']), /--ouroboros was removed/);
+test('the retired spelling follows the generic unknown-option exit-2 path', () => {
+  const retiredOption = `--${['ouro', 'boros'].join('')}`;
+  assert.throws(
+    () => parseArgs([retiredOption, 'draft.md']),
+    (error) => {
+      const [summary] = String(error?.message).split('\n');
+      return (
+        error?.exitCode === 2
+        && summary === `unknown option ${retiredOption}`
+        && !/verify|migration|replace/i.test(error.message)
+      );
+    }
+  );
 });

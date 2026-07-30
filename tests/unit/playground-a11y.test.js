@@ -94,6 +94,11 @@ test('closed mobile sidebar leaves the tab order (visibility: hidden)', () => {
 test('controller syncs the document language on locale change', () => {
   assert.match(js, /document\.documentElement\.lang = lang/);
 });
+test('controller initializes the public playground in English', () => {
+  assert.match(js, /const DEFAULT_LANG = 'en'/);
+  assert.match(js, /els\.lang\.value = DEFAULT_LANG/);
+  assert.doesNotMatch(js, /navigator\.languages?|initialLang\(/);
+});
 
 test('controller toggles thread aria-busy around streaming', () => {
   assert.match(js, /setAttribute\('aria-busy', 'true'\)/);

@@ -13,7 +13,7 @@ Given an ORIGINAL text and a REWRITE, verify that the rewrite faithfully preserv
 
 ## Prerequisites
 
-Read `core/scoring.md` §§9-14 before auditing. The fidelity criteria, scoring formula, floor thresholds, and ouroboros termination conditions are defined there and must be applied as written.
+Read `core/scoring.md` §§9-14 before auditing. The fidelity criteria, scoring formula, and verification floors defined there must be applied as written.
 
 ## Patina's four non-negotiable principles (audit against all four)
 
@@ -80,14 +80,14 @@ These are not scored separately but must be explicitly confirmed or flagged:
 fidelity_score = ((claims + fabrication + tone + length) / 12) × 100
 ```
 
-Ouroboros floors (`core/scoring.md` §13): fidelity_score ≥ 70 is required; below 70 is a hard stop regardless of AI-likeness improvement.
+Verification floors (`core/scoring.md` §13): fidelity_score ≥ `verification.fidelity-floor` (default: 70) is required; a result below the floor must be retried or rolled back regardless of AI-likeness improvement.
 
 ## Verdict
 
 Output one of:
 
-- **PASS** — fidelity_score ≥ 70 and no individual criterion is Fail, and all MPS-level checks confirm. The rewrite may proceed.
-- **NEEDS-ROLLBACK** — fidelity_score < 70, or any criterion is Fail (0), or any MPS-level check fails. The rewrite must be discarded or revised before use.
+- **PASS** — fidelity_score ≥ `verification.fidelity-floor` (default: 70), no individual criterion is Fail, and all MPS-level checks confirm. The rewrite may proceed.
+- **NEEDS-ROLLBACK** — fidelity_score < `verification.fidelity-floor`, any criterion is Fail (0), or any MPS-level check fails. The rewrite must be discarded or revised before use.
 
 ## Output format
 

@@ -1,4 +1,4 @@
-version: "6.3.4"
+version: "7.0.0"
 language: ko              # Korean (default) -- auto-loads all ko-*.md patterns
                           # language: en      -- English -- auto-loads all en-*.md patterns
                           # language: zh      -- Chinese -- auto-loads all zh-*.md patterns
@@ -7,11 +7,6 @@ language: ko              # Korean (default) -- auto-loads all ko-*.md patterns
 profile: default
 output: rewrite           # rewrite | diff | audit | score
 
-# Opt-in: request OpenAI-compatible structured output (response_format
-# json_object) for ouroboros LLM scoring. Default false; only the openai-http
-# backend forwards it (never sent to local CLI backends). Some OpenAI-compatible
-# endpoints reject response_format — leave false unless your endpoint supports it.
-structured-output: false
 
 # Tone categorization (v3.10): register axis (casual/professional) for ko/en.
 # Resolution: explicit --tone > config tone > config profile.
@@ -104,15 +99,6 @@ scoring:
     enabled: true
     divergence-threshold: 20  # warn and prefer the more pessimistic score above this delta
     combined-weight: 0        # default off for combinedScore; users may opt in (e.g. 0.2)
-
-# Ouroboros: iterative self-improvement loop
-# Runs the full humanization pipeline repeatedly until the AI score converges.
-# Enable via config or CLI flag: --ouroboros
-ouroboros:
-  enabled: false            # opt-in; --ouroboros CLI flag overrides to true
-  target-score: 30          # stop when overall score <= this value (0-100)
-  max-iterations: 3         # hard limit on loop iterations
-  plateau-threshold: 10     # stop if score improves by less than this between iterations
   category-weights:
     ko:
       content: 0.18
@@ -146,8 +132,6 @@ ouroboros:
       filler: 0.08
       structure: 0.15
       viral-hook: 0.10  # score-only pack (excluded from rewrite)
-  fidelity-floor: 70             # stop ouroboros if fidelity drops below this; also the --verify fidelity floor
-  mps-floor: 70                  # stop ouroboros if MPS (meaning preservation) drops below this; also the --verify MPS floor
   combined-weights:
     default:
       ai-likeness: 0.60
@@ -183,6 +167,10 @@ ouroboros:
     high: 3
     medium: 2
     low: 1
+
+verification:
+  mps-floor: 70
+  fidelity-floor: 70
 
 # Stylometry: deterministic statistical preprocessing (SKILL.md Step 4.6)
 # Calculates burstiness (sentence-length CV) and MATTR (lexical diversity) per

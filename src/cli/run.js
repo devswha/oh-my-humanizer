@@ -369,7 +369,7 @@ export async function runDefault(parsed, logger) {
         // v3.11 Phase 1.3: surface weight drift between config and the score
         // table the model emitted. Warnings only — does not alter the output.
         if (mode === 'score') {
-          const configWeights = config.ouroboros?.['category-weights']?.[lang] || {};
+          const configWeights = config.scoring?.['category-weights']?.[lang] || {};
           const warnings = validateScoreWeights(scoreValidationOutput || output, configWeights);
           for (const w of warnings) {
             logger.warn('score.weight_check', { message: `[patina] ${w}` });

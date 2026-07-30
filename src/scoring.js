@@ -145,9 +145,8 @@ async function callAndParseJson({
   logger = createLogger(),
   now,
   sleep,
-  // Opt-in OpenAI-compatible structured-output request field (e.g.
-  // { type: 'json_object' }). Forwarded to callLLM on every attempt; the strict
-  // JSON parse + temperature-0 retry below remains the fallback regardless.
+  // Opt-in OpenAI-compatible structured-output request field. The strict JSON
+  // parse and temperature-0 retry remain the fallback on every attempt.
   responseFormat,
   // Opt-in provider-specific request fields (e.g. reasoning/thinking control),
   // spread into the request body by callLLM. Undefined by default so the
@@ -341,7 +340,6 @@ export async function scoreText({
   logger = createLogger(),
   now,
   sleep,
-  // Opt-in structured-output request field; defaults off (undefined).
   responseFormat,
   onAttempt,
   onAttemptInvalid,
@@ -417,7 +415,7 @@ ${text}
 // Derived from the first loaded pack that declares a frontmatter pattern
 // count, so the illustrated `max` always equals the pattern_count × high
 // denominator the same prompt instructs the model to use — including under a
-// `severity-points` override. Falls back to an illustrative 6-pattern
+// `scoring.severity-points` override. Falls back to an illustrative 6-pattern
 // "content" category when no pack metadata is available (mock/test paths);
 // in that case the prompt carries no pattern-count claims to contradict.
 function buildContractExampleCategoryRow(patterns, config) {
@@ -445,7 +443,7 @@ function computeShortFormEvidenceFloor({ result, config, lang, patterns = [] }) 
   const high = severityPoints.high;
   const stylePack = patterns.find((pack) => pack?.frontmatter?.pack === `${lang}-style`);
   const patternCount = Number(stylePack?.frontmatter?.patterns);
-  const weight = Number(config?.ouroboros?.['category-weights']?.[lang]?.style);
+  const weight = Number(config?.scoring?.['category-weights']?.[lang]?.style);
   if (!(patternCount > 0) || !(high > 0) || !Number.isFinite(weight)) return 0;
   // core/scoring.md short-text boost (1.5x, capped at `high`).
   const adjusted = Math.min(high, rawSeverity * 1.5);
@@ -770,7 +768,6 @@ export async function scoreMPS({
   logger = createLogger(),
   now,
   sleep,
-  // Opt-in structured-output request field; defaults off (undefined).
   responseFormat,
   // Provider-specific request fields (e.g. reasoning control); see callAndParseJson.
   extraBody,
@@ -939,7 +936,6 @@ export async function scoreFidelity({
   logger = createLogger(),
   now,
   sleep,
-  // Opt-in structured-output request field; defaults off (undefined).
   responseFormat,
   // Provider-specific request fields (e.g. reasoning control); see callAndParseJson.
   extraBody,
@@ -1066,7 +1062,7 @@ function rethrowIfAborted(err, signal) {
  * const score = combinedScore({ aiLikeness: 20, fidelity: 90, profile: 'default', config: {} });
  */
 export function combinedScore({ aiLikeness, fidelity, profile, config, deterministicScore }) {
-  const profileWeights = config?.ouroboros?.['combined-weights']?.[profile];
+  const profileWeights = config?.scoring?.['combined-weights']?.[profile];
   const ai = profileWeights?.['ai-likeness'] ?? 0.6;
   const fid = profileWeights?.fidelity ?? 0.4;
   const deterministicWeight = deterministicScoringOptions(config).combinedWeight;

@@ -16,7 +16,7 @@ import {
 
 // Browser globals (eslint config declares only Node globals; sibling modules use
 // the same globalThis convention — e.g. rewrite-client.js).
-const { document, Option, navigator } = globalThis;
+const { document, Option } = globalThis;
 const $ = (sel) => /** @type {HTMLElement} */ (document.querySelector(sel));
 
 const els = {
@@ -819,9 +819,9 @@ function buildOutputActions(text) {
   return actions;
 }
 
-// Auto-detect the dominant script so pasted EN/ZH/JA text is not silently
-// rewritten under the default (ko) language. Kana => ja; Hangul => ko; Han
-// without kana => zh; Latin => en. Returns null when undecidable.
+// Auto-detect the dominant script so pasted KO/EN/ZH/JA text is not silently
+// rewritten under the wrong language. Kana => ja; Hangul => ko; Han without
+// kana => zh; Latin => en. Returns null when undecidable.
 function detectLang(text) {
   const s = String(text || '');
   if (/[\u3040-\u30ff]/.test(s)) return 'ja';
@@ -831,20 +831,10 @@ function detectLang(text) {
   return null;
 }
 
-// Pick the initial UI language from the browser locale (ko/en/zh/ja; default
-// en). No client-side storage — the playground persists nothing; an explicit
-// pick simply lives in the select for the rest of the session, and pasted text
-// still re-routes via detectLang on the first turn.
-function initialLang() {
-  const langs = (Array.isArray(navigator.languages) && navigator.languages.length)
-    ? navigator.languages
-    : [navigator.language];
-  for (const l of langs) {
-    const base = String(l || '').toLowerCase().slice(0, 2);
-    if (Object.hasOwn(I18N, base)) return base;
-  }
-  return 'en';
-}
+// Always start the public playground in English. An explicit language pick lives
+// in the select for the rest of the session, while pasted text still re-routes
+// via detectLang on the first turn.
+const DEFAULT_LANG = 'en';
 
 // ---------- unified submit ----------
 /** In-flight rewrite attempt: { controller, cancelled }. One at a time (busy gate). */
@@ -939,9 +929,9 @@ async function submit(text, source = 'hero') {
   if (!convo) { newConvo(); convo = activeConvo(); }
   if (!convo) return;
 
-  // Match the language to the pasted text's script on the first turn (the
-  // selector defaults to ko; without this, EN/ZH/JA input is silently rewritten
-  // under the wrong language). Refine turns keep the conversation's language.
+  // Match the language to the pasted text's script on the first turn so non-English
+  // input is not silently rewritten under the English default. Refine turns keep
+  // the conversation's language.
   const detected = convo.thread.original == null ? detectLang(clean) : null;
   if (detected && detected !== els.lang.value) {
     els.lang.value = detected;
@@ -1257,7 +1247,7 @@ els.licenseKey.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.p
 els.provider.addEventListener('change', populateModels);
 
 // ---------- init ----------
-els.lang.value = initialLang();
+els.lang.value = DEFAULT_LANG;
 populateProviders();
 syncTier();
 renderSuggest();

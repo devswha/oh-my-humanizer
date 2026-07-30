@@ -25,8 +25,8 @@ meaning-and-facts signals. Any one of them failing exits `4`:
 
 | Signal | Fails when |
 |---|---|
-| `mps` | meaning-preservation score below the floor (`ouroboros.mps-floor`, default 70) |
-| `fidelity` | fidelity score below the floor (`ouroboros.fidelity-floor`, default 70) |
+| `mps` | meaning-preservation score below `verification.mps-floor` (default 70) |
+| `fidelity` | fidelity score below `verification.fidelity-floor` (default 70) |
 | `numbers` | a number present in the source is missing from the rewrite |
 
 Exit `4` is **enforcing but non-destructive**: patina prints the rewrite anyway
