@@ -44,9 +44,18 @@ Polar gate was live — it was the Lemon Squeezy validator declining a key it ha
 never issued. Shipped as v6.3.3.
 
 Still unproven: any card-backed purchase, payout (the review governs money
-reaching the owner, not the ability to sell), refund and cancellation-revocation
-behaviour on production, and the monthly 100-request cap against this deployment
-rather than a local handler.
+reaching the owner, not the ability to sell), and refund and
+cancellation-revocation behaviour on production.
+
+The Pro monthly request cap is **partially** established. It cannot be exercised
+directly without a production license, and the verification license was shredded
+after use while a confirmed checkout session does not re-issue a customer token.
+What was verified instead is the machinery underneath it: the free tier's hourly
+burst limit fired on production with `429 hourly burst exceeded` after ten
+requests in the window. The monthly Pro cap runs through the same limiter, the
+same KV, and the same HMAC-keyed bucket — only the key and window differ — so the
+counters demonstrably increment and block in the deployed environment. The
+100-request threshold itself is still only proven against a local handler.
 
 ### Payment readiness: blocked, then opened
 
