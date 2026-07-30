@@ -127,8 +127,9 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 |---|---|
 | `patina input.txt` | rewrite with defaults |
 | `patina --audit input.txt` | detect patterns only |
-| `patina --score input.txt` | output a 0-100 AI-likeness score |
-| `patina --score --exit-on 30 input.txt` | CI gate with exit code `3` when `overall > 30` |
+| `patina --score input.txt` | output a 0-100 score using the LLM judge plus deterministic signals |
+| `patina --score --offline input.txt` | score with deterministic signals only; no backend or API key |
+| `patina --score --offline --exit-on 30 input.txt` | offline CI gate with exit code `3` when `overall > 30` |
 | `patina --diff input.txt` | show pattern-by-pattern changes |
 | `patina --preview page.html` | render rewrites back onto a saved HTML page with toggles and inline diff |
 | `patina --verify input.txt` | rewrite, then check MPS/fidelity floors with one retry |

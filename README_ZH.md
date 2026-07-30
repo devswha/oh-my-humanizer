@@ -118,8 +118,9 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 |---|---|
 | `patina input.txt` | 用默认设置改写 |
 | `patina --audit input.txt` | 仅检测模式 |
-| `patina --score input.txt` | 输出 0-100 的 AI 相似度分数 |
-| `patina --score --exit-on 30 input.txt` | CI gate：当 `overall > 30` 时以退出码 `3` 结束 |
+| `patina --score input.txt` | 结合 LLM 评判与确定性信号输出 0-100 分 |
+| `patina --score --offline input.txt` | 无需后端或 API key，仅使用确定性信号评分 |
+| `patina --score --offline --exit-on 30 input.txt` | 离线 CI gate：当 `overall > 30` 时以退出码 `3` 结束 |
 | `patina --diff input.txt` | 按模式逐项展示改动 |
 | `patina --preview page.html` | 把改写结果渲染回保存的 HTML 页面，带视图切换和内联 diff |
 | `patina --verify input.txt` | 改写后检查 MPS/忠实度下限，并重试一次 |

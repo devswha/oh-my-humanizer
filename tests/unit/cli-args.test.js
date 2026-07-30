@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 
-import { parseArgs, validateOutputRouting } from '../../src/cli/args.js';
+import { parseArgs, validateOfflineScoreRequest, validateOutputRouting } from '../../src/cli/args.js';
 import { applyScoreGate } from '../../src/cli/score-gate.js';
 import { PatinaCliError, getProcessExitCode } from '../../src/errors.js';
 
@@ -84,6 +84,21 @@ test('--flag=value works for value-taking options (#440)', () => {
 test('=value on boolean switches and unknown options stays an error (#440)', () => {
   assert.throws(() => parseArgs(['--quiet=1']), /--quiet does not take a value/);
   assert.throws(() => parseArgs(['--unknown=x']), /unknown option --unknown=x/);
+});
+
+test('--offline is score-only and rejects backend options', () => {
+  const parsed = parseArgs(['--score', '--offline', '--format', 'json', 'draft.md']);
+  assert.equal(parsed.offline, true);
+  validateOfflineScoreRequest(parsed);
+
+  assert.throws(
+    () => validateOfflineScoreRequest(parseArgs(['--offline', 'draft.md'])),
+    /--offline requires --score/,
+  );
+  assert.throws(
+    () => validateOfflineScoreRequest(parseArgs(['--score', '--offline', '--backend', 'codex-cli', 'draft.md'])),
+    /--backend cannot be combined with --offline/,
+  );
 });
 
 test('-- ends option parsing so dash-prefixed files are usable (#440)', () => {

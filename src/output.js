@@ -35,7 +35,7 @@ export function formatOutput(result, mode, parsed = {}, opts = {}) {
     return formatJsonOutput({ result, mode, body, tone, gate: parsed.gate, persona });
   }
 
-  if (format === 'text') {
+  if (format === 'text' || mode === 'rewrite') {
     return formatTextOutput(body);
   }
 
@@ -43,13 +43,9 @@ export function formatOutput(result, mode, parsed = {}, opts = {}) {
 }
 
 function renderFormattedBody(result, mode, parsed = {}, opts = {}) {
-  let body = renderBody(result);
-  // Only raw rewrite model results emit [BODY] tags at this formatter layer, so
-  // only rewrite mode strips them. Other modes pass through untouched, so literal
-  // [BODY] text in their output is never mistaken for a control tag.
-  if (mode === 'rewrite') {
-    body = stripSelfAudit(body, { logger: opts.logger });
-  }
+  let body = mode === 'rewrite'
+    ? cleanRewriteOutput(result, { logger: opts.logger })
+    : renderBody(result);
   if (mode === 'diff' && (parsed.format || 'markdown') !== 'json') {
     // Skip ANSI colorization for JSON output, otherwise raw escape codes get
     // embedded inside the JSON `output` string field on a TTY (#449).

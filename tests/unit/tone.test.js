@@ -81,12 +81,10 @@ test('resolveTone: removed genre tones are rejected with a --profile hint', () =
 
 // --- formatOutput tone footer ---
 
-test('formatOutput: appends YAML tone footer', () => {
+test('formatOutput: rewrite keeps tone metadata out of default stdout', () => {
   const tone = { tone: 'casual', tone_source: 'user', tone_evidence: ['user-specified'], tone_confidence: 'high' };
   const out = formatOutput('Hello world', 'rewrite', {}, { tone });
-  assert.ok(out.includes('tone: casual'));
-  assert.ok(out.includes('tone_source: user'));
-  assert.ok(out.includes('tone_confidence: high'));
+  assert.equal(out, 'Hello world');
 });
 
 test('formatOutput: no tone → no footer', () => {
@@ -144,7 +142,7 @@ test('formatOutput: only rewrite mode strips [BODY]; other modes pass text throu
 test('formatOutput: does not duplicate complete footer', () => {
   const existing = 'Body text\n---\ntone: casual\ntone_source: user\ntone_evidence: []\ntone_confidence: high\n---';
   const tone = { tone: 'casual', tone_source: 'user', tone_evidence: [], tone_confidence: 'high' };
-  const out = formatOutput(existing, 'rewrite', {}, { tone });
+  const out = formatOutput(existing, 'audit', {}, { tone });
   const count = (out.match(/tone_source:/g) || []).length;
   assert.equal(count, 1);
 });
@@ -152,7 +150,7 @@ test('formatOutput: does not duplicate complete footer', () => {
 test('formatOutput: detects tone footer inside fenced output', () => {
   const existing = 'Body text\n```yaml\n---\ntone: casual\ntone_source: user\ntone_evidence: []\ntone_confidence: high\n---\n```';
   const tone = { tone: 'casual', tone_source: 'user', tone_evidence: [], tone_confidence: 'high' };
-  const out = formatOutput(existing, 'rewrite', {}, { tone });
+  const out = formatOutput(existing, 'audit', {}, { tone });
   const count = (out.match(/tone_source:/g) || []).length;
   assert.equal(count, 1);
 });
@@ -160,7 +158,7 @@ test('formatOutput: detects tone footer inside fenced output', () => {
 test('formatOutput: detects tone footer inside blockquote output', () => {
   const existing = 'Body text\n> ---\n> tone: casual\n> tone_source: user\n> tone_evidence: []\n> tone_confidence: high\n> ---';
   const tone = { tone: 'casual', tone_source: 'user', tone_evidence: [], tone_confidence: 'high' };
-  const out = formatOutput(existing, 'rewrite', {}, { tone });
+  const out = formatOutput(existing, 'audit', {}, { tone });
   const count = (out.match(/tone_source:/g) || []).length;
   assert.equal(count, 1);
 });
@@ -168,14 +166,14 @@ test('formatOutput: detects tone footer inside blockquote output', () => {
 test('formatOutput: appends footer when partial footer present (missing keys)', () => {
   const partial = 'Body text\n---\ntone: casual\n---';
   const tone = { tone: 'casual', tone_source: 'user', tone_evidence: [], tone_confidence: 'high' };
-  const out = formatOutput(partial, 'rewrite', {}, { tone });
+  const out = formatOutput(partial, 'audit', {}, { tone });
   const count = (out.match(/tone_source:/g) || []).length;
   assert.equal(count, 1);
 });
 
-test('formatOutput: null tone emits null values', () => {
+test('formatOutput: non-rewrite markdown preserves null tone metadata', () => {
   const tone = { tone: null, tone_source: 'profile_only', tone_evidence: [], tone_confidence: null };
-  const out = formatOutput('Text', 'rewrite', {}, { tone });
+  const out = formatOutput('Text', 'audit', {}, { tone });
   assert.ok(out.includes('tone: null'));
   assert.ok(out.includes('tone_confidence: null'));
 });
@@ -220,12 +218,10 @@ test('stripSelfAudit: removes nested SELF_AUDIT blocks inside BODY', () => {
   assert.equal(out, 'Hello\n\nworld');
 });
 
-test('stripSelfAudit: keeps YAML footer that follows [/BODY]', () => {
+test('stripSelfAudit: removes a tone footer that follows [/BODY]', () => {
   const raw = '[BODY]\nHello world\n[/BODY]\n\n[SELF_AUDIT]\nstuff\n[/SELF_AUDIT]\n\n---\ntone: null\ntone_source: profile_only\ntone_evidence: []\ntone_confidence: null\n---';
   const out = formatOutput(raw, 'rewrite', {});
-  assert.ok(out.startsWith('Hello world'));
-  assert.ok(out.includes('tone_source: profile_only'));
-  assert.ok(!out.includes('residual'));
+  assert.equal(out, 'Hello world');
 });
 
 test('stripSelfAudit: passes through unchanged when no tags emitted', () => {

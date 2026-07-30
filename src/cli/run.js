@@ -28,7 +28,7 @@ import { detectKoreanRegister } from '../features/stylometry.js';
 import { logBatchSafetyPlan, createBatchCircuitBreaker, shouldHandleBatchFailure, writeBatchOutput, writeAtomicUtf8, resolveBatchOutputPath } from './batch.js';
 import { applyScoreGate, extractScoreOverall } from './score-gate.js';
 import { loadInputs } from './input.js';
-import { PatinaCliError, runtimeError } from '../errors.js';
+import { PatinaCliError, inputError, runtimeError } from '../errors.js';
 import { providerHttpKeyEnvVars, resolveHttpApiKey } from '../auth.js';
 import { DEFAULT_BACKEND_TIMEOUT_MS, getBackendSafety, resolveBackendMaxRetries } from '../backends/contract.js';
 import { resolve } from 'node:path';
@@ -57,18 +57,6 @@ export async function runDefault(parsed, logger) {
 
   if (parsed.lang) config.language = parsed.lang;
   if (parsed.profile) config.profile = parsed.profile;
-
-  const provider = selectProvider(parsed.provider ?? config.provider);
-  const apiKey = resolveApiKey(parsed, provider);
-  const resolved = resolveProviderConfig({
-    provider,
-    apiKey,
-    baseURL: parsed.baseURL ?? config.baseURL ?? config['base-url'],
-    model: parsed.model ?? config.model,
-  });
-  applyInsecureBaseURLOptIn(parsed);
-  applyPrivateBaseURLOptIn(parsed);
-  validateBaseURL(resolved.baseURL);
 
 
   const repoRoot = getRepoRoot();
@@ -99,6 +87,22 @@ export async function runDefault(parsed, logger) {
     profile,
     lang,
   );
+  if (parsed.offline) {
+    return runOfflineScore(parsed, { config, patterns, repoRoot }, logger);
+  }
+
+  const provider = selectProvider(parsed.provider ?? config.provider);
+  const apiKey = resolveApiKey(parsed, provider);
+  const resolved = resolveProviderConfig({
+    provider,
+    apiKey,
+    baseURL: parsed.baseURL ?? config.baseURL ?? config['base-url'],
+    model: parsed.model ?? config.model,
+  });
+  applyInsecureBaseURLOptIn(parsed);
+  applyPrivateBaseURLOptIn(parsed);
+  validateBaseURL(resolved.baseURL);
+
   const voice = loadCoreFile(repoRoot, 'voice.md');
   const scoring = loadCoreFile(repoRoot, 'scoring.md');
   const mode = parsed.diff ? 'diff'
@@ -412,6 +416,78 @@ export async function runDefault(parsed, logger) {
     logger.closeProgress();
   }
 
+}
+
+async function runOfflineScore(parsed, { config, patterns, repoRoot }, logger) {
+  const inputs = await loadInputs(parsed, logger);
+  const batchState = createBatchCircuitBreaker({ parsed, total: inputs.length });
+
+  for (const { path, text, readError } of inputs) {
+    try {
+      if (readError) throw readError;
+      const deterministicScore = scoreDeterministicSignals({
+        text,
+        config,
+        patterns,
+        repoRoot,
+        logger,
+      });
+      if (!deterministicScore) {
+        throw inputError(
+          'offline scoring is disabled by config',
+          '`scoring.deterministic.enabled` is false, so no local score can be computed.',
+          'Enable `scoring.deterministic.enabled`, or drop --offline to use the LLM-backed score.',
+        );
+      }
+
+      const result = deterministicOnlyScoreResult(deterministicScore);
+      const output = formatOutput(result, 'score', parsed, { logger });
+      if (parsed.gate !== undefined) {
+        applyScoreGate(result, output, parsed.gate, logger);
+      }
+      if (parsed.batch) {
+        await writeBatchOutput(parsed, path, output);
+      } else {
+        console.log(output);
+      }
+      batchState.recordSuccess();
+    } catch (err) {
+      if (!shouldHandleBatchFailure(parsed, inputs.length)) throw err;
+      batchState.recordFailure({ path, err });
+      logger.warn('batch.file_failed', {
+        message: `[patina] batch file failed: ${path} (${batchState.failures.length}/${batchState.maxFailures} failures): ${err.message}`,
+      });
+      if (batchState.shouldStop()) throw batchState.toError();
+    }
+  }
+
+  if (batchState.hasFailures()) {
+    throw batchState.toError({ completed: true });
+  }
+}
+
+function deterministicOnlyScoreResult(score) {
+  const overall = Number.isFinite(score?.overall) ? score.overall : null;
+  const lines = [
+    `Overall: ${overall ?? 'unavailable'}`,
+    `Interpretation: ${score?.interpretation ?? 'unavailable'}`,
+    'Scoring: deterministic only; LLM-judged categories unavailable.',
+    `Paragraphs: ${score?.paragraphCount ?? 0}`,
+    `Hot paragraphs: ${score?.hotParagraphs ?? 0}`,
+    `Signal score: ${score?.signalScore ?? 0}`,
+    `Evidence floor: ${score?.evidenceFloor ?? 0}`,
+  ];
+  if (score?.skipped && score?.skipReason) {
+    lines.push(`Skipped signal: ${score.skipReason}`);
+  }
+  return {
+    raw: lines.join('\n'),
+    overall,
+    interpretation: score?.interpretation ?? null,
+    llmScore: null,
+    deterministicScore: score,
+    scorePreference: 'deterministic-only',
+  };
 }
 
 /**

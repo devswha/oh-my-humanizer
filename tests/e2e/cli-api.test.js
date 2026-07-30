@@ -718,6 +718,7 @@ describe('CLI End-to-End with Mock API', () => {
     assert.ok(help.includes('ADVANCED'), 'help should group advanced options');
     assert.ok(help.includes('EXAMPLES'), 'help should include examples');
     assert.ok(help.includes('--exit-on <n>'), 'help should document score gate');
+    assert.ok(help.includes('--offline'), 'help should document deterministic offline scoring');
     assert.ok(help.includes('--format <fmt>'), 'help should document output format');
     assert.ok(help.includes('--quiet'), 'help should document quiet logs');
     assert.ok(!help.includes('--json-logs'), 'help should not document removed structured stderr logs');
@@ -763,6 +764,37 @@ describe('CLI End-to-End with Mock API', () => {
     assert.ok(parsed.tone);
     await mock.stop();
     mock = await startMockServer('This is the humanized result.');
+  });
+
+  it('scores offline without resolving or calling a backend', async () => {
+    mock.callCount = 0;
+    mock.lastRequestBody = null;
+    const testFile = resolve(REPO_ROOT, 'tests/e2e/test-input-en.txt');
+    const { logs } = await captureConsole(() => main([
+      '--lang', 'en',
+      '--score',
+      '--offline',
+      '--exit-on', '100',
+      '--format', 'json',
+      testFile,
+    ]));
+
+    assert.strictEqual(mock.callCount, 0);
+    assert.strictEqual(mock.lastRequestBody, null);
+    const parsed = JSON.parse(logs.join('\n'));
+    assert.strictEqual(parsed.mode, 'score');
+    assert.strictEqual(parsed.overall, 100);
+    assert.deepStrictEqual(parsed.categories, []);
+    assert.strictEqual(parsed.scores.llm, null);
+    assert.strictEqual(parsed.scores.preference, 'deterministic-only');
+    assert.strictEqual(parsed.scores.deterministic.overall, 100);
+    assert.match(parsed.output, /LLM-judged categories unavailable/);
+    assert.deepStrictEqual(parsed.gateResult, {
+      threshold: 100,
+      overall: 100,
+      passed: true,
+      exitCode: 0,
+    });
   });
 
   it('should validate score weights before wrapping --format json output', async () => {
@@ -815,6 +847,7 @@ describe('CLI End-to-End with Mock API', () => {
     assert.strictEqual(mock.callCount, 1, 'Should make exactly one API call');
     assert.deepStrictEqual(errors, []);
     assert.match(logs.join('\n'), /This is the humanized result\./);
+    assert.doesNotMatch(logs.join('\n'), /tone_source:/);
   });
 
   it('should keep --format text to the rewritten body without tone metadata', async () => {

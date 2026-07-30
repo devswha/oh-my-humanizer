@@ -116,8 +116,9 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 |---|---|
 | `patina input.txt` | 기본값으로 재작성 |
 | `patina --audit input.txt` | 패턴 탐지만 수행 |
-| `patina --score input.txt` | 0-100 AI 유사도 점수 출력 |
-| `patina --score --exit-on 30 input.txt` | `overall > 30`이면 종료 코드 `3`을 내는 CI 게이트 |
+| `patina --score input.txt` | LLM 판정과 결정론적 신호를 함께 사용해 0-100 점수 출력 |
+| `patina --score --offline input.txt` | 백엔드나 API 키 없이 결정론적 신호만으로 점수 계산 |
+| `patina --score --offline --exit-on 30 input.txt` | `overall > 30`이면 종료 코드 `3`을 내는 오프라인 CI 게이트 |
 | `patina --diff input.txt` | 패턴별 변경 사항 표시 |
 | `patina --preview page.html` | 저장된 HTML 페이지 위에 재작성을 다시 렌더링(토글 + 인라인 diff) |
 | `patina --verify input.txt` | 재작성 후 MPS/충실도 하한을 검사하고 1회 재시도 |
