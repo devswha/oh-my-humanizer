@@ -15,7 +15,7 @@ Please include:
 
 - patina version or commit;
 - language (`ko`, `en`, `zh`, `ja`);
-- mode (`rewrite`, `audit`, `score`, `diff`, `ouroboros`);
+- mode (`rewrite`, `audit`, `score`, `diff`, or `strict`);
 - backend/provider if relevant;
 - a short input sample, if it is safe to share;
 - expected vs actual output.

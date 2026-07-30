@@ -64,9 +64,11 @@ No. patina runs as a skill for Claude Code, Codex CLI, Cursor, and OpenCode, and
 
 Korean, English, Chinese, and Japanese are supported. Pattern packs are auto-discovered by language prefix, so new languages can be added by contributing new pattern files.
 
-## Can I add my own writing style or patterns?
+## Do persona, profile, and tone overlap?
 
-Yes. Use custom profiles for voice preferences and custom pattern packs for local rules. The repo keeps built-in patterns separate from user customizations.
+They serve different jobs. A persona owns reusable voice composition. In Korean and English, `--tone casual|professional|auto` is the register override and takes precedence over a persona's register. A profile supplies deterministic pattern policy; use a custom pattern pack for separate local rules.
+
+That separation is the current direction, not a claim that every path has reached the target: some skill and core-prompt paths still carry legacy voice guidance from profiles. This release does not change prompts or runtime behavior, merge the axes, rename `--tone`, or expose new hosted controls. Completing profile-policy-only handling everywhere, verifying retry-context preservation, and considering a user-facing “Register” name are later work.
 
 ## What should contributors start with?
 

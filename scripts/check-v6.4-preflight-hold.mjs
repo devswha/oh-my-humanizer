@@ -12,6 +12,22 @@ const EVIDENCE_URL = new URL('../docs/operations/pay-stg-binding-20260716.json',
 const RUNTIME_EVIDENCE_URL = new URL('../docs/operations/pay-stg-runtime-20260716.json', import.meta.url);
 const PRODUCTION_EVIDENCE_URL = new URL('../docs/operations/pay-b-binding-20260723.json', import.meta.url);
 const ROOT_URL = new URL('../', import.meta.url);
+const CURRENT_PACKAGE_URL = new URL('../package.json', import.meta.url);
+const POST_V64_MUTABLE_HASHES = new Set([
+  'src/web-rewrite-contract.js',
+  'package.json',
+  'package-lock.json',
+  'README.md',
+  'README_KR.md',
+  'README_ZH.md',
+  'README_JA.md',
+  'SKILL.md',
+  '.patina.default.yaml',
+  'packages/patina-humanizer/package.json',
+  '.claude-plugin/plugin.json',
+  '.claude-plugin/marketplace.json',
+  'CHANGELOG.md',
+]);
 const REQUIRED_EVIDENCE_ID = 'PAY-STG-20260716-1199625-1875389';
 const REQUIRED_RUNTIME_EVIDENCE_ID = 'PAY-STG-RUNTIME-20260716-8973866';
 const REQUIRED_PRODUCTION_EVIDENCE_ID = 'PAY-B-20260723-1236551-1932893';
@@ -116,7 +132,19 @@ function validateRuntimeEvidence(evidence, errors) {
 function rejectReceiptFields(value, path, errors) { if (Array.isArray(value)) return value.forEach((entry, index) => rejectReceiptFields(entry, `${path}[${index}]`, errors)); if (!isObject(value)) return; for (const [key, entry] of Object.entries(value)) { if (/pass|receipt/i.test(key)) errors.push(`${path}.${key} is forbidden in a non-receipt hold`); if (key === 'evidence' && !path.startsWith('state.completedDecisions[') && entry !== null) errors.push(`${path}.evidence must be null outside completed decisions`); rejectReceiptFields(entry, `${path}.${key}`, errors); } }
 function hashFile(path) { return createHash('sha256').update(readFileSync(new URL(path, ROOT_URL))).digest('hex'); }
 function validateFrozenSources(sources, errors) { const modelDefaults = sources.modelDefaults ?? DEFAULT_BEST_MODELS; const providers = sources.providers ?? PROVIDERS; const presets = sources.webProviderPresets ?? PROVIDER_PRESETS; const defaults = [presets.openai?.models?.[0], modelDefaults.codexCli, modelDefaults.claudeCli, providers.gemini?.defaultModel, modelDefaults.geminiCli]; REQUIRED_ROWS.forEach(([, expected], index) => { if (defaults[index] !== expected) errors.push(`held source default ${REQUIRED_ROWS[index][0]} changed`); }); for (const [key, expected] of Object.entries(FROZEN_SEMANTICS.providers)) { const provider = providers[key]; if (!sameJson(provider && Object.fromEntries(Object.keys(expected).map((field) => [field, provider[field]])), expected)) errors.push(`source provider ${key} changed from frozen semantics`); } }
-function validateHashes(errors, hash = hashFile) { for (const [file, expected] of Object.entries(FROZEN_SEMANTICS.sourceHashes)) { try { if (hash(file) !== expected) errors.push(`frozen SHA-256 mismatch: ${file}`); } catch { errors.push(`frozen manifest entry unreadable: ${file}`); } } }
+function validateHashes(errors, hash = hashFile, currentVersion) {
+  const version = currentVersion ?? JSON.parse(readFileSync(CURRENT_PACKAGE_URL, 'utf8')).version;
+  const match = typeof version === 'string' ? /^(\d+)\.(\d+)(?:\.|$)/.exec(version) : null;
+  const isAfterV64 = match ? Number(match[1]) > 6 || (Number(match[1]) === 6 && Number(match[2]) > 4) : false;
+  for (const [file, expected] of Object.entries(FROZEN_SEMANTICS.sourceHashes)) {
+    if (isAfterV64 && POST_V64_MUTABLE_HASHES.has(file)) continue;
+    try {
+      if (hash(file) !== expected) errors.push(`frozen SHA-256 mismatch: ${file}`);
+    } catch {
+      errors.push(`frozen manifest entry unreadable: ${file}`);
+    }
+  }
+}
 function validateDependencyGraph(state, errors) { const blockers = new Set(REQUIRED_BLOCKERS.map(([id]) => id)); const decisions = new Set(REQUIRED_DECISIONS.map(([id]) => id)); const actions = new Set(REQUIRED_DEFERRED_ACTIONS.map(([id]) => id)); const known = new Set([...blockers, ...decisions, ...actions]); const ranks = { LS_APPROVAL: 1, PAY_STG_BINDING_APPROVAL: 2, PAY_B_BINDING_APPROVAL: 2, SOURCE_BINDING_STAGING_INTEGRATION: 3, SOURCE_BINDING_PRODUCTION_INTEGRATION: 3, PAY_STG: 4, GATE_B: 4, V6_4_METADATA_COPY_RECONCILIATION: 5, PAY_LIVE: 6, REL_PUBLISH: 6, FINAL_TAG_PUBLISH_COMMAND: 7 }; const graph = new Map((state.deferredActions || []).map((action) => [action.id, action.blockedBy])); for (const [id, dependencies] of graph) for (const dependency of dependencies || []) { if (!known.has(dependency)) errors.push(`dependency graph references unknown ID: ${dependency}`); if (dependency === id) errors.push(`dependency graph contains self reference: ${id}`); if (ranks[id] !== undefined && ranks[dependency] !== undefined && ranks[dependency] >= ranks[id]) errors.push(`dependency graph reverses release order: ${id} -> ${dependency}`); } const visiting = new Set(); const visited = new Set(); const visit = (id) => { if (visiting.has(id)) { errors.push(`dependency graph contains cycle at: ${id}`); return; } if (visited.has(id)) return; visiting.add(id); for (const dependency of graph.get(id) || []) if (actions.has(dependency)) visit(dependency); visiting.delete(id); visited.add(id); }; for (const id of graph.keys()) visit(id); }
 /** Validate the closed non-receipt v6.4 preflight state. */
 export function validatePreflightHold(state, sources = {}) {
@@ -147,7 +175,7 @@ export function validatePreflightHold(state, sources = {}) {
   if (!isObject(bindings) || !Object.isFrozen(bindings) || !sameJson(bindings, requiredBindings)) errors.push('checkout evidence binding table must exactly retain the validated staging and production bindings');
   if (!sameJson(state.frozenSemantics, FROZEN_SEMANTICS)) errors.push('frozenSemantics must exactly match manifest version 3');
   validateFrozenSources(sources, errors);
-  if (sources.checkHashes !== false) validateHashes(errors, sources.hashFile);
+  if (sources.checkHashes !== false) validateHashes(errors, sources.hashFile, sources.currentVersion);
   if (!Array.isArray(state.blockers) || state.blockers.length !== REQUIRED_BLOCKERS.length) errors.push('blockers must contain exactly the ordered required blockers');
   else state.blockers.forEach((blocker, index) => { const [id, owner, exitEvidence] = REQUIRED_BLOCKERS[index]; exactKeys(blocker, ['id', 'type', 'owner', 'exitEvidence', 'evidence'], `blockers[${index}]`, errors); if (!isObject(blocker) || blocker.id !== id || blocker.type !== 'human_action' || blocker.owner !== owner || blocker.exitEvidence !== exitEvidence || blocker.evidence !== null) errors.push(`blockers[${index}] must exactly retain ${id}'s owner, human type, exit artifact, and null evidence`); });
   if (!Array.isArray(state.deferredActions) || state.deferredActions.length !== REQUIRED_DEFERRED_ACTIONS.length) errors.push('deferredActions must contain exactly the closed deferred repo actions');

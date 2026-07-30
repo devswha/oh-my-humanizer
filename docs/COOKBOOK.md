@@ -2,7 +2,7 @@
 
 Practical recipes for plugging patina into existing writing and CI workflows. Each recipe is self-contained — copy, adapt, run.
 
-For the full flag list see `patina --help` and [`CLI.md`](CLI.md). For tone / profile background see [`README.md`](../README.md#modes).
+For the full flag list see `patina --help` and [`CLI.md`](CLI.md). For persona, tone, and profile background see [`README.md`](../README.md#modes).
 
 ---
 
@@ -98,15 +98,17 @@ skip-patterns:
 
 ---
 
-## 5. Create a custom profile (copy `blog.md`, edit voice-overrides)
+## 5. Create a custom profile (copy `blog.md`, edit pattern policy)
 
-When the built-in 12 profiles don't match your house style, fork the closest one:
+Use a custom profile to apply deterministic pattern policy for a house style. Persona is the reusable voice-composition control; tone is the Korean/English `casual` / `professional` / `auto` register override and wins over a persona's register. A profile is not the place to compose a new persona.
+
+When the built-in profiles do not match your local pattern policy, fork the closest one:
 
 ```bash
 cp profiles/blog.md profiles/my-newsletter.md
 ```
 
-Edit the frontmatter — at minimum change `profile:`, then tune `voice-overrides` and `pattern-overrides` to match the voice you want:
+Edit the frontmatter — at minimum change `profile:`, then tune `pattern-overrides` for the policy you need:
 
 ```yaml
 ---
@@ -114,11 +116,6 @@ profile: my-newsletter            # must match the filename without .md
 name: Internal newsletter profile
 version: 1.0.0
 scope: weekly engineering newsletter
-voice-overrides:
-  first-person: amplify           # we sign every post
-  opinions: amplify               # opinionated framing is the point
-  humor: allow                    # dry humor ok
-  messiness: reduce               # cleaner than personal blog
 pattern-overrides:
   en:
     14: suppress                  # bold is allowed for scannable sections
@@ -126,15 +123,17 @@ pattern-overrides:
 ---
 ```
 
-Then opt-in per run:
+Then opt in per run:
 
 ```bash
 patina --lang en --profile my-newsletter post.md
 ```
 
-Voice-override values are `amplify` / `allow` / `reduce` / `suppress`; pattern IDs and their meanings are in [`PATTERNS.md`](PATTERNS.md).
+Pattern-policy values are `amplify` / `allow` / `reduce` / `suppress`; pattern IDs and their meanings are in [`PATTERNS.md`](PATTERNS.md).
 
-> **What actually runs:** a `pattern-overrides` entry set to **`suppress`** is applied deterministically — patina drops that pattern from the rewrite / audit / score prompt for the profile's language, so the model never flags it (e.g. `legal` suppresses Korean passive-voice #27). `reduce` / `amplify` are **advisory** for now: they document intent and are reinforced by the profile's prose body, but the engine does not yet adjust their weight.
+> **What actually runs:** a `pattern-overrides` entry set to **`suppress`** is applied deterministically — patina drops that pattern from the rewrite / audit / score prompt for the profile's language, so the model never flags it (e.g. `legal` suppresses Korean passive-voice #27). `reduce` / `amplify` are advisory for now: they document intent, but the engine does not yet adjust their weight.
+>
+> **Current vs. target:** profiles currently supply deterministic pattern policy, but some skill and core-prompt paths still carry legacy voice guidance. “Profile is pattern-policy only everywhere” is therefore a target, not a universal current invariant. This release changes no prompts or runtime behavior.
 
 ---
 

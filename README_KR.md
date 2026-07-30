@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skill](https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet)](#빠른-시작)
 [![Multi-language](https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green)](https://github.com/devswha/patina)
-[![Version](https://img.shields.io/badge/version-6.3.4-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.0.0-blue)](CHANGELOG.md)
 
 <p align="center">
   <a href="https://patina.vibetip.help/"><b>브라우저에서 바로 써보기 — 설치 없음</b></a>
@@ -99,7 +99,7 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 | **184개 패턴** | 언어별 재작성 가능 37개 + 스코어 전용 바이럴 훅 9개(KO/EN/ZH/JA 각각 46개) — 전체 184개 패턴 카탈로그는 [PATTERNS.md](docs/PATTERNS.md) 참고 |
 | **모드** | rewrite · verify · audit · score · diff |
 | **사용 채널** | 에이전트 스킬 · Node CLI · 페이지 내 preview · 브라우저 playground (리라이트 + 점수) |
-| **보이스** | `--persona` (내장 + 직접 제작, ko/en/zh/ja) · `--tone` 격식 · `--profile` 장르 — 고정된 우선순위로 조합 가능 |
+| **보이스 제어** | `--persona`는 재사용 보이스 · `--tone`은 register override · `--profile`은 Node 패턴 정책(일부 skill/core 경로에는 기존 profile voice guidance가 남아 있음) |
 | **무료 사용** | 로그인된 `codex`, `claude`, `gemini` CLI 중 하나로 `PATINA_API_KEY` 없이 재작성 실행 |
 | **캘리브레이션** | GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro 기준 편집 핫스팟 catch 67.3% [63.5–71.0%] (n=600, KO+EN); KO+EN 사람 글 컨트롤에서 오탐 16.0% [11.6–21.7%] (n=200) |
 | **라이선스** | MIT |
@@ -116,8 +116,9 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 |---|---|
 | `patina input.txt` | 기본값으로 재작성 |
 | `patina --audit input.txt` | 패턴 탐지만 수행 |
-| `patina --score input.txt` | 0-100 AI 유사도 점수 출력 |
-| `patina --score --exit-on 30 input.txt` | `overall > 30`이면 종료 코드 `3`을 내는 CI 게이트 |
+| `patina --score input.txt` | LLM 판정과 결정론적 신호를 함께 사용해 0-100 점수 출력 |
+| `patina --score --offline input.txt` | 백엔드나 API 키 없이 결정론적 신호만으로 점수 계산 |
+| `patina --score --offline --exit-on 30 input.txt` | `overall > 30`이면 종료 코드 `3`을 내는 오프라인 CI 게이트 |
 | `patina --diff input.txt` | 패턴별 변경 사항 표시 |
 | `patina --preview page.html` | 저장된 HTML 페이지 위에 재작성을 다시 렌더링(토글 + 인라인 diff) |
 | `patina --verify input.txt` | 재작성 후 MPS/충실도 하한을 검사하고 1회 재시도 |
@@ -140,7 +141,7 @@ patina persona new my-voice --describe "plain-spoken founder, casual"
 patina --persona my-voice draft.md                          # 이후 재사용
 ```
 
-ko/en/zh/ja에서 동작하며 `--tone`/`--profile`과 조합됩니다(격식 우선순위 `--tone` > 페르소나 > 프로필). 페르소나는 말투를 바꿀 뿐 의미 하한을 낮추지 않습니다 — 제작한 페르소나는 저장 시 검증되고, 안전 게이트는 재작성 시 MPS/충실도 및 숫자 누락 검사를 그대로 강제합니다.
+ko/en/zh/ja에서 `--tone`/`--profile`과 조합됩니다. Node에서는 persona가 재사용 보이스를 맡고 register 우선순위는 `--tone` > persona이며, profile은 패턴 정책을 제어합니다. 일부 skill/core-prompt 경로에는 기존 profile voice guidance가 남아 있어 이 구분이 아직 모든 경로의 불변식은 아닙니다. 어떤 제어도 의미 하한을 낮추지 않으며, 제작한 persona는 저장 시 검증되고 재작성은 MPS/충실도 및 숫자 누락 검사를 그대로 강제합니다.
 
 ## CI
 
@@ -186,11 +187,11 @@ Input
 
 ```yaml
 # .patina.default.yaml
-version: "6.3.4"
+version: "7.0.0"
 language: ko              # ko | en | zh | ja
 profile: default
 output: rewrite           # rewrite | diff | audit | score
-tone:                     # casual | professional | auto  (register; genre = profile)
+tone:                     # casual | professional | auto  (register override; profile = pattern policy)
 ```
 
 프로젝트의 `.patina.yaml`이 기본값을 오버라이드합니다. 패턴 팩은 언어 접두사로 자동 탐색됩니다. 추가형 목록 키(`blocklist`, `allowlist`, `skip-patterns`)는 병합되고, 다른 배열은 대체됩니다.

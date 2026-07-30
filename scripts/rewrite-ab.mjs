@@ -5,11 +5,10 @@
 // both (before/after AI score, MPS, fidelity) and measures edit churn, then
 // reports per-fixture winners + aggregate deltas.
 //
-// The multi-pass `runOuroboros` loop (detect -> rewrite -> score -> rollback with
-// MPS/fidelity floors) is retained as a research baseline here, even though the
-// CLI's `--ouroboros` now aliases the lighter `--verify`. The default comparison
-// is `single` (one-shot rewrite) vs `ouroboros` (multi-pass) — the
-// deterministic-question-with-an-LLM answer to "does multi-pass beat one pass?"
+// The multi-pass iterative baseline (detect -> rewrite -> score -> rollback with
+// MPS/fidelity floors) is retained as research-only comparison data. The default
+// comparison is `single` (one-shot rewrite) vs `iterative-baseline` (multi-pass)
+// to answer whether multi-pass rewriting beats one pass.
 //
 // LLM-backed and opt-in (like quality:live): non-deterministic, may incur
 // provider cost. The core comparison/aggregation is pure and unit-tested with
@@ -17,7 +16,7 @@
 //
 // Usage:
 //   PATINA_LIVE=1 PATINA_LIVE_PROVIDER=gemini PATINA_LIVE_API_KEY=... \
-//     npm run quality:rewrite-ab -- --configs single,ouroboros --language ko --limit 3
+//     npm run quality:rewrite-ab -- --configs single,iterative-baseline --language ko --limit 3
 //   npm run quality:rewrite-ab -- --json
 
 import { resolve } from 'node:path';
@@ -25,7 +24,7 @@ import { resolve } from 'node:path';
 import { callLLM as defaultCallLLM } from '../src/api.js';
 import { loadConfig, getRepoRoot } from '../src/config.js';
 import { loadCoreFile, loadPatterns, loadProfile } from '../src/loader.js';
-import { runOuroboros } from '../src/ouroboros.js';
+import { runIterativeRewriteBaseline } from './iterative-rewrite-baseline.mjs';
 import {
   DEFAULT_POLICY,
   buildPatinaRewritePrompt,
@@ -35,8 +34,13 @@ import {
   resolveLiveSettings,
 } from '../tests/quality/live-quality.mjs';
 
-export const REWRITE_AB_SCHEMA_VERSION = 1;
-export const DEFAULT_CONFIGS = ['single', 'ouroboros'];
+export const REWRITE_AB_SCHEMA_VERSION = 2;
+export const DEFAULT_CONFIGS = ['single', 'iterative-baseline'];
+export const ITERATIVE_BASELINE_POLICY = Object.freeze({
+  targetScore: 30,
+  maxIterations: 3,
+  plateauThreshold: 10,
+});
 
 // Normalized word-level edit ratio: 0 = identical, →1 = fully rewritten.
 // Conservative rewrites should keep this low; a config that "wins" on AI score
@@ -139,17 +143,19 @@ async function produceSingle(fixture, { settings, callLLM, repoRoot }) {
   return callLLM({ prompt, apiKey: settings.apiKey, baseURL: settings.baseURL, model: settings.model, temperature: 0.2 });
 }
 
-async function produceOuroboros(fixture, { settings, callLLM, repoRoot }) {
-  const config = loadConfig();
-  config.language = fixture.language;
-  if (fixture.profile) config.profile = fixture.profile;
-  config.ouroboros = { ...(config.ouroboros || {}), enabled: true };
+async function produceIterativeBaseline(fixture, { settings, callLLM, repoRoot, config }) {
+  const baselineConfig = {
+    ...config,
+    language: fixture.language,
+    ...(fixture.profile ? { profile: fixture.profile } : {}),
+  };
   const patterns = loadPatterns(repoRoot, fixture.language);
-  const profile = loadProfile(repoRoot, config.profile || 'default');
+  const profile = loadProfile(repoRoot, baselineConfig.profile || 'default');
   const voice = loadCoreFile(repoRoot, 'voice.md');
   const scoring = loadCoreFile(repoRoot, 'scoring.md');
-  const result = await runOuroboros({
-    config,
+  const result = await runIterativeRewriteBaseline({
+    config: baselineConfig,
+    policy: ITERATIVE_BASELINE_POLICY,
     patterns,
     profile: profile.body ? profile : null,
     voice,
@@ -166,7 +172,7 @@ async function produceOuroboros(fixture, { settings, callLLM, repoRoot }) {
 function liveProducer(deps) {
   return (config, fixture) => {
     if (config === 'single') return produceSingle(fixture, deps);
-    if (config === 'ouroboros') return produceOuroboros(fixture, deps);
+    if (config === 'iterative-baseline') return produceIterativeBaseline(fixture, deps);
     throw new Error(`unknown rewrite config: ${config}`);
   };
 }
@@ -226,10 +232,16 @@ async function main() {
     process.exit(1);
   }
 
-  const deps = { settings, callLLM: defaultCallLLM, repoRoot };
+  const config = loadConfig();
+  const deps = { settings, callLLM: defaultCallLLM, repoRoot, config };
   const produce = liveProducer(deps);
-  const grade = (fixture, raw) => evaluateModelGradedRewrite(fixture, raw, { settings, policy: DEFAULT_POLICY, callLLM: defaultCallLLM });
-  const report = await compareRewrites({ fixtures, configs: opts.configs, produce, grade });
+  const policy = {
+    ...DEFAULT_POLICY,
+    mpsFloor: config.verification?.['mps-floor'] ?? DEFAULT_POLICY.mpsFloor,
+    fidelityFloor: config.verification?.['fidelity-floor'] ?? DEFAULT_POLICY.fidelityFloor,
+  };
+  const grade = (fixture, raw) => evaluateModelGradedRewrite(fixture, raw, { settings, policy, callLLM: defaultCallLLM });
+  const report = await compareRewrites({ fixtures, configs: opts.configs, produce, grade, policy });
   console.log(opts.json ? JSON.stringify(report, null, 2) : renderMarkdown(report));
 }
 

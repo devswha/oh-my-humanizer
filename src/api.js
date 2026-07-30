@@ -250,7 +250,7 @@ export function computeBackoffMs(attempt, retryAfter, opts = {}) {
  * callLLM stays transport-agnostic (#576).
  *
  * @param {{ body: unknown }} response Fetch response with an SSE body.
- * @param {(metadata: { effectiveModel: string|null, usage: object|null }) => void} [onMetadata]
+ * @param {Function} [onMetadata] Optional metadata callback.
  * @returns {Promise<{ choices: Array<{ message: { content: string }, finish_reason?: string }>, model?: string, usage?: object }>}
  */
 async function readStreamedCompletion(response, onMetadata) {

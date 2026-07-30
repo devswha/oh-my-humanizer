@@ -33,8 +33,8 @@ export const WEB_TIERS = Object.freeze({ FREE: 'free', BYOK: 'byok', PRO: 'pro' 
 export const REWRITE_MODES = Object.freeze({ FIRST: 'first', REFINE: 'refine' });
 
 /**
- * Meaning-preservation and fidelity floors. Mirrors the ouroboros floors in
- * `.patina.default.yaml` (mps-floor / fidelity-floor). A rewrite that scores
+ * Meaning-verification floors, hard-coded at 70/70 to mirror
+ * `.patina.default.yaml` (`verification.mps-floor` / `verification.fidelity-floor`). A rewrite that scores
  * below either floor — or whose score is missing/unparseable — is rejected
  * fail-closed (see evaluateFloors).
  */

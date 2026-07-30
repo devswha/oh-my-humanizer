@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { loadConfig } from '../../src/config.js';
+import { buildScoreMathCore } from '../../src/prompt-builder.js';
+import { combinedScore } from '../../src/scoring.js';
 
 function tempWorkspace() {
   const root = mkdtempSync(join(tmpdir(), 'patina-config-'));
@@ -94,5 +96,59 @@ test('loadConfig: when HOME equals cwd the shared .patina.yaml is applied once, 
     const config = loadConfig(defaultPath);
     assert.strictEqual(config.blocklist.length, 1);
     assert.deepStrictEqual(config.blocklist, [{ term: 'shared-entry' }]);
+  });
+});
+test('loadConfig preserves partial scoring defaults and explicit zero overrides', async () => {
+  const { root, home, project } = tempWorkspace();
+  const defaultPath = join(root, 'default.yaml');
+  const overridePath = join(root, 'override.yaml');
+  writeFileSync(defaultPath, `
+scoring:
+  category-weights:
+    en:
+      content: 0.25
+      style: 0.25
+      language: 0.25
+      structure: 0.25
+  combined-weights:
+    default:
+      ai-likeness: 0.6
+      fidelity: 0.4
+`);
+  writeFileSync(overridePath, `
+scoring:
+  category-weights:
+    en:
+      content: 0
+  combined-weights:
+    default:
+      ai-likeness: 0
+`);
+
+  await withEnv({ home, cwd: project }, async () => {
+    const config = loadConfig(defaultPath, { overridePath });
+    assert.deepEqual(config.scoring['category-weights'].en, {
+      content: 0,
+      style: 0.25,
+      language: 0.25,
+      structure: 0.25,
+    });
+    assert.deepEqual(config.scoring['combined-weights'].default, {
+      'ai-likeness': 0,
+      fidelity: 0.4,
+    });
+
+    const scoreMath = buildScoreMathCore(config, 'en');
+    assert.match(scoreMath, /^- content: 0$/m);
+    assert.match(scoreMath, /^- style: 0\.25$/m);
+    assert.equal(
+      combinedScore({
+        aiLikeness: 100,
+        fidelity: 0,
+        profile: 'default',
+        config,
+      }),
+      40
+    );
   });
 });

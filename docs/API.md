@@ -126,9 +126,6 @@ throw new PatinaCliError({ what: 'missing input', why: 'No file was provided', a
 <dt><a href="#DEFAULT_HTTP_KEY_ENV_VARS">DEFAULT_HTTP_KEY_ENV_VARS</a> : <code>Array.&lt;string&gt;</code></dt>
 <dd><p>Default key lookup order for the OpenAI-compatible HTTP provider.</p>
 </dd>
-<dt><a href="#PERSONA_LANGS">PERSONA_LANGS</a> ⇒ <code>Object</code></dt>
-<dd><p>Create a SIGINT-aware cancellation controller for long-running CLI operations.</p>
-</dd>
 <dt><a href="#MAX_INPUT_BYTES">MAX_INPUT_BYTES</a></dt>
 <dd><p>Maximum size (in bytes) of a single input file patina will read into memory.
 Guards against accidental memory exhaustion on huge or binary inputs (#508 G1).</p>
@@ -138,7 +135,7 @@ Guards against accidental memory exhaustion on huge or binary inputs (#508 G1).<
 </dd>
 <dt><a href="#DEFAULT_SEVERITY_POINTS">DEFAULT_SEVERITY_POINTS</a> : <code>Readonly.&lt;{high: number, medium: number, low: number}&gt;</code></dt>
 <dd><p>Default per-detection severity points.</p>
-<p>Mirrors <code>ouroboros.severity-points</code> in .patina.default.yaml and the
+<p>Mirrors <code>scoring.severity-points</code> in .patina.default.yaml and the
 core/scoring.md §1 table (both gated by tests/unit/threshold-parity.test.js).
 <code>buildScoreMathCore</code> derives the prompt&#39;s severity-scale line and the
 category-score denominator from these values via <code>resolveSeverityPoints</code>,
@@ -170,6 +167,15 @@ and the model verdict is hot; absent model means baseline behavior.</p>
 ## Functions
 
 <dl>
+<dt><a href="#isTemperatureRejectedError">isTemperatureRejectedError(err)</a> ⇒ <code>boolean</code></dt>
+<dd><p>True when the provider rejected a request solely because <code>temperature</code> is
+unsupported/deprecated for the requested model. Callers retry exactly once
+with the field omitted (and remember the model for this process).</p>
+</dd>
+<dt><a href="#modelRejectsTemperature">modelRejectsTemperature(model)</a> ⇒ <code>boolean</code></dt>
+<dd></dd>
+<dt><a href="#markTemperatureRejected">markTemperatureRejected(model)</a> ⇒ <code>void</code></dt>
+<dd></dd>
 <dt><a href="#redactErrorText">redactErrorText(text)</a> ⇒ <code>string</code></dt>
 <dd><p>Redact secret-bearing substrings (Bearer tokens, sk- API keys, key= query
 params) from provider error text BEFORE it enters an error message, error
@@ -177,13 +183,17 @@ body, or a log line. The single source of truth for LLM-transport error
 redaction, reused by the streaming helper and the scoring logger so a BYOK
 key echoed in a provider error response is never persisted (AC11).</p>
 </dd>
+<dt><a href="#dispatchMetadata">dispatchMetadata(callback, metadata)</a> ⇒ <code>void</code></dt>
+<dd><p>Invoke an optional metadata callback without allowing consumer code to affect
+a paid provider request or its result.</p>
+</dd>
 <dt><a href="#isRetryable">isRetryable(err)</a> ⇒ <code>boolean</code></dt>
 <dd><p>Decide whether an LLM call failure should be retried.</p>
 </dd>
 <dt><a href="#computeBackoffMs">computeBackoffMs(attempt, retryAfter, [opts])</a> ⇒ <code>number</code></dt>
 <dd><p>Compute retry delay from Retry-After or exponential backoff with jitter.</p>
 </dd>
-<dt><a href="#readStreamedCompletion">readStreamedCompletion(response)</a> ⇒ <code>Promise.&lt;{choices: Array.&lt;{message: {content: string}, finish_reason: string}&gt;, model: string, usage: object}&gt;</code></dt>
+<dt><a href="#readStreamedCompletion">readStreamedCompletion(response, [onMetadata])</a> ⇒ <code>Promise.&lt;{choices: Array.&lt;{message: {content: string}, finish_reason: string}&gt;, model: string, usage: object}&gt;</code></dt>
 <dd><p>Read a streamed (SSE) chat-completions response and assemble it into the
 non-streaming response shape (<code>choices[0].message.content</code> plus <code>model</code> /
 <code>usage</code> / <code>finish_reason</code> when the provider sends them), so the rest of
@@ -216,8 +226,20 @@ writes a byte-preserving output atomically. --dry-run reports the plan with
 zero LLM calls and no writes. Language/patterns are resolved per file from the
 XLIFF target-language (cached), not the global config language.</p>
 </dd>
+<dt><a href="#createCancellationController">createCancellationController([options])</a> ⇒ <code>Object</code></dt>
+<dd><p>Create a SIGINT-aware cancellation controller for long-running CLI operations.</p>
+</dd>
 <dt><a href="#resolveProfileForLanguage">resolveProfileForLanguage(profileName, lang, [logger])</a> ⇒ <code>string</code></dt>
 <dd><p>Resolve a profile name against language-specific profile limits.</p>
+</dd>
+<dt><a href="#warnIfAlreadyHuman">warnIfAlreadyHuman()</a></dt>
+<dd><p>Over-editing guard (Study 1 RQ5b): rewriting text that already reads human
+measurably nudged it TOWARD AI-likeness (+3.3 judged points on human English
+documents, docs/research/2026-rewrite-efficacy-study1.md). When the
+deterministic layer finds nothing to fix, say so before spending a rewrite —
+advisory only, never blocks, and silent wherever the deterministic score is
+unavailable or the text is too short to judge (Study 0 Deviation 1).
+Opt out with <code>over-editing-guard: false</code> in config.</p>
 </dd>
 <dt><a href="#loadConfig">loadConfig([path], [opts])</a> ⇒ <code>object</code></dt>
 <dd><p>Load default config and merge global/project .patina.yaml overrides.</p>
@@ -257,7 +279,10 @@ the runtime error&#39;s <code>1</code> (#526).</p>
 <dd><p>Split Markdown-style YAML frontmatter from a document body.</p>
 </dd>
 <dt><a href="#loadPatterns">loadPatterns(repoRoot, lang, [skipPatterns])</a> ⇒ <code>Array.&lt;{file: string, frontmatter: (object|null), body: string, isStructure: boolean, isScoreOnly: boolean}&gt;</code></dt>
-<dd><p>Load language-specific pattern packs from patterns/{lang}-*.md.</p>
+<dd><p>Load language-specific pattern packs from patterns/{lang}-<em>.md, plus any
+user or pro packs in custom/patterns/{lang}-</em>.md. On a filename collision
+the custom pack wins (same precedence the persona and lexicon loaders give
+custom/), so an installed pack can also override a built-in one.</p>
 </dd>
 <dt><a href="#loadProfile">loadProfile(repoRoot, profileName)</a> ⇒ <code>Object</code></dt>
 <dd><p>Load a named profile from profiles/{profileName}.md after path validation.</p>
@@ -282,9 +307,6 @@ matching override are returned unchanged (same object identity).</p>
 </dd>
 <dt><a href="#createLogger">createLogger([options])</a> ⇒ <code>Object</code></dt>
 <dd><p>Create a small stderr logger with text and progress modes.</p>
-</dd>
-<dt><a href="#runOuroboros">runOuroboros(options)</a> ⇒ <code>Promise.&lt;{finalText: string, finalScore: number, iterations: number, reason: string, log: Array.&lt;object&gt;}&gt;</code></dt>
-<dd><p>Run the iterative Ouroboros rewrite-and-score loop.</p>
 </dd>
 <dt><a href="#formatOutput">formatOutput(result, mode, [parsed], [opts])</a> ⇒ <code>string</code></dt>
 <dd><p>Format a raw backend result for CLI output mode and requested format.</p>
@@ -316,6 +338,15 @@ computed deterministically so they appear regardless of which model ran. ko
 translationese rules are listed even below the hot-density gate, because audit
 is a hint surface, not a verdict.</p>
 </dd>
+<dt><a href="#splitPromptForCaching">splitPromptForCaching(prompt, [minPrefixChars])</a> ⇒ <code>Object</code></dt>
+<dd><p>Split a built prompt into a cacheable static prefix and a dynamic tail for
+provider prompt caching. The prefix is everything before the FIRST input
+fence: on a first-turn prompt that is the full static catalog (identical
+across requests for a given lang/profile/persona), while refine prompts
+carry variable fenced references near the top, so their prefix falls under
+the minimum and caching is skipped — avoiding cache writes that would never
+be re-read.</p>
+</dd>
 <dt><a href="#fenceReferenceText">fenceReferenceText(text, [options])</a> ⇒ <code>string</code></dt>
 <dd><p>Fence an untrusted REFERENCE block (not the rewrite target) as treat-as-data,
 with a trusted label describing its role. Used by the web refine path so the
@@ -326,7 +357,7 @@ own output is unchanged.</p>
 <dt><a href="#resolveSeverityPoints">resolveSeverityPoints([config])</a> ⇒ <code>Object</code></dt>
 <dd><p>Resolve the effective per-detection severity points for a config.</p>
 <p>Single resolution path for every prompt surface: yaml
-<code>ouroboros.severity-points</code> overrides the documented defaults key-by-key.</p>
+<code>scoring.severity-points</code> overrides the documented defaults key-by-key.</p>
 </dd>
 <dt><a href="#buildPrompt">buildPrompt(options)</a> ⇒ <code>string</code></dt>
 <dd><p>Build the LLM prompt for rewrite, diff, audit, or score mode.</p>
@@ -349,6 +380,10 @@ single prompt can never carry two contradictory contracts (issue #397).</p>
 <dt><a href="#resolveProviderConfig">resolveProviderConfig(options)</a> ⇒ <code>Object</code></dt>
 <dd><p>Resolve effective API key, base URL, and model from explicit values, provider, and env.</p>
 </dd>
+<dt><a href="#validateAttemptRecord">validateAttemptRecord(value)</a></dt>
+<dd></dd>
+<dt><a href="#notifyInvalidAttempt">notifyInvalidAttempt(onAttemptInvalid)</a></dt>
+<dd></dd>
 <dt><a href="#scoreText">scoreText(options)</a> ⇒ <code>Promise.&lt;object&gt;</code></dt>
 <dd><p>Score text for AI-likeness using an LLM JSON scorer plus deterministic shadow signals.</p>
 </dd>
@@ -446,26 +481,6 @@ Default key lookup order for the OpenAI-compatible HTTP provider.
 ```js
 const first = DEFAULT_HTTP_KEY_ENV_VARS[0]; // PATINA_API_KEY
 ```
-<a name="PERSONA_LANGS"></a>
-
-## PERSONA\_LANGS ⇒ <code>Object</code>
-Create a SIGINT-aware cancellation controller for long-running CLI operations.
-
-**Kind**: global constant
-**Returns**: <code>Object</code> - Controller facade.
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| [options] | <code>object</code> |  | Cancellation integration points. |
-| [options.processObj] | <code>NodeJS.Process</code> | <code>process</code> | Process-like object used for signal listeners. |
-| [options.stderr] | <code>NodeJS.WritableStream</code> | <code>process.stderr</code> | Stream for fallback cancel messages. |
-| [options.logger] | <code>object</code> \| <code>null</code> |  | Optional patina logger. |
-
-**Example**
-```js
-const cancellation = createCancellationController();
-cancellation.install();
-```
 <a name="MAX_INPUT_BYTES"></a>
 
 ## MAX\_INPUT\_BYTES
@@ -488,7 +503,7 @@ defaultLogger.info('patina.ready', { message: 'ready' });
 ## DEFAULT\_SEVERITY\_POINTS : <code>Readonly.&lt;{high: number, medium: number, low: number}&gt;</code>
 Default per-detection severity points.
 
-Mirrors `ouroboros.severity-points` in .patina.default.yaml and the
+Mirrors `scoring.severity-points` in .patina.default.yaml and the
 core/scoring.md §1 table (both gated by tests/unit/threshold-parity.test.js).
 `buildScoreMathCore` derives the prompt's severity-scale line and the
 category-score denominator from these values via `resolveSeverityPoints`,
@@ -537,6 +552,38 @@ It only affects the deterministic score when a private local model is loaded
 and the model verdict is hot; absent model means baseline behavior.
 
 **Kind**: global constant
+<a name="isTemperatureRejectedError"></a>
+
+## isTemperatureRejectedError(err) ⇒ <code>boolean</code>
+True when the provider rejected a request solely because `temperature` is
+unsupported/deprecated for the requested model. Callers retry exactly once
+with the field omitted (and remember the model for this process).
+
+**Kind**: global function
+
+| Param | Type |
+| --- | --- |
+| err | <code>unknown</code> |
+
+<a name="modelRejectsTemperature"></a>
+
+## modelRejectsTemperature(model) ⇒ <code>boolean</code>
+**Kind**: global function
+**Returns**: <code>boolean</code> - Whether this process already saw the model reject `temperature`.
+
+| Param | Type |
+| --- | --- |
+| model | <code>string</code> |
+
+<a name="markTemperatureRejected"></a>
+
+## markTemperatureRejected(model) ⇒ <code>void</code>
+**Kind**: global function
+
+| Param | Type |
+| --- | --- |
+| model | <code>string</code> |
+
 <a name="redactErrorText"></a>
 
 ## redactErrorText(text) ⇒ <code>string</code>
@@ -551,6 +598,19 @@ key echoed in a provider error response is never persisted (AC11).
 | Param | Type |
 | --- | --- |
 | text | <code>unknown</code> |
+
+<a name="dispatchMetadata"></a>
+
+## dispatchMetadata(callback, metadata) ⇒ <code>void</code>
+Invoke an optional metadata callback without allowing consumer code to affect
+a paid provider request or its result.
+
+**Kind**: global function
+
+| Param | Type |
+| --- | --- |
+| callback | <code>function</code> \| <code>undefined</code> |
+| metadata | <code>object</code> |
 
 <a name="isRetryable"></a>
 
@@ -592,7 +652,7 @@ const delay = computeBackoffMs(1, '2'); // 2000
 ```
 <a name="readStreamedCompletion"></a>
 
-## readStreamedCompletion(response) ⇒ <code>Promise.&lt;{choices: Array.&lt;{message: {content: string}, finish\_reason: string}&gt;, model: string, usage: object}&gt;</code>
+## readStreamedCompletion(response, [onMetadata]) ⇒ <code>Promise.&lt;{choices: Array.&lt;{message: {content: string}, finish\_reason: string}&gt;, model: string, usage: object}&gt;</code>
 Read a streamed (SSE) chat-completions response and assemble it into the
 non-streaming response shape (`choices[0].message.content` plus `model` /
 `usage` / `finish_reason` when the provider sends them), so the rest of
@@ -603,6 +663,7 @@ callLLM stays transport-agnostic (#576).
 | Param | Type | Description |
 | --- | --- | --- |
 | response | <code>Object</code> | Fetch response with an SSE body. |
+| [onMetadata] | <code>function</code> | Optional metadata callback. |
 
 <a name="readStreamedCompletion..processLine"></a>
 
@@ -636,12 +697,14 @@ Call an OpenAI-compatible chat completions endpoint with retries, timeout, and a
 | [options.temperature] | <code>number</code> | <code>DEFAULT_TEMPERATURE</code> | Sampling temperature. |
 | [options.seed] | <code>number</code> \| <code>string</code> |  | Optional deterministic seed forwarded to the provider. |
 | [options.responseFormat] | <code>object</code> |  | Optional OpenAI-compatible structured-output request field (sent as response_format) when provided. |
+| [options.extraBody] | <code>object</code> |  | Optional provider-specific fields spread into the OpenAI-compat request body (protocol fields cannot be overridden; ignored on the native Anthropic path). |
 | [options.timeout] | <code>number</code> | <code>120000</code> | Per-attempt timeout in milliseconds. Budgets above 300s automatically switch the request to SSE streaming so undici's headersTimeout cannot kill long-running local backends (#576). |
 | [options.maxRetries] | <code>number</code> | <code>2</code> | Retry count after the first attempt. |
 | [options.deadline] | <code>number</code> |  | Absolute epoch-millisecond deadline for all attempts. |
 | [options.signal] | <code>AbortSignal</code> |  | External cancellation signal. |
 | [options.allowInsecureBaseURL] | <code>boolean</code> | <code>false</code> | Allow non-loopback HTTP base URLs. |
-| [options.onResponse] | <code>function</code> |  | Callback receiving provider metadata. |
+| [options.onResponse] | <code>function</code> |  | Callback receiving successful provider metadata. Its exceptions are ignored. |
+| [options.onAttempt] | <code>function</code> |  | Callback receiving each completed paid transport attempt as `{ attemptIndex, requestedModel, effectiveModel, usage, retryReason, minimumChargeApplied, outcome }`. Attempt indexes are one-based; its exceptions are ignored. |
 | [options.sleep] | <code>function</code> |  | Injectable sleep function for tests. |
 | [options.now] | <code>function</code> |  | Clock returning epoch milliseconds. |
 
@@ -757,6 +820,26 @@ zero LLM calls and no writes. Language/patterns are resolved per file from the
 XLIFF target-language (cached), not the global config language.
 
 **Kind**: global function
+<a name="createCancellationController"></a>
+
+## createCancellationController([options]) ⇒ <code>Object</code>
+Create a SIGINT-aware cancellation controller for long-running CLI operations.
+
+**Kind**: global function
+**Returns**: <code>Object</code> - Controller facade.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [options] | <code>object</code> |  | Cancellation integration points. |
+| [options.processObj] | <code>NodeJS.Process</code> | <code>process</code> | Process-like object used for signal listeners. |
+| [options.stderr] | <code>NodeJS.WritableStream</code> | <code>process.stderr</code> | Stream for fallback cancel messages. |
+| [options.logger] | <code>object</code> \| <code>null</code> |  | Optional patina logger. |
+
+**Example**
+```js
+const cancellation = createCancellationController();
+cancellation.install();
+```
 <a name="resolveProfileForLanguage"></a>
 
 ## resolveProfileForLanguage(profileName, lang, [logger]) ⇒ <code>string</code>
@@ -775,6 +858,18 @@ Resolve a profile name against language-specific profile limits.
 ```js
 resolveProfileForLanguage('namuwiki', 'en') // 'default'
 ```
+<a name="warnIfAlreadyHuman"></a>
+
+## warnIfAlreadyHuman()
+Over-editing guard (Study 1 RQ5b): rewriting text that already reads human
+measurably nudged it TOWARD AI-likeness (+3.3 judged points on human English
+documents, docs/research/2026-rewrite-efficacy-study1.md). When the
+deterministic layer finds nothing to fix, say so before spending a rewrite —
+advisory only, never blocks, and silent wherever the deterministic score is
+unavailable or the text is too short to judge (Study 0 Deviation 1).
+Opt out with `over-editing-guard: false` in config.
+
+**Kind**: global function
 <a name="loadConfig"></a>
 
 ## loadConfig([path], [opts]) ⇒ <code>object</code>
@@ -966,7 +1061,10 @@ const { frontmatter, body } = splitFrontmatter('---\ntitle: x\n---\nBody');
 <a name="loadPatterns"></a>
 
 ## loadPatterns(repoRoot, lang, [skipPatterns]) ⇒ <code>Array.&lt;{file: string, frontmatter: (object\|null), body: string, isStructure: boolean, isScoreOnly: boolean}&gt;</code>
-Load language-specific pattern packs from patterns/{lang}-*.md.
+Load language-specific pattern packs from patterns/{lang}-*.md, plus any
+user or pro packs in custom/patterns/{lang}-*.md. On a filename collision
+the custom pack wins (same precedence the persona and lexicon loaders give
+custom/), so an installed pack can also override a built-in one.
 
 **Kind**: global function
 **Returns**: <code>Array.&lt;{file: string, frontmatter: (object\|null), body: string, isStructure: boolean, isScoreOnly: boolean}&gt;</code> - Pattern packs.
@@ -1105,41 +1203,6 @@ Create a small stderr logger with text and progress modes.
 ```js
 const logger = createLogger();
 logger.info('event', { message: 'ready' });
-```
-<a name="runOuroboros"></a>
-
-## runOuroboros(options) ⇒ <code>Promise.&lt;{finalText: string, finalScore: number, iterations: number, reason: string, log: Array.&lt;object&gt;}&gt;</code>
-Run the iterative Ouroboros rewrite-and-score loop.
-
-**Kind**: global function
-**Returns**: <code>Promise.&lt;{finalText: string, finalScore: number, iterations: number, reason: string, log: Array.&lt;object&gt;}&gt;</code> - Final text and iteration log.
-**Throws**:
-
-- <code>Error</code> When model calls or scoring fail outside handled schema fallbacks.
-
-
-| Param | Type | Description |
-| --- | --- | --- |
-| options | <code>object</code> | Ouroboros options. |
-| options.config | <code>object</code> | Effective config with ouroboros settings. |
-| options.patterns | <code>Array.&lt;object&gt;</code> | Loaded pattern packs. |
-| options.profile | <code>object</code> \| <code>null</code> | Parsed profile. |
-| options.voice | <code>object</code> \| <code>null</code> | Parsed voice guide. |
-| options.scoring | <code>object</code> \| <code>null</code> | Parsed scoring guide. |
-| options.text | <code>string</code> | Source text to improve. |
-| [options.apiKey] | <code>string</code> | Provider API key. |
-| [options.baseURL] | <code>string</code> | Provider base URL. |
-| [options.model] | <code>string</code> | Model id. |
-| [options.callLLM] | <code>function</code> | LLM implementation. |
-| [options.now] | <code>function</code> | Clock returning epoch milliseconds. |
-| [options.sleep] | <code>function</code> | Sleep helper for tests. |
-| [options.signal] | <code>AbortSignal</code> | External cancellation signal. |
-| [options.timeout] | <code>number</code> | Per-attempt backend timeout in milliseconds. |
-| [options.logger] | <code>object</code> | patina logger. |
-
-**Example**
-```js
-const result = await runOuroboros({ config, patterns, profile, voice, scoring, text });
 ```
 <a name="formatOutput"></a>
 
@@ -1290,6 +1353,24 @@ is a hint surface, not a verdict.
 
 ### buildDeterministicAuditBackstop~translationeseRows : <code>Array.&lt;{signal:string, location:string, hint:string}&gt;</code>
 **Kind**: inner constant of [<code>buildDeterministicAuditBackstop</code>](#buildDeterministicAuditBackstop)
+<a name="splitPromptForCaching"></a>
+
+## splitPromptForCaching(prompt, [minPrefixChars]) ⇒ <code>Object</code>
+Split a built prompt into a cacheable static prefix and a dynamic tail for
+provider prompt caching. The prefix is everything before the FIRST input
+fence: on a first-turn prompt that is the full static catalog (identical
+across requests for a given lang/profile/persona), while refine prompts
+carry variable fenced references near the top, so their prefix falls under
+the minimum and caching is skipped — avoiding cache writes that would never
+be re-read.
+
+**Kind**: global function
+
+| Param | Type | Description |
+| --- | --- | --- |
+| prompt | <code>string</code> | Built prompt text. |
+| [minPrefixChars] | <code>number</code> | Minimum prefix size worth caching (~1k tokens). |
+
 <a name="fenceReferenceText"></a>
 
 ## fenceReferenceText(text, [options]) ⇒ <code>string</code>
@@ -1312,7 +1393,7 @@ own output is unchanged.
 Resolve the effective per-detection severity points for a config.
 
 Single resolution path for every prompt surface: yaml
-`ouroboros.severity-points` overrides the documented defaults key-by-key.
+`scoring.severity-points` overrides the documented defaults key-by-key.
 
 **Kind**: global function
 **Returns**: <code>Object</code> - Effective severity points.
@@ -1440,6 +1521,24 @@ Resolve effective API key, base URL, and model from explicit values, provider, a
 ```js
 const resolved = resolveProviderConfig({ provider: selectProvider('openai') });
 ```
+<a name="validateAttemptRecord"></a>
+
+## validateAttemptRecord(value)
+**Kind**: global function
+
+| Param | Type |
+| --- | --- |
+| value | <code>unknown</code> |
+
+<a name="notifyInvalidAttempt"></a>
+
+## notifyInvalidAttempt(onAttemptInvalid)
+**Kind**: global function
+
+| Param | Type |
+| --- | --- |
+| onAttemptInvalid | <code>function</code> \| <code>undefined</code> |
+
 <a name="scoreText"></a>
 
 ## scoreText(options) ⇒ <code>Promise.&lt;object&gt;</code>
@@ -1469,6 +1568,9 @@ Score text for AI-likeness using an LLM JSON scorer plus deterministic shadow si
 | [options.now] | <code>function</code> | Clock returning epoch milliseconds. |
 | [options.sleep] | <code>function</code> | Sleep helper for tests. |
 | [options.responseFormat] | <code>object</code> | Opt-in OpenAI-compatible structured-output request field forwarded to callLLM. |
+| [options.extraBody] | <code>object</code> | Opt-in provider-specific request fields (e.g. reasoning control) spread into the request body. |
+| [options.onAttempt] | <code>function</code> | Safe callback for one-based paid-attempt metadata records. |
+| [options.onAttemptInvalid] | <code>function</code> | Safe callback when transport evidence is malformed; receives no provider metadata. |
 
 **Example**
 ```js
@@ -1487,6 +1589,7 @@ Compute deterministic stylometry/lexicon AI-likeness signals.
 | [options] | <code>object</code> |  | Deterministic scoring options. |
 | [options.text] | <code>string</code> |  | Text to analyze. |
 | [options.config] | <code>object</code> | <code>{}</code> | Effective config. |
+| [options.patterns] | <code>Array</code> | <code>[]</code> | Loaded pattern packs; used for short-form category math. |
 | [options.repoRoot] | <code>string</code> |  | Repository root for analyzer resources. |
 | [options.logger] | <code>object</code> |  | Optional logger for recoverable deterministic warnings. |
 | [options.analyzer] | <code>function</code> |  | Analyzer implementation. |
@@ -1563,6 +1666,9 @@ Score meaning preservation between original and rewritten text.
 | [options.now] | <code>function</code> | Clock returning epoch milliseconds. |
 | [options.sleep] | <code>function</code> | Sleep helper for tests. |
 | [options.responseFormat] | <code>object</code> | Opt-in OpenAI-compatible structured-output request field forwarded to callLLM. |
+| [options.extraBody] | <code>object</code> | Opt-in provider-specific request fields (e.g. reasoning control) spread into the request body. |
+| [options.onAttempt] | <code>function</code> | Safe callback for one-based paid-attempt metadata records. |
+| [options.onAttemptInvalid] | <code>function</code> | Safe callback when transport evidence is malformed; receives no provider metadata. |
 
 **Example**
 ```js
@@ -1629,6 +1735,9 @@ Score fidelity between original and rewritten text using length plus LLM criteri
 | [options.now] | <code>function</code> | Clock returning epoch milliseconds. |
 | [options.sleep] | <code>function</code> | Sleep helper for tests. |
 | [options.responseFormat] | <code>object</code> | Opt-in OpenAI-compatible structured-output request field forwarded to callLLM. |
+| [options.extraBody] | <code>object</code> | Opt-in provider-specific request fields (e.g. reasoning control) spread into the request body. |
+| [options.onAttempt] | <code>function</code> | Safe callback for one-based paid-attempt metadata records. |
+| [options.onAttemptInvalid] | <code>function</code> | Safe callback when transport evidence is malformed; receives no provider metadata. |
 
 **Example**
 ```js
