@@ -21,9 +21,8 @@ test('--persona rejects non-rewrite and preview surfaces', () => {
   }
 });
 
-test('removed --restyle / --ouroboros flags are rejected at parse time', () => {
-  assertPersonaInputError(['--persona', 'preserve', '--restyle', 'voice', 'draft.md']);
-  assertPersonaInputError(['--persona', 'preserve', '--ouroboros', 'draft.md']);
+test('--persona rejects unsupported options at parse time', () => {
+  assertPersonaInputError(['--persona', 'preserve', '--unsupported-option', 'draft.md']);
 });
 
 test('--persona rejects comma-list transform variants', () => {

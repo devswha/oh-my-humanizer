@@ -1,0 +1,222 @@
+#!/usr/bin/env node
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const RETIRED_TERM = ['ouro', 'boros'].join('');
+const ARCHIVE_PREFIXES = ['.gjc/', '.insane-review/'];
+const HISTORICAL_EXPECTATIONS = new Map([
+  ['CHANGELOG.md', new Map([
+    ['0bd7e2489f54e1e87a3efaae8e38df5c1a2878fa438c5f13775fc24b551440c7', [256]],
+    ['0e80229112d7d40105c64406604dbcd0312d5ae370ec871fa3258bb787af7bd1', [236]],
+    ['12016238717b99f22a55d26b490943b50f82aef4a7ab27b6d662a1cdc5094dda', [310]],
+    ['226653d656455e6c74f4ae6216209470f05942ec9c0a275d1639a44d09bd0385', [678]],
+    ['272cba65bd46320ff28f5344fb3844c4b4ba08a95064db0009efd6bc145c2557', [382]],
+    ['45be57ebe8b5ba976d59551aef7c201a4205c4f86c1cf7952f15d3697b48d664', [385]],
+    ['51baf38ef6a43340c026a25e627e1544c70fc2c1dd99da3500ff2f11d8732e56', [324]],
+    ['61ff8778bd3e54e59a01636618c1de3c7d42659eb513a6385e71e161ec944c87', [334]],
+    ['83f5e36d2ba73ed824cfec62e9f8fb72e569f26f3ab6c42604d1ef34f5b98e9b', [230]],
+    ['a1aa4b471c432c2582586204d20566967533254171fbbd790a9da36a81412086', [213]],
+    ['aa223b28b35c246b21ff99d20281bfa980bf01820845308948311c81e98a0de9', [261]],
+    ['af36a82757b517832706c84fc3d2b7dc93915243d8ce7b6ee80d65ecfdb6f31c', [319]],
+    ['d82c21439e957bf40f694b896d8eadd49a433fb66af9cca49495111604b69d75', [215]],
+  ])],
+  ['docs/audits/2026-05-deep-research.md', new Map([
+    ['01a421a811703d5a24ad69214cff6cef7739ce301d718e1ad57268062a41abb5', [269]],
+    ['070cf22b7c33359feb562234edb137954056485abd7d63a166665fc664a372c7', [22]],
+    ['0d67e4f9d2f309bbbda4958a780b82efe4fea8690bec89a0c86f0ea112a2014a', [35]],
+    ['0ef4ed5eeccd3405f3cbdd40d24dc91ce4fcdc116345cfc059cba32c551389ed', [164]],
+    ['2970f3b57778aa302c6ae24a822ebb9b9a2c2db8913b6a299d1514d00d6f6b1f', [24]],
+    ['42a99f3904bce3bbfd1d0a541eb93b61a1c0146cb96ee2ee0e13727e1344a00d', [55]],
+    ['51c2ca09e62aa1d2825f91f7ceab3d8f503925c98a1934f37ed11e2da4d5f4e3', [72]],
+    ['5d16b18583da94ee2337b3e45e6bd3ab2289238fd122bb04fd43cd7e13786040', [69]],
+    ['6c5a5c894903fbfc4d470a86696ce0d3a28cc232cc34cd22261c73f914c03249', [66]],
+    ['85bc6226c88cae4727c78b7729776152a671bc32d064cbcb22777d1ca7901cf3', [161]],
+    ['88b816d1c08c313d7232bb91ba7251b368d864669326db941823173273a50f51', [11]],
+    ['b5f7ec092821bc21943380097b57a371cbfe00b4ff941f4507f0c2a75173b034', [7]],
+    ['ceb4899917ba7611dce4a84eac87e446d5d1fdd140f627df76d694c7ea54ee12', [279]],
+    ['e3dc556b5455711cb48f6db919f6906c45dac48bfcc8faed5840796f29f4886a', [49]],
+  ])],
+  ['docs/superpowers/specs/2026-04-03-meaning-preservation-design.md', new Map([
+    ['be7e3f4cedb37b2c167fba9b6e0d9cb5b707a6239bfcb4976169a6569ec5f6ec', [201]],
+    ['c52ccf1ff9c4c1e573b4b84fa35d88a38ddc91d40405641511b2edb6fe2f2526', [264]],
+  ])],
+]);
+
+function fingerprint(text) {
+  return createHash('sha256').update(text).digest('hex');
+}
+
+function changelogHistoricalBoundary(lines) {
+  const releaseHeadings = lines
+    .map((line, index) => (/^## \d+\.\d+\.\d+\b/.test(line) ? { line, index } : null))
+    .filter(Boolean);
+  const current = releaseHeadings.filter(({ line }) => /^## 7\.0\.0\b/.test(line));
+  if (current.length !== 1) {
+    return { start: Number.POSITIVE_INFINITY, error: 'expected exactly one 7.0.0 release heading' };
+  }
+  const next = releaseHeadings.find(({ index }) => index > current[0].index);
+  if (!next) {
+    return { start: Number.POSITIVE_INFINITY, error: 'expected an earlier release section after 7.0.0' };
+  }
+  return { start: next.index, error: null };
+}
+
+export function scanText(source, path) {
+  const normalizedPath = String(path).replaceAll('\\', '/');
+  const lines = String(source).split('\n');
+  const expectations = HISTORICAL_EXPECTATIONS.get(normalizedPath);
+  const boundary = normalizedPath === 'CHANGELOG.md'
+    ? changelogHistoricalBoundary(lines)
+    : { start: 0, error: null };
+  const forbidden = [];
+  const allowed = [];
+  const historicalDrift = [];
+  const historicalLines = new Map();
+
+  for (let index = 0; index < lines.length; index++) {
+    if (!lines[index].toLowerCase().includes(RETIRED_TERM)) continue;
+    const match = { path: normalizedPath, line: index + 1, text: lines[index].trim() };
+    const hash = fingerprint(match.text);
+    const inHistoricalRegion = expectations && !boundary.error && index >= boundary.start;
+    if (!inHistoricalRegion) {
+      forbidden.push(match);
+      continue;
+    }
+
+    const actualLines = historicalLines.get(hash) ?? [];
+    actualLines.push(match.line);
+    historicalLines.set(hash, actualLines);
+    const expectedLines = expectations.get(hash) ?? [];
+    if (expectedLines.includes(match.line)) allowed.push(match);
+    else forbidden.push(match);
+  }
+
+  if (boundary.error) {
+    historicalDrift.push({ path: normalizedPath, reason: boundary.error });
+  }
+  if (expectations) {
+    for (const [sha256, expectedLines] of expectations) {
+      const actualLines = historicalLines.get(sha256) ?? [];
+      if (
+        actualLines.length !== expectedLines.length
+        || actualLines.some((line, index) => line !== expectedLines[index])
+      ) {
+        historicalDrift.push({
+          path: normalizedPath,
+          sha256,
+          expectedCount: expectedLines.length,
+          actualCount: actualLines.length,
+          expectedLines,
+          actualLines,
+          reason: 'approved historical occurrence is missing, changed, duplicated, or relocated',
+        });
+      }
+    }
+  }
+
+  return { forbidden, allowed, historicalDrift };
+}
+
+export function scanPaths(root, inputPaths, { requireHistoricalFiles = false } = {}) {
+  const absoluteRoot = resolve(root);
+  const files = [...new Set(inputPaths.map((path) => String(path).replaceAll('\\', '/')))].sort();
+  const forbidden = [];
+  const allowed = [];
+  const historicalDrift = [];
+  const scannedPaths = new Set();
+  const filesSkipped = { archive: 0, missing: 0, binary: 0 };
+
+  for (const path of files) {
+    if (ARCHIVE_PREFIXES.some((prefix) => path.startsWith(prefix))) {
+      filesSkipped.archive += 1;
+      continue;
+    }
+    const absolute = resolve(absoluteRoot, path);
+    if (!existsSync(absolute)) {
+      filesSkipped.missing += 1;
+      continue;
+    }
+    const bytes = readFileSync(absolute);
+    if (bytes.includes(0)) {
+      filesSkipped.binary += 1;
+      continue;
+    }
+    const result = scanText(bytes.toString('utf8'), path);
+    scannedPaths.add(path);
+    forbidden.push(...result.forbidden);
+    allowed.push(...result.allowed);
+    historicalDrift.push(...result.historicalDrift);
+  }
+
+  if (requireHistoricalFiles) {
+    for (const path of HISTORICAL_EXPECTATIONS.keys()) {
+      if (!files.includes(path)) {
+        historicalDrift.push({ path, reason: 'approved historical file is not tracked' });
+      } else if (!scannedPaths.has(path)) {
+        historicalDrift.push({ path, reason: 'approved historical file was not scanned as UTF-8 text' });
+      }
+    }
+  }
+
+  const skippedTotal = Object.values(filesSkipped).reduce((sum, count) => sum + count, 0);
+  return {
+    root: absoluteRoot,
+    filesDiscovered: files.length,
+    filesScanned: scannedPaths.size,
+    filesSkipped: { ...filesSkipped, total: skippedTotal },
+    allowedHits: allowed.length,
+    forbiddenHits: forbidden.length,
+    historicalDriftCount: historicalDrift.length,
+    forbidden,
+    allowed,
+    historicalDrift,
+  };
+}
+
+export function scanRoot(root) {
+  return scanPaths(root, discoverTrackedFiles(resolve(root)), { requireHistoricalFiles: true });
+}
+
+function discoverTrackedFiles(root) {
+  const tracked = spawnSync('git', ['-C', root, 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
+    encoding: 'utf8',
+  });
+  if (tracked.error || tracked.status !== 0) {
+    const detail = tracked.error?.message || tracked.stderr?.trim() || `git exited ${tracked.status}`;
+    throw new Error(`Unable to enumerate tracked content: ${detail}`);
+  }
+  return tracked.stdout.split('\0').filter(Boolean).sort();
+}
+
+function formatMatch(match) {
+  return `${match.path}:${match.line}: ${match.text}`;
+}
+
+function main(argv) {
+  const json = argv.includes('--json');
+  const rootArg = argv.find((arg) => !arg.startsWith('-')) ?? process.cwd();
+  const report = scanRoot(rootArg);
+  if (json) {
+    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  } else {
+    process.stdout.write(
+      `Discovered ${report.filesDiscovered} files; scanned ${report.filesScanned}; skipped ${report.filesSkipped.total} under ${report.root}\n`
+    );
+    process.stdout.write(
+      `Allowed historical hits: ${report.allowedHits}; forbidden current hits: ${report.forbiddenHits}; historical drift: ${report.historicalDriftCount}\n`
+    );
+    for (const match of report.allowed) process.stdout.write(`allowed historical: ${formatMatch(match)}\n`);
+    for (const match of report.forbidden) process.stderr.write(`forbidden current reference: ${formatMatch(match)}\n`);
+    for (const drift of report.historicalDrift) {
+      process.stderr.write(`historical allowlist drift: ${drift.path}: ${drift.reason}\n`);
+    }
+  }
+  return report.forbidden.length === 0 && report.historicalDrift.length === 0 ? 0 : 1;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  process.exitCode = main(process.argv.slice(2));
+}

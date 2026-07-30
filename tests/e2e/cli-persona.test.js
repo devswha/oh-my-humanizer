@@ -121,6 +121,48 @@ describe('CLI persona harness', () => {
     assert.equal(exitCode, 0);
   });
 
+  it('keeps persona and verification threshold namespaces isolated', async () => {
+    const enPath = resolve(keyDir, 'en-thresholds.txt');
+    writeFileSync(enPath, 'This is a plain test sentence with no numbers.');
+
+    const cases = [
+      { name: 'defaults', yaml: '', expectedExitCode: 0 },
+      {
+        name: 'persona-only',
+        yaml: 'personas:\n  thresholds:\n    mps_floor: 96\n    fidelity_floor: 96\n',
+        expectedExitCode: 4,
+      },
+      {
+        name: 'verification-only',
+        yaml: 'verification:\n  mps-floor: 99\n  fidelity-floor: 99\n',
+        expectedExitCode: 0,
+      },
+      {
+        name: 'both-different',
+        yaml: 'verification:\n  mps-floor: 40\n  fidelity-floor: 40\npersonas:\n  thresholds:\n    mps_floor: 96\n    fidelity_floor: 96\n',
+        expectedExitCode: 4,
+      },
+    ];
+
+    for (const entry of cases) {
+      const configPath = resolve(keyDir, `${entry.name}.yaml`);
+      writeFileSync(configPath, entry.yaml);
+      const { logs, exitCode } = await captureConsole(() => main([
+        '--lang', 'en',
+        '--persona', 'preserve',
+        '--config', configPath,
+        '--format', 'json',
+        '--api-key-file', mockApiKeyPath,
+        '--base-url', `http://127.0.0.1:${mock.port}`,
+        '--model', 'gpt-5',
+        enPath,
+      ]));
+      const payload = JSON.parse(logs.join('\n'));
+      assert.equal(exitCode, entry.expectedExitCode, entry.name);
+      assert.equal(payload.persona.gate_result.pass, entry.expectedExitCode === 0, entry.name);
+    }
+  });
+
   it('lists built-in en/zh/ja seed personas via persona list', async () => {
     const cases = {
       en: ['blog-essay', 'natural-en', 'preserve', 'technical-explainer'],

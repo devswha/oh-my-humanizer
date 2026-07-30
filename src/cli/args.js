@@ -167,15 +167,6 @@ export function parseArgs(rawArgs) {
         parsed.gate = n;
         break;
       }
-      case '--ouroboros':
-        // Removed: the iterative loop was replaced by --verify (rewrite +
-        // meaning-floor retry) in the v5.5 line.
-        throw inputError(
-          '--ouroboros was removed',
-          'The iterative loop was replaced by --verify (rewrite, then verify MPS/fidelity with one conservative retry).',
-          'Use --verify instead.'
-        );
-
       case '--verify':
         parsed.verify = true;
         break;

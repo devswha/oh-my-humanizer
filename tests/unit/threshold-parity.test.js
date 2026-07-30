@@ -121,9 +121,9 @@ test('yaml lexicon density threshold matches lexicon-core constant', () => {
 
 test('yaml severity-points match the prompt-builder defaults', () => {
   assert.deepEqual(
-    defaultConfig.ouroboros['severity-points'],
+    defaultConfig.scoring['severity-points'],
     { ...DEFAULT_SEVERITY_POINTS },
-    'ouroboros.severity-points drifted from DEFAULT_SEVERITY_POINTS'
+    'scoring.severity-points drifted from DEFAULT_SEVERITY_POINTS'
   );
 });
 
@@ -145,7 +145,7 @@ test('yaml default combined-score weights match the combinedScore fallbacks', ()
     /profileWeights\?\.fidelity \?\? ([0-9.]+)/,
     'combinedScore fidelity fallback'
   );
-  const defaults = defaultConfig.ouroboros['combined-weights'].default;
+  const defaults = defaultConfig.scoring['combined-weights'].default;
   assert.equal(defaults['ai-likeness'], aiFallback);
   assert.equal(defaults.fidelity, fidelityFallback);
 });
@@ -167,7 +167,7 @@ test('core/scoring.md per-language weight columns match yaml category weights', 
       const m = line.match(/^\|\s*([^|*][^|]*?)\s*\|\s*([0-9.]+)\s*\|\s*\d+\s*\|/);
       if (m) docWeights[m[1].trim()] = Number(m[2]);
     }
-    const yamlWeights = defaultConfig.ouroboros['category-weights'][lang];
+    const yamlWeights = defaultConfig.scoring['category-weights'][lang];
     assert.ok(Object.keys(docWeights).length > 0, `${lang} weights table extracted no rows`);
     assert.deepEqual(docWeights, yamlWeights, `${lang} weight column drifted from yaml`);
 
@@ -514,11 +514,23 @@ test('score prompt derives severity scale and interpretation line from one sourc
 
   // Config override must reach the prompt (the pre-Stage-4 bug: hardcoded string).
   const overridden = buildScoreMathCore(
-    { ouroboros: { 'severity-points': { high: 4, medium: 2, low: 1 } } },
+    { scoring: { 'severity-points': { high: 4, medium: 2, low: 1 } } },
     'ko'
   );
   assert.match(overridden, /Severity scale: Low=1, Medium=2, High=4 points per detection\./);
   assert.match(overridden, /pattern_count × 4/);
+  const partial = buildScoreMathCore(
+    { scoring: { 'severity-points': { high: 4 } } },
+    'ko'
+  );
+  assert.match(partial, /Severity scale: Low=1, Medium=2, High=4 points per detection\./);
+
+  const zero = buildScoreMathCore(
+    { scoring: { 'severity-points': { high: 0, medium: 0, low: 0 } } },
+    'ko'
+  );
+  assert.match(zero, /Severity scale: Low=0, Medium=0, High=0 points per detection\./);
+  assert.match(zero, /pattern_count × 0/);
 });
 
 test('score prompt embedding core/scoring.md states precedence under a severity override', () => {
@@ -542,7 +554,7 @@ test('score prompt embedding core/scoring.md states precedence under a severity 
 
   const overriddenPrompt = buildPrompt({
     ...baseArgs,
-    config: { language: 'ko', ouroboros: { 'severity-points': { high: 5, medium: 3, low: 1 } } },
+    config: { language: 'ko', scoring: { 'severity-points': { high: 5, medium: 3, low: 1 } } },
   });
   assert.match(overriddenPrompt, /Severity-scale override active/);
   assert.match(overriddenPrompt, /Low=1, Medium=3, High=5 points per detection/);
@@ -580,7 +592,7 @@ test('scoreText strict-JSON contract derives example max and interpretation enum
 
   await scoreText({
     text: 'Sample.',
-    config: { ...baseConfig, ouroboros: { 'severity-points': { high: 5, medium: 3, low: 1 } } },
+    config: { ...baseConfig, scoring: { 'severity-points': { high: 5, medium: 3, low: 1 } } },
     patterns,
     callLLM,
   });

@@ -1,14 +1,18 @@
-import { callLLM as defaultCallLLM } from './api.js';
-import { scoreText, scoreMPS, scoreFidelity, combinedScore } from './scoring.js';
-import { buildPrompt } from './prompt-builder.js';
-import { stripSelfAudit } from './output.js';
-import { createLogger } from './logger.js';
+import { callLLM as defaultCallLLM } from '../src/api.js';
+import { scoreText, scoreMPS, scoreFidelity, combinedScore } from '../src/scoring.js';
+import { buildPrompt } from '../src/prompt-builder.js';
+import { stripSelfAudit } from '../src/output.js';
+import { createLogger } from '../src/logger.js';
 
 /**
- * Run the iterative Ouroboros rewrite-and-score loop.
+ * Run an iterative rewrite-and-score research baseline.
  *
- * @param {object} options Ouroboros options.
- * @param {object} options.config Effective config with ouroboros settings.
+ * @param {object} options Baseline options.
+ * @param {object} options.config Effective product config.
+ * @param {object} [options.policy] Research-local loop policy.
+ * @param {number} [options.policy.targetScore=30] Stop once the score reaches this value.
+ * @param {number} [options.policy.maxIterations=3] Maximum rewrite iterations.
+ * @param {number} [options.policy.plateauThreshold=10] Minimum score improvement to continue.
  * @param {object[]} options.patterns Loaded pattern packs.
  * @param {object|null} options.profile Parsed profile.
  * @param {object|null} options.voice Parsed voice guide.
@@ -26,10 +30,11 @@ import { createLogger } from './logger.js';
  * @returns {Promise<{finalText: string, finalScore: number, iterations: number, reason: string, log: object[]}>} Final text and iteration log.
  * @throws {Error} When model calls or scoring fail outside handled schema fallbacks.
  * @example
- * const result = await runOuroboros({ config, patterns, profile, voice, scoring, text });
+ * const result = await runIterativeRewriteBaseline({ config, patterns, profile, voice, scoring, text });
  */
-export async function runOuroboros({
+export async function runIterativeRewriteBaseline({
   config,
+  policy = {},
   patterns,
   profile,
   voice,
@@ -44,17 +49,16 @@ export async function runOuroboros({
   signal,
   timeout,
   logger = createLogger(),
-  // Opt-in: when true, ouroboros scoring/MPS/fidelity calls request OpenAI
+  // Opt-in: when true, baseline scoring/MPS/fidelity calls request OpenAI
   // structured output (response_format json_object). Default false; only the
   // openai-http scorer forwards it (callLLM here is always the HTTP client).
   structuredOutput = false,
 }) {
-  const ouroborosConfig = config.ouroboros || {};
-  const targetScore = ouroborosConfig['target-score'] ?? 30;
-  const maxIterations = ouroborosConfig['max-iterations'] ?? 3;
-  const plateauThreshold = ouroborosConfig['plateau-threshold'] ?? 10;
-  const fidelityFloor = ouroborosConfig['fidelity-floor'] ?? 70;
-  const mpsFloor = ouroborosConfig['mps-floor'] ?? 70;
+  const targetScore = policy.targetScore ?? 30;
+  const maxIterations = policy.maxIterations ?? 3;
+  const plateauThreshold = policy.plateauThreshold ?? 10;
+  const fidelityFloor = config.verification?.['fidelity-floor'] ?? 70;
+  const mpsFloor = config.verification?.['mps-floor'] ?? 70;
 
   const scoringResponseFormat = structuredOutput ? { type: 'json_object' } : undefined;
 
@@ -161,8 +165,8 @@ export async function runOuroboros({
     let currentScore = scoreResult?.overall ?? 100;
     const delta = previousScore - currentScore;
     const latencyMs = Math.max(0, (now ? now() : Date.now()) - iterationStartedAt);
-    logger.info('ouroboros.iteration', {
-      message: `[ouroboros] iter ${iteration}/${maxIterations} score ${previousScore} → ${currentScore} (${formatElapsed(latencyMs)})`,
+    logger.info('iterative-baseline.iteration', {
+      message: `[iterative-baseline] iter ${iteration}/${maxIterations} score ${previousScore} → ${currentScore} (${formatElapsed(latencyMs)})`,
       model,
       latency_ms: latencyMs,
     });
@@ -219,8 +223,8 @@ export async function runOuroboros({
     let shouldStop = false;
     let shouldRollback = false;
 
-    // Floor checks MUST precede the target-met check (core/scoring.md "Ouroboros
-    // Loop Gating": both floors must pass for an iteration to be accepted).
+    // Floor checks must precede the target-met check: both floors must pass for
+    // an iteration to be accepted.
     // Deleting content is the easiest way to drop AI-likeness, so the iteration
     // most likely to violate the floors is exactly the one that meets the target;
     // checking the target first would accept it and promote gutted text to bestText.
