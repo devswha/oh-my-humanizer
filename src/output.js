@@ -22,10 +22,13 @@ import { TRANSLATIONESE_RULES } from './features/translationese.js';
  * const output = formatOutput('[BODY]Hi[/BODY]', 'rewrite');
  */
 export function formatOutput(result, mode, parsed = {}, opts = {}) {
-  const tone = opts.tone || null;
+  const rewriteOutput = mode === 'rewrite'
+    ? splitRewriteOutput(result, { logger: opts.logger })
+    : null;
+  const tone = resolveOutputTone(opts.tone || null, rewriteOutput?.tone || null);
   const persona = opts.persona || null;
   const format = parsed.format || 'markdown';
-  let body = renderFormattedBody(result, mode, parsed, opts);
+  let body = rewriteOutput?.body ?? renderFormattedBody(result, mode, parsed, opts);
 
   if (mode === 'audit' && format !== 'json' && opts.auditBackstop) {
     body += opts.auditBackstop;
@@ -43,15 +46,21 @@ export function formatOutput(result, mode, parsed = {}, opts = {}) {
 }
 
 function renderFormattedBody(result, mode, parsed = {}, opts = {}) {
-  let body = mode === 'rewrite'
-    ? cleanRewriteOutput(result, { logger: opts.logger })
-    : renderBody(result);
+  let body = renderBody(result);
   if (mode === 'diff' && (parsed.format || 'markdown') !== 'json') {
     // Skip ANSI colorization for JSON output, otherwise raw escape codes get
     // embedded inside the JSON `output` string field on a TTY (#449).
     body = colorizeDiff(body, { parsed, env: opts.env, stdout: opts.stdout });
   }
   return body;
+}
+
+function resolveOutputTone(requested, emitted) {
+  if (!emitted) return requested;
+  if (!requested || requested.tone_source === 'auto') {
+    return { ...(requested || {}), ...emitted };
+  }
+  return requested;
 }
 
 const ANSI = {
@@ -241,39 +250,66 @@ export function stripSelfAudit(body, { logger = createLogger() } = {}) {
   const tail = removeSelfAuditBlocks(body.slice(bodyClose + '[/BODY]'.length)).trim();
   return tail ? `${inner}\n\n${tail}` : inner;
 }
-export function cleanRewriteOutput(result, { logger = createLogger() } = {}) {
-  // Strip model scaffolding ([BODY]/[SELF_AUDIT]) and any leaked YAML tone
-  // footer so downstream consumers (browser rewrite pane, XLIFF <target>
-  // write-back) never persist patina's own output chrome as segment content.
-  return removeToneFooter(stripSelfAudit(renderBody(result), { logger }).trim());
+function splitRewriteOutput(result, { logger = createLogger() } = {}) {
+  // Strip model scaffolding ([BODY]/[SELF_AUDIT]) and split any trailing tone
+  // footer before formatting. The body stays safe for stdout/browser/XLIFF,
+  // while JSON can retain the model-resolved metadata for --tone auto.
+  const stripped = stripSelfAudit(renderBody(result), { logger }).trim();
+  const footer = locateToneFooter(stripped);
+  if (!footer) return { body: stripped, tone: null };
+  return {
+    body: footer.lines.slice(0, footer.start).join('\n').trimEnd(),
+    tone: parseToneFooter(footer.block),
+  };
 }
+
+export function cleanRewriteOutput(result, { logger = createLogger() } = {}) {
+  return splitRewriteOutput(result, { logger }).body;
+}
+
 export function formatRewriteBodyForBrowser(result, { logger = createLogger() } = {}) {
   return cleanRewriteOutput(result, { logger });
 }
-
 
 function removeSelfAuditBlocks(body) {
   return String(body || '').replace(/\[SELF_AUDIT\][\s\S]*?\[\/SELF_AUDIT\]/g, '');
 }
 
-function removeToneFooter(body) {
-  if (!hasToneFooter(body)) return body;
-  const str = String(body || '');
-  // Anchor to the LAST '---'-fenced block: the inner content may not contain another
-  // '---' fence line, so a markdown thematic break earlier in the body cannot be
-  // mistaken for the footer opener (which would truncate everything after it).
-  const match = str.match(/(?:^|\n)---[ \t]*\n((?:(?!\n---[ \t]*(?:\n|$))[\s\S])*?)\n---[ \t]*$/);
-  if (!match) return body;
-  const block = match[1];
-  if (
-    !/\btone\s*:/.test(block)
-    || !/\btone_source\s*:/.test(block)
-    || !/\btone_evidence\s*:/.test(block)
-    || !/\btone_confidence\s*:/.test(block)
-  ) {
-    return body;
+function parseToneFooter(block) {
+  const fields = {};
+  for (const line of block.split('\n')) {
+    const match = line.match(/^\s*(tone|tone_source|tone_evidence|tone_confidence)\s*:\s*(.*?)\s*$/u);
+    if (match) fields[match[1]] = match[2];
   }
-  return str.slice(0, match.index).trimEnd();
+  let evidence = [];
+  try {
+    const parsed = JSON.parse(fields.tone_evidence ?? '[]');
+    if (Array.isArray(parsed)) evidence = parsed;
+  } catch {
+    evidence = [];
+  }
+  return {
+    tone: parseToneScalar(fields.tone),
+    tone_source: parseToneScalar(fields.tone_source),
+    tone_evidence: evidence,
+    tone_confidence: parseToneScalar(fields.tone_confidence),
+  };
+}
+
+function parseToneScalar(raw) {
+  if (raw === undefined || /^(?:null|~)$/iu.test(raw)) return null;
+  if (/^-?\d+(?:\.\d+)?$/u.test(raw)) return Number(raw);
+  if (raw.startsWith('"') && raw.endsWith('"')) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw.slice(1, -1);
+    }
+  }
+  if (raw.startsWith("'") && raw.endsWith("'")) {
+    return raw.slice(1, -1).replace(/''/g, "'");
+  }
+  return raw;
 }
 
 function renderBody(result) {
@@ -531,23 +567,56 @@ function appendToneFooter(body, tone) {
 // fenced block within the last ~30 non-empty lines that contains a `tone:`
 // key. We avoid double-printing when the model honored Phase 6.
 function hasToneFooter(body) {
-  if (!body) return false;
-  const tail = normalizeFooterTail(body.split(/\r?\n/).slice(-30));
-  const m = tail.match(/(^|\n)---\s*\n([\s\S]*?)\n---\s*$/);
-  if (!m) return false;
-  const block = m[2];
-  return /\btone\s*:/.test(block)
-    && /\btone_source\s*:/.test(block)
-    && /\btone_evidence\s*:/.test(block)
-    && /\btone_confidence\s*:/.test(block);
+  return Boolean(locateToneFooter(body));
 }
 
-function normalizeFooterTail(lines) {
-  return lines
-    .map((line) => line.replace(/^\s*>\s?/u, '').trimEnd())
-    .filter((line) => !/^\s*```[\w-]*\s*$/u.test(line))
-    .join('\n')
-    .trim();
+function locateToneFooter(body) {
+  if (!body) return null;
+  const lines = String(body).split(/\r?\n/u);
+  let end = lines.length - 1;
+  while (end >= 0 && lines[end].trim() === '') end--;
+
+  let closingFence = -1;
+  if (end >= 0 && isCodeFence(lines[end])) {
+    closingFence = end;
+    end--;
+    while (end >= 0 && lines[end].trim() === '') end--;
+  }
+  if (end < 0 || normalizeFooterLine(lines[end]).trim() !== '---') return null;
+
+  const close = end;
+  const lowerBound = Math.max(0, close - 29);
+  for (let start = close - 1; start >= lowerBound; start--) {
+    if (normalizeFooterLine(lines[start]).trim() !== '---') continue;
+    const block = lines
+      .slice(start + 1, close)
+      .map(normalizeFooterLine)
+      .join('\n');
+    if (
+      !/\btone\s*:/.test(block)
+      || !/\btone_source\s*:/.test(block)
+      || !/\btone_evidence\s*:/.test(block)
+      || !/\btone_confidence\s*:/.test(block)
+    ) {
+      continue;
+    }
+    const openingFence = start > 0 && isCodeFence(lines[start - 1]) ? start - 1 : start;
+    return {
+      lines,
+      start: openingFence,
+      end: closingFence >= 0 ? closingFence : close,
+      block,
+    };
+  }
+  return null;
+}
+
+function normalizeFooterLine(line) {
+  return String(line || '').replace(/^\s*>\s?/u, '').trimEnd();
+}
+
+function isCodeFence(line) {
+  return /^\s*(?:>\s*)?```[\w-]*\s*$/u.test(String(line || ''));
 }
 
 /**

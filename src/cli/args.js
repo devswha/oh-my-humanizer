@@ -331,6 +331,16 @@ export function validateOfflineScoreRequest(parsed) {
       'Run `patina --score --offline <file>`.',
     );
   }
+  if (parsed.stopOnRetryableStorm !== undefined) {
+    const flag = parsed.stopOnRetryableStorm
+      ? '--stop-on-retryable-storm'
+      : '--no-stop-on-retryable-storm';
+    throw inputError(
+      `${flag} cannot be combined with --offline`,
+      '--offline performs no backend calls, so retry-storm controls cannot affect the run.',
+      `Drop ${flag}, or drop --offline to use LLM-backed scoring.`,
+    );
+  }
   const backendOptions = [
     ['backend', '--backend'],
     ['provider', '--provider'],
@@ -342,6 +352,7 @@ export function validateOfflineScoreRequest(parsed) {
     ['maxRetries', '--max-retries'],
     ['allowInsecureBaseURL', '--allow-insecure-base-url'],
     ['allowPrivateBaseURL', '--allow-private-base-url'],
+    ['listBackends', '--list-backends'],
   ];
   for (const [key, flag] of backendOptions) {
     if (parsed[key] !== undefined && parsed[key] !== false) {

@@ -797,6 +797,35 @@ describe('CLI End-to-End with Mock API', () => {
     });
   });
 
+  it('fails offline scoring when deterministic analysis has no numeric score', async () => {
+    mock.callCount = 0;
+    mock.lastRequestBody = null;
+    const configPath = resolve(keyDir, 'offline-language-disabled.yaml');
+    writeFileSync(configPath, 'stylometry:\n  languages: [ko]\n');
+    const testFile = resolve(REPO_ROOT, 'tests/e2e/test-input-en.txt');
+
+    await assert.rejects(
+      () => main([
+        '--lang', 'en',
+        '--score',
+        '--offline',
+        '--config', configPath,
+        testFile,
+      ]),
+      /offline score is unavailable/,
+    );
+    assert.strictEqual(mock.callCount, 0);
+    assert.strictEqual(mock.lastRequestBody, null);
+  });
+
+  it('rejects --list-backends before offline scoring dispatch', async () => {
+    const testFile = resolve(REPO_ROOT, 'tests/e2e/test-input-en.txt');
+    await assert.rejects(
+      () => main(['--score', '--offline', '--list-backends', testFile]),
+      /--list-backends cannot be combined with --offline/,
+    );
+  });
+
   it('should validate score weights before wrapping --format json output', async () => {
     mock.callCount = 0;
     mock.lastRequestBody = null;
