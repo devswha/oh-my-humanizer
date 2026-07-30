@@ -32,6 +32,15 @@ Semver rationale: major — removes public configuration keys and the obsolete a
 - Rename the opt-in A/B arm to `iterative-baseline` and move its runner under `scripts/`. It remains packaged for `npm run quality:rewrite-ab`, but is unsupported research and is absent from CLI/help/config, hosted APIs, and generated public API docs.
 - Persona, profile, and tone behavior is unchanged. Persona remains the reusable voice axis, tone remains the KO/EN register override, and profile-policy consolidation remains follow-up work.
 
+### Added
+
+- `patina --score --offline` runs the deterministic scoring layer without resolving a backend or credential. It supports markdown/JSON output and `--exit-on`; LLM-judged categories are marked unavailable, and a missing numeric local score fails instead of silently passing.
+
+### Fixed
+
+- Rewrite stdout now contains prose only. Plain, fenced, and blockquoted tone footers are stripped, while `--format json` retains structured tone metadata, including the model-resolved value from `--tone auto`.
+- The agent skill now uses the CLI's config precedence and canonical project filename: installed `.patina.default.yaml` → `~/.patina.yaml` → project `./.patina.yaml` → command arguments.
+
 ### Migration
 
 ```yaml
