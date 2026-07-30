@@ -95,10 +95,17 @@ test('--offline is score-only and rejects backend options', () => {
     () => validateOfflineScoreRequest(parseArgs(['--offline', 'draft.md'])),
     /--offline requires --score/,
   );
-  assert.throws(
-    () => validateOfflineScoreRequest(parseArgs(['--score', '--offline', '--backend', 'codex-cli', 'draft.md'])),
-    /--backend cannot be combined with --offline/,
-  );
+  for (const [flags, message] of [
+    [['--backend', 'codex-cli'], /--backend cannot be combined with --offline/],
+    [['--list-backends'], /--list-backends cannot be combined with --offline/],
+    [['--stop-on-retryable-storm'], /--stop-on-retryable-storm cannot be combined with --offline/],
+    [['--no-stop-on-retryable-storm'], /--no-stop-on-retryable-storm cannot be combined with --offline/],
+  ]) {
+    assert.throws(
+      () => validateOfflineScoreRequest(parseArgs(['--score', '--offline', ...flags, 'draft.md'])),
+      message,
+    );
+  }
 });
 
 test('-- ends option parsing so dash-prefixed files are usable (#440)', () => {

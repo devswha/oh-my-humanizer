@@ -80,13 +80,13 @@ export async function main(args) {
     );
   }
 
+  validateOfflineScoreRequest(parsed);
   if (parsed.listBackends) {
     printBackendStatus();
     return;
   }
 
   validateModeExclusivity(parsed);
-  validateOfflineScoreRequest(parsed);
   validateTransformRequest(parsed);
   validatePersonaRequest(parsed);
   validateVerifyRequest(parsed);

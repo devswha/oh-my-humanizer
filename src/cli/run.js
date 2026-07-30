@@ -439,6 +439,16 @@ async function runOfflineScore(parsed, { config, patterns, repoRoot }, logger) {
           'Enable `scoring.deterministic.enabled`, or drop --offline to use the LLM-backed score.',
         );
       }
+      if (!Number.isFinite(deterministicScore.overall)) {
+        const detail = deterministicScore.error
+          || deterministicScore.skipReason
+          || 'the deterministic analyzer returned no numeric overall score';
+        throw runtimeError(
+          'offline score is unavailable',
+          detail,
+          'Enable deterministic scoring for this language and fix any reported analyzer error, or drop --offline to use the LLM-backed score.',
+        );
+      }
 
       const result = deterministicOnlyScoreResult(deterministicScore);
       const output = formatOutput(result, 'score', parsed, { logger });
