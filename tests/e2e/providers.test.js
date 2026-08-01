@@ -37,9 +37,9 @@ describe('Provider Selection', () => {
     assert.throws(() => selectProvider('madeup'), /Unknown provider/);
   });
 
-  it('lists all six providers', () => {
+  it('lists all eight providers', () => {
     const names = Object.keys(PROVIDERS).sort();
-    assert.deepStrictEqual(names, ['gemini', 'groq', 'kimi', 'moonshot', 'openai', 'together']);
+    assert.deepStrictEqual(names, ['gemini', 'groq', 'kimi', 'minimax', 'minimax-cn', 'moonshot', 'openai', 'together']);
   });
 
   it('marks free-tier providers correctly', () => {
@@ -47,6 +47,8 @@ describe('Provider Selection', () => {
     assert.strictEqual(PROVIDERS.groq.freeTier, true);
     assert.strictEqual(PROVIDERS.together.freeTier, true);
     assert.strictEqual(PROVIDERS.kimi.freeTier, false);
+    assert.strictEqual(PROVIDERS.minimax.freeTier, false);
+    assert.strictEqual(PROVIDERS['minimax-cn'].freeTier, false);
     assert.strictEqual(PROVIDERS.moonshot.freeTier, false);
     assert.strictEqual(PROVIDERS.openai.freeTier, false);
   });
@@ -92,6 +94,22 @@ describe('Provider Config Resolution', () => {
       assert.strictEqual(moonshot.apiKeySource, 'env:MOONSHOT_API_KEY');
       assert.strictEqual(moonshot.baseURL, 'https://api.moonshot.ai/v1');
       assert.strictEqual(moonshot.model, 'kimi-k2.5');
+    });
+  });
+
+  it('resolves MiniMax global and China presets from MINIMAX_API_KEY', () => {
+    withEnv({ PATINA_API_KEY: undefined, MINIMAX_API_KEY: 'minimax-env' }, () => {
+      const global = resolveProviderConfig({ provider: selectProvider('minimax') });
+      assert.strictEqual(global.apiKey, 'minimax-env');
+      assert.strictEqual(global.apiKeySource, 'env:MINIMAX_API_KEY');
+      assert.strictEqual(global.baseURL, 'https://api.minimax.io/v1');
+      assert.strictEqual(global.model, 'MiniMax-M3');
+
+      const china = resolveProviderConfig({ provider: selectProvider('minimax-cn') });
+      assert.strictEqual(china.apiKey, 'minimax-env');
+      assert.strictEqual(china.apiKeySource, 'env:MINIMAX_API_KEY');
+      assert.strictEqual(china.baseURL, 'https://api.minimaxi.com/v1');
+      assert.strictEqual(china.model, 'MiniMax-M3');
     });
   });
 

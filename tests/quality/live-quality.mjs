@@ -933,7 +933,8 @@ Runs the deliberate live rewrite quality probe. By default this does not call a 
 
 Options:
   --live                  Run credentialed API rewrites and model-graded checks
-  --provider <name>       Provider preset (openai, gemini, groq, kimi, moonshot, together)
+  --provider <name>       Provider preset (openai, gemini, groq, kimi, moonshot, together,
+                          minimax, minimax-cn)
   --model <id>            Model id (or PATINA_LIVE_MODEL)
   --base-url <url>        OpenAI-compatible base URL (or PATINA_LIVE_API_BASE)
   --api-key-file <path>   Read API key from a file
