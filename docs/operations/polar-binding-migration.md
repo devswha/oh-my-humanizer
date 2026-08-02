@@ -176,29 +176,58 @@ test-mode purchase** — order `8973866`, subscription `2347121`, license record
 fields as Polar would be fabricating evidence for a purchase that never
 happened on Polar. The staging chain has to be **re-earned**, not renamed.
 
-## The honest sequence
+## The honest sequence — resolution (2026-08-03)
 
-1. **Polar sandbox purchase against a Vercel preview deployment.** The gate is
-   already proven against the sandbox API from a local process
-   ([`polar-integration-evidence-20260729.md`](polar-integration-evidence-20260729.md)),
-   which is not the same as a preview deployment serving `tier=pro` to a
-   browser. That run produces the replacement staging runtime evidence.
-2. **Rewrite the hold's payment identities** against Polar: provider-aware
-   binding evidence, `POLAR_*` names in the secret-manager blocker,
-   `POLAR_APPROVAL` in place of `LS_APPROVAL`, and the `/checkout/buy/` path
-   assumption replaced with Polar's `/polar_cl_*`. Retain the Lemon Squeezy
-   records as history rather than deleting them; they document why the provider
-   changed.
-3. **Add the production tuple** to `scripts/checkout-evidence-bindings.mjs`
-   (`https://buy.polar.sh` + `/polar_cl_qKqt…`) with the evidence ID from the
-   binding artifact, then re-freeze the hashes.
-4. **Enable checkout by environment**, which is a separate deliberate act:
-   `PATINA_PRO_CHECKOUT_ENABLED`, `PATINA_DEPLOYMENT_CHANNEL=production`,
-   `PATINA_PRO_CHECKOUT_URL`, `PATINA_PRO_GATE_EVIDENCE_ID`.
+Steps 2 and 3 are **done**; step 1 was **superseded by decision** rather than
+executed; step 4 remains the deliberate owner act.
 
-Steps 2–4 are mechanical once step 1 exists. Step 1 needs a deployment, which
-is why the button is still off while the checkout URL itself is already
-sellable.
+1. **Superseded.** The owner chose to rewrite the hold around the two existing
+   Polar artifacts instead of re-running a sandbox purchase against a preview
+   deployment. The rationale: the sandbox record
+   ([`polar-integration-evidence-20260729.md`](polar-integration-evidence-20260729.md))
+   already proves the purchase → license → gate mechanics with a real sandbox
+   test-card purchase, and the production zero-amount purchase
+   ([`pay-live-runtime-polar-20260729.json`](pay-live-runtime-polar-20260729.json))
+   already proves the deployed-environment half end to end — which is strictly
+   stronger than what a preview run would have shown. The supersession is
+   recorded in the hold itself as the
+   `PAY_STG_SUPERSEDED_BY_PRODUCTION_RUNTIME` decision (status `SUPERSEDED`,
+   evidence `PAY-LIVE-20260729-POLAR-ea8385dc-4c9c3f17`), not silently skipped.
+2. **Done.** `scripts/check-v6.4-preflight-hold.mjs` now validates the Polar
+   chain: `PAY-B-BINDING-POLAR-v1` + `PAY-LIVE-RUNTIME-POLAR-v1` artifacts,
+   `POLAR_APPROVAL` in place of `LS_APPROVAL`, `PATINA_LICENSE_PROVIDER` /
+   `POLAR_ORGANIZATION_ID` / `POLAR_PRO_BENEFIT_ID` in the secret-manager
+   blocker, and `https://buy.polar.sh` + `/polar_cl_*` in place of the
+   `/checkout/buy/` assumption. The Lemon Squeezy evidence files remain on
+   disk and hash-frozen as history; the state schema moved to version 4.
+3. **Done.** `scripts/checkout-evidence-bindings.mjs` contains exactly one
+   tuple — production, `PAY-B-20260729-POLAR-ea8385dc-4c9c3f17`,
+   `https://buy.polar.sh` + `/polar_cl_qKqt…` — and the hashes are re-frozen.
+   The dead Lemon Squeezy tuples were removed so a retired checkout route can
+   never be re-authorized by environment values.
+4. **Open (owner) — gated, not immediate.** Enabling checkout by environment
+   (`PATINA_PRO_CHECKOUT_ENABLED=true`,
+   `PATINA_DEPLOYMENT_CHANNEL=production`, the exact bound
+   `PATINA_PRO_CHECKOUT_URL`,
+   `PATINA_PRO_GATE_EVIDENCE_ID=PAY-B-20260729-POLAR-ea8385dc-4c9c3f17`, then
+   regenerating the launch config and redeploying) is the LAST step of the
+   [`pro-launch.md`](pro-launch.md) sequence, not a standalone act. The hold's
+   blockers still carry null evidence: `POLAR_APPROVAL`, `SECRET_MANAGER`,
+   `GATE_B`, `DEP_PROD_DISABLED` (deploy production with checkout disabled
+   first), `GATE_D`, `ROLLBACK_DRILLS`, and `PAY_OPEN` must all be satisfied
+   before the flag flips to `true`. Until then `PATINA_PRO_CHECKOUT_ENABLED`
+   stays `false`.
+
+## Known limitation: the Polar price ID is not pinned
+
+`pay-b-binding-polar-20260729.json` records the price's commercial fields
+(fixed, 999 cents, usd) read back from Polar but not the Polar price object ID,
+so the hold pins product/benefit/checkout identities as literals while the
+price is pinned only by its fields. The artifact is factsSha256-sealed, so the
+ID cannot be added retroactively without fabricating evidence; capture it in
+the next read-back artifact (e.g. the Gate-B observation) and extend
+`validatePolarBindingEvidence` then.
+
 
 ## Cosmetic mismatch worth fixing in the dashboard
 
