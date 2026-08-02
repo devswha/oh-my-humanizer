@@ -1,27 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert';
 
-import { runOuroboros } from '../../src/ouroboros.js';
+import { runIterativeRewriteBaseline } from '../../scripts/iterative-rewrite-baseline.mjs';
 
 const BASE_TEXT = 'Original claim text.';
 
-function baseConfig(overrides = {}) {
+function baseConfig() {
   return {
     language: 'en',
     profile: 'default',
-    ouroboros: {
-      'target-score': 30,
-      'max-iterations': 3,
-      'plateau-threshold': 10,
-      'fidelity-floor': 70,
-      'mps-floor': 70,
+    scoring: {
       'combined-weights': {
         default: {
           'ai-likeness': 0.6,
           fidelity: 0.4,
         },
       },
-      ...overrides,
+    },
+    verification: {
+      'fidelity-floor': 70,
+      'mps-floor': 70,
     },
   };
 }
@@ -84,9 +82,10 @@ function createLLMFixture({
   return { calls, callLLM };
 }
 
-function runWithFixture(fixture, config = baseConfig()) {
-  return runOuroboros({
+function runWithFixture(fixture, { config = baseConfig(), policy = {} } = {}) {
+  return runIterativeRewriteBaseline({
     config,
+    policy,
     patterns: [],
     profile: null,
     voice: null,
@@ -99,7 +98,7 @@ function runWithFixture(fixture, config = baseConfig()) {
   });
 }
 
-test('runOuroboros exits early when the initial score already meets target', async () => {
+test('iterative baseline exits early when the initial score already meets target', async () => {
   const fixture = createLLMFixture({ scores: [20] });
 
   const result = await runWithFixture(fixture);
@@ -112,7 +111,7 @@ test('runOuroboros exits early when the initial score already meets target', asy
   assert.equal(fixture.calls.rewrite.length, 0);
 });
 
-test('runOuroboros stops on plateau and keeps the latest non-rollback text', async () => {
+test('iterative baseline stops on plateau and keeps the latest non-rollback text', async () => {
   const fixture = createLLMFixture({
     scores: [80, 75],
     rewrites: ['Rewritten claim text.'],
@@ -128,7 +127,7 @@ test('runOuroboros stops on plateau and keeps the latest non-rollback text', asy
   assert.equal(result.reason, 'Plateau');
 });
 
-test('runOuroboros rolls back on combined-score regression', async () => {
+test('iterative baseline rolls back on combined-score regression', async () => {
   const fixture = createLLMFixture({
     scores: [40, 50],
     rewrites: ['Regression claim text.'],
@@ -144,7 +143,7 @@ test('runOuroboros rolls back on combined-score regression', async () => {
   assert.match(result.reason, /^Regression/);
 });
 
-test('runOuroboros rolls back on fidelity-floor violation', async () => {
+test('iterative baseline rolls back on fidelity-floor violation', async () => {
   const fixture = createLLMFixture({
     scores: [80, 20],
     rewrites: ['Fidelity bad text.'],
@@ -152,7 +151,7 @@ test('runOuroboros rolls back on fidelity-floor violation', async () => {
     fidelityGrades: [1],
   });
 
-  const result = await runWithFixture(fixture, baseConfig({ 'target-score': 5 }));
+  const result = await runWithFixture(fixture);
 
   assert.equal(result.finalText, BASE_TEXT);
   assert.equal(result.finalScore, 80);
@@ -160,7 +159,7 @@ test('runOuroboros rolls back on fidelity-floor violation', async () => {
   assert.equal(result.reason, 'Fidelity floor violation');
 });
 
-test('runOuroboros rolls back on MPS-floor violation', async () => {
+test('iterative baseline rolls back on MPS-floor violation', async () => {
   const fixture = createLLMFixture({
     scores: [80, 20],
     rewrites: ['MPS bad claim text.'],
@@ -168,7 +167,7 @@ test('runOuroboros rolls back on MPS-floor violation', async () => {
     fidelityGrades: [3],
   });
 
-  const result = await runWithFixture(fixture, baseConfig({ 'target-score': 5 }));
+  const result = await runWithFixture(fixture);
 
   assert.equal(result.finalText, BASE_TEXT);
   assert.equal(result.finalScore, 80);
@@ -176,7 +175,7 @@ test('runOuroboros rolls back on MPS-floor violation', async () => {
   assert.equal(result.reason, 'MPS floor violation');
 });
 
-test('runOuroboros logs per-iteration score progress and latency', async () => {
+test('iterative baseline logs per-iteration score progress and latency', async () => {
   const fixture = createLLMFixture({
     scores: [80, 70],
     rewrites: ['Lower score claim text.'],
@@ -194,8 +193,9 @@ test('runOuroboros logs per-iteration score progress and latency', async () => {
   };
   let currentTime = 1_000;
 
-  const result = await runOuroboros({
-    config: baseConfig({ 'target-score': 75 }),
+  const result = await runIterativeRewriteBaseline({
+    config: baseConfig(),
+    policy: { targetScore: 75 },
     patterns: [],
     profile: null,
     voice: null,
@@ -214,13 +214,13 @@ test('runOuroboros logs per-iteration score progress and latency', async () => {
 
   assert.equal(result.reason, 'Target met');
   assert.equal(records.length, 1);
-  assert.equal(records[0].event, 'ouroboros.iteration');
+  assert.equal(records[0].event, 'iterative-baseline.iteration');
   assert.equal(records[0].model, 'test-model');
   assert.equal(records[0].latency_ms, 500);
-  assert.match(records[0].message, /\[ouroboros\] iter 1\/3 score 80 → 70 \(0\.5s\)/);
+  assert.match(records[0].message, /\[iterative-baseline\] iter 1\/3 score 80 → 70 \(0\.5s\)/);
 });
 
-test('runOuroboros rolls back when target is met but fidelity floor is violated', async () => {
+test('iterative baseline rolls back when target is met but fidelity floor is violated', async () => {
   // Score 20 meets the default target (30), but fidelity grade 1 is below the
   // 70 floor. Floors must win: the gutted rewrite is rejected, not returned.
   const fixture = createLLMFixture({
@@ -238,7 +238,7 @@ test('runOuroboros rolls back when target is met but fidelity floor is violated'
   assert.equal(result.reason, 'Fidelity floor violation');
 });
 
-test('runOuroboros rolls back when target is met but MPS floor is violated', async () => {
+test('iterative baseline rolls back when target is met but MPS floor is violated', async () => {
   const fixture = createLLMFixture({
     scores: [80, 20],
     rewrites: ['Meaning-stripped target-meeting text.'],
@@ -254,7 +254,7 @@ test('runOuroboros rolls back when target is met but MPS floor is violated', asy
   assert.equal(result.reason, 'MPS floor violation');
 });
 
-test('runOuroboros rolls back when target is met but the MPS scorer fails', async () => {
+test('iterative baseline rolls back when target is met but the MPS scorer fails', async () => {
   // scoreMPS returns { mps: null } on schema failure; that must fail closed
   // even when the AI-likeness target is met.
   const fixture = createLLMFixture({
@@ -272,7 +272,7 @@ test('runOuroboros rolls back when target is met but the MPS scorer fails', asyn
   assert.equal(result.reason, 'MPS scorer failure');
 });
 
-test('runOuroboros accepts a target-met iteration when both floors pass', async () => {
+test('iterative baseline accepts a target-met iteration when both floors pass', async () => {
   const fixture = createLLMFixture({
     scores: [80, 20],
     rewrites: ['Faithful target-meeting text.'],
@@ -288,7 +288,7 @@ test('runOuroboros accepts a target-met iteration when both floors pass', async 
   assert.equal(result.reason, 'Target met');
 });
 
-test('ouroboros iteration prompts skip the self-audit phase (#444)', async () => {
+test('iterative baseline prompts skip the self-audit phase (#444)', async () => {
   const fixture = createLLMFixture({
     scores: [80, 75],
     rewrites: ['Rewritten claim text.'],

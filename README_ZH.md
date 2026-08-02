@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skill](https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet)](#快速开始)
 [![Multi-language](https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green)](https://github.com/devswha/patina)
-[![Version](https://img.shields.io/badge/version-6.3.4-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.0.0-blue)](CHANGELOG.md)
 
 <p align="center">
   <strong>去掉 AI 味，保留原意。</strong>
@@ -101,7 +101,7 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 | **184 条模式** | 每种语言 37 条可改写模式 + 9 条仅评分的病毒式钩子模式（KO/EN/ZH/JA 各 46 条）—— 完整的 184 条模式目录见 [PATTERNS.md](docs/PATTERNS.md) |
 | **模式** | rewrite · verify · audit · score · diff |
 | **使用入口** | agent skill · Node CLI · 页面内 preview · 浏览器 playground（改写 + 评分） |
-| **声音** | `--persona`（内置 + 自制，ko/en/zh/ja）· `--tone` 语域 · `--profile` 体裁 —— 按固定优先级可组合 |
+| **声音控制** | `--persona` 是可复用声音 · `--tone` 覆盖语域 · `--profile` 设置 Node 模式策略（部分 skill/core 路径仍有旧的 profile 声音指导） |
 | **免费使用** | 已登录的 `codex`、`claude` 或 `gemini` CLI 可直接运行改写，无需 `PATINA_API_KEY` |
 | **校准** | 编辑热点命中率 67.3% [63.5–71.0%]，跨 GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro（n=600，KO+EN）；在 KO+EN 人类对照上误检率 16.0% [11.6–21.7%]（n=200） |
 | **许可证** | MIT |
@@ -118,8 +118,9 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 |---|---|
 | `patina input.txt` | 用默认设置改写 |
 | `patina --audit input.txt` | 仅检测模式 |
-| `patina --score input.txt` | 输出 0-100 的 AI 相似度分数 |
-| `patina --score --exit-on 30 input.txt` | CI gate：当 `overall > 30` 时以退出码 `3` 结束 |
+| `patina --score input.txt` | 结合 LLM 评判与确定性信号输出 0-100 分 |
+| `patina --score --offline input.txt` | 无需后端或 API key，仅使用确定性信号评分 |
+| `patina --score --offline --exit-on 30 input.txt` | 离线 CI gate：当 `overall > 30` 时以退出码 `3` 结束 |
 | `patina --diff input.txt` | 按模式逐项展示改动 |
 | `patina --preview page.html` | 把改写结果渲染回保存的 HTML 页面，带视图切换和内联 diff |
 | `patina --verify input.txt` | 改写后检查 MPS/忠实度下限，并重试一次 |
@@ -142,7 +143,7 @@ patina persona new my-voice --describe "plain-spoken founder, casual"
 patina --persona my-voice draft.md                          # 之后复用
 ```
 
-在 ko/en/zh/ja 上生效，并与 `--tone`/`--profile` 组合（语域优先级 `--tone` > 人格 > profile）。人格塑造声音，但绝不会降低含义下限 —— 自制人格在保存时会经过校验，安全闸门仍然强制 MPS/忠实度 + 数字缺失检查。
+可在 ko/en/zh/ja 上与 `--tone`/`--profile` 组合。Node 中，persona 负责可复用声音，语域优先级是 `--tone` > persona，profile 负责模式策略。部分 skill/core-prompt 路径仍保留旧的 profile 声音指导，因此这一区分尚未在所有路径中完全实现。任何控制都不会降低含义下限：自制 persona 会在保存时校验，改写仍强制执行 MPS/忠实度和数字缺失检查。
 
 ## CI
 
@@ -188,11 +189,11 @@ Input
 
 ```yaml
 # .patina.default.yaml
-version: "6.3.4"
+version: "7.0.0"
 language: ko              # ko | en | zh | ja
 profile: default
 output: rewrite           # rewrite | diff | audit | score
-tone:                     # casual | professional | auto  (register; genre = profile)
+tone:                     # casual | professional | auto  (register override; profile = pattern policy)
 ```
 
 项目级 `.patina.yaml` 会覆盖默认值。模式包按语言前缀自动发现。可追加的列表键（`blocklist`、`allowlist`、`skip-patterns`）会合并；其他数组会直接替换。

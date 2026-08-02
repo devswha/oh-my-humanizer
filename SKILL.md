@@ -1,6 +1,6 @@
 ---
 name: patina
-version: "6.3.4"
+version: "7.0.0"
 description: Detect and rewrite AI writing patterns in Korean, English, Chinese, and Japanese text so it reads as if a human wrote it. Meaning-preservation (MPS) verified.
 allowed-tools:
   - Read
@@ -20,11 +20,17 @@ allowed-tools:
 
 ## 1단계: 설정 로드
 
-`.patina.default.yaml`을 읽어 설정을 로드한다.
+먼저 이 `SKILL.md`와 같은 설치 디렉터리의 `.patina.default.yaml`을 기본 설정으로 읽는다. 이 파일은 배포 기본값이며 프로젝트 설정 파일이 아니다.
+
+그다음 존재하는 사용자/프로젝트 설정을 아래 순서대로 읽어 병합한다. 프로젝트 설정의 정본 파일명은 CLI와 동일한 `.patina.yaml`이다.
 
 ```
-Glob .patina.default.yaml → Read
+Read <skill-directory>/.patina.default.yaml
+Glob ~/.patina.yaml → 있으면 Read
+Glob ./.patina.yaml → 있으면 Read
 ```
+
+우선순위는 `.patina.default.yaml` → `~/.patina.yaml` → `./.patina.yaml` → `$ARGUMENTS`다. YAML 매핑은 재귀 병합하고 `blocklist`, `allowlist`, `skip-patterns`는 중복 없이 합친다. 다른 배열은 뒤 설정의 값으로 교체한다.
 
 설정에서 다음을 확인:
 - `profile`: 사용할 프로필 (기본: `default`)
@@ -39,8 +45,7 @@ Glob .patina.default.yaml → Read
 - `--diff`: diff 출력 모드
 - `--audit`: audit 출력 모드
 - `--score`: score 출력 모드
-- `--ouroboros`: ouroboros 모드 (반복 교정 + 점수 수렴)
-- `--strict`: 옵트인 다중 패스 엄격 모드. rewrite 출력 모드를 사용한다. `--lang`, `--tone`, `--profile`, `--ouroboros`와 함께 사용할 수 있다. `--audit`, `--diff`, `--score`와 함께 사용할 수 없다.
+- `--strict`: 옵트인 다중 패스 엄격 모드. rewrite 출력 모드를 사용한다. `--lang`, `--tone`, `--profile`와 함께 사용할 수 있다. `--audit`, `--diff`, `--score`와 함께 사용할 수 없다.
 - `--lang <code>`: 처리 언어 변경 (ko, en, zh, ja). 설정 파일의 `language` 값을 오버라이드한다.
 - `--tone <name>`: 어투(레지스터) 지정. 유효값: `casual | professional | auto`. academic/marketing/narrative/instructional 은 장르이므로 `--profile <name>` 을 쓴다. 알 수 없는 값이면 즉시 오류: "Unknown tone '<name>'. Valid tones: casual, professional, auto"
 - `--batch <files>`: 여러 파일을 한꺼번에 처리 (glob 또는 명시적 경로 목록).
@@ -70,12 +75,10 @@ if --lang in {zh, ja} and resolved_tone != null:
   → profile-only 경로로 fallback
 ```
 
-**legal/medical fidelity 보존 (R2):** resolved_tone=professional이더라도 config.profile이 `legal` 또는 `medical`이면 `ouroboros.combined-weights.legal/medical` (fidelity 0.65)을 강제 적용한다.
+**legal/medical fidelity 보존 (R2):** resolved_tone=professional이더라도 config.profile이 `legal` 또는 `medical`이면 `scoring.combined-weights.legal/medical` (fidelity 0.65)을 강제 적용한다.
 
-`--score` 또는 `--ouroboros` 또는 `ouroboros.enabled: true`이면 `core/scoring.md`도 로드한다.
+`--score`이면 `core/scoring.md`도 로드한다.
 파일이 없으면 에러: "core/scoring.md not found. Please update patina."
-
-`--ouroboros`는 rewrite 출력 모드를 사용한다. `--audit`, `--diff`, `--score`와 함께 사용할 수 없다.
 `--strict`는 rewrite 출력 모드를 사용한다. `--audit`, `--diff`, `--score`와 함께 사용할 수 없다.
 
 ---
@@ -134,7 +137,7 @@ Read core/voice.md
 
 > **주의:** 텍스트가 1개 단락 이하이고 2개 문장 이하이면 추출을 건너뛰고 파이프라인을 정상 실행한다 (오버헤드 불필요).
 >
-> **참고:** 앵커 추출이 건너뛰어지거나 추출된 앵커가 0개이면, MPS는 N/A로 표시되며 ouroboros의 MPS 게이팅을 면제한다.
+> **참고:** 앵커 추출이 건너뛰어지거나 추출된 앵커가 0개이면, MPS는 N/A로 표시되며 검증 게이트의 MPS 하한을 적용하지 않는다.
 
 ### 앵커 유형
 
@@ -392,52 +395,6 @@ document is SUSPECT iff
 
 ---
 
-## Ouroboros 루프 (`--ouroboros`)
-
-`--ouroboros` 플래그가 있거나 `ouroboros.enabled: true`이면, 아래 루프가 5단계와 6단계를 감싼다.
-1~4단계(설정, 패턴, 프로필, 목소리 로드)는 한 번만 실행한다.
-
-### 절차
-
-1. **초기 점수 측정**: 입력 텍스트에 대해 score 알고리즘(6단계 score 모드)을 실행하여 초기 점수를 산출한다
-   - 초기 점수가 이미 target-score 이하이면 "이미 목표 달성"으로 즉시 종료한다
-
-2. **반복 실행** (iteration = 1부터):
-   a. 5a단계(구조) → 5b단계(문장/어휘) → 5c단계(자기검수) 파이프라인을 실행한다
-   b. 교정된 텍스트에 대해 score 알고리즘을 다시 실행한다
-   c. delta = 이전 점수 - 현재 점수 (양수 = 개선)
-   d. 종료 조건을 확인한다:
-      - 현재 점수 ≤ target-score → 종료 사유: **목표 달성**
-      - delta < 0 (점수가 오히려 올라감) → 종료 사유: **점수 회귀** → 이전 반복 결과로 롤백
-      - 0 ≤ delta ≤ plateau-threshold → 종료 사유: **개선 정체**
-      - iteration ≥ max-iterations → 종료 사유: **반복 상한**
-      - 충실도 점수 < fidelity-floor (기본: 70) → 종료 사유: **충실도 하한 위반** → 이전 반복 결과로 롤백
-      - MPS < mps-floor (기본: 70) → 종료 사유: **의미 보존 하한 위반** → 이전 반복 결과로 롤백
-   e. 종료 조건 미충족 시 교정된 텍스트를 입력으로 다음 반복
-
-3. **출력 형식**:
-
-#### Ouroboros 반복 로그
-
-| 반복 | 점수 (전) | 점수 (후) | 개선량 | 종료 사유 |
-|------|-----------|-----------|--------|-----------|
-| 0    | —         | 78        | —      | 초기 측정 |
-| 1    | 78        | 45        | +33    |           |
-| 2    | 45        | 28        | +17    | 목표 달성 |
-
-#### 최종 결과
-- 최종 점수: 28/100 (±10)
-- 반복 횟수: 2/3
-- 종료 사유: 목표 달성 (target: 30)
-
-[최종 교정 텍스트]
-
-> **주의:** `--ouroboros`는 rewrite 출력을 기본으로 한다. `--diff`, `--audit`, `--score`와 함께 사용할 수 없다.
-
----
-
-
----
 
 ## Strict 모드 (다중 패스) (`--strict`)
 
@@ -497,9 +454,9 @@ P2 출력에 4.6/4.7단계의 통계 감지와 AI-lexicon 매칭을 재실행하
 #### P5: 수락/재시도/롤백 게이트 (Accept / Retry / Rollback Gate)
 
 ```
-floors (ouroboros와 동일):
-  fidelity_floor = 70
-  mps_floor      = 70
+floors:
+  fidelity_floor = verification.fidelity-floor (default: 70)
+  mps_floor      = verification.mps-floor (default: 70)
 
 accept 조건 (모두 충족):
   fidelity_score >= fidelity_floor
@@ -538,7 +495,6 @@ gate_result: accept | rollback
 ---
 ```
 
-> **참고:** `--strict`는 `--ouroboros`와 함께 사용할 수 있다. 이 경우 P5 게이트를 통과한 최종 출력이 ouroboros 루프의 입력으로 사용된다.
 
 ## 배치 모드 (`--batch`)
 
@@ -577,7 +533,6 @@ Glob {지정된 파일 패턴} → 파일 목록 확보
 | big.md | — | — | — | ⏭️ skipped (too large) |
 | broken.md | — | — | — | ❌ error: parse failed |
 
-> **주의:** `--batch`는 `--ouroboros`와 함께 사용할 수 있다. 이 경우 각 파일에 대해 ouroboros 루프가 독립적으로 실행된다.
 
 ---
 
@@ -660,7 +615,7 @@ FOR each anchor IN anchor_list:
    | `casual` | 14:suppress, 15:reduce, 17:reduce, 18:amplify, 8:amplify | 14:suppress, 15:reduce, 17:reduce, 7:amplify, 8:amplify |
    | `professional` | 17:suppress, 25:reduce, 28:amplify | 17:suppress, 25:reduce, 28:amplify |
 
-   **legal/medical fidelity 강제 (R2):** resolved_tone=professional이고 config.profile이 `legal` 또는 `medical`이면, `ouroboros.combined-weights.legal` / `ouroboros.combined-weights.medical` (fidelity 0.65)을 강제 적용한다. 톤 오버라이드가 fidelity 하한을 낮추지 않도록 한다.
+   **legal/medical fidelity 강제 (R2):** resolved_tone=professional이고 config.profile이 `legal` 또는 `medical`이면, `scoring.combined-weights.legal` / `scoring.combined-weights.medical` (fidelity 0.65)을 강제 적용한다. 톤 오버라이드가 fidelity 하한을 낮추지 않도록 한다.
 
 9. **의미 보존 제약 주입** — 의미 위험도가 HIGH인 패턴을 적용할 때, 해당 문단의 앵커를 교정 프롬프트에 포함한다: "다음 주장을 반드시 유지하라: {앵커 목록}". MEDIUM 위험도 패턴은 극성(Polarity) 또는 부정(Negation) 앵커가 있는 문단에서만 제약을 주입한다. LOW 위험도 패턴은 제약 없이 적용한다.
 
@@ -684,7 +639,7 @@ FOR each anchor IN anchor_list:
 2. **최종 앵커 대조** — 전체 앵커 목록과 최종 결과물을 비교한다. 5a-v/5b-v에서 미처리된 HARD FAIL 앵커가 있으면 해당 문장을 원문으로 복원한다 (안전망)
 3. **극성 반전 스캔** — 원문의 부정이 긍정으로(또는 반대) 바뀐 곳을 명시적으로 탐색한다. 부정어, 비교 표현, 조건절에 집중한다
 4. **회귀 체크** — 5a단계 출력과 최종 출력을 비교하여, 5a 교정이 되돌려진 구간이 있으면 5a 교정을 재적용한다
-5. **MPS 산출** — 앵커 검증 결과로부터 MPS(Meaning Preservation Score)를 계산한다. `--score` 또는 `--ouroboros` 모드일 때 출력에 포함한다
+5. **MPS 산출** — 앵커 검증 결과로부터 MPS(Meaning Preservation Score)를 계산한다. `--score` 모드와 Strict P5 검증에서 사용한다
 
 ---
 
@@ -743,7 +698,7 @@ AI 유사도 점수를 0-100 척도로 산출한다. `core/scoring.md`를 참조
    - 카테고리 점수 = (조정된 심각도 합계 / (패턴 수 × 3)) × 100
    - 패턴 수는 팩 frontmatter의 `patterns` 필드를 사용한다
 4. **전체 점수 계산**: 카테고리 점수의 가중 평균
-   - 가중치는 `ouroboros.category-weights.{lang}` 설정을 사용한다
+   - 가중치는 `scoring.category-weights.{lang}` 설정을 사용한다
    - 설정에 없는 카테고리(커스텀 팩)는 기본 가중치 0.10을 사용한다
 5. **출력 형식**:
 
@@ -763,9 +718,9 @@ AI 유사도 점수를 0-100 척도로 산출한다. `core/scoring.md`를 참조
 
 점수 해석: 0-15 사람다움 / 16-30 거의 사람다움 / 31-50 혼재 / 51-70 AI 느낌 / 71-100 AI 생성
 
-### Fidelity 점수 (rewrite/ouroboros 모드에서만)
+### Fidelity 점수
 
-`--score`가 rewrite 또는 ouroboros 모드와 함께 사용되면 (원본 텍스트가 있는 경우), 원본 대비 의미 보존도를 추가로 측정한다. `core/scoring.md` §§ 9-13의 절차를 따른다:
+원본 텍스트가 있는 점수 산출에서는 원본 대비 의미 보존도를 추가로 측정한다. `core/scoring.md` §§ 9-13의 절차를 따른다:
 
 1. **Claims Preserved** — 원본의 사실적 주장이 교정본에 보존되었는지 (0-3)
 2. **No Fabrication** — 교정본에 원본에 없는 내용이 추가되지 않았는지 (0-3)
@@ -782,7 +737,7 @@ AI 유사도 점수를 0-100 척도로 산출한다. `core/scoring.md`를 참조
 의미 보존 점수(MPS)는 4.5단계에서 추출된 의미 앵커가 최종 결과물에 얼마나 보존되었는지를 측정한다. `core/scoring.md` §14를 참조한다.
 
 종합 점수 = `(AI 유사도 × ai_weight) + ((100 - 충실도) × fidelity_weight)`.
-가중치는 `ouroboros.combined-weights.{profile}` 설정에 따른다 (기본: AI 0.60, 충실도 0.40).
+가중치는 `scoring.combined-weights.{profile}` 설정에 따른다 (기본: AI 0.60, 충실도 0.40).
 
 > **참고:** 점수는 LLM의 심각도 판단에 기반하므로 ±8-10 포인트의 변동이 있을 수 있다.
 > 정확한 수치보다 범위로 해석한다.

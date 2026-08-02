@@ -20,7 +20,7 @@ Use when: you need a pre-rewrite audit log, want to verify which patterns were a
 
 Given the ORIGINAL and REWRITE texts, audits meaning preservation against all four fidelity criteria defined in `core/scoring.md` §§9-14: claims preserved, no fabrication, tone match, and length ratio. Also checks MPS-level semantic anchors: numbers, polarity, causation, named entities, and direct quotes. Returns a PASS or NEEDS-ROLLBACK verdict with the fidelity score and offending spans identified.
 
-The ouroboros floor applies here: fidelity_score ≥ 70 is required for PASS.
+The verification floor applies here: fidelity_score ≥ `verification.fidelity-floor` (default: 70) is required for PASS.
 
 Use when: you need an auditable record that the rewrite did not alter facts, or when fidelity is critical (academic, technical, medical, legal profiles).
 
@@ -35,7 +35,7 @@ Re-runs detection on the **rewrite text** to check for residual AI tells. Comput
 | C | Residual score 51–70 or moderate over-editing — retry recommended |
 | D | Residual score > 70 or genre/register violation — rollback required |
 
-Use when: you want quality assurance on the rewrite before delivering it, or when the `--ouroboros` loop needs an independent grade signal.
+Use when: you want quality assurance on the rewrite before delivering it, or when the strict flow needs an independent grade signal.
 
 ## Strict Flow: Composition
 
@@ -71,7 +71,7 @@ The `/patina --strict` mode (defined in `SKILL.md`) wires this flow automaticall
 
 ## Advisory Metadata Rule
 
-Korean `translationese` and `koPostEditese.v1` signals are **advisory only** across the entire pipeline, including inside all three subagents. These signals must never influence the AI-likeness score, fidelity score, quality grade, ouroboros termination, or any authorship verdict. They appear in report output labeled as advisory and non-scoring.
+Korean `translationese` and `koPostEditese.v1` signals are **advisory only** across the entire pipeline, including inside all three subagents. These signals must never influence the AI-likeness score, fidelity score, quality grade, verification outcome, or any authorship verdict. They appear in report output labeled as advisory and non-scoring.
 
 ## Claude Code Plugin Auto-Discovery
 

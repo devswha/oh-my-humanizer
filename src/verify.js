@@ -109,9 +109,9 @@ export async function verifyRewrite({
 }) {
   const scoreMPS = scoreFns.scoreMPS || defaultScoreMPS;
   const scoreFidelity = scoreFns.scoreFidelity || defaultScoreFidelity;
-  const oc = config?.ouroboros || {};
-  const mpsFloor = oc['mps-floor'] ?? 70;
-  const fidelityFloor = oc['fidelity-floor'] ?? 70;
+  const verification = config?.verification || {};
+  const mpsFloor = verification['mps-floor'] ?? 70;
+  const fidelityFloor = verification['fidelity-floor'] ?? 70;
 
   const grade = async (text) => {
     const [mpsResult, fidelityResult] = await Promise.all([

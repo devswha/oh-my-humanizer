@@ -56,9 +56,11 @@ score는 0부터 100까지의 대략적인 편집 신호입니다. 낮을수록 
 
 한국어, 영어, 중국어, 일본어를 지원합니다. 패턴 팩은 언어 접두사로 자동 탐색되므로 새 언어는 새 패턴 파일을 기여해 추가할 수 있습니다.
 
-## 내 문체나 패턴을 추가할 수 있나요?
+## persona, profile, tone은 서로 겹치나요?
 
-네. voice preference에는 custom profile을, 로컬 규칙에는 custom pattern pack을 사용하세요. repo는 built-in pattern과 사용자 custom 설정을 분리합니다.
+역할이 다릅니다. persona는 재사용 가능한 voice composition을 맡습니다. 한국어와 영어에서 `--tone casual|professional|auto`는 register override이며 persona의 register보다 우선합니다. profile은 deterministic pattern policy를 제공하며, 별도의 로컬 규칙에는 custom pattern pack을 사용하세요.
+
+이 구분은 현재 방향이지 모든 경로가 이미 목표에 도달했다는 뜻은 아닙니다. 일부 skill 및 core-prompt 경로에는 profile의 legacy voice guidance가 아직 남아 있습니다. 이번 릴리스는 prompt나 runtime behavior를 바꾸지 않으며, 축을 합치거나 `--tone`을 이름 변경하거나 새 hosted control을 노출하지 않습니다. 모든 경로에서 profile을 pattern policy로만 완성하는 일, retry context preservation 검증, 사용자 대상 “Register” 명칭 검토는 이후 작업입니다.
 
 ## 기여자는 무엇부터 시작하면 좋나요?
 

@@ -17,12 +17,13 @@ describe('Config Loading', () => {
     assert.ok(config.language);
     assert.ok(config.profile);
     assert.ok(config.patterns);
-    assert.ok(config.ouroboros);
+    assert.ok(config.scoring);
+    assert.ok(config.verification);
   });
 
   it('should have combined-weights for all profiles', () => {
     const config = loadConfig(resolve(REPO_ROOT, '.patina.default.yaml'));
-    const weights = config.ouroboros?.['combined-weights'];
+    const weights = config.scoring?.['combined-weights'];
     assert.ok(weights);
     assert.ok(weights.default);
     assert.ok(weights.academic);
