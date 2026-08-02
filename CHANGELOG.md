@@ -12,6 +12,22 @@ All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 Semver rationale: patch | minor | major — explain whether this changes patterns, schemas, CLI behavior, or docs only.
 ```
 
+## Unreleased
+
+### Changed
+
+- The v6.4 preflight hold now certifies the Polar payment route instead of the
+  declined Lemon Squeezy account: the checkout evidence binding table carries
+  exactly the Polar production tuple (`PAY-B-20260729-POLAR-ea8385dc-4c9c3f17`,
+  `https://buy.polar.sh/polar_cl_…`), the hold validates the
+  `PAY-B-BINDING-POLAR-v1` and `PAY-LIVE-RUNTIME-POLAR-v1` artifacts,
+  `POLAR_APPROVAL` replaces `LS_APPROVAL`, and the secret-manager blocker names
+  `PATINA_LICENSE_PROVIDER`/`POLAR_ORGANIZATION_ID`/`POLAR_PRO_BENEFIT_ID`. The
+  retired staging chain is recorded as superseded by the production zero-amount
+  purchase evidence, not silently dropped; Lemon Squeezy records stay on disk,
+  hash-frozen, as history. Checkout remains disabled pending the owner's
+  env-side enable sequence.
+
 ## 7.0.0 — 2026-07-30
 
 **Removes the retired iterative rewrite product contract, gives scoring and verification settings neutral ownership, and preserves the comparator only as unsupported research.**
