@@ -55,3 +55,46 @@ are real omissions, not rubric artifacts.
 
 Raw run: 2026-08-03, `quality:live`, 22 fixtures, judge codex-cli/gpt-5.5,
 candidate `deepseek-v4-flash` with `{"thinking":{"type":"disabled"}}`.
+
+## Root cause (2026-08-03 addendum): why fidelity fails
+
+Four failing fixtures were regenerated with the identical prompt path and the
+raw deliveries inspected. Two distinct causes, neither of which is "the model
+writes worse prose":
+
+### 1. Output-contract violations (3 of 4 inspected failures)
+
+The rewrite prompt requires a `[BODY]` / `[SELF_AUDIT]` structure; the engine
+must return them so the delivery layer can strip the audit and hand back only
+the body. gemini-3.6-flash and claude-sonnet-5 follow the contract; 0731 does
+not, inconsistently per run:
+
+- `en-howto-01`, `ko-news-01`: the whole `[SELF_AUDIT]` bullet block survived
+  into the delivered text — the customer would receive the model's self-review
+  appended to their document. The judge correctly charges the garbage.
+- `ko-howto-01`: an orphan duplicate `[BODY]` tag at the end of the delivery.
+- `ko-blog-01`: no tags at all.
+
+The re-post-training that improved "agentic" benchmarks appears to have made
+the model editorialize about its own work instead of following the output
+schema. A patina-side stripper hardening could salvage some of this (tolerate
+malformed/duplicated tags), but a serving engine that only sometimes honors
+the response contract is a per-request coin flip.
+
+### 2. Fabrication under naturalness pressure (ko-blog-01, fidelity 41.7)
+
+Original: 통근 시간 절감이 생산성 향상에 기여한다 (plain claim).
+Delivered: "생산성이 올라간다는 **연구 결과도 나온다**" — the model invented a
+supporting research finding that the original never made. It fabricates
+evidence to make prose sound more human. This is the one failure patina can
+never engineer around: the product's core promise is that the claim set does
+not change.
+
+### Reading
+
+The July failure (wholesale meaning deletion) is genuinely fixed; the August
+failures are contract compliance and claim fabrication. Cause 1 is partially
+mitigable on our side and worth re-testing on the next model update; cause 2
+is disqualifying for the paid tier as long as it reproduces. The free-tier
+option stands, but with the stripper hardening as a prerequisite so scaffold
+leakage never reaches a visitor.
