@@ -20,7 +20,7 @@
   <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <a href="#quick-start"><img alt="Skill: Claude Code | Codex | Cursor | OpenCode" src="https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet"></a>
   <a href="https://github.com/devswha/patina"><img alt="Languages: KO | EN | ZH | JA" src="https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green"></a>
-  <a href="CHANGELOG.md"><img alt="Version 6.3.4" src="https://img.shields.io/badge/version-6.3.4-blue"></a>
+  <a href="CHANGELOG.md"><img alt="Version 7.0.0" src="https://img.shields.io/badge/version-7.0.0-blue"></a>
 </p>
 
 <p align="center">
@@ -110,7 +110,7 @@ For large `--batch` runs, prefer an OpenAI-compatible HTTP backend; local CLI ba
 | **184 patterns** | 37 rewrite-capable + 9 score-only viral-hook per language (46 each across KO/EN/ZH/JA) — see the full 184-pattern catalog in [PATTERNS.md](docs/PATTERNS.md) |
 | **Modes** | rewrite · verify · audit · score · diff |
 | **Surfaces** | agent skill · Node CLI · in-place preview · browser playground (rewrite + score) |
-| **Voice** | `--persona` (built-in + your own, ko/en/zh/ja) is the sole voice axis · `--tone` register · `--profile` pattern policy — composable with a fixed precedence |
+| **Voice controls** | `--persona` is the reusable voice axis · `--tone` overrides register · `--profile` sets Node pattern policy; some skill/core paths still carry legacy profile voice guidance |
 | **Free usage** | logged-in `codex`, `claude`, or `gemini` CLI can run rewrites without `PATINA_API_KEY` |
 | **Calibration** | 67.3% editing-hotspot catch [63.5–71.0%] across GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro (n=600, KO+EN); 16.0% false positives [11.6–21.7%] on KO+EN human controls (n=200) |
 | **License** | MIT |
@@ -127,8 +127,9 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 |---|---|
 | `patina input.txt` | rewrite with defaults |
 | `patina --audit input.txt` | detect patterns only |
-| `patina --score input.txt` | output a 0-100 AI-likeness score |
-| `patina --score --exit-on 30 input.txt` | CI gate with exit code `3` when `overall > 30` |
+| `patina --score input.txt` | output a 0-100 score using the LLM judge plus deterministic signals |
+| `patina --score --offline input.txt` | score with deterministic signals only; no backend or API key |
+| `patina --score --offline --exit-on 30 input.txt` | offline CI gate with exit code `3` when `overall > 30` |
 | `patina --diff input.txt` | show pattern-by-pattern changes |
 | `patina --preview page.html` | render rewrites back onto a saved HTML page with toggles and inline diff |
 | `patina --verify input.txt` | rewrite, then check MPS/fidelity floors with one retry |
@@ -158,7 +159,7 @@ patina persona edit my-voice --name "Founder voice"         # copy-on-edit into 
 patina persona rm my-voice                                  # remove a custom persona (--force to skip the confirm)
 ```
 
-Works on ko/en/zh/ja and composes with `--tone` (register) and `--profile` (pattern policy). The persona is the sole voice owner; register precedence is `--tone` > persona. A persona shapes voice but never lowers the meaning floors — authored personas are validated on save, and the safety gate still enforces MPS/fidelity + dropped-number checks.
+Works on ko/en/zh/ja and composes with `--tone` and `--profile`. In Node, persona owns reusable voice, register precedence is `--tone` > persona, and profile controls pattern policy. Some skill/core-prompt paths still contain legacy profile voice guidance, so that separation is not universal yet. None of these controls lowers the meaning floors: authored personas are validated on save, and rewrites still enforce MPS/fidelity and dropped-number checks.
 
 ## CI
 
@@ -204,11 +205,11 @@ If meaning drifts, the change is retried or rolled back. Deterministic analysis 
 
 ```yaml
 # .patina.default.yaml
-version: "6.3.4"
+version: "7.0.0"
 language: ko              # ko | en | zh | ja
 profile: default
 output: rewrite           # rewrite | diff | audit | score
-tone:                     # casual | professional | auto  (register; genre = profile)
+tone:                     # casual | professional | auto  (register override; profile = pattern policy)
 ```
 
 Project `.patina.yaml` overrides defaults. Pattern packs are auto-discovered by language prefix. Additive list keys (`blocklist`, `allowlist`, `skip-patterns`) merge; other arrays replace.

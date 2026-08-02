@@ -109,7 +109,10 @@ test('combinedScore uses default and profile-specific config weights', () => {
       profile: 'legal',
       config: {
         ...config,
-        scoring: { deterministic: { 'combined-weight': 0.25 } },
+        scoring: {
+          ...config.scoring,
+          deterministic: { ...config.scoring.deterministic, 'combined-weight': 0.25 },
+        },
       },
     }),
     39.6
@@ -199,12 +202,16 @@ test('score helpers accept an injected callLLM implementation', async () => {
 });
 test('scoreText prompt includes score instructions, pattern counts, and catalog digest', async () => {
   let prompt = '';
+  const config = loadConfig();
   await scoreText({
     text: 'Short sample text.',
     config: {
-      ...loadConfig(),
+      ...config,
       language: 'en',
-      scoring: { deterministic: { enabled: false } },
+      scoring: {
+        ...config.scoring,
+        deterministic: { ...config.scoring.deterministic, enabled: false },
+      },
     },
     patterns: [
       {

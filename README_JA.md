@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skill](https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet)](#クイックスタート)
 [![Multi-language](https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green)](https://github.com/devswha/patina)
-[![Version](https://img.shields.io/badge/version-6.3.4-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.0.0-blue)](CHANGELOG.md)
 
 > **AIっぽさだけを落として、意味はそのまま。**
 
@@ -99,7 +99,7 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 | **184 パターン** | 各言語 37 個の書き換え可能パターン + 9 個のスコア専用 viral-hook（KO/EN/ZH/JA 各 46 個） — 完全な 184 パターンカタログは [PATTERNS.md](docs/PATTERNS.md) を参照 |
 | **モード** | rewrite · verify · audit · score · diff |
 | **利用形態** | agent skill · Node CLI · ページ内 preview · ブラウザ playground（rewrite + score） |
-| **ボイス** | `--persona`（組み込み + 自作、ko/en/zh/ja）· `--tone` レジスター · `--profile` ジャンル — 固定の優先順位で組み合わせ可能 |
+| **ボイス制御** | `--persona` は再利用ボイス · `--tone` はレジスター上書き · `--profile` は Node のパターン方針（一部 skill/core 経路には旧 profile ボイス指示が残る） |
 | **無料利用** | ログイン済みの `codex`、`claude`、`gemini` CLI なら `PATINA_API_KEY` なしで書き換え可能 |
 | **キャリブレーション** | GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro で編集ホットスポット再現率 67.3% [63.5–71.0%]（n=600、KO+EN）；KO+EN の人間文章コントロールで誤検出 16.0% [11.6–21.7%]（n=200） |
 | **ライセンス** | MIT |
@@ -116,8 +116,9 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 |---|---|
 | `patina input.txt` | デフォルトで書き換え |
 | `patina --audit input.txt` | パターン検出のみ |
-| `patina --score input.txt` | 0-100 の AI 類似度スコアを出力 |
-| `patina --score --exit-on 30 input.txt` | `overall > 30` で終了コード `3` を返す CI ゲート |
+| `patina --score input.txt` | LLM 判定と決定論的シグナルを併用して 0-100 のスコアを出力 |
+| `patina --score --offline input.txt` | バックエンドや API キーを使わず、決定論的シグナルのみでスコアを計算 |
+| `patina --score --offline --exit-on 30 input.txt` | `overall > 30` で終了コード `3` を返すオフライン CI ゲート |
 | `patina --diff input.txt` | 変更をパターンごとに表示 |
 | `patina --preview page.html` | 保存済み HTML ページ上に書き換えを反映し、トグルとインライン diff を表示 |
 | `patina --verify input.txt` | 書き換え後、1 回のリトライで MPS/忠実度フロアを検査 |
@@ -140,7 +141,7 @@ patina persona new my-voice --describe "plain-spoken founder, casual"
 patina --persona my-voice draft.md                          # then reuse it
 ```
 
-ko/en/zh/ja で動作し、`--tone`/`--profile` と組み合わせられます（レジスター優先順位は `--tone` > persona > profile）。ペルソナはボイスを形づくるだけで意味フロアを下げることはありません。作成したペルソナは保存時に検証され、安全ゲートは MPS/忠実度 + 数値欠落チェックを引き続き強制します。
+ko/en/zh/ja で `--tone`/`--profile` と組み合わせられます。Node では persona が再利用ボイスを担い、レジスター優先順位は `--tone` > persona、profile はパターン方針を制御します。一部の skill/core-prompt 経路には旧 profile ボイス指示が残るため、この分離はまだ全経路の不変条件ではありません。どの制御も意味フロアを下げず、作成した persona は保存時に検証され、書き換えは MPS/忠実度と数値欠落チェックを引き続き強制します。
 
 ## CI
 
@@ -186,11 +187,11 @@ Input
 
 ```yaml
 # .patina.default.yaml
-version: "6.3.4"
+version: "7.0.0"
 language: ko              # ko | en | zh | ja
 profile: default
 output: rewrite           # rewrite | diff | audit | score
-tone:                     # casual | professional | auto  (register; genre = profile)
+tone:                     # casual | professional | auto  (register override; profile = pattern policy)
 ```
 
 プロジェクトの `.patina.yaml` がデフォルトを上書きします。パターンパックは言語プレフィックスで自動検出されます。追加型のリストキー（`blocklist`、`allowlist`、`skip-patterns`）はマージされ、その他の配列は置き換えられます。

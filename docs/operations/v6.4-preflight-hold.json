@@ -1,90 +1,266 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "release": "v6.4",
   "state": "HOLD_NO_PROMOTION",
   "promotionRows": [
-    { "surface": "OpenAI HTTP", "currentDefault": "gpt-5.5", "candidate": "gpt-5.6", "status": "HOLD_NO_PROMOTION" },
-    { "surface": "Codex CLI", "currentDefault": "gpt-5.5", "candidate": "gpt-5.6", "status": "HOLD_NO_PROMOTION" },
-    { "surface": "Claude CLI", "currentDefault": "claude-sonnet-4-6", "candidate": "claude-sonnet-5", "status": "HOLD_NO_PROMOTION" },
-    { "surface": "Gemini HTTP", "currentDefault": "gemini-2.5-pro", "candidate": "gemini-3.1-pro-preview", "ceiling": "opt_in_only", "status": "HOLD_NO_PROMOTION" },
-    { "surface": "Gemini CLI", "currentDefault": "gemini-2.5-pro", "candidate": "gemini-3.1-pro-preview", "ceiling": "opt_in_only", "status": "HOLD_NO_PROMOTION" }
+    {
+      "surface": "OpenAI HTTP",
+      "currentDefault": "gpt-5.5",
+      "candidate": "gpt-5.6",
+      "status": "HOLD_NO_PROMOTION"
+    },
+    {
+      "surface": "Codex CLI",
+      "currentDefault": "gpt-5.5",
+      "candidate": "gpt-5.6",
+      "status": "HOLD_NO_PROMOTION"
+    },
+    {
+      "surface": "Claude CLI",
+      "currentDefault": "claude-sonnet-4-6",
+      "candidate": "claude-sonnet-5",
+      "status": "HOLD_NO_PROMOTION"
+    },
+    {
+      "surface": "Gemini HTTP",
+      "currentDefault": "gemini-2.5-pro",
+      "candidate": "gemini-3.1-pro-preview",
+      "ceiling": "opt_in_only",
+      "status": "HOLD_NO_PROMOTION"
+    },
+    {
+      "surface": "Gemini CLI",
+      "currentDefault": "gemini-2.5-pro",
+      "candidate": "gemini-3.1-pro-preview",
+      "ceiling": "opt_in_only",
+      "status": "HOLD_NO_PROMOTION"
+    }
   ],
   "completedDecisions": [
-    { "id": "GATE_C_OPENAI_HTTP_NO_PROMOTION", "status": "HOLD_NO_PROMOTION" },
-    { "id": "GATE_C_CODEX_CLI_NO_PROMOTION", "status": "HOLD_NO_PROMOTION" },
-    { "id": "GATE_C_CLAUDE_CLI_NO_PROMOTION", "status": "HOLD_NO_PROMOTION" },
-    { "id": "GATE_C_GEMINI_HTTP_NO_PROMOTION", "status": "HOLD_NO_PROMOTION" },
-    { "id": "GATE_C_GEMINI_CLI_NO_PROMOTION", "status": "HOLD_NO_PROMOTION" },
-    { "id": "PAY_STG_BINDING_APPROVAL", "status": "COMPLETED", "evidence": "PAY-STG-20260716-1199625-1875389" },
-    { "id": "SOURCE_BINDING_STAGING_INTEGRATION", "status": "COMPLETED", "evidence": "PAY-STG-20260716-1199625-1875389" },
-    { "id": "PAY_STG_RUNTIME_TEST_SMOKE", "status": "COMPLETED", "evidence": "PAY-STG-RUNTIME-20260716-8973866" },
-    { "id": "PAY_B_BINDING_APPROVAL", "status": "COMPLETED", "evidence": "PAY-B-20260723-1236551-1932893" },
-    { "id": "SOURCE_BINDING_PRODUCTION_INTEGRATION", "status": "COMPLETED", "evidence": "PAY-B-20260723-1236551-1932893" }
+    {
+      "id": "GATE_C_OPENAI_HTTP_NO_PROMOTION",
+      "status": "HOLD_NO_PROMOTION"
+    },
+    {
+      "id": "GATE_C_CODEX_CLI_NO_PROMOTION",
+      "status": "HOLD_NO_PROMOTION"
+    },
+    {
+      "id": "GATE_C_CLAUDE_CLI_NO_PROMOTION",
+      "status": "HOLD_NO_PROMOTION"
+    },
+    {
+      "id": "GATE_C_GEMINI_HTTP_NO_PROMOTION",
+      "status": "HOLD_NO_PROMOTION"
+    },
+    {
+      "id": "GATE_C_GEMINI_CLI_NO_PROMOTION",
+      "status": "HOLD_NO_PROMOTION"
+    },
+    {
+      "id": "PAY_STG_SUPERSEDED_BY_PRODUCTION_RUNTIME",
+      "status": "SUPERSEDED",
+      "evidence": "PAY-LIVE-20260729-POLAR-ea8385dc-4c9c3f17"
+    },
+    {
+      "id": "PAY_B_BINDING_APPROVAL",
+      "status": "COMPLETED",
+      "evidence": "PAY-B-20260729-POLAR-ea8385dc-4c9c3f17"
+    },
+    {
+      "id": "SOURCE_BINDING_PRODUCTION_INTEGRATION",
+      "status": "COMPLETED",
+      "evidence": "PAY-B-20260729-POLAR-ea8385dc-4c9c3f17"
+    },
+    {
+      "id": "PAY_LIVE_RUNTIME_ZERO_AMOUNT_SMOKE",
+      "status": "COMPLETED",
+      "evidence": "PAY-LIVE-20260729-POLAR-ea8385dc-4c9c3f17"
+    }
   ],
-  "checkout": { "enabled": false },
+  "checkout": {
+    "enabled": false
+  },
   "frozenSemantics": {
-    "manifestVersion": 3,
+    "manifestVersion": 4,
     "providers": {
-      "openai": { "name": "openai", "baseURL": "https://api.openai.com/v1", "apiKeyEnv": "OPENAI_API_KEY", "defaultModel": "gpt-5.5", "freeTier": false, "note": "Paid. Default OpenAI Platform API." },
-      "gemini": { "name": "gemini", "baseURL": "https://generativelanguage.googleapis.com/v1beta/openai", "apiKeyEnv": "GEMINI_API_KEY", "defaultModel": "gemini-2.5-pro", "freeTier": true, "note": "Free tier available. Get a key at https://aistudio.google.com/app/apikey" },
-      "groq": { "name": "groq", "baseURL": "https://api.groq.com/openai/v1", "apiKeyEnv": "GROQ_API_KEY", "defaultModel": "llama-3.3-70b-versatile", "freeTier": true, "note": "Free tier with rate limits. Get a key at https://console.groq.com/keys" },
-      "kimi": { "name": "kimi", "baseURL": "https://api.moonshot.ai/v1", "apiKeyEnv": "KIMI_API_KEY", "defaultModel": "kimi-k2.5", "freeTier": false, "note": "Moonshot AI Kimi OpenAI-compatible API. Set KIMI_API_KEY or PATINA_API_KEY." },
-      "moonshot": { "name": "moonshot", "baseURL": "https://api.moonshot.ai/v1", "apiKeyEnv": "MOONSHOT_API_KEY", "defaultModel": "kimi-k2.5", "freeTier": false, "note": "Moonshot AI Kimi OpenAI-compatible API. Set MOONSHOT_API_KEY or PATINA_API_KEY." },
-      "together": { "name": "together", "baseURL": "https://api.together.xyz/v1", "apiKeyEnv": "TOGETHER_API_KEY", "defaultModel": "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free", "freeTier": true, "note": "Free models available (suffix \"-Free\"). Get a key at https://api.together.xyz/settings/api-keys" }
+      "openai": {
+        "name": "openai",
+        "baseURL": "https://api.openai.com/v1",
+        "apiKeyEnv": "OPENAI_API_KEY",
+        "defaultModel": "gpt-5.5",
+        "freeTier": false,
+        "note": "Paid. Default OpenAI Platform API."
+      },
+      "gemini": {
+        "name": "gemini",
+        "baseURL": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "apiKeyEnv": "GEMINI_API_KEY",
+        "defaultModel": "gemini-2.5-pro",
+        "freeTier": true,
+        "note": "Free tier available. Get a key at https://aistudio.google.com/app/apikey"
+      },
+      "groq": {
+        "name": "groq",
+        "baseURL": "https://api.groq.com/openai/v1",
+        "apiKeyEnv": "GROQ_API_KEY",
+        "defaultModel": "llama-3.3-70b-versatile",
+        "freeTier": true,
+        "note": "Free tier with rate limits. Get a key at https://console.groq.com/keys"
+      },
+      "kimi": {
+        "name": "kimi",
+        "baseURL": "https://api.moonshot.ai/v1",
+        "apiKeyEnv": "KIMI_API_KEY",
+        "defaultModel": "kimi-k2.5",
+        "freeTier": false,
+        "note": "Moonshot AI Kimi OpenAI-compatible API. Set KIMI_API_KEY or PATINA_API_KEY."
+      },
+      "moonshot": {
+        "name": "moonshot",
+        "baseURL": "https://api.moonshot.ai/v1",
+        "apiKeyEnv": "MOONSHOT_API_KEY",
+        "defaultModel": "kimi-k2.5",
+        "freeTier": false,
+        "note": "Moonshot AI Kimi OpenAI-compatible API. Set MOONSHOT_API_KEY or PATINA_API_KEY."
+      },
+      "together": {
+        "name": "together",
+        "baseURL": "https://api.together.xyz/v1",
+        "apiKeyEnv": "TOGETHER_API_KEY",
+        "defaultModel": "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+        "freeTier": true,
+        "note": "Free models available (suffix \"-Free\"). Get a key at https://api.together.xyz/settings/api-keys"
+      }
     },
     "sourceHashes": {
-      ".env.example": "ed39e3edd12739e3c901824a786b28a7dc172e9710307425def88eee9c29bc30",
+      ".env.example": "e7d1762137e29232217712bdc7c699f6abd24595271f31dc2528fcb92c2cb00d",
       "src/model-defaults.js": "c568977fcac8ea44d5387a8a8745b062675ec94d73d39ce528c492ad35f87176",
       "src/providers.js": "92415eacaf87da2d0f2aed7db97feeb98b8b087adfe584a02c4478353b807d90",
-      "src/web-rewrite-contract.js": "b8a9d0fc28921740b68faf464b7848721ddf6b40696139447c16560811c036f7",
+      "src/web-rewrite-contract.js": "be433e8260e452028eb53b5c1aed0935a4150cd669ec2d5e826302219df22b9a",
       "playground/launch-config.js": "4d19fc8ce36651f73f94d80bbcd108a2ccbb50fa3fc25b54d75f193b42ac6bf4",
       "vercel.json": "37a54c0850db54e80eec963c570d4b8a047fcfb4bf56d1a133e5a3934b28260e",
-      "scripts/checkout-evidence-bindings.mjs": "8dcdf4b23787f91c773b6d8b30857ae3bc90b9f6e1552561749b00c8502e1408",
+      "scripts/checkout-evidence-bindings.mjs": "767c832fe4b517824e06fa7e18d6dd777e6525831dcfaa2022e51a4c8f27c07c",
       "scripts/generate-launch-config.mjs": "c5047625479bc687c510b6faf5045cf6118359ba978d219cea834325de5e8a07",
       "scripts/check-v6.4-release-ready.mjs": "fc4521db8f4677e03ac6a2199a86917b6332033030a9e8fe248cd166b0a59313",
       "docs/AUTHENTICATION.md": "e8c335550c4a0f0b144b79f4286d467a968962821a1c88049f1e679810751cfe",
       "docs/AUTHENTICATION_KR.md": "5e077cd3a13c2299a11fc831c8303a204880c91dd0d465148d34a435dbe00796",
-      "docs/operations/pro-launch.md": "5a3ecb35a60374ee34111ad91e646a02f974439e9a2052ceb18b3ebc729d5acc",
+      "docs/operations/pro-launch.md": "50448491ce0b745eb2bfe07983238a6e727466de0f71c72b7cbc4a9c447068ff",
       "docs/operations/pay-stg-binding-20260716.json": "2f523259de91f640f056fe7acfe00264e493d9891b7a61152fe5e91704c0ecdf",
       "docs/operations/pay-stg-runtime-20260716.json": "b0229e892b06e1ec303a001c1317c4c63fc3c98fd7e10243e64db07df4803d29",
       "docs/operations/pay-b-binding-20260723.json": "96eb8e0aba9fcb4ce67dd356bd35aaf678d8abea96a7ec134218eab7cd20f132",
+      "docs/operations/pay-b-binding-polar-20260729.json": "471c9035a04ce5c2c76d7e5b4d595054191d513fa007455a02c9b123d0811ac5",
+      "docs/operations/pay-live-runtime-polar-20260729.json": "384912dca4576f1c3f8d653f39c3d9a8cb19f8f8acc1a91ac2bc36fdf10e7a9c",
       "tests/e2e/providers.test.js": "47958be678e9bbfd06bcdd849ec0df37ed765f886e245b7b528e7d596b6d9dfe",
       "tests/unit/backend-model-defaults.test.js": "908dd9b06a9d5305ad28b50007d6428435b0b6b7019d6a2210aff813bfb9cf3d",
-      "tests/unit/web-deploy-invariants.test.js": "0c858c964a350115af6b567d8f3f707cc6749ede5e2967ab56f30b2fa0fb8bcd",
+      "tests/unit/web-deploy-invariants.test.js": "2aecb9068c04999eaf964766cdc1e0c3a551f58ecfa54a0ade8802f1b8f4f296",
       "tests/unit/web-rewrite-contract.test.js": "2980f555bb53e7c8d93a74d60dc096adadfd1c7d07fd70f55de1670959219c13",
       "tests/unit/web-rewrite-contract.redteam.test.js": "3c7591926e168b14f486199297fd1e84ed447c1b8d339c9b4860f79da0f6a7bb",
-      "tests/unit/v6.4-preflight-hold.test.js": "a14660535c998cde52e8810fec7812305d1688af67927cc868524040c2eafd17",
+      "tests/unit/v6.4-preflight-hold.test.js": "c5f8a3465576dff5a94f07dd8eaac741d1e0e5006b7076fe9884204eb7a0c7a8",
       "tests/unit/v6.4-release-ready.test.js": "8d88aab35ce75bc40b4782932329c0402001afabc380ac349ccc1b82d01c12d7",
-      "package.json": "1e8ac85400d4d5650f9ad2e4bf64af2e5706b33543b4654ccf96b52da5505503",
-      "package-lock.json": "d2daab24b2f2659b18cbb31f82c4725d946b1c7b3a0c677de61b5b1ab4c73d2c",
+      "package.json": "6712053362194ab947aa10de4f7772bfa23ae6db97dc5a912e05763c4e3a2dc3",
+      "package-lock.json": "3d4b2573cd3a273d766a01a6ea2245b2528a9149ae75fdda9bb977bfd5af69a1",
       ".github/workflows/release.yml": "43900a0966a52c500d54b1971d4141fe2d380a893364b4cb7b9976e9e3795f8f",
-      "README.md": "9432759281d3f515dabc60565b91452526638d0100eec1592ddf9eb8b88bb1a7",
-      "README_KR.md": "24b57094c56177111cac916cdb9dbd66cf58f8f9a0c148af7b683968b7d59be6",
-      "README_ZH.md": "a03339478ee079af4f4ad677eb6b0f4eb0c53225496bf5dc1198953f38a36a38",
-      "README_JA.md": "c76900d114230e3d2591637b1a2869a157ba467d5df7086cc3c3bd05c0755165",
-      "SKILL.md": "61c4375aaee481ec57c713bda7e5a58df0778ef58bfdb0513ccee8d1bf583b67",
-      ".patina.default.yaml": "f9c43c8e32a8b62f266a379a8ea7a99b74967b49821e84602a5e71f02c7dfc31",
-      "packages/patina-humanizer/package.json": "aacfc932d6839c5ce99e70c96160159afb81e6e0d3802a77387d85e7919c516b",
-      ".claude-plugin/plugin.json": "9a439cad38598dbe82f4fd45534bc225776cf05613700c7bde2cb7831f20c18e",
-      ".claude-plugin/marketplace.json": "2e8fee2466bb0d5ffcb3bd8a4731e70028e587425c2ee97edbeb3f926f54cace",
-      "CHANGELOG.md": "9996dc886df3ab5267cd364c7d3e7782cb7991851a7262574f70037dd7f070b2"
+      "README.md": "78829adef9bc233a2dc0003ea022281ce483cb958daeef01a073361e31ce8f11",
+      "README_KR.md": "ebac4f175b399a081d4c4a2b92fcc0708f1e85976d8da869f0f9b608046cfd59",
+      "README_ZH.md": "66076f5870bf806310b4516db0c260037f7b2684c3234b291660593f744a8ec0",
+      "README_JA.md": "bd71aa30bd9eca7b1f4520f4fb609585f40ccbf78d9c0ba29d29c7364c869c44",
+      "SKILL.md": "3b7dc62f22c1feb9178d49a47e78bfa60fe94ea314d7132a99dcc6c9b231a4c5",
+      ".patina.default.yaml": "308311b43add43e9d0e40bdfcdf65823337f12357e50366ce0fb8b07cfd76885",
+      "packages/patina-humanizer/package.json": "fc9b27a4c97965d17b18492999f7018f34819806d63d626eeb428f6dd0834c63",
+      ".claude-plugin/plugin.json": "7a5df3e87832d22821e7d1fafed76e125b33a02d5550e46fa73e7aa9073d2325",
+      ".claude-plugin/marketplace.json": "c500dfec67c40f4c2acb6de3efc5c60631e8e82ff961311a09609fe37e806e2d",
+      "CHANGELOG.md": "dfc4fb1f70ca873ca1bf44b3949374d43018fc673b98212e7515b31c9a07ef80"
     }
   },
   "blockers": [
-    { "id": "LS_APPROVAL", "type": "human_action", "owner": "Lemon Squeezy Approval Owner", "exitEvidence": "Immutable Lemon Squeezy approval naming the exact store, product, and variant identities; exact staging and production HTTPS checkout URLs; and approval that is immutable.", "evidence": null },
-    { "id": "SECRET_MANAGER", "type": "human_action", "owner": "Secret Manager Owner", "exitEvidence": "Secret-manager presence-only record, without values, for KV_REST_API_URL, KV_REST_API_TOKEN, LS_STORE_ID, LS_PRO_PRODUCT_ID, LS_PRO_VARIANT_ID, PATINA_PRO_API_KEY, PATINA_LICENSE_HMAC_SECRET, PATINA_QUOTA_HMAC_SECRET, PATINA_FREE_API_KEY, PATINA_PRO_PROVIDER, PATINA_PRO_MODEL, PATINA_PRO_CHECKOUT_ENABLED, PATINA_PRO_CHECKOUT_URL, PATINA_PRO_GATE_EVIDENCE_ID, PATINA_DEPLOYMENT_CHANNEL, PATINA_OBSERVABILITY_REST_API_URL, PATINA_OBSERVABILITY_REST_API_TOKEN, CRON_SECRET, PATINA_PUBLIC_BASE_URL, PATINA_PUBLIC_BASE_URL_SHA256, PATINA_SYNTHETIC_PRO_LICENSE, PATINA_SYNTHETIC_OBSERVER_SECRET, PATINA_VERCEL_LOG_QUERY_URL, PATINA_VERCEL_LOG_QUERY_URL_SHA256, PATINA_VERCEL_LOG_QUERY_TOKEN, PATINA_ALERT_DISCORD_WEBHOOK, VERCEL_GIT_COMMIT_SHA; PATINA_PRO_ALLOW_FREE_KEY is absent or exactly false.", "evidence": null },
-    { "id": "PAY_STG", "type": "human_action", "owner": "Deployment Owner", "exitEvidence": "Immutable private-staging PAY-STG deployment record naming the exact staging HTTPS checkout URL and completed staging source-binding integration commit or artifact.", "evidence": null },
-    { "id": "GATE_B", "type": "human_action", "owner": "Payment Runtime Owner + maintainer", "exitEvidence": "Gate-B approval by the Payment Runtime Owner and maintainer proving completed production source-binding integration commit or artifact, hosted identity, usage, dedicated runtime, content-valid PAY-B-COST evidence, and real-path OBS evidence.", "evidence": null },
-    { "id": "DEP_PROD_DISABLED", "type": "human_action", "owner": "Deployment Owner", "exitEvidence": "Immutable production-disabled artifact/config with the exact disabled launch shape; browser evidence that checkout is disabled; health, monitor, and operator evidence; and UTC timestamps.", "evidence": null },
-    { "id": "GATE_D", "type": "human_action", "owner": "Release Authority", "exitEvidence": "Gate-D record proving mandatory gates passed and naming the approving Release Authority.", "evidence": null },
-    { "id": "ROLLBACK_DRILLS", "type": "human_action", "owner": "Deployment Owner", "exitEvidence": "Timestamped rollback records: sale-close completed within 10 minutes, plus correctness evidence for service-kill and fallback without a 10-minute claim.", "evidence": null },
-    { "id": "PAY_OPEN", "type": "human_action", "owner": "Maintainer", "exitEvidence": "Maintainer authorization to open payment after the required gates and immutable evidence are complete.", "evidence": null },
-    { "id": "PAY_LIVE", "type": "human_action", "owner": "Payment Runtime Owner", "exitEvidence": "Bounded real-production payment, refund, revoke, license-denial, and recovery evidence, including denial and recovery within the documented propagation bound.", "evidence": null },
-    { "id": "REL_PUBLISH", "type": "human_action", "owner": "Release Authority", "exitEvidence": "Final Release Authority approval for the v6.4 tag and registry publication.", "evidence": null }
+    {
+      "id": "POLAR_APPROVAL",
+      "type": "human_action",
+      "owner": "Polar Approval Owner",
+      "exitEvidence": "Immutable Polar account approval at first payout naming the exact production organization, product, and benefit identities and the exact production HTTPS checkout URL; and approval that is immutable.",
+      "evidence": null
+    },
+    {
+      "id": "SECRET_MANAGER",
+      "type": "human_action",
+      "owner": "Secret Manager Owner",
+      "exitEvidence": "Secret-manager presence-only record, without values, for KV_REST_API_URL, KV_REST_API_TOKEN, PATINA_LICENSE_PROVIDER, POLAR_ORGANIZATION_ID, POLAR_PRO_BENEFIT_ID, PATINA_PRO_API_KEY, PATINA_LICENSE_HMAC_SECRET, PATINA_QUOTA_HMAC_SECRET, PATINA_FREE_API_KEY, PATINA_PRO_PROVIDER, PATINA_PRO_MODEL, PATINA_PRO_CHECKOUT_ENABLED, PATINA_PRO_CHECKOUT_URL, PATINA_PRO_GATE_EVIDENCE_ID, PATINA_DEPLOYMENT_CHANNEL, PATINA_OBSERVABILITY_REST_API_URL, PATINA_OBSERVABILITY_REST_API_TOKEN, CRON_SECRET, PATINA_PUBLIC_BASE_URL, PATINA_PUBLIC_BASE_URL_SHA256, PATINA_SYNTHETIC_PRO_LICENSE, PATINA_SYNTHETIC_OBSERVER_SECRET, PATINA_VERCEL_LOG_QUERY_URL, PATINA_VERCEL_LOG_QUERY_URL_SHA256, PATINA_VERCEL_LOG_QUERY_TOKEN, PATINA_ALERT_DISCORD_WEBHOOK, VERCEL_GIT_COMMIT_SHA; PATINA_PRO_ALLOW_FREE_KEY is absent or exactly false.",
+      "evidence": null
+    },
+    {
+      "id": "GATE_B",
+      "type": "human_action",
+      "owner": "Payment Runtime Owner + maintainer",
+      "exitEvidence": "Gate-B approval by the Payment Runtime Owner and maintainer proving completed production source-binding integration commit or artifact, hosted identity, usage, dedicated runtime, content-valid PAY-B-COST evidence, and real-path OBS evidence.",
+      "evidence": null
+    },
+    {
+      "id": "DEP_PROD_DISABLED",
+      "type": "human_action",
+      "owner": "Deployment Owner",
+      "exitEvidence": "Immutable production-disabled artifact/config with the exact disabled launch shape; browser evidence that checkout is disabled; health, monitor, and operator evidence; and UTC timestamps.",
+      "evidence": null
+    },
+    {
+      "id": "GATE_D",
+      "type": "human_action",
+      "owner": "Release Authority",
+      "exitEvidence": "Gate-D record proving mandatory gates passed and naming the approving Release Authority.",
+      "evidence": null
+    },
+    {
+      "id": "ROLLBACK_DRILLS",
+      "type": "human_action",
+      "owner": "Deployment Owner",
+      "exitEvidence": "Timestamped rollback records: sale-close completed within 10 minutes, plus correctness evidence for service-kill and fallback without a 10-minute claim.",
+      "evidence": null
+    },
+    {
+      "id": "PAY_OPEN",
+      "type": "human_action",
+      "owner": "Maintainer",
+      "exitEvidence": "Maintainer authorization to open payment after the required gates and immutable evidence are complete.",
+      "evidence": null
+    },
+    {
+      "id": "PAY_LIVE",
+      "type": "human_action",
+      "owner": "Payment Runtime Owner",
+      "exitEvidence": "Bounded real-production payment, refund, revoke, license-denial, and recovery evidence, including denial and recovery within the documented propagation bound.",
+      "evidence": null
+    },
+    {
+      "id": "REL_PUBLISH",
+      "type": "human_action",
+      "owner": "Release Authority",
+      "exitEvidence": "Final Release Authority approval for the v6.4 tag and registry publication.",
+      "evidence": null
+    }
   ],
   "deferredActions": [
-    { "id": "V6_4_METADATA_COPY_RECONCILIATION", "type": "repo_action", "blockedBy": ["GATE_B"], "reason": "Cannot reconcile 6.4 metadata and copy until Gate B evidence exists; Gate-C no-promotion cutoff decisions are complete.", "executable": false },
-    { "id": "FINAL_TAG_PUBLISH_COMMAND", "type": "repo_action", "blockedBy": ["PAY_LIVE", "REL_PUBLISH"], "reason": "Cannot run the final tag and publish command until named external evidence exists.", "executable": false }
+    {
+      "id": "V6_4_METADATA_COPY_RECONCILIATION",
+      "type": "repo_action",
+      "blockedBy": [
+        "GATE_B"
+      ],
+      "reason": "Cannot reconcile 6.4 metadata and copy until Gate B evidence exists; Gate-C no-promotion cutoff decisions are complete.",
+      "executable": false
+    },
+    {
+      "id": "FINAL_TAG_PUBLISH_COMMAND",
+      "type": "repo_action",
+      "blockedBy": [
+        "PAY_LIVE",
+        "REL_PUBLISH"
+      ],
+      "reason": "Cannot run the final tag and publish command until named external evidence exists.",
+      "executable": false
+    }
   ],
-  "prohibitions": { "tag": true, "publish": true }
+  "prohibitions": {
+    "tag": true,
+    "publish": true
+  }
 }

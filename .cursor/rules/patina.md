@@ -52,7 +52,7 @@ The project uses a **plugin architecture**: patterns are plugins (`patterns/{lan
        en:
          8: amplify
      ```
-4. If the profile needs custom AI/fidelity balance, add to `.patina.default.yaml` under `ouroboros.combined-weights`
+4. If the profile needs custom AI/fidelity balance, add to `.patina.default.yaml` under `scoring.combined-weights`
 5. Update `README.md` profile table
 
 ## When Modifying SKILL.md
@@ -97,7 +97,7 @@ The skill supports these modes (defined in `.patina.default.yaml`):
 - `diff` — shows what changed and why
 - `audit` — detects patterns only
 - `score` — AI-likeness score 0-100
-- `ouroboros` — iterative self-improvement loop
+- `strict` — skill-only multi-pass verification flow (`/patina --strict`), not a runtime output mode
 
 ## Important Constraints
 

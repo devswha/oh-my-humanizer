@@ -25,7 +25,7 @@ body:
     id: mode
     attributes:
       label: Mode
-      options: [rewrite, audit, score, diff, ouroboros, max, install, other]
+      options: [rewrite, audit, score, diff, max, install, other]
     validations:
       required: true
   - type: textarea

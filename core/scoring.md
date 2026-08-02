@@ -1,15 +1,14 @@
 ---
 name: AI-Likeness Scoring Algorithm
 version: 1.0.0
-description: Pattern-based AI-likeness scoring reference for patina score and ouroboros modes
+description: Pattern-based AI-likeness scoring reference for patina score and verification
 ---
 
 # AI-Likeness Scoring Algorithm
 
 Pattern-based scoring that converts AI pattern detection results into a numeric 0-100 score.
-Used by `--score` mode and `--ouroboros` loop for termination gating.
+Used by `--score` mode and strict verification.
 
----
 
 ## 1. Severity Scale (Per-Detection)
 
@@ -23,6 +22,11 @@ depending on how egregiously it appears in context.
 | Medium | 2 | Pattern present at moderate frequency or impact |
 | Low | 1 | Pattern barely present — isolated occurrence |
 | Not detected | 0 | Pattern not found in text |
+`scoring.severity-points` configures the numeric values for `high`, `medium`, and
+`low` severity (defaults: 3, 2, and 1).
+
+`scoring.deterministic` configures the deterministic shadow score used for
+reproducible drift checks; the LLM score remains canonical.
 
 ---
 
@@ -123,9 +127,9 @@ Unknown categories (from custom packs not in the weight config) get default weig
 | viral-hook | 0.10 | 9 | score-only (no rewrite) |
 | **Total** | **1.00** | **46** | |
 
-Weights are configurable via `ouroboros.category-weights.{lang}` in `.patina.yaml`.
+Weights are configurable via `scoring.category-weights.{lang}` in `.patina.yaml`.
 
-**viral-hook weight review (issue #154):** kept at `0.10`. The pack remains score-only and the three added patterns improve the category denominator/granularity rather than broadening it enough to justify a larger score contribution. Rewrite, diff, and Ouroboros modes still skip the pack.
+**viral-hook weight review (issue #154):** kept at `0.10`. The pack remains score-only and the three added patterns improve the category denominator/granularity rather than broadening it enough to justify a larger score contribution. Rewrite and diff modes still skip the pack.
 
 ---
 
@@ -246,7 +250,7 @@ Interpretation: 0-15 range = "사람다움" (Strongly human-like)
 - **LLM non-determinism** means the same text may score differently across runs.
   The formula is deterministic; the severity assignment is not.
 - **Fidelity scoring** (meaning preservation vs original) is defined in §§ 9–13 below
-  and integrated into `--score` and `--ouroboros` pipelines.
+  and used by scoring and strict verification.
 
 ### Short-text boost (v3.11 Phase 3.2)
 
@@ -276,7 +280,7 @@ Fidelity measures *how faithfully the output preserves the original meaning*.
 Both dimensions are necessary: aggressive humanization can achieve a low AI score
 by deleting content or changing meaning entirely. Fidelity scoring guards against this.
 
-Fidelity scoring is integrated into `--score` and `--ouroboros` pipelines.
+Fidelity scoring is used by scoring and strict verification.
 See SKILL.md § 6 (score mode) for integration details.
 
 ---
@@ -385,26 +389,10 @@ fidelity_score = ((claims + fabrication + tone + length) / 12) × 100
 - Maximum: (3+3+3+3) / 12 × 100 = **100** (perfect fidelity)
 - Minimum: (0+0+0+0) / 12 × 100 = **0** (total meaning loss)
 
-### Criterion Weighting (Optional)
+### Criterion Weighting
 
-For profiles that need non-uniform criterion importance, weights can be configured:
-
-```yaml
-fidelity:
-  weights:
-    claims-preserved: 0.35
-    no-fabrication: 0.30
-    tone-match: 0.20
-    length-ratio: 0.15
-```
-
-When weights are configured:
-
-```
-fidelity_score = Σ((criterion_points / 3) × criterion_weight) × 100
-```
-
-Default weights (when not configured): equal at 0.25 each (equivalent to the simple formula).
+The four fidelity criteria have equal weight (0.25 each), which is equivalent to the
+simple formula above.
 
 ### Worked Example
 
@@ -468,10 +456,9 @@ Where:
 | Marketing profile | 0.65 | 0.35 | Tone transformation tolerated, creative rewriting expected |
 | Namuwiki profile | 0.65 | 0.35 | Tone transformation tolerated for wiki-style cleanup |
 
-Configurable via `ouroboros.combined-weights.{profile}` in `.patina.yaml`:
-
+Configurable via `scoring.combined-weights.{profile}` in `.patina.yaml`:
 ```yaml
-ouroboros:
+scoring:
   combined-weights:
     default:
       ai-likeness: 0.60
@@ -491,13 +478,13 @@ ouroboros:
 | 51-70 | 주의 | Caution — significant AI traces or meaning loss |
 | 71-100 | 부적합 | Poor — heavy AI patterns and/or substantial meaning loss |
 
-### Ouroboros Termination
+### Verification Floors
 
-When used with `--ouroboros`, the loop terminates when:
-- Combined score ≤ threshold (default: 30), OR
-- Fidelity score drops below floor (default: 70) — **hard stop**, even if AI score improves
+Strict verification accepts a rewritten result only when both configured floors pass:
+- Fidelity score ≥ `verification.fidelity-floor` (default: 70)
+- MPS ≥ `verification.mps-floor` (default: 70)
 
-This prevents the ouroboros loop from "improving" AI score by destroying content.
+A failed floor requires retrying the affected span or restoring its original text. This prevents a lower AI score from being accepted at the cost of meaning preservation.
 
 ---
 
@@ -578,7 +565,7 @@ MPS = N/A (not applicable)
 
 When MPS = N/A:
 - `--score` mode displays: `의미 보존 (MPS): N/A (앵커 없음)`
-- Ouroboros loop: MPS floor는 우회되지 않는다. 결정론 루프의 `scoreMPS`는 숫자 mps를 반환하거나 스코어러 실패 시 `null`을 반환하며, `null`은 floor 위반으로 간주해 fail-closed로 직전 반복에 rollback한다 (아래 "Ouroboros Loop Gating" 및 `src/ouroboros.js` 참고). 앵커 N/A 표시는 SKILL 파이프라인 / `--score` 표시용이며 결정론 루프의 floor를 끄지 않는다.
+- Strict verification does not apply the MPS floor when no anchors were extracted.
 
 ### MPS Interpretation
 
@@ -630,8 +617,7 @@ MPS measures **humanization coverage** — what fraction of meaning anchors were
 
 ### `--score` Mode Output
 
-When `--score` is used with rewrite or ouroboros mode (original text available),
-MPS is displayed alongside AI-likeness and Fidelity:
+When a scored rewrite has the original text available, MPS is displayed alongside AI-likeness and Fidelity:
 
 | 지표 | 점수 |
 |------|------|
@@ -644,18 +630,8 @@ MPS is displayed alongside AI-likeness and Fidelity:
 > Combined score uses fidelity (holistic) while MPS is a structural verification metric.
 > Both are displayed for transparency but serve different purposes.
 
-### Ouroboros Loop Gating
+### Strict Verification Gate
 
-MPS floor = 70 (default). Independent of fidelity floor.
-
-Termination condition:
-- MPS < mps-floor → terminate with reason: **의미 보존 하한 위반** → rollback to previous iteration
-
-Both fidelity floor AND MPS floor must pass for an iteration to be accepted.
-
-Configurable via `.patina.yaml`:
-
-```yaml
-ouroboros:
-  mps-floor: 70  # default
-```
+MPS and fidelity are checked independently against `verification.mps-floor` and
+`verification.fidelity-floor`; both numeric scores must meet their configured floors
+before the rewrite is accepted.
