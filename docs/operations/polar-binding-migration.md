@@ -205,12 +205,29 @@ executed; step 4 remains the deliberate owner act.
    `https://buy.polar.sh` + `/polar_cl_qKqt…` — and the hashes are re-frozen.
    The dead Lemon Squeezy tuples were removed so a retired checkout route can
    never be re-authorized by environment values.
-4. **Open (owner).** Enable checkout by environment, a separate deliberate
-   act: `PATINA_PRO_CHECKOUT_ENABLED=true`,
+4. **Open (owner) — gated, not immediate.** Enabling checkout by environment
+   (`PATINA_PRO_CHECKOUT_ENABLED=true`,
    `PATINA_DEPLOYMENT_CHANNEL=production`, the exact bound
-   `PATINA_PRO_CHECKOUT_URL`, and
+   `PATINA_PRO_CHECKOUT_URL`,
    `PATINA_PRO_GATE_EVIDENCE_ID=PAY-B-20260729-POLAR-ea8385dc-4c9c3f17`, then
-   regenerate the launch config and redeploy.
+   regenerating the launch config and redeploying) is the LAST step of the
+   [`pro-launch.md`](pro-launch.md) sequence, not a standalone act. The hold's
+   blockers still carry null evidence: `POLAR_APPROVAL`, `SECRET_MANAGER`,
+   `GATE_B`, `DEP_PROD_DISABLED` (deploy production with checkout disabled
+   first), `GATE_D`, `ROLLBACK_DRILLS`, and `PAY_OPEN` must all be satisfied
+   before the flag flips to `true`. Until then `PATINA_PRO_CHECKOUT_ENABLED`
+   stays `false`.
+
+## Known limitation: the Polar price ID is not pinned
+
+`pay-b-binding-polar-20260729.json` records the price's commercial fields
+(fixed, 999 cents, usd) read back from Polar but not the Polar price object ID,
+so the hold pins product/benefit/checkout identities as literals while the
+price is pinned only by its fields. The artifact is factsSha256-sealed, so the
+ID cannot be added retroactively without fabricating evidence; capture it in
+the next read-back artifact (e.g. the Gate-B observation) and extend
+`validatePolarBindingEvidence` then.
+
 
 ## Cosmetic mismatch worth fixing in the dashboard
 

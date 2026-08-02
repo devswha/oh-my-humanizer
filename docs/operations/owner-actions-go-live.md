@@ -1,3 +1,12 @@
+> **TERMINAL — superseded 2026-08-03.** This runbook targets the retired Lemon
+> Squeezy route; the LS account was declined
+> ([`payment-provider-reset-20260729.md`](payment-provider-reset-20260729.md))
+> and the checkout binding table now carries only the Polar production tuple.
+> Do NOT provision the `LS_*` identities or the lemonsqueezy checkout URL
+> below. Current owner path: [`polar-binding-migration.md`](polar-binding-migration.md)
+> (env/gate sequence) + [`pro-launch.md`](pro-launch.md) (gate machinery).
+> Retained verbatim below as history.
+
 # Owner actions to open Pro sales (two items, ~15 minutes)
 
 > Companion to [`production-go-live-checklist.md`](production-go-live-checklist.md).

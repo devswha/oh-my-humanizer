@@ -121,7 +121,11 @@ config prefix from `PAY-B-`.
 ## Gate B
 
 Gate B authorizes a production checkout candidate, not an unreviewed payment
-integration. Require staging evidence, a reviewed immutable `PAY-B-...` record,
+integration. Require staging evidence — or, for the Polar route, the recorded
+`PAY_STG_SUPERSEDED_BY_PRODUCTION_RUNTIME` decision backed by the sandbox
+integration record and the production zero-amount runtime evidence
+(`PAY-LIVE-20260729-POLAR-ea8385dc-4c9c3f17`) — plus a reviewed immutable
+`PAY-B-...` record,
 the human-supplied exact production checkout URL (currently the Polar checkout
 link) and its reviewed
 source-controlled binding, server health/admission checks, rollback owner,
