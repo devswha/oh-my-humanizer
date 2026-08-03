@@ -57,3 +57,32 @@ as tolerable at 2/22 for the shipped engine.
    a paying user waiting 60–90s is a product regression even if quality ties.
 3. **Status quo** pending the Gemini cap fix, re-measuring on DeepSeek's next
    update or the peak-pricing activation.
+
+## Addendum (2026-08-03): the reasoning dial, measured
+
+Latency anatomy on `ko-news-01` (prompt ~22.8k tokens, 99.9% cache-hit): the
+API decodes at ~125 tok/s; the time goes to reasoning volume, not transport.
+`budget_tokens` is ignored by the API; `reasoning_effort` works.
+
+| thinking | reasoning tokens | latency/rewrite | 22-fixture result |
+|---|---:|---:|---|
+| disabled | 0 | ~4s | 15 pass — contract violations + fabrication (retracted run) |
+| `reasoning_effort: low` | ~5.3k | ~44s | **20 pass / 0 warn / 2 error** (both `mps<70`: en-marketing 66.7, ko-marketing 50) |
+| default | ~11.5k | ~60–94s | 20 pass / 2 warn / 0 error |
+| gemini-3.6-flash (shipped) | its default | ~8s | 20 pass / 2 fail |
+
+Production context: the shipped gemini rewrite call also runs full reasoning —
+`scoringExtraBody` cuts reasoning only on the MPS/fidelity judges, and the
+rewrite call is excluded because reduced thinking measurably amputated
+content. The effort-low DeepSeek result rhymes with that lesson in a milder
+form: both failures are meaning drops, concentrated in the marketing register,
+one (66.7) within the harness's documented ±20 MPS single-run swing.
+
+Cache behavior is a strength, not a risk: the patina prompt's fixed 22k-token
+pattern/persona prefix hits DeepSeek's automatic prefix cache at ~99.9%
+($0.0028/M on hits; a cold miss costs ~$0.003 once). Deploys that change
+pattern files reset the prefix, which is expected and cheap.
+
+Standing options update: the free-tier candidate settings are effort-low
+(~44s) or default (~60–94s); either needs `--repeat` validation before a
+swap, per the harness's own noise bound.
