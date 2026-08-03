@@ -158,6 +158,9 @@ export async function callLLMStream({
         stream_options: { include_usage: true },
       };
   if (!native && !modelRejectsTemperature(model)) payload.temperature = temperature;
+  // A cached temperature-rejecting model must not recover the field from
+  // extraBody either — that would replay the known-invalid request.
+  else if (!native) delete payload.temperature;
 
   const issue = () => fetchImpl(native ? nativeEndpoint(baseURL) : `${baseURL}/chat/completions`, {
     method: 'POST',
