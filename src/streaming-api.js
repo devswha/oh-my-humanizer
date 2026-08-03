@@ -99,6 +99,7 @@ function streamChunks(body) {
  * @param {Function} [options.onResponse] Called with metadata from a successful provider response.
  * @param {Function} [options.onAttempt] Called once for every issued provider request.
  * @param {object} [options.extraBody] Optional provider-specific fields spread into the OpenAI-compat request body (protocol fields cannot be overridden; ignored on the native Anthropic path).
+ * @param {() => number} [options.now] Injectable clock retained for API symmetry.
  * @param {Function} [options.fetchImpl] Injectable fetch implementation.
  * @returns {Promise<{ text: string, finishReason?: string }>}
  */
