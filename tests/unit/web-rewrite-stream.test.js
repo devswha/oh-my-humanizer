@@ -1,7 +1,7 @@
 // @ts-check
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runWebRewriteStream, scoringExtraBody } from '../../src/web-rewrite-stream.js';
+import { rewriteExtraBody, runWebRewriteStream, scoringExtraBody } from '../../src/web-rewrite-stream.js';
 
 const request = {
   mode: 'refine',
@@ -351,25 +351,43 @@ test('runWebRewriteStream exhausts number-safety retries and fails closed', asyn
   assertFramesDoNotLeakPrivateMetadata(frames);
 });
 
-test('scoringExtraBody sends reasoning control only to the provider it was measured on', () => {
-  // gemini is the only provider the setting was measured against; sending an
-  // unrecognized field blind to a BYOK caller's provider risks a hard 400
-  // (gemini itself rejects reasoning_effort 'none' that way).
+test('scoringExtraBody sends reasoning control only to the providers it was measured on', () => {
+  // gemini (2026-07-29) and deepseek (2026-08-03) are the providers the
+  // setting was measured against; sending an unrecognized field blind to a
+  // BYOK caller's provider risks a hard 400 (gemini itself rejects
+  // reasoning_effort 'none' that way).
   assert.deepEqual(scoringExtraBody('gemini'), { reasoning_effort: 'low' });
-  for (const provider of ['openai', 'claude', 'deepseek', 'kimi', 'glm', undefined, '']) {
+  assert.deepEqual(scoringExtraBody('deepseek'), { reasoning_effort: 'low' });
+  for (const provider of ['openai', 'claude', 'kimi', 'glm', undefined, '']) {
     assert.equal(scoringExtraBody(provider), undefined, `${provider} must keep the provider default`);
   }
   // Explicit kill switch for operators.
   assert.equal(scoringExtraBody('gemini', { PATINA_SCORING_REASONING: 'off' }), undefined);
+  assert.equal(scoringExtraBody('deepseek', { PATINA_SCORING_REASONING: 'off' }), undefined);
   assert.deepEqual(scoringExtraBody('gemini', { PATINA_SCORING_REASONING: 'on' }), { reasoning_effort: 'low' });
 });
 
-test('runWebRewriteStream forwards scoring reasoning control to both scorers, never to the rewrite', async () => {
+test('rewriteExtraBody cuts reasoning only for server-paid free-tier deepseek rewrites', () => {
+  assert.deepEqual(rewriteExtraBody('deepseek', 'free'), { reasoning_effort: 'low' });
+  // BYOK and pro keep their provider defaults: quality belongs to the payer.
+  assert.equal(rewriteExtraBody('deepseek', 'byok'), undefined);
+  assert.equal(rewriteExtraBody('deepseek', 'pro'), undefined);
+  // Other providers never receive the field (gemini amputation lesson).
+  for (const provider of ['gemini', 'openai', 'claude', 'kimi', 'glm', undefined]) {
+    assert.equal(rewriteExtraBody(provider, 'free'), undefined, `${provider} must keep full rewrite thinking`);
+  }
+  // Operator override: level allowlist with an off switch; junk falls back to low.
+  assert.deepEqual(rewriteExtraBody('deepseek', 'free', { PATINA_FREE_REWRITE_REASONING: 'medium' }), { reasoning_effort: 'medium' });
+  assert.equal(rewriteExtraBody('deepseek', 'free', { PATINA_FREE_REWRITE_REASONING: 'off' }), undefined);
+  assert.deepEqual(rewriteExtraBody('deepseek', 'free', { PATINA_FREE_REWRITE_REASONING: 'none' }), { reasoning_effort: 'low' });
+});
+
+test('runWebRewriteStream forwards scoring reasoning control to both scorers, never to the gemini rewrite', async () => {
   const seen = { rewrite: undefined, mps: undefined, fidelity: undefined };
   await runWebRewriteStream({
     request: { ...request, provider: 'gemini', original: 'We shipped 3 units.' },
     callLLMStream: async (args) => {
-      seen.rewrite = 'extraBody' in args ? args.extraBody : 'absent';
+      seen.rewrite = args.extraBody;
       return { text: 'We shipped 3 units.' };
     },
     scoreFns: {
@@ -381,9 +399,28 @@ test('runWebRewriteStream forwards scoring reasoning control to both scorers, ne
   });
   assert.deepEqual(seen.mps, { reasoning_effort: 'low' });
   assert.deepEqual(seen.fidelity, { reasoning_effort: 'low' });
-  // Reduced thinking on the rewrite call was previously measured to amputate
-  // content, so the rewrite must never carry it.
-  assert.equal(seen.rewrite, 'absent');
+  // Reduced thinking on the gemini rewrite call was previously measured to
+  // amputate content, so it must never carry the field.
+  assert.equal(seen.rewrite, undefined);
+});
+
+test('runWebRewriteStream sends the free-tier deepseek rewrite its reasoning cut', async () => {
+  const seen = { rewrite: undefined, mps: undefined };
+  await runWebRewriteStream({
+    request: { ...request, tier: 'free', provider: 'deepseek', original: 'We shipped 3 units.' },
+    callLLMStream: async (args) => {
+      seen.rewrite = args.extraBody;
+      return { text: 'We shipped 3 units.' };
+    },
+    scoreFns: {
+      scoreMPS: async (args) => { seen.mps = args.extraBody; return { mps: 95 }; },
+      scoreFidelity: async () => ({ fidelity: 92 }),
+      scoreDeterministicSignals: () => ({ signalScore: 0 }),
+    },
+    emit() {},
+  });
+  assert.deepEqual(seen.rewrite, { reasoning_effort: 'low' });
+  assert.deepEqual(seen.mps, { reasoning_effort: 'low' });
 });
 
 test('runWebRewriteStream fail-closes floor failures with error and no done', async () => {

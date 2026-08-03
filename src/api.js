@@ -402,6 +402,7 @@ export async function callLLM({
   // Skip `temperature` up front when this process already saw the model
   // reject it (e.g. claude-sonnet-5) — avoids a guaranteed 400 round trip.
   if (!native && !modelRejectsTemperature(model)) body.temperature = temperature;
+  else if (!native) delete body.temperature;
   if (!native && seed !== undefined && seed !== null) body.seed = seed;
   if (!native && responseFormat) body.response_format = responseFormat;
 
