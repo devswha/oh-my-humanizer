@@ -19,10 +19,12 @@
 
 ## Blocking — owner actions, in order
 
-1. **Gemini spend cap (incident).** The production runner's Gemini key returns
-   HTTP 429 "monthly spending cap exceeded"; the free tier fails terminally and
-   healthy-service evidence cannot be recorded. Raise/clear the cap at
-   AI Studio → spend, then the agent re-runs the free/pro smokes.
+1. ~~**Gemini spend cap (incident).**~~ **RESOLVED 2026-08-03**: the owner
+   cleared the spend cap; a direct gemini-3.6-flash probe answers again. The
+   free tier no longer depends on it (flipped to deepseek,
+   [`free-tier-deepseek-flip-20260803.md`](free-tier-deepseek-flip-20260803.md));
+   the Pro serving path (gemini) is unblocked but can only be exercised
+   end-to-end once a license exists (item 2).
 2. **`PATINA_SYNTHETIC_PRO_LICENSE`.** The pro-monitor synthetic probe needs a
    real license; the prior verification license was shredded. Issue one via the
    bounded forever-100% verification code (a zero-amount checkout), hand only
