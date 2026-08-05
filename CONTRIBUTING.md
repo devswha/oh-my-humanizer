@@ -1,10 +1,10 @@
 # Contributing to Patina
 
-Thanks for considering a contribution. Patina is a pattern-based tool, so the most impactful contributions are usually new patterns, better examples, or profile refinements.
+Thanks for considering a contribution. Patina is a pattern-based tool, so the most impactful contributions are usually new patterns, better examples, Document Type policies, or Persona refinements.
 
 ## Public vs. Internal Docs
 
-User-facing documentation lives in `README*.md`, `docs/`, `examples/`, `patterns/`, `profiles/`, and the skill entrypoints. Maintainer or agent notes (backlogs, runbooks, launch playbooks) are kept out of this repository entirely — they live in the maintainer's private workspace, and `docs/internal/` is gitignored as a guard. Only real user-facing facts get promoted into the public docs list.
+User-facing documentation lives in `README*.md`, `docs/`, `examples/`, `patterns/`, `document-types/`, `personas/`, and the skill entrypoints. Maintainer or agent notes (backlogs, runbooks, launch playbooks) are kept out of this repository entirely — they live in the maintainer's private workspace, and `docs/internal/` is gitignored as a guard. Only real user-facing facts get promoted into the public docs list.
 
 When moving a root-level Markdown file, link it from `README.md` if it is public; if it is maintainer-internal, it does not belong in the repository.
 
@@ -73,7 +73,7 @@ False positives are expected, especially for academic, encyclopedic, legal, corp
 1. Use the false-positive issue template.
 2. Include language, genre/register, score/audit excerpt, and the specific pattern that over-fired.
 3. Remove private text or replace it with a minimal redistributable excerpt.
-4. Suggest whether the fix should be an exclusion rule, lower severity, profile override, or benchmark fixture.
+4. Suggest whether the fix should be an exclusion rule, lower severity, Document Type `pattern-overrides` change, or benchmark fixture.
 
 Maintainers should prefer tightening exclusions over deleting patterns outright.
 
@@ -160,11 +160,18 @@ See [docs/HARNESS.md](docs/HARNESS.md) for the full measurement-tool map.
 - Add a target-language false-positive note when a phrase is normal in that register.
 - Keep examples redistributable; do not paste private user text.
 
-## Adding a Profile
+## Adding a Document Type
 
-Profiles live in `profiles/{name}.md`. Copy an existing one (e.g. `blog.md`) and adjust:
-- `voice-overrides`: which voice dimensions to amplify/suppress
-- `pattern-overrides`: per-language, per-pattern-id actions. `suppress` is applied deterministically (the pattern is dropped from the prompt for that language); `reduce`/`amplify` are advisory and reinforced only by the prose body.
+Document Types live in `document-types/{name}.md`. Copy an existing policy
+(for example `blog.md`), set `document-type:` to the filename stem, and define
+`scope`, `purpose`, `audience`, `structure`, `style`, `avoid`, and
+language-scoped `pattern-overrides`. `suppress` is applied deterministically;
+`reduce`/`amplify` document policy intent but do not currently change a runtime
+weight. Keep Persona voice, casual/professional Register markers, and
+verification thresholds out of this axis.
+
+For reusable voice, create a Persona v2 with `patina persona new`. Persona
+frontmatter is validated to reject document policy, Register, and safety fields.
 
 ## Pattern Staleness
 
@@ -176,14 +183,14 @@ How we handle this:
 - **Quarterly review:** Maintainers follow [`process/pattern-freshness.md`](process/pattern-freshness.md) for corpus freeze windows, promotion thresholds, and frontmatter metadata
 - **Lexicon provenance:** Newly mined or re-mined lexicon entries need `added`, `source`, and `last_validated` provenance before changing shipped behavior; run `npm run lexicon:freshness` to verify sidecars match the shipped entries
 - **Version notes:** Each pattern pack has a `version` field — bump it when patterns change
-- **No deletion without replacement:** We don't remove patterns outright; we mark them as `low` severity or move them to `reduce` in profiles
+- **No deletion without replacement:** We don't remove patterns outright; we mark them as `low` severity or move them to `reduce` in a Document Type policy
 
 ## Versioning Policy
 
 Patina uses semantic versioning for both CLI behavior and pattern-pack compatibility.
 
 - **Major:** remove or renumber patterns, break config/result schemas, change public CLI semantics, or make existing pattern packs incompatible.
-- **Minor:** add a pattern, language, profile, mode, backend, benchmark schema field, or contributor-facing workflow.
+- **Minor:** add a pattern, language, Document Type, Persona, mode, backend, benchmark schema field, or contributor-facing workflow.
 - **Patch:** fix bugs, adjust severity/exclusions, clarify examples, update docs, refresh benchmark fixtures without changing schemas.
 
 Every changelog entry should include a short semver rationale line so downstream users know whether to pin, test, or upgrade normally.

@@ -18,9 +18,11 @@ The goal is not to make a text deceptive. The goal is to remove generic model vo
 
 ## How does patina preserve meaning?
 
-patina extracts semantic anchors before rewriting: claims, polarity, causation, numbers, negation, and other high-risk details. After each rewrite phase, it checks whether those anchors are still present and whether their polarity stayed the same.
-
-If a rewrite weakens, deletes, or reverses an anchor, patina retries the section or rolls it back.
+Meaning preservation is global; Document Type, Persona, and Register cannot
+lower its thresholds. Every CLI rewrite runs a deterministic dropped-number
+guard. `--verify` adds model-scored MPS/fidelity floors and one conservative
+retry; the agent skill's `--strict` flow adds its documented retry/rollback
+gates.
 
 ## What is MPS?
 
@@ -32,7 +34,10 @@ A high MPS does not mean the prose is perfect. It means the rewrite did not obvi
 
 The score is a rough editing signal from 0 to 100. Lower is less AI-sounding.
 
-It is not a truth machine. The scoring formula is deterministic, but severity assignment can vary by roughly 8-10 points between model runs. Treat the range and the highlighted patterns as more important than the exact number.
+It is not a truth machine. Default `--score` combines an LLM judgment with
+deterministic signals and can vary between model runs. `--score --offline`
+reports only reproducible local signals. Treat the range and highlighted
+patterns as more important than an exact number.
 
 ## How accurate is it?
 
@@ -46,15 +51,20 @@ See [ETHICS.md](ETHICS.md) for the intended-use position statement.
 
 ## Does it work without an API key?
 
-Yes, if you already have the Codex CLI installed and logged in. The installer can wire patina into Codex CLI as a backend, so no separate API key is required for that path.
-
-Other providers can be configured through the documented backend and provider settings.
+Yes. `--score --offline` and the `patina-score` precommit gate need no backend.
+LLM-backed modes can use a logged-in local Codex, Claude, Gemini, or Kimi CLI
+instead of an API key. See [Authentication](AUTHENTICATION.md).
 
 ## Does patina send my text anywhere?
 
-The web playground runs entirely in your browser. It makes no network calls and loads no analytics or trackers, so text you paste into it never leaves the page.
+CLI deterministic analysis stays local. LLM-backed CLI modes send text only to
+the backend you select, which may be a local CLI, local/self-hosted endpoint, or
+remote API.
 
-The CLI runs its deterministic analysis (the audit and the score) locally. The only step that sends text off your machine is the rewrite, and it goes to the backend you choose: a CLI you are already logged into, such as Codex, Claude, Gemini, or Kimi, under your own account, or an OpenAI-compatible API using your own key and base URL (the default is the official OpenAI endpoint, but you can point it at a local or self-hosted model). patina runs no server of its own, ships no telemetry, and never sends your text to a patina-owned endpoint.
+The hosted playground sends rewrite and scoring requests to patina's server.
+Free requests use the server provider; BYOK credentials are forwarded for that
+request and are not stored or logged; Pro uses a Lemon Squeezy license key
+validated server-side. The browser never calls an LLM provider directly.
 
 ## Does it only work in Claude Code?
 
@@ -64,11 +74,13 @@ No. patina runs as a skill for Claude Code, Codex CLI, Cursor, and OpenCode, and
 
 Korean, English, Chinese, and Japanese are supported. Pattern packs are auto-discovered by language prefix, so new languages can be added by contributing new pattern files.
 
-## Do persona, profile, and tone overlap?
+## Do Document Type, Persona, and Register overlap?
 
-They serve different jobs. A persona owns reusable voice composition. In Korean and English, `--tone casual|professional|auto` is the register override and takes precedence over a persona's register. A profile supplies deterministic pattern policy; use a custom pattern pack for separate local rules.
-
-That separation is the current direction, not a claim that every path has reached the target: some skill and core-prompt paths still carry legacy voice guidance from profiles. This release does not change prompts or runtime behavior, merge the axes, rename `--tone`, or expose new hosted controls. Completing profile-policy-only handling everywhere, verifying retry-context preservation, and considering a user-facing “Register” name are later work.
+No. Document Type controls genre, purpose, structural conventions, and pattern
+policy. Persona v2 is an optional reusable voice fingerprint; omission preserves
+the source voice. Register controls only `casual` or `professional` delivery;
+omission preserves the source register. Meaning floors and verification are
+global and independent of all three axes.
 
 ## What should contributors start with?
 

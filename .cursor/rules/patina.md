@@ -4,15 +4,15 @@
 
 Patina is a **Claude Code skill** that detects and removes AI writing patterns from Korean, English, Chinese, and Japanese text. It rewrites AI-sounding text into natural, human-like prose while preserving meaning through the Meaning Preservation System (MPS).
 
-The project uses a **plugin architecture**: patterns are plugins (`patterns/{lang}-*.md`), profiles are themes (`profiles/*.md`). Inspired by oh-my-zsh.
+The project uses a **plugin architecture**: pattern packs (`patterns/{lang}-*.md`), Document Type policies (`document-types/*.md`), and optional Persona v2 voice definitions (`personas/<lang>/*.md`).
 
 ## File Structure Conventions
 
 - **Pattern packs**: `patterns/{lang}-{category}.md` (e.g., `en-content.md`, `ko-language.md`)
   - Must have valid YAML frontmatter: `pack`, `language`, `name`, `version`, `patterns`
   - Pattern definitions use `### N. Pattern Name` headings
-- **Profiles**: `profiles/{name}.md` (e.g., `blog.md`, `academic.md`)
-  - Define `voice-overrides` and `pattern-overrides`
+- **Document Types**: `document-types/{name}.md` — genre, structure, and `pattern-overrides`
+- **Personas**: `personas/{lang}/{name}.md` — optional voice-only Persona v2 frontmatter
 - **Core definitions**: `core/voice.md`, `core/scoring.md`
 - **Examples**: `examples/{number}-success-01.md`, `{number}-failure-01.md`
   - English examples: `examples/en-{number}-success-01.md`
@@ -39,21 +39,19 @@ The project uses a **plugin architecture**: patterns are plugins (`patterns/{lan
 6. Update `README.md` pattern tables
 7. Bump the pack's `version:` frontmatter
 
-## When Adding a Profile
+## When Adding a Document Type
 
-1. Copy `profiles/default.md` as a template
-2. Define `voice-overrides` (amplify/allow/suppress per voice dimension)
-3. Define `pattern-overrides` (amplify/normal/reduce/suppress per pattern number)
-   - Use language-scoped overrides to avoid cross-language number collisions:
-     ```yaml
-     pattern-overrides:
-       ko:
-         8: amplify
-       en:
-         8: amplify
-     ```
-4. If the profile needs custom AI/fidelity balance, add to `.patina.default.yaml` under `scoring.combined-weights`
-5. Update `README.md` profile table
+1. Copy `document-types/default.md` as a template.
+2. Set `document-type:` to the filename stem.
+3. Define `purpose`, `audience`, `structure`, `style`, `avoid`, and
+   language-scoped `pattern-overrides` in frontmatter.
+4. Keep Persona voice, Register, and verification fields out of the policy.
+5. Add a matching key under `.patina.default.yaml`
+   `scoring.combined-weights.document-type` only when scoring evidence justifies
+   a non-default balance.
+
+Create reusable voice through Persona v2 (`patina persona new`). Persona schema
+validation rejects Document Type, Register, pattern-policy, and safety fields.
 
 ## When Modifying SKILL.md
 
@@ -68,14 +66,13 @@ The project uses a **plugin architecture**: patterns are plugins (`patterns/{lan
 
 ## Version Management
 
-- `.patina.default.yaml` `version:` is the **source of truth**
-- `SKILL.md` and `README.md` must match it
-- Pattern pack versions are independent — bump when patterns change
-- Profile versions are independent
+- `package.json` `version` is the **source of truth**
+- `SKILL.md`, `.patina.default.yaml`, and `README.md` must match it
+- Pattern pack and Document Type versions are independent
 
 ## Language Synchronization Rule
 
-All 4 languages (ko, en, zh, ja) must maintain **29 patterns each** (116 total). When adding a universal pattern:
+All 4 languages (ko, en, zh, ja) currently maintain **46 patterns each** (184 total). When adding a universal pattern:
 - Same pattern number across all 4 languages
 - Same semantic category
 - Language-specific watch words and examples

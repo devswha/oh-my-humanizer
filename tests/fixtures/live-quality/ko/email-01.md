@@ -1,7 +1,7 @@
 ---
 fixture_id: ko-email-01
 language: ko
-profile: email
+documentType: email
 register: email
 source_type: synthetic-ai
 model_family: fixture

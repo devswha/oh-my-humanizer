@@ -6,15 +6,16 @@ import { dirname, resolve } from 'node:path';
 import { buildPrompt } from '../../src/prompt-builder.js';
 import { loadPersona } from '../../src/personas/loader.js';
 import { formatPersonaDirective } from '../../src/personas/compose.js';
-import { loadProfile } from '../../src/loader.js';
+import { loadDocumentType } from '../../src/loader.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
 
+const documentType = loadDocumentType(REPO_ROOT, 'blog');
 const base = {
-  config: { language: 'ko', profile: 'default' },
+  config: { language: 'ko', documentType: 'blog' },
   patterns: [],
-  profile: null,
+  documentType,
   voice: null,
   scoring: null,
   text: '테스트 문장입니다.',
@@ -22,8 +23,8 @@ const base = {
 };
 
 test('strict and minimal prompts include the same persona directive', () => {
-  const persona = loadPersona(REPO_ROOT, 'ko', 'preserve');
-  const directive = formatPersonaDirective(persona, { korean: true });
+  const persona = loadPersona(REPO_ROOT, 'ko', 'pragmatic-founder');
+  const directive = formatPersonaDirective(persona, { lang: 'ko' });
   const strictPrompt = buildPrompt({ ...base, persona, promptMode: 'strict' });
   const minimalPrompt = buildPrompt({ ...base, persona, promptMode: 'minimal' });
 
@@ -31,57 +32,76 @@ test('strict and minimal prompts include the same persona directive', () => {
   assert.ok(minimalPrompt.includes(directive));
 });
 
-test('content persona keeps safety floors and excludes worldview', () => {
+test('persona contributes voice blocks only', () => {
   const persona = loadPersona(REPO_ROOT, 'ko', 'pragmatic-founder');
   const prompt = buildPrompt({ ...base, persona, promptMode: 'strict' });
+  const directive = formatPersonaDirective(persona, { lang: 'ko' });
 
-  assert.match(prompt, /MPS\/fidelity hard-floor는 그대로 강제한다/);
-  assert.doesNotMatch(formatPersonaDirective(persona, { korean: true }), /advisory/i);
-  assert.doesNotMatch(prompt, /worldview/i);
-  assert.doesNotMatch(prompt, /세계관은 schema 자리만/i);
+  assert.ok(prompt.includes(directive));
+  assert.doesNotMatch(directive, /worldview|register|document_type|pattern_policy|MPS|fidelity/i);
 });
 
-test('omitting persona leaves prompt unchanged', () => {
+test('omitting persona preserves the source voice and adds no persona directive', () => {
   const withoutPersona = buildPrompt({ ...base, promptMode: 'strict' });
   const explicitNull = buildPrompt({ ...base, persona: null, promptMode: 'strict' });
   assert.equal(explicitNull, withoutPersona);
+  assert.doesNotMatch(withoutPersona, /페르소나:/);
+  assert.match(withoutPersona, /Persona is omitted: preserve the source voice/);
+  assert.match(withoutPersona, /Register is omitted: preserve the source’s dominant/);
+  assert.match(withoutPersona, /Preserve the source’s dominant voice/);
+  assert.match(withoutPersona, /Preserve and unify the source’s dominant register/);
 });
 
-test('an explicit tone overrides the persona register; the persona keeps its other structure targets', () => {
+test('explicit register and Persona compose without changing each other', () => {
   const persona = loadPersona(REPO_ROOT, 'ko', 'soft-professional');
-  const noTone = formatPersonaDirective(persona, { lang: 'ko', tone: { tone: null, tone_source: 'profile_only' } });
-  const withTone = formatPersonaDirective(persona, { lang: 'ko', tone: { tone: 'casual', tone_source: 'user' } });
-  const withAuto = formatPersonaDirective(persona, { lang: 'ko', tone: { tone: 'auto', tone_source: 'auto' } });
+  const directive = formatPersonaDirective(persona, { lang: 'ko' });
+  const register = {
+    register: 'casual',
+    register_source: 'command',
+    register_evidence: ['user-specified'],
+    register_confidence: 'high',
+  };
+  const strictPrompt = buildPrompt({ ...base, persona, register, promptMode: 'strict' });
+  const minimalPrompt = buildPrompt({ ...base, persona, register, promptMode: 'minimal' });
 
-  // No explicit tone → the persona's own register stands.
-  assert.match(noTone, /polite_professional/);
-  // Explicit tone (user or auto) owns register → the persona register is suppressed
-  // so the directive never contradicts the Tone Resolution block.
-  assert.doesNotMatch(withTone, /polite_professional/);
-  assert.doesNotMatch(withAuto, /polite_professional/);
-  // Non-register structure targets survive the override in every case.
-  for (const d of [noTone, withTone, withAuto]) assert.match(d, /CV/);
+  for (const prompt of [strictPrompt, minimalPrompt]) {
+    assert.ok(prompt.includes(directive));
+    assert.match(prompt, /Persona is explicit: apply only its reusable vocabulary/);
+    assert.match(prompt, /Register is explicit: apply only casual\/professional delivery markers/);
+    assert.match(prompt, /명시적 목표는 casual/);
+  }
+  assert.match(directive, /CV/);
+  assert.doesNotMatch(strictPrompt, /Preserve and unify the source’s dominant register/);
+  assert.doesNotMatch(minimalPrompt, /Preserve and unify the source’s dominant register/);
 });
 
-test('any active persona (incl preserve) owns voice; profile body is only emitted when no persona is active', () => {
-  const profile = loadProfile(REPO_ROOT, 'blog');
-  const withProfile = { ...base, config: { language: 'ko', profile: 'blog' }, profile };
+test('diff mode composes Document Type, Persona, and Register', () => {
+  const persona = loadPersona(REPO_ROOT, 'ko', 'soft-professional');
+  const directive = formatPersonaDirective(persona, { lang: 'ko' });
+  const register = {
+    register: 'casual',
+    register_source: 'command',
+    register_evidence: ['user-specified'],
+    register_confidence: 'high',
+  };
+  const prompt = buildPrompt({ ...base, mode: 'diff', persona, register });
 
-  // v6.2: the persona is the SOLE voice owner. Any active persona — a voice
-  // persona (soft-professional) OR the preserve default — suppresses the whole
-  // profile voice body and keeps only the pattern-policy defer note.
-  for (const id of ['soft-professional', 'preserve']) {
-    const persona = loadPersona(REPO_ROOT, 'ko', id);
-    const strict = buildPrompt({ ...withProfile, persona, promptMode: 'strict' });
-    assert.ok(!strict.includes(profile.body), `${id}: profile voice body must not be dumped into the prompt`);
-    assert.match(strict, /voice guidance defers to the active persona/);
-    const minimal = buildPrompt({ ...withProfile, persona, promptMode: 'minimal' });
-    assert.ok(!minimal.includes(profile.body), `${id}: profile body must not be dumped in minimal mode`);
-    assert.match(minimal, /패턴 정책은 적용/);
-  }
+  assert.ok(prompt.includes(directive));
+  assert.match(prompt, /"document_type": "blog"/);
+  assert.match(prompt, /명시적 목표는 casual/);
+  assert.match(prompt, /Persona is explicit/);
+  assert.match(prompt, /Register is explicit/);
+  assert.match(prompt, /Pattern: N\. Pattern Name/);
+});
 
-  // No persona at all → the profile body still reaches the prompt (non-persona
-  // paths: e.g. a non-ko no-persona rewrite, or non-rewrite modes).
-  const noPersona = buildPrompt({ ...withProfile, persona: null, promptMode: 'strict' });
-  assert.ok(noPersona.includes(profile.body), 'no-persona prompt should still include the profile body');
+test('Document Type supplies structured policy, never documentation prose', () => {
+  const prompt = buildPrompt({ ...base, persona: null, promptMode: 'strict' });
+  assert.match(prompt, /"document_type": "blog"/);
+  assert.match(prompt, /"purpose":/);
+  assert.match(prompt, /"audience":/);
+  assert.match(prompt, /"structure":/);
+  assert.match(prompt, /"style":/);
+  assert.match(prompt, /"avoid":/);
+  assert.match(prompt, /"pattern_policy":/);
+  assert.equal(prompt.includes(documentType.body), false);
 });

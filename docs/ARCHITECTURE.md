@@ -5,10 +5,14 @@ with a single rule. This document is the **canonical contract** for which method
 governs each surface, which module belongs to which lane, and the invariants each
 lane must uphold.
 
-It is the stable boundary the persona hardening line was built on — the enforcing
-safety gate, multilingual personas, the register/profile precedence, and
-custom-voice authoring ([ROADMAP](ROADMAP.md) Product Phase 4, now shipped) — and
-that hosted enhancement and further persona-gate work continue to build on.
+The v7 boundary also defines three independent rewrite axes: Document Type owns
+document policy, Persona v2 optionally owns reusable voice, and Register owns
+casual/professional delivery. None is inferred from another.
+This is field ownership, not three competing full-text styles. Meaning and
+safety are the outer invariant; Document Type resolves structure and domain
+constraints, Persona resolves idiolect and rhythm, and Register resolves only
+casual/professional markers. No active axis supplies a missing axis.
+
 
 See also: [`CONTRIBUTING.md`](../CONTRIBUTING.md) (the determinism rule —
 "Adding a Deterministic Detection Signal"), [`docs/HARNESS.md`](HARNESS.md) (the
@@ -26,12 +30,12 @@ key, fully reproducible. Lives in `src/features/*` and the deterministic
 backstops. This is patina's **trust / auditability substrate**, the public,
 offline, no-key surface, and the ground truth that the benchmark/CI layer pins.
 
-### Method P — persona / LLM (transform with a model, prove meaning survived)
+### Method P — LLM transformation (transform with a model, prove meaning survived)
 
 Produces its answer by prompting an LLM — to rewrite, or to narrate a score /
-audit / diff. A persona optionally shapes the *voice* of a rewrite. Method P may
-change wording but MUST NOT change the underlying claim, numbers, polarity, or
-causation, and MUST prove the meaning survived.
+audit / diff. Document Type, Persona, and Register may independently shape a
+rewrite. Method P may change wording but MUST NOT change the underlying claim,
+numbers, polarity, or causation.
 
 ### The binding rule
 
@@ -60,13 +64,12 @@ Method-D anchor* under each surface — see [Known seams](#known-seams).
 **Lane B (Method P) MUST:**
 - anchor every shipped output to a Method-D computation (reconcile, backstop, or
   gate).
-- enforce the meaning-preservation floors (MPS ≥ 70, fidelity ≥ 70) and never
-  weaken them. A persona may *raise* a floor, never lower it
-  (`src/personas/schema.js`).
-- treat a persona as **voice composition only**: it may reweight emphasis /
-  coverage and style, but never inject claims, numbers, examples,
-  metaphors-as-facts, or worldview (`blocks.worldview` is schema-reserved and
-  inactive in v1).
+- enforce global meaning preservation independently of every rewrite axis.
+  `--verify` owns the configurable MPS/fidelity floors and retry path; no
+  Document Type, Persona, or Register may weaken them.
+- treat Persona v2 as **voice composition only**. It may shape vocabulary,
+  explanation habits, rhythm, and other voice targets, but never document
+  policy, register, claims, safety thresholds, or worldview.
 - keep its own deterministic assets (`src/features/persona-match.js`,
   `src/verify.js#deterministicMeaningGuard`) auditable and LLM-free even though
   they serve Lane B.
@@ -82,25 +85,22 @@ Method-D anchor* under each surface — see [Known seams](#known-seams).
 
 ## Surface → method → Method-D anchor
 
-Every CLI mode prompts the backend; the rightmost column is what keeps it
-auditable.
+Backend-backed modes use Method P; the rightmost column is the Method-D anchor.
 
 | Surface | mode | LLM call? | Method-D anchor |
 |---|---|---|---|
-| default | `rewrite` | yes | `deterministicMeaningGuard` (dropped-numbers, always); persona **safety gate** MPS/fidelity/churn→numbers (if `--persona`); `verify.js` MPS/fidelity + retry (if `--verify`) |
-| `--audit` | `audit` | yes | `buildDeterministicAuditBackstop` (deterministic detections appended) |
-| `--score` | `score` | yes | `withDeterministicScore` reconciles the LLM overall with deterministic signals; `--exit-on` score gate |
+| default | `rewrite` | yes | `deterministicMeaningGuard`; optional Persona match/churn advisory; `verify.js` MPS/fidelity + retry only with `--verify` |
+| `--audit` | `audit` | yes | `buildDeterministicAuditBackstop` |
+| `--score` | `score` | yes | `withDeterministicScore`; optional `--exit-on` gate |
+| `--score --offline` | `score` | **no** | deterministic signal score |
 | `--diff` | `diff` | yes | deterministic pattern/detection report |
-| `--preview [--serve]` | preview job | yes | deterministic prose extraction + word-diff rendering over the rewrite |
-| `patina-score` (bin) | — | **no** | pure Method D: hot-paragraph ratio over `analyzeText()` — the deterministic CI gate (`scripts/prose-score.mjs`) |
-| playground / hosted **rewrite** | — | yes | rewrite-first (no offline browser audit surface); reuses prompt + scoring assets server-side |
+| `--preview [--serve]` | preview job | yes | deterministic prose extraction + word-diff rendering |
+| `patina-score` (bin) | — | **no** | hot-paragraph ratio over `analyzeText()` |
+| playground / hosted rewrite | — | yes | shared server-side prompt, analysis, and scoring assets |
 
-Notes: `--persona` runs on **rewrite, non-preview**, in any supported language
-(ko/en/zh/ja); ko applies the `preserve` default implicitly, en/zh/ja are opt-in
-(Lane B only; `src/cli/run.js#resolvePersonaForRun`). The safety gate enforces
-MPS/fidelity/dropped-numbers and reuses `--verify`'s real scores when present;
-churn and persona-match are advisory. `--serve` is a `--preview` transport
-option, not a standalone mode.
+Notes: Persona is opt-in for rewrite/preview in ko/en/zh/ja. Omission preserves
+the source voice. Persona match and churn are advisory; meaning and number
+checks remain global. `--serve` is a `--preview` transport option.
 
 ---
 
@@ -125,17 +125,15 @@ option, not a standalone mode.
 
 - `src/features/persona-match.js` — LLM-free persona-match scorer. It lives in
   `features/` **on purpose**, to inherit the determinism guarantee, but it is
-  authored for Lane B's persona gate. This is the one piece of Lane B's
-  verification that is already deterministic.
+  authored for Lane B's optional Persona quality report.
 
-### Lane B — persona / LLM rewrite (LLM-backed)
+### Lane B — LLM rewrite and optional Persona voice (LLM-backed)
 
-- `src/personas/{schema,loader,compose,gates}.js` — persona config SSOT, loader,
-  localized prompt directive, gate evaluation (enforcing safety vs advisory);
-  `personas/{ko,en,zh,ja}/*.md` — built-in personas (each language ships at least
-  `preserve`); `custom/personas/{lang}/*.md` — user-authored personas
-- `src/commands/persona.js` — `patina persona new|list` custom voice authoring
-  (one-time LLM draft + deterministic anchors → validated persona file)
+- `src/personas/{schema,loader,compose,gates}.js` — Persona v2 voice schema,
+  loader, localized prompt directive, and advisory voice-quality evaluation;
+  `personas/{ko,en,zh,ja}/*.md` — built-in Personas;
+  `custom/personas/{lang}/*.md` — user-authored Personas
+- `src/commands/persona.js` — `patina persona new|list|show|edit|rm`
 - `src/prompt-builder.js` — rewrite/score/audit/diff prompt construction
 - `src/scoring.js` — LLM MPS/fidelity scoring (excluded from the deterministic
   benchmark/gate layer)
@@ -156,8 +154,9 @@ option, not a standalone mode.
   kept as shared transport)
 - `src/auth.js`, `commands/auth.js`, `commands/doctor.js`
 - `src/ocr.js` — image → text input extraction
-- `scoring` and `verification` are separate configuration namespaces; persona
-  thresholds remain in persona definitions.
+- `scoring`, `verification`, and `personas.thresholds` are separate
+  configuration namespaces. Persona thresholds cover advisory voice quality;
+  verification owns MPS/fidelity floors.
 
 ### Packaged research comparator (unsupported)
 
@@ -167,60 +166,21 @@ option, not a standalone mode.
 
 ## Seams: resolved and remaining
 
-Boundaries where the lanes used to bleed. The persona hardening line closed most
-of them; what remains is named here as the surface for later work.
+### Resolved axis ownership
 
-### Resolved
-
-1. **The persona gate now enforces safety.** The gate is split into an *enforcing*
-   safety decision (MPS/fidelity when evaluated + the deterministic
-   dropped-numbers guard) and *advisory* signals (churn, persona-match). A safety
-   failure sets a non-zero exit (4), non-destructively — output is still emitted.
-   Churn and persona-match warn but never block (`personas/gates.js`,
-   `run.js` persona block).
-2. **Lane B reuses `verify.js`'s real scores.** When `--verify` runs, the persona
-   safety gate consumes its scored MPS/fidelity instead of the backend's
-   self-reported JSON; without `--verify` it falls back to the deterministic
-   backstop (dropped-numbers + advisory churn), never silently passing an
-   unmeasured floor.
-3. **The two verification paths share one decision.** `verify.js` and the persona
-   safety gate no longer score independently — the gate consumes verify's scores
-   (single path when both are active).
-4. **Churn reclassified from safety to advisory.** Live calibration showed
-   legitimate KO humanizing rewrites churn ~0.5–0.85 while preserving meaning, so
-   surface churn is not a meaning signal; it warns only. `mps_floor`/`fidelity_floor`
-   stay core (70, enforcing); `churn_max`/`persona_match_min` are observation-
-   informed advisory thresholds. `source` stays `placeholder` **deliberately** —
-   these are advisory-only signals, so a formal 2-round promotion is not required
-   to ship them. Promotion trigger: only if `churn_max` or `persona_match_min`
-   (or the meaning-proxy) is ever made **enforcing**. Promotion procedure: the
-   2-round ablation (`aggregateAblation`/`ablationDecision` in `src/personas/gates.js`,
-   driven by `scripts/persona-ablation.mjs`) proving ~0 false positives on
-   legitimate rewrites, after which `source` records `calibrated`. Until then the
-   placeholder value is the honest provenance for an advisory threshold.
-5. **Personas are multilingual and are the sole voice owner.** `--persona` runs on
-   ko/en/zh/ja. As of v6.2 the persona owns ALL voice: whenever a persona is
-   active (including the `preserve` default), the profile contributes only its
-   pattern policy and its voice body is not sent to the model. Profiles were
-   reduced to a pattern-policy-only axis (`voice-overrides` frontmatter removed,
-   voice-guidance bodies dropped, versions bumped); a runtime migration warning
-   fires when a non-default profile is used for a rewrite without a voice-owning
-   persona. Register precedence stays `--tone` > persona > profile. (persona
-   schema still forbids pattern control — that half stays.)
-
-6. **Deterministic meaning-floor proxy shipped (advisory).** `src/features/meaning-proxy.js`
-   (Lane A, LLM-free by construction — enforced by a module-boundary test)
-   provides `evaluateMeaningProxy({original, rewrite, lang})` as a conjunction of
-   high-precision invariants: dropped numbers, rare-content-token recall (active
-   only with ≥3 rare tokens; recall <0.5 warn / <0.3 fail), negation-polarity
-   delta (word/token-boundary, not raw substring), and length-ratio extremes
-   ([0.4, 2.5]). It rides the persona report JSON (`meaning_proxy`) and the gate's
-   advisory list. **Phase A is advisory-only** (no CLI warning, no exit change);
-   dropped numbers stay separately enforced. **Phase B promotion** to enforcing
-   (exit 4) requires the formal 2-round ablation (`aggregateAblation`/`ablationDecision`)
-   proving ~0 false positives on legitimate rewrites (live-quality + dogfood +
-   the local calibration corpus) and true positives on the meaning-broken
-   fixtures, recording `source: calibrated`.
+1. **Document Type owns document policy.** `document-types/*.md` supplies genre,
+   purpose, structural conventions, and `pattern-overrides`; it contributes no
+   voice or Register instruction.
+2. **Persona v2 owns reusable voice only.** Persona is optional in every
+   supported language. Its schema rejects Document Type, Register, pattern
+   policy, verification, meaning floors, and rewrite-depth fields.
+3. **Register owns delivery only.** `--register` and `register:` accept exactly
+   `casual` or `professional`. Omission preserves the source register.
+4. **Safety is global.** The deterministic meaning guard applies regardless of
+   axis selection; `--verify` owns MPS/fidelity floors and one conservative
+   retry. Persona match and surface churn remain advisory.
+5. **The v7 cutover is explicit.** `profile`, `tone`, and `formality` inputs
+   fail with migration errors rather than aliases or silent fallback.
 
 ### Remaining
 

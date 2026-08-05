@@ -16,7 +16,7 @@ const EN_FIXTURE = '<?xml version="1.0"?>\n<xliff version="1.2"><file target-lan
   + '</trans-unit></body></file></xliff>';
 
 const stubLogger = () => ({ info() {}, warn() {}, error() {}, closeProgress() {} });
-const makeCtx = () => ({ config: { language: 'ko', profile: 'default' }, repoRoot: process.cwd(), voice: {}, scoring: {}, backends: [], resolved: { model: 'm' }, promptMode: 'strict', timeoutMs: 1000, providerName: 'deepseek' });
+const makeCtx = () => ({ config: { language: 'ko', documentType: 'default' }, repoRoot: process.cwd(), voice: {}, scoring: {}, backends: [], resolved: { model: 'm' }, promptMode: 'strict', timeoutMs: 1000, providerName: 'deepseek' });
 const fakeRewrite = async ({ core }) => core + ' [H]';
 const fakeVerify = async ({ candidate }) => ({ verified: true, text: candidate });
 
@@ -24,17 +24,17 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE = readFileSync(resolve(HERE, '../fixtures/xliff/sample.xliff'), 'utf8');
 // Regression: the production rewriteSegment cleaner must strip leaked model
 // scaffolding so XLIFF <target> write-back never persists patina's own output
-// chrome (a leaked YAML tone footer / [SELF_AUDIT]) as translated content.
+// chrome (a leaked YAML register footer / [SELF_AUDIT]) as translated content.
 // Observed live with deepseek-chat on sample/Supernote_en.xliff.
-test('cleanRewriteOutput strips leaked tone footer and self-audit from a segment rewrite', () => {
+test('cleanRewriteOutput strips leaked register footer and self-audit from a segment rewrite', () => {
   const leaked = [
     'File name cannot be a system reserved name: %s',
     '',
     '---',
-    'tone: instructional',
-    'tone_source: inferred from input type (system error message)',
-    'tone_evidence: ["imperative/declarative structure"]',
-    'tone_confidence: 1.0',
+    'register: professional',
+    'register_source: command',
+    'register_evidence: ["user-specified"]',
+    'register_confidence: high',
     '---',
   ].join('\n');
   assert.strictEqual(cleanRewriteOutput(leaked), 'File name cannot be a system reserved name: %s');
@@ -43,7 +43,7 @@ test('cleanRewriteOutput strips leaked tone footer and self-audit from a segment
   assert.strictEqual(cleanRewriteOutput(audited), 'Humanized sentence here.');
 
   // Real translated prose containing an em-dash / triple-dash-like text but no
-  // full tone-footer schema must pass through untouched (no over-stripping).
+  // full register-footer schema must pass through untouched (no over-stripping).
   const clean = 'Please read and understand the full content of this document before using the product.';
   assert.strictEqual(cleanRewriteOutput(clean), clean);
 });
@@ -55,7 +55,7 @@ test('validateXliffRequest: rejects incompatible modes/flags', () => {
   for (const [key, val] of [
     ['audit', true], ['score', true], ['diff', true], ['preview', true],
     ['ocr', true], ['serve', true], ['gate', 30], ['persona', 'x'],
-    ['jargon', 'remove'], ['tone', 'casual'], ['profile', 'x'], ['rewriteHeadings', true],
+    ['jargon', 'remove'], ['register', 'casual'], ['documentType', 'technical'], ['rewriteHeadings', true],
     ['verify', true],
   ]) {
     assert.throws(() => validateXliffRequest(base({ [key]: val })), /cannot be combined with --xliff/, `${key} should be rejected`);

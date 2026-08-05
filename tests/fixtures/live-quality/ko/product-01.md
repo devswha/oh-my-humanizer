@@ -1,7 +1,7 @@
 ---
 fixture_id: ko-product-01
 language: ko
-profile: default
+documentType: default
 register: product-doc
 source_type: synthetic-ai
 model_family: fixture

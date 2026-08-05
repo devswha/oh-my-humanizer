@@ -46,6 +46,23 @@ export function loadConfig(path = resolve(REPO_ROOT, '.patina.default.yaml'), { 
     mergeYamlMapping(config, resolve(overridePath), 'Config');
   }
 
+  if (Object.prototype.hasOwnProperty.call(config, 'profile')) {
+    throw inputError(
+      "config key 'profile' was removed in v7",
+      "Document classification now uses 'document-type'; profile was easy to confuse with a voice persona.",
+      "Rename 'profile:' to 'document-type:' in .patina.yaml."
+    );
+  }
+  for (const retiredKey of ['tone', 'formality']) {
+    if (!Object.prototype.hasOwnProperty.call(config, retiredKey)) continue;
+    throw inputError(
+      `config key '${retiredKey}' was removed in v7`,
+      "The casual/professional axis is named 'register'.",
+      `Rename '${retiredKey}:' to 'register:' in .patina.yaml and remove the unsupported value 'auto'.`
+    );
+  }
+  config.documentType = config['document-type'] || 'default';
+  delete config['document-type'];
   return config;
 }
 
@@ -110,93 +127,52 @@ export function getRepoRoot() {
   return REPO_ROOT;
 }
 
-const VALID_TONES = ['casual', 'professional', 'auto'];
-// Removed in 6.0: these named document genres, not register. --tone is register
-// only now (casual / professional / auto); the genre lives in --profile.
-const GENRE_TONES_MOVED_TO_PROFILE = ['academic', 'narrative', 'marketing', 'instructional'];
+const VALID_REGISTERS = ['casual', 'professional'];
 
-function rejectTone(value, where) {
-  if (GENRE_TONES_MOVED_TO_PROFILE.includes(value)) {
-    throw inputError(
-      `'${value}' is no longer a tone`,
-      `${value} is a document genre, not register. --tone now only sets register: ${VALID_TONES.join(', ')}.`,
-      `Use \`--profile ${value}\` for the genre (optionally with \`--tone casual|professional\`).`
-    );
-  }
+function rejectRegister(value, where) {
   throw inputError(
-    where === 'config' ? `invalid tone '${value}' in config` : `unknown tone '${value}'`,
-    `${where === 'config' ? "The config 'tone'" : '--tone'} must be one of: ${VALID_TONES.join(', ')}.`,
+    where === 'config' ? `invalid register '${value}' in config` : `unknown register '${value}'`,
+    `${where === 'config' ? "The config 'register'" : '--register'} must be one of: ${VALID_REGISTERS.join(', ')}.`,
     where === 'config'
-      ? "Fix the tone value in your .patina.yaml (or remove it)."
-      : 'Pass a supported tone, or omit --tone for profile-only mode.'
+      ? "Fix the register value in .patina.yaml (or remove it to preserve the source register)."
+      : 'Pass a supported register, or omit --register to preserve the source register.'
   );
 }
 
-// Resolve the effective tone from CLI flag and config (v3.10).
-// Priority: cliTone > configTone > unset. zh/ja + explicit tone → fallback path.
-// Returns: { tone, tone_source, tone_evidence, tone_confidence, warning? }
 /**
- * Resolve CLI/config tone settings into prompt-ready tone metadata.
+ * Resolve an explicit register override.
  *
- * @param {object} options Tone inputs.
- * @param {string|null} [options.cliTone] CLI tone override.
- * @param {string|null} [options.configTone] Configured tone value.
- * @param {string} [options.lang] Active language code.
- * @returns {Object} Tone metadata.
- * @throws {Error} When cliTone or configTone is not supported.
+ * Omitting the option preserves the source document's dominant register. There
+ * is no `auto` mode: source-preserving behavior is the default and avoids a
+ * second, model-dependent inference path.
+ *
+ * @param {object} options Register inputs.
+ * @param {string|null} [options.cliRegister] CLI register override.
+ * @param {string|null} [options.configRegister] Configured register value.
+ * @returns {object|null} Prompt-ready register metadata, or null when omitted.
+ * @throws {Error} When either value is unsupported.
  * @example
- * const tone = resolveTone({ cliTone: 'casual', lang: 'ko' });
+ * const register = resolveRegister({ cliRegister: 'casual' });
  */
-export function resolveTone({ cliTone, configTone, lang }) {
-  if (cliTone !== undefined && cliTone !== null && !VALID_TONES.includes(cliTone)) {
-    rejectTone(cliTone, 'cli');
+export function resolveRegister({ cliRegister, configRegister }) {
+  if (cliRegister !== undefined && cliRegister !== null && !VALID_REGISTERS.includes(cliRegister)) {
+    rejectRegister(cliRegister, 'cli');
   }
-  if (configTone !== undefined && configTone !== null && configTone !== '' && !VALID_TONES.includes(configTone)) {
-    rejectTone(configTone, 'config');
-  }
-
-  const effective = cliTone || (configTone === '' ? null : configTone) || null;
-
-  // Profile-only mode: nothing specified at all.
-  if (!effective) {
-    return {
-      tone: null,
-      tone_source: 'profile_only',
-      tone_evidence: [],
-      tone_confidence: null,
-    };
+  if (
+    configRegister !== undefined
+    && configRegister !== null
+    && configRegister !== ''
+    && !VALID_REGISTERS.includes(configRegister)
+  ) {
+    rejectRegister(configRegister, 'config');
   }
 
-  // zh/ja + any tone (including auto) → warning + fallback.
-  // Phase 4.5b heuristics only cover ko/en signals; auto on zh/ja would
-  // silently degrade to residual "professional" without useful evidence.
-  if ((lang === 'zh' || lang === 'ja') && effective) {
-    const label = effective === 'auto' ? 'auto-detection' : `tone "${effective}"`;
-    const warning = `${label} is en/ko-only in v1; falling back to default profile`;
-    return {
-      tone: null,
-      tone_source: 'unsupported_language_fallback',
-      tone_evidence: [warning],
-      tone_confidence: null,
-      warning,
-    };
-  }
-
-  if (effective === 'auto') {
-    // Detection runs in-prompt at SKILL.md Phase 4.5b. Mark request only.
-    return {
-      tone: 'auto',
-      tone_source: 'auto',
-      tone_evidence: [],
-      tone_confidence: null,
-    };
-  }
-
-  // User-specified named tone.
+  const effective = cliRegister || (configRegister === '' ? null : configRegister) || null;
+  if (!effective) return null;
   return {
-    tone: effective,
-    tone_source: 'user',
-    tone_evidence: ['user-specified'],
-    tone_confidence: 'high',
+    register: effective,
+    register_source: cliRegister ? 'command' : 'config',
+    register_evidence: ['user-specified'],
+    register_confidence: 'high',
   };
 }

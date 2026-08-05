@@ -100,7 +100,7 @@ const FIXTURES = [
   {
     id: 'em-dash-social',
     lang: 'en',
-    profile: 'social',
+    documentType: 'social',
     class: 'short-form-positive',
     // Single em dash in a short social reply: the #13 short-form branch floors
     // it off an exact 0 (~1.7, weak/Low) so the SNS "AI-polish" tell registers
@@ -112,9 +112,9 @@ const FIXTURES = [
   {
     id: 'em-dash-default-control',
     lang: 'en',
-    profile: 'default',
+    documentType: 'default',
     class: 'clean-control',
-    // Same dash, default profile: the branch is inert, so no false positive.
+    // Same dash, default Document Type: the branch is inert, so no false positive.
     patterns: [{ frontmatter: { pack: 'en-style', patterns: 6 } }],
     text: 'built patina for exactly that — keeps your meaning intact.',
     expect: { skipped: true, evidenceFloor: 0, final: 0 },
@@ -138,7 +138,7 @@ const FIXTURES = [
 ];
 
 function evaluateFixture(fixture) {
-  const config = { ...loadConfig(), language: fixture.lang, profile: fixture.profile ?? 'default' };
+  const config = { ...loadConfig(), language: fixture.lang, documentType: fixture.documentType ?? 'default' };
   const patterns = fixture.patterns ?? [];
   const deterministic = scoreDeterministicSignals({ text: fixture.text, config, patterns });
   // Default worst-case: the LLM finds nothing (overall 0). A fixture may set an

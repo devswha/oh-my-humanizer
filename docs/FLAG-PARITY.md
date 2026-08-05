@@ -20,8 +20,11 @@ Basis: local checkout plus `node bin/patina.js --help` and `SKILL.md` reviewed o
 | `--outdir <dir>` | ✓ | ✓ | Batch-only output directory. |
 | `--no-interactive` | ✓ | — | CLI input safety for non-TTY automation. |
 | `--lang <code>` | ✓ | ✓ | `ko`, `en`, `zh`, `ja`. |
-| `--profile <name>` | ✓ | ✓ | Profile override. |
-| `--tone <name>` | ✓ | ✓ | Shared tone surface. |
+| `--document-type <name>` | ✓ | ✓ | Genre, purpose, structural conventions, and pattern policy. |
+| `--persona <name>` | ✓ | ✓ | Optional reusable voice; rewrite/preview only in CLI. |
+| `--register <casual\|professional>` | ✓ | ✓ | Delivery override; omission preserves source register. |
+| `--jargon <policy>` | ✓ | — | CLI rewrite/preview terminology policy. |
+| `--preview` | ✓ | — | CLI URL/local-HTML in-place preview. |
 | `--model <id>` | ✓ | — | CLI single-backend model selection. |
 | `--api-key-file <path>` | ✓ | — | CLI auth. |
 | `--base-url <url>` | ✓ | — | CLI provider/backend config. |
@@ -35,6 +38,7 @@ Basis: local checkout plus `node bin/patina.js --help` and `SKILL.md` reviewed o
 | `-v`, `--version` | ✓ | — | CLI version. |
 | `patina doctor` | ✓ | — | CLI environment diagnostic. |
 | `patina auth status/login` | ✓ | — | CLI authentication guidance. |
+| `patina persona new/list/show/edit/rm` | ✓ | — | CLI custom Persona lifecycle. |
 
 ## Audit notes
 

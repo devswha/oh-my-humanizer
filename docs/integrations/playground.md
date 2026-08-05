@@ -33,8 +33,9 @@ never talks directly to a provider in v1).
 
 Deploy the repository root on Vercel so the root `vercel.json` can rewrite `/` to
 the chat entry while keeping the chat module graph and brand/social assets
-reachable. The rewrite function bundle must include `patterns/**`, `profiles/**`,
-`core/**`, `lexicon/**`, and `.patina.default.yaml`, and the free tier needs
+reachable. The rewrite function bundle must include `patterns/**`,
+`document-types/**`, `personas/**`, `core/**`, `lexicon/**`, and
+`.patina.default.yaml`, and the free tier needs
 `PATINA_FREE_API_KEY` plus `KV_REST_API_URL` / `KV_REST_API_TOKEN` for the
 fail-closed quota.
 

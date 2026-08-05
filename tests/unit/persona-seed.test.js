@@ -3,7 +3,6 @@ import { strict as assert } from 'node:assert';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listPersonas, loadPersona } from '../../src/personas/loader.js';
-import { PERSONA_DEPTHS } from '../../src/personas/schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
@@ -16,33 +15,30 @@ const SEED_PERSONAS = [
   'natural-ko',
 ];
 
-test('ko persona library includes preserve plus five v1 seeds', () => {
+test('ko persona library includes five v2 voice seeds', () => {
   const personas = listPersonas(REPO_ROOT, 'ko');
 
-  assert.equal(personas.length, 6);
+  assert.equal(personas.length, 5);
   assert.deepEqual(personas, [
     'blog-essay',
     'natural-ko',
     'pragmatic-founder',
-    'preserve',
     'soft-professional',
     'technical-explainer',
   ]);
 });
 
-test('seed personas load through schema validation with safe depth and inactive worldview', () => {
+test('seed personas load through Persona v2 as voice-only objects', () => {
   for (const id of SEED_PERSONAS) {
     const persona = loadPersona(REPO_ROOT, 'ko', id);
 
-    assert.equal(persona.schema, 'patina.persona.v1');
+    assert.equal(persona.schema, 'patina.persona.v2');
     assert.equal(persona.id, id);
     assert.equal(persona.lang, 'ko');
     assert.equal(persona.source, 'library');
-    assert.ok(PERSONA_DEPTHS.includes(persona.depth));
-    assert.equal(persona.mps.enforce, true);
-    assert.equal(persona.mps.floor, 70);
-    assert.equal(persona.fidelity.enforce, true);
-    assert.equal(persona.fidelity.floor, 70);
+    assert.equal(Object.hasOwn(persona, 'depth'), false);
+    assert.equal(Object.hasOwn(persona, 'mps'), false);
+    assert.equal(Object.hasOwn(persona, 'fidelity'), false);
     assert.equal(persona.blocks.worldview.active, false);
   }
 });
@@ -70,23 +66,21 @@ const NEUTRAL_TARGET_FEATURES = new Set([
 const KO_SPECIFIC_TARGET_FEATURES = ['ko_register_plain_ratio', 'ko_register_polite_ratio', 'suffix_class_diversity'];
 
 for (const [lang, seeds] of Object.entries(NON_KO_SEEDS)) {
-  test(`${lang} persona library includes preserve plus its v1 seeds`, () => {
+  test(`${lang} persona library includes its v2 voice seeds`, () => {
     const personas = listPersonas(REPO_ROOT, lang);
-    assert.deepEqual(personas, [...seeds, 'preserve'].sort());
+    assert.deepEqual(personas, [...seeds].sort());
   });
 
-  test(`${lang} seed personas load through schema validation with safe depth and inactive worldview`, () => {
+  test(`${lang} seed personas load as voice-only Persona v2 objects`, () => {
     for (const id of seeds) {
       const persona = loadPersona(REPO_ROOT, lang, id);
-      assert.equal(persona.schema, 'patina.persona.v1');
+      assert.equal(persona.schema, 'patina.persona.v2');
       assert.equal(persona.id, id);
       assert.equal(persona.lang, lang);
       assert.equal(persona.source, 'library');
-      assert.ok(PERSONA_DEPTHS.includes(persona.depth));
-      assert.equal(persona.mps.enforce, true);
-      assert.equal(persona.mps.floor >= 70, true);
-      assert.equal(persona.fidelity.enforce, true);
-      assert.equal(persona.fidelity.floor >= 70, true);
+      assert.equal(Object.hasOwn(persona, 'depth'), false);
+      assert.equal(Object.hasOwn(persona, 'mps'), false);
+      assert.equal(Object.hasOwn(persona, 'fidelity'), false);
       assert.equal(persona.blocks.worldview.active, false);
     }
   });

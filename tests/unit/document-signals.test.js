@@ -4,9 +4,9 @@ import { strict as assert } from 'node:assert';
 import { buildPrompt } from '../../src/prompt-builder.js';
 
 const BASE = {
-  config: { language: 'ko', profile: 'default' },
+  config: { language: 'ko', documentType: 'default' },
   patterns: [],
-  profile: null,
+  documentType: null,
   voice: null,
   scoring: null,
   text: '본문 텍스트입니다.',
@@ -22,7 +22,7 @@ test('strict rewrite prompt renders document signals as ground truth for the Pha
   assert.ok(prompt.includes('Phase 0: Document Brief'));
   // C1 cache-friendly layout: the per-document signals sit AFTER the stable
   // instruction prefix and immediately before the input, so the large
-  // pattern-pack/profile/voice/instruction prefix stays cacheable across a batch.
+  // pattern-pack/document-policy/voice/instruction prefix stays cacheable across a batch.
   assert.ok(prompt.indexOf('Document Signals') > prompt.indexOf('## Instructions'));
   assert.ok(prompt.indexOf('Document Signals') < prompt.indexOf('## Input Text'));
 });

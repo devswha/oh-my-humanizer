@@ -10,14 +10,14 @@ import { TRANSLATIONESE_RULES } from './features/translationese.js';
  * @param {string} mode Output mode: rewrite, diff, audit, or score.
  * @param {object} [parsed={}] Parsed CLI options.
  * @param {object} [opts={}] Formatting options.
- * @param {object|null} [opts.tone] Tone metadata to append.
+ * @param {object|null} [opts.register] Explicit register metadata.
  * @param {object} [opts.logger] Logger for output warnings.
  * @param {object} [opts.env] Environment map for color decisions.
  * @param {object} [opts.stdout] Stdout-like stream for color decisions.
- * @param {string} [opts.auditBackstop] Deterministic audit-mode section to append before the tone footer.
+ * @param {string} [opts.auditBackstop] Deterministic audit-mode section.
  * @param {object|null} [opts.persona] Persona metadata to append.
  * @returns {string} User-facing formatted output.
- * @throws {TypeError} When `result` or `opts.tone` carries values JSON.stringify cannot serialize (circular references, BigInt) — the json format serializes the result payload, and the tone footer serializes `opts.tone.tone_evidence`.
+ * @throws {TypeError} When JSON output carries unserializable values.
  * @example
  * const output = formatOutput('[BODY]Hi[/BODY]', 'rewrite');
  */
@@ -25,7 +25,7 @@ export function formatOutput(result, mode, parsed = {}, opts = {}) {
   const rewriteOutput = mode === 'rewrite'
     ? splitRewriteOutput(result, { logger: opts.logger })
     : null;
-  const tone = resolveOutputTone(opts.tone || null, rewriteOutput?.tone || null);
+  const register = resolveOutputRegister(opts.register || null, rewriteOutput?.register || null);
   const persona = opts.persona || null;
   const format = parsed.format || 'markdown';
   let body = rewriteOutput?.body ?? renderFormattedBody(result, mode, parsed, opts);
@@ -33,16 +33,10 @@ export function formatOutput(result, mode, parsed = {}, opts = {}) {
   if (mode === 'audit' && format !== 'json' && opts.auditBackstop) {
     body += opts.auditBackstop;
   }
-
   if (format === 'json') {
-    return formatJsonOutput({ result, mode, body, tone, gate: parsed.gate, persona });
+    return formatJsonOutput({ result, mode, body, register, gate: parsed.gate, persona });
   }
-
-  if (format === 'text' || mode === 'rewrite') {
-    return formatTextOutput(body);
-  }
-
-  return appendToneFooter(body, tone);
+  return formatTextOutput(body);
 }
 
 function renderFormattedBody(result, mode, parsed = {}, opts = {}) {
@@ -55,12 +49,8 @@ function renderFormattedBody(result, mode, parsed = {}, opts = {}) {
   return body;
 }
 
-function resolveOutputTone(requested, emitted) {
-  if (!emitted) return requested;
-  if (!requested || requested.tone_source === 'auto') {
-    return { ...(requested || {}), ...emitted };
-  }
-  return requested;
+function resolveOutputRegister(requested, emitted) {
+  return requested || emitted || null;
 }
 
 const ANSI = {
@@ -251,15 +241,14 @@ export function stripSelfAudit(body, { logger = createLogger() } = {}) {
   return tail ? `${inner}\n\n${tail}` : inner;
 }
 function splitRewriteOutput(result, { logger = createLogger() } = {}) {
-  // Strip model scaffolding ([BODY]/[SELF_AUDIT]) and split any trailing tone
-  // footer before formatting. The body stays safe for stdout/browser/XLIFF,
-  // while JSON can retain the model-resolved metadata for --tone auto.
+  // Strip model scaffolding and any trailing register footer. Stdout remains
+  // prose-only; JSON retains structured register metadata.
   const stripped = stripSelfAudit(renderBody(result), { logger }).trim();
-  const footer = locateToneFooter(stripped);
-  if (!footer) return { body: stripped, tone: null };
+  const footer = locateRegisterFooter(stripped);
+  if (!footer) return { body: stripped, register: null };
   return {
     body: footer.lines.slice(0, footer.start).join('\n').trimEnd(),
-    tone: parseToneFooter(footer.block),
+    register: parseRegisterFooter(footer.block),
   };
 }
 
@@ -275,28 +264,28 @@ function removeSelfAuditBlocks(body) {
   return String(body || '').replace(/\[SELF_AUDIT\][\s\S]*?\[\/SELF_AUDIT\]/g, '');
 }
 
-function parseToneFooter(block) {
+function parseRegisterFooter(block) {
   const fields = {};
   for (const line of block.split('\n')) {
-    const match = line.match(/^\s*(tone|tone_source|tone_evidence|tone_confidence)\s*:\s*(.*?)\s*$/u);
+    const match = line.match(/^\s*(register|register_source|register_evidence|register_confidence)\s*:\s*(.*?)\s*$/u);
     if (match) fields[match[1]] = match[2];
   }
   let evidence = [];
   try {
-    const parsed = JSON.parse(fields.tone_evidence ?? '[]');
+    const parsed = JSON.parse(fields.register_evidence ?? '[]');
     if (Array.isArray(parsed)) evidence = parsed;
   } catch {
     evidence = [];
   }
   return {
-    tone: parseToneScalar(fields.tone),
-    tone_source: parseToneScalar(fields.tone_source),
-    tone_evidence: evidence,
-    tone_confidence: parseToneScalar(fields.tone_confidence),
+    register: parseRegisterScalar(fields.register),
+    register_source: parseRegisterScalar(fields.register_source),
+    register_evidence: evidence,
+    register_confidence: parseRegisterScalar(fields.register_confidence),
   };
 }
 
-function parseToneScalar(raw) {
+function parseRegisterScalar(raw) {
   if (raw === undefined || /^(?:null|~)$/iu.test(raw)) return null;
   if (/^-?\d+(?:\.\d+)?$/u.test(raw)) return Number(raw);
   if (raw.startsWith('"') && raw.endsWith('"')) {
@@ -339,18 +328,18 @@ function formatTextOutput(body) {
   return body.trim();
 }
 
-function formatJsonOutput({ result, mode, body, tone, gate, persona }) {
+function formatJsonOutput({ result, mode, body, register, gate, persona }) {
   const overall = extractOverall(result, body);
   const payload = {
     mode,
     format: 'json',
     overall,
     categories: extractCategories(result, body),
-    tone: tone ? {
-      tone: tone.tone ?? null,
-      tone_source: tone.tone_source ?? null,
-      tone_evidence: Array.isArray(tone.tone_evidence) ? tone.tone_evidence : [],
-      tone_confidence: tone.tone_confidence ?? null,
+    register: register ? {
+      register: register.register ?? null,
+      register_source: register.register_source ?? null,
+      register_evidence: Array.isArray(register.register_evidence) ? register.register_evidence : [],
+      register_confidence: register.register_confidence ?? null,
     } : null,
     mps: extractMps(result, body),
     gateResult: buildGateResult(overall, gate),
@@ -546,31 +535,8 @@ function balancedBraceSpans(text) {
   return spans;
 }
 
-// Append the v3.10 YAML footer to every output mode (rewrite/diff/audit/score).
-// SKILL.md Phase 6 spec: footer is the *only* sanctioned tone-info surface.
-// If the LLM already emitted a footer (it should, per SKILL.md), do not duplicate.
-function appendToneFooter(body, tone) {
-  if (!tone || !tone.tone_source) return body;
-  if (hasToneFooter(body)) return body;
 
-  const lines = ['', '---'];
-  lines.push(`tone: ${tone.tone === null || tone.tone === undefined ? 'null' : tone.tone}`);
-  lines.push(`tone_source: ${tone.tone_source}`);
-  const ev = Array.isArray(tone.tone_evidence) ? tone.tone_evidence : [];
-  lines.push(`tone_evidence: ${JSON.stringify(ev)}`);
-  lines.push(`tone_confidence: ${tone.tone_confidence ?? 'null'}`);
-  lines.push('---');
-  return `${body}\n${lines.join('\n')}\n`;
-}
-
-// Detect a trailing YAML footer block emitted by the model. Match a `---`
-// fenced block within the last ~30 non-empty lines that contains a `tone:`
-// key. We avoid double-printing when the model honored Phase 6.
-function hasToneFooter(body) {
-  return Boolean(locateToneFooter(body));
-}
-
-function locateToneFooter(body) {
+function locateRegisterFooter(body) {
   if (!body) return null;
   const lines = String(body).split(/\r?\n/u);
   let end = lines.length - 1;
@@ -592,14 +558,12 @@ function locateToneFooter(body) {
       .slice(start + 1, close)
       .map(normalizeFooterLine)
       .join('\n');
-    if (
-      !/\btone\s*:/.test(block)
-      || !/\btone_source\s*:/.test(block)
-      || !/\btone_evidence\s*:/.test(block)
-      || !/\btone_confidence\s*:/.test(block)
-    ) {
-      continue;
-    }
+    const registerFooter =
+      /\bregister\s*:/.test(block)
+      && /\bregister_source\s*:/.test(block)
+      && /\bregister_evidence\s*:/.test(block)
+      && /\bregister_confidence\s*:/.test(block);
+    if (!registerFooter) continue;
     const openingFence = start > 0 && isCodeFence(lines[start - 1]) ? start - 1 : start;
     return {
       lines,

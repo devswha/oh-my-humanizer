@@ -1,7 +1,7 @@
 ---
 fixture_id: ko-social-01
 language: ko
-profile: social
+documentType: social
 register: social
 source_type: synthetic-ai
 model_family: fixture

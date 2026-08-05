@@ -37,8 +37,20 @@
           </select>
         </label>
         <label class="ctl">
-          <span class="ctl__label">Voice</span>
+          <span class="ctl__label">Document Type</span>
+          <select id="document-type" class="ctl__select"></select>
+        </label>
+        <label class="ctl">
+          <span class="ctl__label">Persona</span>
           <select id="persona" class="ctl__select"></select>
+        </label>
+        <label class="ctl">
+          <span class="ctl__label">Register</span>
+          <select id="register" class="ctl__select">
+            <option value="">Preserve source</option>
+            <option value="casual">Casual</option>
+            <option value="professional">Professional</option>
+          </select>
         </label>
         <label class="ctl">
           <span class="ctl__label">Mode</span>
@@ -244,7 +256,7 @@
         <nav class="sidebar__history" id="history" aria-label="Conversations"></nav>
         <div class="sidebar__foot">
           <div class="brandmark"><img class="brandmark__icon" src="/assets/brand/patina-mark.svg" alt="" width="22" height="22" /> patina <span class="ver-badge">v7.0.0</span></div>
-          <div class="sidebar__note">Deterministic humanizer —<br />same claim, numbers, tone.</div>
+          <div class="sidebar__note">Deterministic humanizer —<br />same claim, numbers, voice.</div>
         </div>
       </aside>
 

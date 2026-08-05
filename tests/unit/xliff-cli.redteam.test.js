@@ -19,7 +19,7 @@ test('parseArgs/validateXliffRequest: fail closed for XLIFF-only flags and does 
   for (const argv of [
     ['--xliff', '--audit', 'f.xliff'],
     ['--xliff', '--verify', 'f.xliff'],
-    ['--xliff', '--tone', 'casual', 'f.xliff'],
+    ['--xliff', '--register', 'casual', 'f.xliff'],
     ['--xliff', '--persona', 'x', 'f.xliff'],
     ['--xliff', '--jargon', 'remove', 'f.xliff'],
     ['--xliff', '--score', 'f.xliff'],

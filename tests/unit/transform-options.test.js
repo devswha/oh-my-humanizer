@@ -6,9 +6,9 @@ import { buildPrompt } from '../../src/prompt-builder.js';
 import { buildPreviewHtml, diffWordSegments } from '../../src/preview.js';
 
 const BASE = {
-  config: { language: 'en', profile: 'default' },
+  config: { language: 'en', documentType: 'default' },
   patterns: [],
-  profile: null,
+  documentType: null,
   voice: null,
   scoring: null,
   text: 'Sample body text for prompt construction.',
@@ -74,7 +74,7 @@ test('non-rewrite strict prompts never carry the directive even if options leak 
 test('minimal rewrite prompt carries a localized directive', () => {
   const ko = buildPrompt({
     ...BASE,
-    config: { language: 'ko', profile: 'default' },
+    config: { language: 'ko', documentType: 'default' },
     mode: 'rewrite',
     promptMode: 'minimal',
     jargon: 'remove',
@@ -93,58 +93,53 @@ test('minimal rewrite prompt carries a localized directive', () => {
 test('parseArgs accepts comma lists for compare mode and dedupes them', () => {
   assert.equal(parseArgs(['--jargon', 'keep,explain,remove']).jargon, 'keep,explain,remove');
   assert.equal(parseArgs(['--jargon', 'remove, remove ,explain']).jargon, 'remove,explain');
-  assert.equal(parseArgs(['--tone', 'casual,professional']).tone, 'casual,professional');
+  assert.equal(parseArgs(['--register', 'casual,professional']).register, 'casual,professional');
   assert.throws(() => parseArgs(['--jargon', 'remove,everything']), /unknown jargon policy everything/);
   assert.throws(() => parseArgs(['--jargon', ',,']), /--jargon expects a value/);
 });
 
 test('buildTransformVariants expands the cross product with labels and a cap', () => {
-  assert.deepStrictEqual(buildTransformVariants({}), [{ jargon: 'keep', tone: null, label: 'cleanup' }]);
+  assert.deepStrictEqual(buildTransformVariants({}), [{ jargon: 'keep', register: null, label: 'cleanup' }]);
   assert.deepStrictEqual(buildTransformVariants({ jargon: 'keep,remove' }), [
-    { jargon: 'keep', tone: null, label: 'cleanup' },
-    { jargon: 'remove', tone: null, label: 'remove' },
+    { jargon: 'keep', register: null, label: 'cleanup' },
+    { jargon: 'remove', register: null, label: 'remove' },
   ]);
   assert.equal(buildTransformVariants({ jargon: 'keep,explain,remove' }).length, 3);
-  // 3 jargons × 2 tones = 6 > cap of 4.
+  // 3 jargon policies × 2 registers = 6 > cap of 4.
   assert.throws(
-    () => buildTransformVariants({ jargon: 'keep,explain,remove', tone: 'casual,professional' }),
+    () => buildTransformVariants({ jargon: 'keep,explain,remove', register: 'casual,professional' }),
     /too many transform variants/
   );
 });
 
-test('tone joins the variant cross product with per-tone labels', () => {
-  assert.equal(parseArgs(['--tone', 'casual,professional']).tone, 'casual,professional');
-  assert.throws(() => parseArgs(['--tone', 'casual,shouty']), /unknown tone shouty/);
+test('register joins the variant cross product with per-register labels', () => {
+  assert.equal(parseArgs(['--register', 'casual,professional']).register, 'casual,professional');
+  assert.throws(() => parseArgs(['--register', 'casual,shouty']), /unknown register shouty/);
 
-  // Single tone: carried on the variant, absent from the label.
-  assert.deepStrictEqual(buildTransformVariants({ jargon: 'remove', tone: 'casual' }), [
-    { jargon: 'remove', tone: 'casual', label: 'remove' },
+  // Single register: carried on the variant, absent from the label.
+  assert.deepStrictEqual(buildTransformVariants({ jargon: 'remove', register: 'casual' }), [
+    { jargon: 'remove', register: 'casual', label: 'remove' },
   ]);
-  // Multiple tones: tone appears in every label.
-  assert.deepStrictEqual(buildTransformVariants({ jargon: 'remove', tone: 'casual,professional' }), [
-    { jargon: 'remove', tone: 'casual', label: 'remove·casual' },
-    { jargon: 'remove', tone: 'professional', label: 'remove·professional' },
+  // Multiple registers: register appears in every label.
+  assert.deepStrictEqual(buildTransformVariants({ jargon: 'remove', register: 'casual,professional' }), [
+    { jargon: 'remove', register: 'casual', label: 'remove·casual' },
+    { jargon: 'remove', register: 'professional', label: 'remove·professional' },
   ]);
-  // Tone-only comparison: the tone IS the label.
+  // Register-only comparison: the register is the label.
   assert.deepStrictEqual(
-    buildTransformVariants({ tone: 'casual,professional' }).map((v) => v.label),
-    ['casual', 'professional']
+    buildTransformVariants({ register: 'casual,professional' }).map((variant) => variant.label),
+    ['casual', 'professional'],
   );
-  // Tone multiplies into the cap: 2 jargons × 3 tones = 6 > 4.
+  // Register-only lists still need --preview.
   assert.throws(
-    () => buildTransformVariants({ jargon: 'keep,remove', tone: 'casual,professional,auto' }),
-    /too many transform variants/
-  );
-  // Tone-only list still needs --preview, and the error names --tone.
-  assert.throws(
-    () => validateTransformRequest({ tone: 'casual,professional' }),
-    /comparing transform variants requires --preview/
+    () => validateTransformRequest({ register: 'casual,professional' }),
+    /comparing transform variants requires --preview/,
   );
   assert.throws(
-    () => validateTransformRequest({ tone: 'casual,professional', preview: true, score: true }),
-    /--tone cannot be combined with --score/
+    () => validateTransformRequest({ register: 'casual,professional', preview: true, score: true }),
+    /--register cannot be combined with --score/,
   );
-  validateTransformRequest({ tone: 'casual,professional', preview: true });
+  validateTransformRequest({ register: 'casual,professional', preview: true });
 });
 
 test('validateTransformRequest gates compare mode on --preview and rejects --ocr', () => {
@@ -157,7 +152,7 @@ test('validateTransformRequest gates compare mode on --preview and rejects --ocr
     /--ocr cannot be combined/
   );
   validateTransformRequest({ jargon: 'keep,explain,remove', preview: true });
-  validateTransformRequest({ tone: 'casual,marketing', preview: true });
+  validateTransformRequest({ register: 'casual,professional', preview: true });
 });
 
 test('buildPreviewHtml bakes variants behind a scriptless two-level radio toggle', () => {
@@ -166,8 +161,8 @@ test('buildPreviewHtml bakes variants behind a scriptless two-level radio toggle
   const start = html.indexOf(text);
   const blocks = [{ tag: 'p', start, end: start + text.length, raw: text, text }];
   const variants = [
-    { label: 'cleanup', jargon: 'keep', tone: null, rewrites: ['Cleaned up paragraph text, still recognizably the same claim.'] },
-    { label: 'remove', jargon: 'remove', tone: null, rewrites: ['De-jargoned paragraph for regular readers, same claim.'] },
+    { label: 'cleanup', jargon: 'keep', register: null, rewrites: ['Cleaned up paragraph text, still recognizably the same claim.'] },
+    { label: 'remove', jargon: 'remove', register: null, rewrites: ['De-jargoned paragraph for regular readers, same claim.'] },
   ];
   const { html: out, changedCount } = buildPreviewHtml({
     html, blocks, rewrites: variants[0].rewrites, variants, sourceUrl: 'https://example.com/',
@@ -197,22 +192,22 @@ test('buildPreviewHtml bakes variants behind a scriptless two-level radio toggle
   assert.ok(!/<script\b/i.test(out));
 });
 
-test('depth buttons reveal per-depth option chips for tone variants', () => {
+test('depth buttons reveal per-depth option chips for register variants', () => {
   const text = 'A paragraph long enough that four baked variants can rewrite it differently.';
   const html = `<html><body><p>${text}</p></body></html>`;
   const start = html.indexOf(text);
   const blocks = [{ tag: 'p', start, end: start + text.length, raw: text, text }];
   const variants = [
-    { label: 'casual', jargon: 'keep', tone: 'casual', rewrites: ['Casual cleaned paragraph rewritten in a relaxed register for everyone.'] },
-    { label: 'professional', jargon: 'keep', tone: 'professional', rewrites: ['Professional cleaned paragraph rewritten in a formal register.'] },
-    { label: 'remove·casual', jargon: 'remove', tone: 'casual', rewrites: ['De-jargoned casual paragraph for a general audience entirely.'] },
-    { label: 'remove·professional', jargon: 'remove', tone: 'professional', rewrites: ['De-jargoned formal paragraph for a general audience entirely.'] },
+    { label: 'casual', jargon: 'keep', register: 'casual', rewrites: ['Casual cleaned paragraph rewritten in a relaxed register for everyone.'] },
+    { label: 'professional', jargon: 'keep', register: 'professional', rewrites: ['Professional cleaned paragraph rewritten in a formal register.'] },
+    { label: 'remove·casual', jargon: 'remove', register: 'casual', rewrites: ['De-jargoned casual paragraph for a general audience entirely.'] },
+    { label: 'remove·professional', jargon: 'remove', register: 'professional', rewrites: ['De-jargoned formal paragraph for a general audience entirely.'] },
   ];
   const { html: out } = buildPreviewHtml({
     html, blocks, rewrites: variants[0].rewrites, variants, sourceUrl: 'https://example.com/',
   });
 
-  // Two depth buttons, each with a two-chip option row (tone names only).
+  // Two depth buttons, each with a two-chip option row (register names only).
   assert.ok(out.includes('for="ptna-d-1">cleanup</label>'));
   assert.ok(out.includes('for="ptna-d-2">remove</label>'));
   assert.ok(out.includes('class="ptna-views ptna-opts ptna-opts-1"'));

@@ -132,7 +132,7 @@ def build_segments(
     rewrite = Path(args.rewrite).read_text(encoding="utf-8").strip()
     max_width = WIDTH - (PADDING_X * 2)
     src_name = Path(args.source).name
-    cmd = f"patina --lang {args.lang} --tone marketing {src_name}"
+    cmd = f"patina --lang {args.lang} --document-type marketing {src_name}"
 
     segments: list[dict] = []
     segments.append({"kind": "cmd", "text": f"cat {src_name}"})

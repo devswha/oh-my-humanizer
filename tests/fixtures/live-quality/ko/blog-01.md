@@ -1,7 +1,7 @@
 ---
 fixture_id: ko-blog-01
 language: ko
-profile: blog
+documentType: blog
 register: blog
 source_type: synthetic-ai
 model_family: fixture

@@ -15,6 +15,9 @@ const ROOT_URL = new URL('../', import.meta.url);
 const CURRENT_PACKAGE_URL = new URL('../package.json', import.meta.url);
 const POST_V64_MUTABLE_HASHES = new Set([
   'src/web-rewrite-contract.js',
+  'vercel.json',
+  'tests/unit/web-deploy-invariants.test.js',
+  'tests/unit/v6.4-preflight-hold.test.js',
   'package.json',
   'package-lock.json',
   'README.md',

@@ -1,8 +1,6 @@
-// Phase C: deterministic tests for the corpus-hardened natural-ko persona.
-// Proves the persona penalizes content-piled flattery/hype while preserving a
-// genuine affirmation/self-help genre, keeps MPS/fidelity floors at 70, and
-// stays KO rewrite-only with worldview inactive. LLM-rewrite acceptances
-// (persona_match>=70, term-family N->0 after rewrite) are opt-in live-quality.
+// Deterministic tests for the corpus-hardened natural-ko voice Persona.
+// Proves the Persona penalizes content-piled flattery/hype while preserving a
+// genuine affirmation/self-help genre and remains strictly voice-only.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -32,12 +30,12 @@ function score(text) {
   return personaMatchScore({ text, persona, lang: 'ko', repoRoot: REPO_ROOT, original: text });
 }
 
-test('natural-ko keeps MPS/fidelity floors at 70 and is KO rewrite-only with worldview off', () => {
+test('natural-ko is a KO voice-only Persona with worldview off', () => {
   assert.equal(persona.lang, 'ko');
-  assert.equal(persona.mps.floor, 70);
-  assert.equal(persona.fidelity.floor, 70);
-  assert.equal(persona.mps.enforce, true);
-  assert.equal(persona.fidelity.enforce, true);
+  assert.equal(persona.schema, 'patina.persona.v2');
+  assert.equal(Object.hasOwn(persona, 'mps'), false);
+  assert.equal(Object.hasOwn(persona, 'fidelity'), false);
+  assert.equal(Object.hasOwn(persona, 'depth'), false);
   assert.equal(persona.blocks?.worldview?.active, false);
 });
 

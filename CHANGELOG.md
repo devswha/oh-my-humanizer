@@ -35,6 +35,10 @@ Semver rationale: major — removes public configuration keys and the obsolete a
 ### Added
 
 - `patina --score --offline` runs the deterministic scoring layer without resolving a backend or credential. It supports markdown/JSON output and `--exit-on`; LLM-judged categories are marked unavailable, and a missing numeric local score fails instead of silently passing.
+- Three independent rewrite axes replace the overloaded profile/tone/formality model: 17 Document Types own document policy, 12 language-scoped Persona v2 files optionally supply reusable voice, and Register independently selects `casual` or `professional` delivery. Omitted Persona and Register preserve the source.
+- Document Type files now use a validated structured frontmatter contract (`purpose`, `audience`, `structure`, `style`, `avoid`, language-scoped `pattern-overrides`). Invalid or cross-axis custom policies fail before prompt assembly.
+- Rewrite prompts state axis ownership and precedence explicitly. Document Type cannot manufacture voice, Persona cannot choose document policy or Register, and Register cannot alter structure or claims.
+- The example catalog now includes comparable KO/EN rewrite-axis fixtures for academic, instructional, marketing, narrative, casual, and professional behavior.
 
 ### Fixed
 

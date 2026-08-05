@@ -17,7 +17,7 @@ import { callLLM as defaultCallLLM } from '../../src/api.js';
 import { invokeBackendChain, resolveBackend } from '../../src/backends/index.js';
 import { providerHttpKeyEnvVars, resolveHttpApiKey } from '../../src/auth.js';
 import { loadConfig, getRepoRoot } from '../../src/config.js';
-import { loadCoreFile, loadPatterns, loadProfile } from '../../src/loader.js';
+import { loadCoreFile, loadPatterns, loadDocumentType } from '../../src/loader.js';
 import { formatOutput } from '../../src/output.js';
 import { resolvePersonaForRun } from '../../src/personas/resolve.js';
 import { buildPrompt } from '../../src/prompt-builder.js';
@@ -118,23 +118,19 @@ function normalizeStringArray(value, source, { required = true } = {}) {
 export async function buildPatinaRewritePrompt(fixture, { repoRoot = getRepoRoot() } = {}) {
   const config = loadConfig();
   config.language = fixture.language;
-  if (fixture.profile) config.profile = fixture.profile;
+  if (fixture.documentType) config.documentType = fixture.documentType;
 
   const patterns = loadPatterns(repoRoot, fixture.language);
-  const profile = loadProfile(repoRoot, config.profile || 'default');
+  const documentType = loadDocumentType(repoRoot, config.documentType || 'default');
   const voice = loadCoreFile(repoRoot, 'voice.md');
-  // v6.2 made the persona the sole voice owner, and both shipping surfaces
-  // moved with it: src/cli/run.js and src/web-rewrite.js each resolve a persona
-  // before building the prompt. This harness did not, so it measured a prompt
-  // neither surface sends — missing, for ko, the persona directive that orders
-  // the model to preserve every claim, figure, and quotation and change only
-  // voice. Measurements taken without it understate meaning preservation.
+  // The benchmark must use the same optional-Persona resolution as shipping
+  // CLI and web rewrites; omission preserves the source voice.
   const persona = resolvePersonaForRun({ parsed: {}, config, mode: 'rewrite', lang: fixture.language, repoRoot });
 
   return buildPrompt({
     config,
     patterns,
-    profile: profile.body ? profile : null,
+    documentType: documentType.body ? documentType : null,
     voice: voice.body ? voice : null,
     persona,
     scoring: null,
@@ -192,7 +188,7 @@ export async function evaluateModelGradedRewrite(fixture, rawRewrite, options = 
   const rewrite = deliveredRewrite(rawRewrite, { logger: options.logger });
   const config = loadConfig();
   config.language = fixture.language;
-  if (fixture.profile) config.profile = fixture.profile;
+  if (fixture.documentType) config.documentType = fixture.documentType;
   const patterns = loadPatterns(repoRoot, fixture.language);
   // CLI-seat judges serialize on a local concurrency cap of 1, so parallel
   // scoring only burns each call's budget inside the slot queue, and one

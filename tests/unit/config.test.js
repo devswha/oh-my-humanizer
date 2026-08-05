@@ -85,7 +85,7 @@ test('loadConfig: non-additive arrays replace so exact list values remain contro
 test('loadConfig: when HOME equals cwd the shared .patina.yaml is applied once, not twice (G5)', async () => {
   const root = mkdtempSync(join(tmpdir(), 'patina-config-same-'));
   const defaultPath = join(root, 'default.yaml');
-  writeFileSync(defaultPath, 'tone: auto\n');
+  writeFileSync(defaultPath, 'register: casual\n');
   // blocklist is an additive list key whose union dedupes primitives, so a
   // double-merge of the same file is only observable with object entries:
   // each YAML parse yields fresh object identities the Set cannot collapse.
@@ -142,12 +142,8 @@ scoring:
     assert.match(scoreMath, /^- content: 0$/m);
     assert.match(scoreMath, /^- style: 0\.25$/m);
     assert.equal(
-      combinedScore({
-        aiLikeness: 100,
-        fidelity: 0,
-        profile: 'default',
-        config,
-      }),
+      combinedScore({aiLikeness: 100,
+      fidelity: 0, documentType: 'default', config,}),
       40
     );
   });
