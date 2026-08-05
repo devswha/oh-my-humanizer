@@ -1,7 +1,7 @@
 ---
 fixture_id: en-blog-01
 language: en
-profile: blog
+documentType: blog
 register: blog
 source_type: synthetic-ai
 model_family: fixture

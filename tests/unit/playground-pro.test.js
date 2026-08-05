@@ -47,7 +47,7 @@ test('sign-out invalidates active work and clears all in-memory license session 
 });
 
 test('signed-in licenses are immutable until the full sign-out transition', () => {
-  const syncTier = sourceBetween(controller, 'function syncTier()', '// Populate the Voice');
+  const syncTier = sourceBetween(controller, 'function syncTier()', '// Populate opt-in voices.');
   const signIn = sourceBetween(controller, 'function signInLicense()', 'function inlineErrorNode');
   assert.match(syncTier, /els\.licenseKey\.disabled = signedIn/);
   assert.match(signIn, /if \(state\.license\) return/);

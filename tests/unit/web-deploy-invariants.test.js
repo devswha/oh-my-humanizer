@@ -18,8 +18,8 @@ function vercelConfig() {
 }
 
 // Deployment invariant: the serverless rewrite function reuses the patina Node
-// pipeline, which reads patterns/profiles/core/lexicon and .patina.default.yaml
-// from the filesystem (src/loader.js, src/config.js). On Vercel those files are
+// pipeline, which reads patterns/document-types/personas/core/lexicon and
+// .patina.default.yaml from the filesystem. On Vercel those files are
 // only present at runtime if the function bundle explicitly includes them, so
 // the requirement is pinned here BEFORE the handler is built. Local fs tests
 // alone cannot catch a missing bundle; this guards the config contract.
@@ -30,7 +30,7 @@ test('vercel.json bundles patina assets into the rewrite function', () => {
   assert.ok(fn, 'api/rewrite.js must have a functions entry');
   const include = fn.includeFiles;
   assert.equal(typeof include, 'string', 'includeFiles must be a glob string');
-  for (const asset of ['patterns', 'profiles', 'personas', 'core', 'lexicon', '.patina.default.yaml']) {
+  for (const asset of ['patterns', 'document-types', 'personas', 'core', 'lexicon', '.patina.default.yaml']) {
     assert.ok(
       include.includes(asset),
       `includeFiles must bundle ${asset} (got: ${include})`,
@@ -90,7 +90,7 @@ test('vercel.json preserves API functions, cron, and security headers', () => {
 
   assert.deepEqual(config.functions, {
     'api/rewrite.js': {
-      includeFiles: '{patterns/**,profiles/**,personas/**,core/**,lexicon/**,.patina.default.yaml}',
+      includeFiles: '{patterns/**,document-types/**,personas/**,core/**,lexicon/**,.patina.default.yaml}',
     },
     'api/pro-monitor.js': {
       maxDuration: 60,

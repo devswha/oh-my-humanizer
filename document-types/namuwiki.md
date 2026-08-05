@@ -1,0 +1,106 @@
+---
+document-type: namuwiki
+name: 나무위키풍
+version: 3.0.0
+scope: 한국어 위키풍 설명, 인터넷 커뮤니티식 부연, 가벼운 리뷰/해설 글. ko 전용이며 실제 나무위키 문서 텍스트를 포함하지 않는다.
+language: ko
+license-note: Original style description only; do not copy CC BY-NC-SA NamuWiki article text into this repo.
+purpose: "Explain a topic in an original Korean community-wiki format without copying source-site text."
+audience:
+  - "Korean readers familiar with community-wiki navigation and asides"
+structure:
+  - "Use concise lead context, topic sections, lists, and bounded asides supported by the source"
+  - "Preserve source-backed caveats and cross-references without imitating a specific article"
+style:
+  - "Use original Korean internet-explanatory phrasing and concrete topic terminology"
+  - "Keep asides subordinate to factual explanation"
+avoid:
+  - "Copying or closely paraphrasing NamuWiki article text"
+  - "Inventing trivia, controversy, citations, community consensus, jokes, or speaker identity"
+pattern-overrides:
+  ko:
+    # current schema: suppress=allow this marker, reduce=only fix overuse, amplify=fix aggressively
+    13: reduce      # 연결 표현: 후술/상술 같은 위키체 접속은 일부 허용, 반복만 정리
+    14: reduce      # 볼드체: 표제어/주의 강조는 일부 허용, 기계적 전면 볼드만 교정
+    15: reduce      # 인라인 헤더: 목록+잡담 혼합 문체에서 일부 허용
+    17: reduce      # 이모지/기호: 원문에 있는 가벼운 장식은 일부 허용
+    22: reduce      # 채움 표현: 사족과 말맛은 보존, 빈 완충어 남발만 줄임
+    23: reduce      # 헤징: '~인 듯', '~카더라' 류는 장르 표식일 수 있음
+    24: suppress    # 막연한 긍정 결론: 위키풍 글은 닫힌 홍보 결론보다 열린 사족이 자연스러움
+    25: reduce      # 구조 반복: 목록은 허용하되 문장 틀 복붙은 교정
+    26: reduce      # 번역체: 일부 어색함/구어 리듬은 보존, 영어 직역만 교정
+    30: reduce      # 수사적 질문: 문단 도입 드립은 일부 허용
+    31: suppress    # 결론 신호어: '결론적으로'식 마무리보다 문단 자체로 끝내기
+    1: amplify      # 거창한 중요성 부여는 위키풍이 아니라 AI/홍보 톤이므로 더 엄격히 제거
+    4: amplify      # 홍보성 언어는 위키풍과 충돌
+    7: amplify      # AI 고빈도 어휘는 인터넷식 말맛을 죽임
+    8: amplify      # '~적' 남발은 위키풍보다 보고서투에 가까움
+    10: amplify     # 3의 법칙은 위키풍 사족보다 발표자료 톤
+    16: amplify     # '~고 있다' 진행형 남발은 교정
+    18: amplify     # 과도한 한자어/공식어는 위키풍 구어성을 해침
+    19: suppress    # 챗봇 응대 표현은 나무위키풍으로 바꾸기보다 제거
+---
+
+# 나무위키풍
+
+한국어 글을 **위키풍 해설 + 인터넷식 사족** 쪽으로 기울인다. 목적은 실제 나무위키 문서를 모사하거나 복제하는 것이 아니라, 딱딱한 AI 문체를 한국어 인터넷 독자가 익숙하게 읽는 설명체로 낮추는 것이다.
+
+## 라이선스 가드레일
+
+- 실제 나무위키 문서 문장, 예시, 제목, 각주를 복사하지 않는다.
+- 예시는 모두 이 저장소에서 새로 쓴 문장이어야 한다.
+- 외부 덤프는 오프라인 통계 확인에만 쓸 수 있고, 텍스트는 repo에 반입하지 않는다.
+
+## 적용 범위
+
+- 한국어 글(`--lang ko`) 전용.
+- 짧은 제품 해설, 게임/도구 리뷰, 커뮤니티 공지, 가벼운 기술 소개에 적합하다.
+- 논문, 법률/의학 안내, 회사 공식 공지에는 쓰지 않는다. 이런 글은 `academic`, `legal`, `medical`, `formal`이 맞다.
+
+## 적극 보존 / 허용
+
+- 괄호 부연: `(물론 이것만으로 해결되진 않는다)`
+- 각주풍 사족: `[* 실제로는 설정 파일 한 줄 때문에 터지는 경우가 많다.]`
+- 위키체 연결: `후술`, `상술한`, `전술한`, `~인 셈`, `~카더라` — 과하면 줄인다.
+- 짧은 평가: `애매하다`, `귀찮다`, `생각보다 세다`처럼 독자가 감을 잡는 말.
+
+## 계속 제거할 AI 티
+
+- `혁신적인`, `강력한`, `효율적인` 같은 빈 수식어.
+- `중요한 역할을 하고 있다`, `미래가 기대된다` 같은 닫힌 홍보 결론.
+- 모든 문단이 `정의 → 장점 → 결론`으로 반복되는 구조.
+- `~적` 형용사와 한자어가 한 문장에 몰리는 보고서투.
+
+## Before / After
+
+### 도구 소개
+
+**Before**
+```text
+이 솔루션은 혁신적인 접근을 통해 사용자의 생산성을 극대화하고, 체계적인 워크플로우를 기반으로 지속 가능한 가치를 제공합니다.
+```
+
+**After**
+```text
+작업 문장을 한 번 훑어서 AI 티 나는 부분을 표시해 주는 도구다. 생산성을 올린다고 크게 말할 수도 있겠지만, 실제로는 `혁신적인`, `체계적인` 같은 말부터 지우는 쪽에 가깝다.[* 그래서 결과물이 더 수수해진다. 이게 장점이다.]
+```
+
+### 기능 설명
+
+**Before**
+```text
+본 기능은 다양한 사용 환경에서 효과적으로 활용될 수 있으며, 향후 사용자 경험 향상에 중요한 역할을 할 것으로 기대됩니다.
+```
+
+**After**
+```text
+브라우저에서는 점수만 보고, 실제 재작성은 CLI나 에디터 스킬에서 한다. 역할이 나뉘어 있어서 처음엔 조금 헷갈릴 수 있다. 대신 웹에 글을 맡기는 구조가 아니라는 점은 꽤 명확하다.
+```
+
+## 사용
+
+```bash
+patina --lang ko --document-type namuwiki input.txt
+```
+
+`--lang en|zh|ja`와 함께 쓰면 기본 문서 유형으로 폴백한다. 한국어 조사, 어미, 인터넷식 부연을 전제로 하기 때문이다.

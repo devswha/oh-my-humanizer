@@ -16,9 +16,10 @@ AI detector는 잡음이 많습니다. patina는 어떤 score도 텍스트가 �
 
 ## patina는 의미를 어떻게 보존하나요?
 
-patina는 rewrite 전에 semantic anchor를 뽑습니다. 주장, 극성, 인과, 숫자, 부정, 그 밖의 위험도가 높은 세부 정보를 추적합니다. 각 rewrite 단계 뒤에는 그 anchor가 여전히 있는지, 극성이 그대로인지 확인합니다.
-
-rewrite가 anchor를 약화하거나 삭제하거나 뒤집으면, patina는 해당 구간을 다시 시도하거나 되돌립니다.
+의미 보존은 전역 규칙입니다. Document Type, Persona, Register는 안전 기준을
+낮출 수 없습니다. CLI rewrite에는 항상 숫자 누락 검사가 적용됩니다.
+`--verify`는 MPS/fidelity 기준과 한 번의 보수적인 retry를 추가하고, agent
+skill의 `--strict`는 문서화된 retry/rollback gate를 적용합니다.
 
 ## MPS가 무엇인가요?
 
@@ -30,7 +31,9 @@ MPS가 높다고 해서 문장이 완벽하다는 뜻은 아닙니다. patina가
 
 score는 0부터 100까지의 대략적인 편집 신호입니다. 낮을수록 AI처럼 덜 들립니다.
 
-이 값은 진실 판정기가 아닙니다. scoring formula는 deterministic이지만 severity assignment는 모델 실행 사이에 대략 8-10점 정도 달라질 수 있습니다. 정확한 숫자보다 범위와 하이라이트된 패턴을 더 중요하게 보세요.
+진실 판정기는 아닙니다. 기본 `--score`는 LLM 판단과 deterministic signal을
+결합하므로 모델 실행마다 달라질 수 있습니다. `--score --offline`은 로컬에서
+재현 가능한 signal만 보고합니다. 정확한 숫자보다 범위와 탐지된 패턴을 보세요.
 
 ## 정확도는 어느 정도인가요?
 
@@ -44,9 +47,20 @@ score는 0부터 100까지의 대략적인 편집 신호입니다. 낮을수록 
 
 ## API key 없이도 동작하나요?
 
-네. 이미 Codex CLI를 설치하고 로그인했다면 가능합니다. installer는 patina를 Codex CLI backend에 연결할 수 있으므로 이 경로에서는 별도 API key가 필요하지 않습니다.
+네. `--score --offline`과 `patina-score` precommit gate에는 backend가
+필요하지 않습니다. LLM 기반 모드는 API key 대신 로그인된 Codex, Claude,
+Gemini, Kimi CLI를 사용할 수 있습니다. [Authentication](AUTHENTICATION.md)을
+참고하세요.
 
-다른 provider는 문서화된 backend/provider 설정으로 구성할 수 있습니다.
+## 입력한 텍스트가 외부로 전송되나요?
+
+CLI의 deterministic analysis는 로컬에서 실행됩니다. LLM 기반 CLI 모드는
+사용자가 선택한 backend로만 텍스트를 보냅니다.
+
+hosted playground의 rewrite와 score 요청은 patina 서버로 전송됩니다. free는
+서버 provider를 사용하고, BYOK key는 요청 단위로 전달되며 저장·로그되지
+않습니다. Pro license는 서버에서 Lemon Squeezy로 검증합니다. 브라우저가
+LLM provider를 직접 호출하지는 않습니다.
 
 ## Claude Code에서만 동작하나요?
 
@@ -56,11 +70,13 @@ score는 0부터 100까지의 대략적인 편집 신호입니다. 낮을수록 
 
 한국어, 영어, 중국어, 일본어를 지원합니다. 패턴 팩은 언어 접두사로 자동 탐색되므로 새 언어는 새 패턴 파일을 기여해 추가할 수 있습니다.
 
-## persona, profile, tone은 서로 겹치나요?
+## Document Type, Persona, Register는 서로 겹치나요?
 
-역할이 다릅니다. persona는 재사용 가능한 voice composition을 맡습니다. 한국어와 영어에서 `--tone casual|professional|auto`는 register override이며 persona의 register보다 우선합니다. profile은 deterministic pattern policy를 제공하며, 별도의 로컬 규칙에는 custom pattern pack을 사용하세요.
-
-이 구분은 현재 방향이지 모든 경로가 이미 목표에 도달했다는 뜻은 아닙니다. 일부 skill 및 core-prompt 경로에는 profile의 legacy voice guidance가 아직 남아 있습니다. 이번 릴리스는 prompt나 runtime behavior를 바꾸지 않으며, 축을 합치거나 `--tone`을 이름 변경하거나 새 hosted control을 노출하지 않습니다. 모든 경로에서 profile을 pattern policy로만 완성하는 일, retry context preservation 검증, 사용자 대상 “Register” 명칭 검토는 이후 작업입니다.
+아닙니다. Document Type은 장르·용도·구조 관습·pattern policy를 정합니다.
+Persona v2는 선택 가능한 재사용 voice fingerprint이며, 생략하면 원문
+voice를 보존합니다. Register는 `casual`/`professional` 전달 방식만 정하며,
+생략하면 원문 register를 보존합니다. 의미 보존 기준과 verification은 세
+축과 독립된 전역 규칙입니다.
 
 ## 기여자는 무엇부터 시작하면 좋나요?
 

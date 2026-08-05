@@ -1,7 +1,7 @@
 ---
 fixture_id: en-marketing-01
 language: en
-profile: marketing
+documentType: marketing
 register: marketing
 source_type: synthetic-ai
 model_family: fixture

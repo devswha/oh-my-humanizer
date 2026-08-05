@@ -2,7 +2,7 @@
 
 Practical recipes for plugging patina into existing writing and CI workflows. Each recipe is self-contained — copy, adapt, run.
 
-For the full flag list see `patina --help` and [`CLI.md`](CLI.md). For persona, tone, and profile background see [`README.md`](../README.md#modes).
+For the full flag list see `patina --help` and [`CLI.md`](CLI.md). For Document Type, Persona, and Register see [`README.md`](../README.md#three-independent-axes).
 
 ---
 
@@ -12,15 +12,15 @@ You have a Hugo site with many drafts under `content/posts/`. You want a quick A
 
 ```bash
 # from your Hugo project root
-patina --lang en --score --batch content/posts/*.md
+patina --lang en --score --offline --batch content/posts/*.md
 ```
 
-`--batch` treats every positional arg as an input file, so any glob your shell expands works. `--score` per file prints `overall` plus the category breakdown.
+`--batch` treats every positional arg as an input file, so any glob your shell expands works. `--offline` makes this a reproducible local check with no backend. Omit it when you want the LLM-judged categories reconciled with the same deterministic signals.
 
 For a stricter sweep that flags anything above 30/100, fail the run instead of just printing:
 
 ```bash
-patina --lang en --score --exit-on 30 --batch content/posts/*.md
+patina --lang en --score --offline --exit-on 30 --batch content/posts/*.md
 ```
 
 When any file's `overall` exceeds the gate, patina exits with code `3` ([`CLI.md`](CLI.md) §Exit codes), which is perfect for a pre-publish check.
@@ -53,13 +53,10 @@ jobs:
         run: |
           changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.md')
           [ -z "$changed" ] && echo "no markdown changes" && exit 0
-          patina --lang en --score --exit-on 30 --batch $changed
-        env:
-          # pick one backend that has a token in repo secrets
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          patina --lang en --score --offline --exit-on 30 --batch $changed
 ```
 
-Drop `--exit-on` while you calibrate the threshold for your project. Swap `GEMINI_API_KEY` for whichever backend you have (`claude` / `codex` / `gemini`) — see [`AUTHENTICATION.md`](AUTHENTICATION.md) for the full list.
+Drop `--exit-on` while you calibrate the threshold for your project. Remove `--offline` and configure a backend only if the workflow needs LLM-judged categories; see [`AUTHENTICATION.md`](AUTHENTICATION.md).
 
 ---
 
@@ -98,42 +95,51 @@ skip-patterns:
 
 ---
 
-## 5. Create a custom profile (copy `blog.md`, edit pattern policy)
+## 5. Create a custom Document Type policy
 
-Use a custom profile to apply deterministic pattern policy for a house style. Persona is the reusable voice-composition control; tone is the Korean/English `casual` / `professional` / `auto` register override and wins over a persona's register. A profile is not the place to compose a new persona.
-
-When the built-in profiles do not match your local pattern policy, fork the closest one:
+Document Type owns genre, purpose, structural conventions, and pattern policy.
+Persona and Register remain independent. In a source checkout or managed patina
+installation, start from the nearest built-in policy:
 
 ```bash
-cp profiles/blog.md profiles/my-newsletter.md
+cp document-types/blog.md document-types/my-newsletter.md
 ```
 
-Edit the frontmatter — at minimum change `profile:`, then tune `pattern-overrides` for the policy you need:
+Change the frontmatter id so it matches the filename, define the document
+conventions, then tune `pattern-overrides`:
 
 ```yaml
 ---
-profile: my-newsletter            # must match the filename without .md
-name: Internal newsletter profile
+document-type: my-newsletter
+name: Internal newsletter
 version: 1.0.0
 scope: weekly engineering newsletter
+purpose: summarize shipped engineering work and the next actions
+audience:
+  - engineers and internal stakeholders
+structure:
+  - lead with shipped changes, then impact, risks, and explicit next actions
+style:
+  - use concrete component names and evidence
+avoid:
+  - inventing delivery dates, owners, metrics, or commitments
 pattern-overrides:
   en:
-    14: suppress                  # bold is allowed for scannable sections
-    7:  amplify                   # AI-vocab cleanup stays strict
+    14: suppress
+    7: amplify
 ---
 ```
 
 Then opt in per run:
 
 ```bash
-patina --lang en --profile my-newsletter post.md
+patina --lang en --document-type my-newsletter post.md
 ```
 
-Pattern-policy values are `amplify` / `allow` / `reduce` / `suppress`; pattern IDs and their meanings are in [`PATTERNS.md`](PATTERNS.md).
-
-> **What actually runs:** a `pattern-overrides` entry set to **`suppress`** is applied deterministically — patina drops that pattern from the rewrite / audit / score prompt for the profile's language, so the model never flags it (e.g. `legal` suppresses Korean passive-voice #27). `reduce` / `amplify` are advisory for now: they document intent, but the engine does not yet adjust their weight.
->
-> **Current vs. target:** profiles currently supply deterministic pattern policy, but some skill and core-prompt paths still carry legacy voice guidance. “Profile is pattern-policy only everywhere” is therefore a target, not a universal current invariant. This release changes no prompts or runtime behavior.
+`suppress` is enforced deterministically by removing that pattern from the
+prompt. `reduce` and `amplify` currently document policy intent but do not change
+a runtime weight. For a project-local exclusion that does not require a custom
+Document Type file, use `skip-patterns` in `.patina.yaml`.
 
 ---
 
@@ -146,7 +152,7 @@ Block commits that introduce too-AI-sounding markdown. Drop this into `.git/hook
 set -euo pipefail
 changed=$(git diff --cached --name-only --diff-filter=ACM -- '*.md')
 [ -z "$changed" ] && exit 0
-patina --lang en --score --exit-on 30 --batch $changed
+patina --lang en --score --offline --exit-on 30 --batch $changed
 ```
 
 `--exit-on` returns exit code `3` when any file's `overall` exceeds the threshold, which the shell treats as failure and aborts the commit. To bypass once (e.g. you intentionally want hype copy), commit with `--no-verify`.
@@ -169,11 +175,11 @@ backend requires one.
 
 Three pitfalls, all observed in practice:
 
-1. **Context size.** patina's rewrite prompt (pattern digests + profile + advisory
-   guidance) runs 15–20k tokens, and Ollama's default context is 4096. Newer Ollama
-   fails loudly (`exceed_context_size_error`); older versions **silently truncate
-   the prompt**, which quietly degrades rewrite quality. Start the server with
-   `OLLAMA_CONTEXT_LENGTH=24576` (or higher) before testing anything.
+1. **Context size.** patina's rewrite prompt (pattern digests + Document Type +
+   voice guidance) can exceed a small local model's default context. Newer
+   Ollama versions fail loudly (`exceed_context_size_error`); older versions may
+   silently truncate the prompt, which degrades rewrite quality. Start the
+   server with `OLLAMA_CONTEXT_LENGTH=24576` (or higher) before testing.
 2. **`--verify` is not optional for small local models.** A 12B model will happily
    round `38%` to "nearly 40%" and drop the survey year while producing an
    otherwise fluent rewrite. `--verify` runs the MPS/fidelity floors plus the
@@ -189,14 +195,14 @@ Set `--timeout-ms` generously: a 12B model on an 8 GB GPU takes minutes per rewr
 at full prompt length, not seconds. When the per-attempt budget exceeds 300s, the
 HTTP backend automatically switches to SSE streaming so Node's undici
 `headersTimeout` cannot kill a slow local generation mid-flight (#576). Judge
-candidates with the deterministic score (`patina --score` on the rewrite output),
-not vibes — and prefer comparing against a cloud backend baseline on the same input.
+candidates with the deterministic score (`patina --score --offline` on the
+rewrite output), not vibes — and compare against a cloud backend baseline on the same input.
 
 ---
 
 ## Where to go next
 
-- Tone reference: [`README.md`](../README.md#tones)
-- Free-tier setup (no API key): [`AUTHENTICATION.md`](AUTHENTICATION.md)
+- Axis reference: [`README.md`](../README.md#three-independent-axes)
+- Backend setup: [`AUTHENTICATION.md`](AUTHENTICATION.md)
 - MPS and other terms: [`GLOSSARY.md`](GLOSSARY.md)
 - Adding patterns or false-positive triage: [`CONTRIBUTING.md`](../CONTRIBUTING.md)

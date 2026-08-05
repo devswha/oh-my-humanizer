@@ -45,7 +45,7 @@ Compare the rewrite to the ORIGINAL (if provided). Flag over-editing when:
 
 - Paragraphs with no detected AI patterns in the original have been changed.
 - The genre has shifted (e.g., a report has become an essay, a technical doc has become narrative).
-- The register has drifted beyond what the active profile permits.
+- The register has drifted from the source or an explicit `--register` target.
 - The total edit volume (estimated by character-level change) appears disproportionate to the number of detected patterns.
 
 Over-editing is a concern even when individual changes look locally natural. Report specific over-edited spans with the original and rewrite versions.

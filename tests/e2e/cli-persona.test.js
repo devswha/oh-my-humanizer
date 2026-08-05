@@ -22,9 +22,8 @@ async function captureConsole(fn) {
   const errors = [];
   const originalLog = console.log;
   const originalError = console.error;
-  // main() runs in-process here, so any process.exitCode it sets (e.g. the
-  // persona safety gate on a churny rewrite) would leak into the test runner's
-  // own exit code. Snapshot and restore it, and hand the observed code back.
+  // main() runs in-process here, so any process.exitCode it sets would leak
+  // into the test runner's own exit code. Snapshot and restore it.
   const originalExitCode = process.exitCode;
   process.exitCode = 0;
   console.log = (...args) => logs.push(args.join(' '));
@@ -56,9 +55,9 @@ describe('CLI persona harness', () => {
     if (keyDir) rmSync(keyDir, { recursive: true, force: true });
   });
 
-  it('runs --persona preserve with mocked backend and emits JSON persona field', async () => {
+  it('runs --persona natural-ko and keeps safety outside Persona metadata', async () => {
     const { logs, exitCode } = await captureConsole(() => main([
-      '--persona', 'preserve',
+      '--persona', 'natural-ko',
       '--format', 'json',
       '--api-key-file', mockApiKeyPath,
       '--base-url', `http://127.0.0.1:${mock.port}`,
@@ -68,19 +67,17 @@ describe('CLI persona harness', () => {
 
     const payload = JSON.parse(logs.join('\n'));
     assert.equal(payload.mode, 'rewrite');
-    assert.equal(payload.persona.id, 'preserve');
-    assert.equal(payload.persona.depth, 'style-only');
+    assert.equal(payload.persona.id, 'natural-ko');
+    assert.equal(Object.hasOwn(payload.persona, 'depth'), false);
     assert.equal(payload.persona.thresholds_source, 'placeholder');
-    // The mock output drops the source number "2026", so the deterministic
-    // dropped-numbers safety signal fires: the gate ENFORCES (exit 4) while
-    // still emitting output. High surface churn stays advisory (never blocks).
+    // The global deterministic meaning guard sees the dropped source number.
     assert.equal(exitCode, 4);
-    assert.ok(payload.persona.gate_result.safetyFailures.includes('numbers'));
-    assert.equal(payload.persona.gate_result.pass, false);
-    assert.ok(payload.persona.gate_result.advisory.includes('churn'));
+    // Persona remains a voice-quality advisory only.
+    assert.equal(payload.persona.gate_result.pass, true);
+    assert.deepEqual(payload.persona.gate_result.safetyFailures, []);
   });
 
-  it('keeps non-Korean no-persona rewrite path without persona gate', async () => {
+  it('keeps a no-Persona rewrite on the source-voice path', async () => {
     const enPath = resolve(keyDir, 'en.txt');
     writeFileSync(enPath, 'This is a test sentence.');
     const { logs, exitCode } = await captureConsole(() => main([
@@ -95,16 +92,16 @@ describe('CLI persona harness', () => {
     const payload = JSON.parse(logs.join('\n'));
     assert.equal(payload.mode, 'rewrite');
     assert.equal(payload.persona, null);
-    // No persona gate on the non-Korean path: nothing enforces an exit code.
+    // No Persona metadata or Persona-quality warning is emitted.
     assert.equal(exitCode, 0);
   });
 
-  it('runs --lang en --persona preserve (multilingual persona axis)', async () => {
+  it('runs --lang en --persona natural-en', async () => {
     const enPath = resolve(keyDir, 'en2.txt');
     writeFileSync(enPath, 'This is a plain test sentence with no numbers.');
     const { logs, exitCode } = await captureConsole(() => main([
       '--lang', 'en',
-      '--persona', 'preserve',
+      '--persona', 'natural-en',
       '--format', 'json',
       '--api-key-file', mockApiKeyPath,
       '--base-url', `http://127.0.0.1:${mock.port}`,
@@ -114,60 +111,47 @@ describe('CLI persona harness', () => {
 
     const payload = JSON.parse(logs.join('\n'));
     assert.equal(payload.mode, 'rewrite');
-    assert.equal(payload.persona.id, 'preserve');
-    assert.equal(payload.persona.depth, 'style-only');
-    // No source numbers to drop and self-reported MPS/fidelity pass → safety passes.
+    assert.equal(payload.persona.id, 'natural-en');
+    assert.equal(Object.hasOwn(payload.persona, 'depth'), false);
     assert.equal(payload.persona.gate_result.pass, true);
     assert.equal(exitCode, 0);
   });
 
-  it('keeps persona and verification threshold namespaces isolated', async () => {
+  it('keeps Persona quality thresholds advisory and separate from verification', async () => {
     const enPath = resolve(keyDir, 'en-thresholds.txt');
     writeFileSync(enPath, 'This is a plain test sentence with no numbers.');
-
-    const cases = [
-      { name: 'defaults', yaml: '', expectedExitCode: 0 },
-      {
-        name: 'persona-only',
-        yaml: 'personas:\n  thresholds:\n    mps_floor: 96\n    fidelity_floor: 96\n',
-        expectedExitCode: 4,
-      },
-      {
-        name: 'verification-only',
-        yaml: 'verification:\n  mps-floor: 99\n  fidelity-floor: 99\n',
-        expectedExitCode: 0,
-      },
-      {
-        name: 'both-different',
-        yaml: 'verification:\n  mps-floor: 40\n  fidelity-floor: 40\npersonas:\n  thresholds:\n    mps_floor: 96\n    fidelity_floor: 96\n',
-        expectedExitCode: 4,
-      },
-    ];
-
-    for (const entry of cases) {
-      const configPath = resolve(keyDir, `${entry.name}.yaml`);
-      writeFileSync(configPath, entry.yaml);
-      const { logs, exitCode } = await captureConsole(() => main([
-        '--lang', 'en',
-        '--persona', 'preserve',
-        '--config', configPath,
-        '--format', 'json',
-        '--api-key-file', mockApiKeyPath,
-        '--base-url', `http://127.0.0.1:${mock.port}`,
-        '--model', 'gpt-5',
-        enPath,
-      ]));
-      const payload = JSON.parse(logs.join('\n'));
-      assert.equal(exitCode, entry.expectedExitCode, entry.name);
-      assert.equal(payload.persona.gate_result.pass, entry.expectedExitCode === 0, entry.name);
-    }
+    const configPath = resolve(keyDir, 'thresholds.yaml');
+    writeFileSync(configPath, [
+      'verification:',
+      '  mps-floor: 99',
+      '  fidelity-floor: 99',
+      'personas:',
+      '  thresholds:',
+      '    persona_match_min: 101',
+      '    churn_max: 0',
+      '',
+    ].join('\n'));
+    const { logs, exitCode } = await captureConsole(() => main([
+      '--lang', 'en',
+      '--persona', 'natural-en',
+      '--config', configPath,
+      '--format', 'json',
+      '--api-key-file', mockApiKeyPath,
+      '--base-url', `http://127.0.0.1:${mock.port}`,
+      '--model', 'gpt-5',
+      enPath,
+    ]));
+    const payload = JSON.parse(logs.join('\n'));
+    assert.equal(exitCode, 0);
+    assert.equal(payload.persona.gate_result.pass, true);
+    assert.ok(payload.persona.gate_result.advisory.length > 0);
   });
 
   it('lists built-in en/zh/ja seed personas via persona list', async () => {
     const cases = {
-      en: ['blog-essay', 'natural-en', 'preserve', 'technical-explainer'],
-      zh: ['blog-essay', 'natural-zh', 'preserve'],
-      ja: ['blog-essay', 'natural-ja', 'preserve'],
+      en: ['blog-essay', 'natural-en', 'technical-explainer'],
+      zh: ['blog-essay', 'natural-zh'],
+      ja: ['blog-essay', 'natural-ja'],
     };
     for (const [lang, ids] of Object.entries(cases)) {
       const { logs, exitCode } = await captureConsole(() => main(['persona', 'list', '--lang', lang]));
@@ -197,40 +181,19 @@ describe('CLI persona harness', () => {
     assert.ok(existsSync(libPath), 'natural-ko library seed must still exist after a refused rm');
   });
 
-  it('warns that a non-default profile no longer provides voice when no voice persona is active', async () => {
-    const enPath = resolve(keyDir, 'en-profile.txt');
-    writeFileSync(enPath, 'This is a plain test sentence with no numbers.');
-    const { errors, exitCode } = await captureConsole(() => main([
-      '--lang', 'en',
-      '--profile', 'blog',
-      '--format', 'json',
-      '--api-key-file', mockApiKeyPath,
-      '--base-url', `http://127.0.0.1:${mock.port}`,
-      '--model', 'gpt-5',
-      enPath,
-    ]));
-    assert.equal(exitCode, 0);
-    assert.ok(errors.join('\n').includes('no longer provides voice'), 'expected the profile voice-retirement migration warning');
+  it('rejects the retired --profile axis', async () => {
+    await assert.rejects(
+      () => main(['--profile', 'blog', inputPath]),
+      (err) => err && err.exitCode === 2 && /--profile was removed/.test(err.message),
+    );
   });
 
-  it('warns for a .patina.yaml profile (config, not --profile) with no voice persona', async () => {
-    // The migration-relevant user has `profile: blog` in config and no --profile
-    // flag; the warning must key on the EFFECTIVE profile name, not parsed.profile.
-    const enPath = resolve(keyDir, 'en-config-profile.txt');
-    writeFileSync(enPath, 'This is a plain test sentence with no numbers.');
+  it('rejects a retired profile key in config', async () => {
     const configPath = resolve(keyDir, 'profile-blog.yaml');
     writeFileSync(configPath, 'language: en\nprofile: blog\n');
-    const { errors, exitCode } = await captureConsole(() => main([
-      '--config', configPath,
-      '--format', 'json',
-      '--api-key-file', mockApiKeyPath,
-      '--base-url', `http://127.0.0.1:${mock.port}`,
-      '--model', 'gpt-5',
-      enPath,
-    ]));
-    assert.equal(exitCode, 0);
-    const err = errors.join('\n');
-    assert.ok(err.includes('no longer provides voice'), 'config-file profile must also trigger the migration warning');
-    assert.ok(err.includes('"blog"'), 'warning names the effective profile from config');
+    await assert.rejects(
+      () => main(['--config', configPath, inputPath]),
+      (err) => err && err.exitCode === 2 && /config key ['"]profile['"] was removed/.test(err.message),
+    );
   });
 });

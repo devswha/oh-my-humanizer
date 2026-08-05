@@ -27,7 +27,7 @@ test('htmlEscape escapes markup-significant characters', () => {
   );
 });
 
-test('formatRewriteBodyForBrowser strips self-audit blocks and tone footer', () => {
+test('formatRewriteBodyForBrowser strips self-audit blocks and register footer', () => {
   const raw = [
     '[BODY]',
     'Human result.',
@@ -38,10 +38,10 @@ test('formatRewriteBodyForBrowser strips self-audit blocks and tone footer', () 
     '[/SELF_AUDIT]',
     '',
     '---',
-    'tone: null',
-    'tone_source: profile_only',
-    'tone_evidence: []',
-    'tone_confidence: null',
+    'register: professional',
+    'register_source: command',
+    'register_evidence: ["user-specified"]',
+    'register_confidence: high',
     '---',
   ].join('\n');
   assert.strictEqual(formatRewriteBodyForBrowser(raw), 'Human result.');

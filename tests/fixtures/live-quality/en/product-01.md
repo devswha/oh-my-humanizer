@@ -1,7 +1,7 @@
 ---
 fixture_id: en-product-01
 language: en
-profile: default
+documentType: default
 register: product-doc
 source_type: synthetic-ai
 model_family: fixture

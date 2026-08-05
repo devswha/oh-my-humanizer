@@ -18,11 +18,11 @@ Use when: you need a pre-rewrite audit log, want to verify which patterns were a
 
 ### patina-fidelity-auditor
 
-Given the ORIGINAL and REWRITE texts, audits meaning preservation against all four fidelity criteria defined in `core/scoring.md` §§9-14: claims preserved, no fabrication, tone match, and length ratio. Also checks MPS-level semantic anchors: numbers, polarity, causation, named entities, and direct quotes. Returns a PASS or NEEDS-ROLLBACK verdict with the fidelity score and offending spans identified.
+Given the ORIGINAL and REWRITE texts, audits meaning preservation against all four fidelity criteria defined in `core/scoring.md` §§9-14: claims preserved, no fabrication, audience/register match, and length ratio. Also checks MPS-level semantic anchors: numbers, polarity, causation, named entities, and direct quotes. Returns a PASS or NEEDS-ROLLBACK verdict with the fidelity score and offending spans identified.
 
 The verification floor applies here: fidelity_score ≥ `verification.fidelity-floor` (default: 70) is required for PASS.
 
-Use when: you need an auditable record that the rewrite did not alter facts, or when fidelity is critical (academic, technical, medical, legal profiles).
+Use when: you need an auditable record that the rewrite did not alter facts, or when fidelity is critical for academic, technical, medical, or legal Document Types.
 
 ### patina-naturalness-reviewer
 

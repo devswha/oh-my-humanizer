@@ -192,9 +192,8 @@ function readJsonl(path) {
 }
 
 /**
- * Rewrite through the SHIPPING CLI path. `--format text` keeps stdout to the
- * rewritten prose; patina still prints a small YAML tone block after a `---`
- * separator, which we strip.
+ * Rewrite through the SHIPPING CLI path. `--format text` emits only rewritten
+ * prose on stdout.
  */
 async function patinaRewrite(text, lang) {
   // NOT --quiet: the persona safety gate reports on stderr, and exit code 4 means
@@ -212,7 +211,7 @@ async function patinaRewrite(text, lang) {
   const usable = res.ok || gateFailed;
   if (!usable) return { text: null, error: res.error || res.stderr.slice(0, 300) || `exit ${res.code}`, gate_failed: null, gate_reason: null };
 
-  const body = String(res.stdout).split(/\n---\n/)[0].trim();
+  const body = String(res.stdout).trim();
   if (!body) return { text: null, error: 'empty rewrite', gate_failed: null, gate_reason: null };
 
   let gateReason = null;

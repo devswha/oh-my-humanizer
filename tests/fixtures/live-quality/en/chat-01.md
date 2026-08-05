@@ -1,7 +1,7 @@
 ---
 fixture_id: en-chat-01
 language: en
-profile: casual-conversation
+documentType: casual-conversation
 register: chat-update
 source_type: synthetic-ai
 model_family: fixture

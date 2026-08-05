@@ -137,12 +137,12 @@ test('yaml deterministic divergence threshold matches scoring constant', () => {
 test('yaml default combined-score weights match the combinedScore fallbacks', () => {
   const aiFallback = extractNumber(
     scoringSource,
-    /profileWeights\?\.\['ai-likeness'\] \?\? ([0-9.]+)/,
+    /documentTypeWeights\?\.\['ai-likeness'\] \?\? ([0-9.]+)/,
     'combinedScore ai-likeness fallback'
   );
   const fidelityFallback = extractNumber(
     scoringSource,
-    /profileWeights\?\.fidelity \?\? ([0-9.]+)/,
+    /documentTypeWeights\?\.fidelity \?\? ([0-9.]+)/,
     'combinedScore fidelity fallback'
   );
   const defaults = defaultConfig.scoring['combined-weights'].default;
@@ -539,7 +539,7 @@ test('score prompt embedding core/scoring.md states precedence under a severity 
   // prompt instead of emitting two contradictory severity scales.
   const baseArgs = {
     patterns: [],
-    profile: null,
+    documentType: null,
     voice: null,
     scoring: { body: scoringDoc },
     text: 'Sample text.',

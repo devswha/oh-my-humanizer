@@ -68,8 +68,8 @@ curl -fsSL https://raw.githubusercontent.com/devswha/patina/main/install.sh | ba
 유용한 스킬 호출:
 
 ```text
-/patina --tone professional
-/patina --tone auto --lang en
+/patina --document-type email --register professional
+/patina --document-type blog --persona pragmatic-founder
 ```
 
 ### 독립형 CLI
@@ -99,17 +99,38 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 | **184개 패턴** | 언어별 재작성 가능 37개 + 스코어 전용 바이럴 훅 9개(KO/EN/ZH/JA 각각 46개) — 전체 184개 패턴 카탈로그는 [PATTERNS.md](docs/PATTERNS.md) 참고 |
 | **모드** | rewrite · verify · audit · score · diff |
 | **사용 채널** | 에이전트 스킬 · Node CLI · 페이지 내 preview · 브라우저 playground (리라이트 + 점수) |
-| **보이스 제어** | `--persona`는 재사용 보이스 · `--tone`은 register override · `--profile`은 Node 패턴 정책(일부 skill/core 경로에는 기존 profile voice guidance가 남아 있음) |
+| **재작성 3축** | `--document-type`은 장르/정책 · `--persona`는 재사용 보이스 · `--register`는 casual/professional 전달 방식 |
 | **무료 사용** | 로그인된 `codex`, `claude`, `gemini` CLI 중 하나로 `PATINA_API_KEY` 없이 재작성 실행 |
 | **캘리브레이션** | GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro 기준 편집 핫스팟 catch 67.3% [63.5–71.0%] (n=600, KO+EN); KO+EN 사람 글 컨트롤에서 오탐 16.0% [11.6–21.7%] (n=200) |
 | **라이선스** | MIT |
 
 점수는 오탐과 미탐이 있는 편집 신호이지 작성자 판정의 근거가 아닙니다. [Ethics](docs/ETHICS.md)를 참고하세요.
 
+## 서로 독립적인 세 축
+
+patina는 한 축에서 다른 축을 추론하지 않습니다. Persona와 Register를 생략하면 원문의 목소리와 레지스터를 보존합니다.
+
+| 축 | 정하는 것 | 정하지 않는 것 | CLI | 설정 | Playground |
+|---|---|---|---|---|---|
+| **Document Type** | 장르·용도·구조 관습·패턴 정책 | 목소리, casual/professional 전달 방식, 의미 보존 하한 | `--document-type` | `document-type` | Document |
+| **Persona** | 재사용 보이스 지문: 어휘·리듬·설명 습관 | 장르, 패턴 정책, Register, 의미 보존 하한 | `--persona` | `persona` | Voice |
+| **Register** | `casual` 또는 `professional` 전달 방식 | 장르, Persona 정체성, 패턴 정책 | `--register` | `register` | Register |
+의미 보존은 세 축 바깥의 공통 하한입니다. 지시가 겹쳐 보이면 소유 필드로
+판단합니다. 문서 구조와 도메인 제약은 Document Type, 고유 어휘와 리듬은 Persona,
+casual/professional 표지는 Register가 정합니다. 명시된 한 축으로 생략된 다른 축을
+추론하지 않습니다.
+
+
+```bash
+patina --document-type email --register professional note.md
+patina --document-type blog --persona pragmatic-founder post.md
+patina --document-type technical --persona technical-explainer --register casual guide.md
+```
+
 ## 자주 쓰는 명령
 
 ```bash
-patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
+patina --lang <ko|en|zh|ja> [mode] [--document-type <name>] [--persona <name>] [--register <name>] input.txt
 ```
 
 | 명령 | 목적 |
@@ -122,10 +143,13 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 | `patina --diff input.txt` | 패턴별 변경 사항 표시 |
 | `patina --preview page.html` | 저장된 HTML 페이지 위에 재작성을 다시 렌더링(토글 + 인라인 diff) |
 | `patina --verify input.txt` | 재작성 후 MPS/충실도 하한을 검사하고 1회 재시도 |
-| `patina --tone auto --lang en input.txt` | KO/EN 톤 축을 추론해 적용 |
+| `patina --document-type email --register professional input.txt` | 이메일 관습과 professional 레지스터 적용 |
 | `patina --persona pragmatic-founder input.txt` | 내장 보이스 페르소나로 재작성 |
 | `patina persona new my-voice --from-sample past.txt` | 글 샘플에서 나만의 페르소나 제작 |
 | `patina persona list` | 내장 + 커스텀 페르소나 목록 |
+| `patina persona show my-voice --json` | persona의 정규화된 voice config 조회 |
+| `patina persona edit my-voice --name "New Name"` | built-in은 custom shadow로 복사해 수정 |
+| `patina persona rm my-voice` | custom persona 삭제(built-in은 보호) |
 | `patina --format json --quiet input.txt` | 스크립트 친화적 출력 |
 | `patina --batch docs/*.md --outdir cleaned/` | 배치 파일 처리 |
 
@@ -141,7 +165,7 @@ patina persona new my-voice --describe "plain-spoken founder, casual"
 patina --persona my-voice draft.md                          # 이후 재사용
 ```
 
-ko/en/zh/ja에서 `--tone`/`--profile`과 조합됩니다. Node에서는 persona가 재사용 보이스를 맡고 register 우선순위는 `--tone` > persona이며, profile은 패턴 정책을 제어합니다. 일부 skill/core-prompt 경로에는 기존 profile voice guidance가 남아 있어 이 구분이 아직 모든 경로의 불변식은 아닙니다. 어떤 제어도 의미 하한을 낮추지 않으며, 제작한 persona는 저장 시 검증되고 재작성은 MPS/충실도 및 숫자 누락 검사를 그대로 강제합니다.
+ko/en/zh/ja에서 `--document-type`/`--register`와 독립적으로 조합됩니다. Persona v2는 재사용 보이스만 바꾸며 문서 유형, 레지스터, 패턴 정책, verification/의미 하한을 정의할 수 없습니다. 제작한 Persona는 저장 시 검증되고, 전역 rewrite guard와 `--verify`가 의미 보존을 독립적으로 담당합니다.
 
 ## CI
 
@@ -189,9 +213,9 @@ Input
 # .patina.default.yaml
 version: "7.0.0"
 language: ko              # ko | en | zh | ja
-profile: default
-output: rewrite           # rewrite | diff | audit | score
-tone:                     # casual | professional | auto  (register override; profile = pattern policy)
+document-type: default    # 장르·용도 + 패턴 정책
+persona:                  # 선택 사항; 생략하면 원문 보이스 보존
+register:                 # casual | professional; 생략하면 원문 레지스터 보존
 ```
 
 프로젝트의 `.patina.yaml`이 기본값을 오버라이드합니다. 패턴 팩은 언어 접두사로 자동 탐색됩니다. 추가형 목록 키(`blocklist`, `allowlist`, `skip-patterns`)는 병합되고, 다른 배열은 대체됩니다.

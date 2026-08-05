@@ -1,7 +1,7 @@
 ---
 fixture_id: en-social-01
 language: en
-profile: social
+documentType: social
 register: social
 source_type: synthetic-ai
 model_family: fixture

@@ -1,20 +1,9 @@
 ---
-schema: patina.persona.v1
+schema: patina.persona.v2
 id: natural-zh
 name: 朴素中文（去除 AI 腔）
 lang: zh
 source: library
-depth: content
-persona_depth_directive:
-  content_scope: emphasis-and-coverage-only
-  mps_advisory: false
-  fidelity_advisory: false
-mps:
-  enforce: true
-  floor: 70
-fidelity:
-  enforce: true
-  floor: 70
 blocks:
   preferred_words:
     active: true
@@ -50,7 +39,6 @@ blocks:
   preferred_metaphors:
     active: true
     allow: []
-    forbid_new_facts: true
     max_new_metaphors_per_500_chars: 0
   explanation_habits:
     active: true
@@ -67,7 +55,6 @@ blocks:
       - 号召口吻堆砌（务必、一定要、赶快）
   sentence_structure:
     active: true
-    register: plain
     sentence_length_cv_target: [0.5, 0.9]
     paragraph_sentence_count_target: [2, 5]
     opener_diversity_min: 0.5

@@ -1,7 +1,7 @@
 ---
 fixture_id: en-email-01
 language: en
-profile: email
+documentType: email
 register: email
 source_type: synthetic-ai
 model_family: fixture

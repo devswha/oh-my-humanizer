@@ -72,7 +72,7 @@ patina is easiest to understand with examples: the claims stay, the AI packaging
 
 > 처음 코드 리뷰를 받던 날이 아직도 가끔 떠오른다. 선배가 남긴 피드백은 한 줄씩 읽을 때마다 이상하게 크게 느껴졌다. 모니터 앞에서 댓글을 하나씩 열어보던 장면이 선명하다. 손은 마우스 위에 있었고, 머릿속은 자꾸 하얘졌다. 지금 생각하면 그날은 대단한 사건이라기보다, 내가 처음으로 내 코드를 남의 눈으로 본 날에 가까웠다.
 
-**Patterns removed**: `마치 거대한 산처럼` (ko-content abstract metaphor), `의미 있는 전환점이었다고 표현할 수 있을 것이다` (ko-structure #25 hedge stack + ko-content inflated significance). Replaced with concrete physical detail (`손은 마우스 위에`, `머릿속은 자꾸 하얘졌다`) — the narrative profile's `concrete-emotions: amplify` setting.
+**Patterns removed**: `마치 거대한 산처럼` (ko-content abstract metaphor), `의미 있는 전환점이었다고 표현할 수 있을 것이다` (ko-structure #25 hedge stack + ko-content inflated significance). Replaced with concrete physical detail (`손은 마우스 위에`, `머릿속은 자꾸 하얘졌다`) — the narrative Document Type's policy.
 
 ## Korean: SNS marketing — viral-hook signals
 
@@ -116,8 +116,8 @@ This page shows the canonical short examples. The repo also ships longer fixture
 
 - **`examples/short/`** — four short Korean fixtures (marketing, tutorial, essay, email) with paired `*-rewritten.md` files.
 - **`examples/genres/`** — three longer Korean genres (technical, academic, narrative) with paired rewrites.
-- **`examples/tones/`** — the same input rewritten in six tones (`casual`, `professional`, `academic`, `narrative`, `marketing`, `instructional`) plus `auto`. See `examples/tones/RESULTS.md` for the side-by-side.
-- **`examples/viral-hook/`** — case studies (`case-01` through `case-09`) covering the iterative improvement workflow: viral-hook detection, codex/claude/gemini comparisons, voice profiles, multi-genre validation.
+- **`examples/rewrite-axes/`** — v7 axis fixtures. `casual`/`professional` demonstrate Register; `academic`/`narrative`/`marketing`/`instructional` demonstrate Document Type. Every rewrite preserves claim strength and avoids invented examples, people, scenes, or results.
+- **`examples/viral-hook/`** — case studies (`case-01` through `case-09`) covering the iterative improvement workflow: viral-hook detection, codex/claude/gemini comparisons, Persona voice, and multi-Document-Type validation.
 - **`examples/sample-rewritten-*.md`** — the same long-form Korean SNS marketing post rewritten by Codex / Claude / Gemini-3, used in `case-03` for cross-model comparison.
 
 ## What patina is checking

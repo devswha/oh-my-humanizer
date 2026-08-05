@@ -1,30 +1,29 @@
 // Boundary validation for untrusted CLI/env input.
 //
-// Profile names come from --profile and from .patina.yaml. Base URLs come from
-// --base-url, PATINA_API_BASE, and provider presets. Both are sent into either
-// fs.readFileSync or fetch() with the API key attached, so they need to be
-// validated before use.
+// Document-type names come from --document-type and .patina.yaml. Base URLs
+// come from --base-url, PATINA_API_BASE, and provider presets. Both reach
+// filesystem or network boundaries and must be validated before use.
 import { inputError } from './errors.js';
 import { isIP } from 'node:net';
 import { lookup } from 'node:dns/promises';
 
-const PROFILE_NAME_RE = /^[A-Za-z0-9_][A-Za-z0-9_-]*$/;
+const DOCUMENT_TYPE_NAME_RE = /^[A-Za-z0-9_][A-Za-z0-9_-]*$/;
 
 /**
- * Validate a profile name before resolving profiles/{name}.md.
+ * Validate a document-type name before resolving document-types/{name}.md.
  *
- * @param {string} name Profile name supplied by CLI or config.
+ * @param {string} name Name supplied by CLI or config.
  * @returns {void}
- * @throws {PatinaCliError} When the name is empty, non-string, or contains unsafe characters.
+ * @throws {PatinaCliError} When the name is empty, non-string, or unsafe.
  * @example
- * validateProfileName('default');
+ * validateDocumentTypeName('technical');
  */
-export function validateProfileName(name) {
-  if (typeof name !== 'string' || !PROFILE_NAME_RE.test(name)) {
+export function validateDocumentTypeName(name) {
+  if (typeof name !== 'string' || !DOCUMENT_TYPE_NAME_RE.test(name)) {
     throw inputError(
-      `Invalid profile name: ${JSON.stringify(name)}`,
-      'Profile names may only contain letters, numbers, underscore, and hyphen, and cannot contain slashes or "..".',
-      'Run `patina --help` to see profile examples.'
+      `Invalid document type name: ${JSON.stringify(name)}`,
+      'Document type names may contain letters, numbers, underscore, and hyphen, but no slashes or "..".',
+      'Run `patina --help` to see document-type examples.'
     );
   }
 }

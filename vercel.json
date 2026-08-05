@@ -8,7 +8,7 @@
   },
   "functions": {
     "api/rewrite.js": {
-      "includeFiles": "{patterns/**,profiles/**,personas/**,core/**,lexicon/**,.patina.default.yaml}"
+      "includeFiles": "{patterns/**,document-types/**,personas/**,core/**,lexicon/**,.patina.default.yaml}"
     },
     "api/pro-monitor.js": {
       "maxDuration": 60

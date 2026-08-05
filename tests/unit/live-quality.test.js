@@ -287,11 +287,8 @@ test('repeat samples each fixture and records the spread', async () => {
 });
 
 test('harness prompt matches the hosted rewrite prompt byte for byte', async () => {
-  // The harness measured a prompt neither shipping surface sent: v6.2 made the
-  // persona the sole voice owner and both src/cli/run.js and src/web-rewrite.js
-  // resolve one, but this harness did not. For ko that dropped the directive
-  // ordering the model to preserve every claim and figure, so every meaning
-  // measurement taken here was biased against the product.
+  // The quality harness and hosted path must share the same Document Type,
+  // optional-Persona, and source-voice-preserving prompt contract.
   const { buildPatinaRewritePrompt } = await import('../../tests/quality/live-quality.mjs');
   const { loadWebAssets, buildWebRewritePrompt } = await import('../../src/web-rewrite.js');
   const { loadWebConfig } = await import('../../src/web-config.js');
@@ -299,11 +296,11 @@ test('harness prompt matches the hosted rewrite prompt byte for byte', async () 
   const text = '오늘날 빠르게 변화하는 환경에서 본 솔루션은 혁신적인 가치를 제공합니다.';
   const harness = await buildPatinaRewritePrompt({ fixture_id: 'parity', language: 'ko', text });
   const config = { ...loadWebConfig(), language: 'ko' };
-  const assets = loadWebAssets({ lang: 'ko', profile: config.profile || 'default', config });
+  const assets = loadWebAssets({ lang: 'ko', documentType: config.documentType || 'default', config });
   const web = buildWebRewritePrompt({ request: { mode: 'first', lang: 'ko', text }, assets, config });
 
   assert.equal(harness, web);
-  assert.match(harness, /페르소나/);
+  assert.doesNotMatch(harness, /페르소나:/);
 });
 
 test('candidate backend env resolves a keyless CLI seat and passes the key gate', async () => {
@@ -520,8 +517,8 @@ async function fakeQualityModel({ prompt }) {
     return JSON.stringify({
       claims_preserved: 3,
       no_fabrication: 3,
-      tone_match: 2,
-      rationale: 'Claims and tone are mostly preserved.',
+      audience_register_match: 2,
+      rationale: 'Claims and voice are mostly preserved.',
     });
   }
   return rewrite;

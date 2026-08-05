@@ -1,7 +1,7 @@
 import { callLLM as defaultCallLLM } from '../src/api.js';
 import { scoreText, scoreMPS, scoreFidelity, combinedScore } from '../src/scoring.js';
 import { buildPrompt } from '../src/prompt-builder.js';
-import { stripSelfAudit } from '../src/output.js';
+import { cleanRewriteOutput } from '../src/output.js';
 import { createLogger } from '../src/logger.js';
 
 /**
@@ -14,7 +14,7 @@ import { createLogger } from '../src/logger.js';
  * @param {number} [options.policy.maxIterations=3] Maximum rewrite iterations.
  * @param {number} [options.policy.plateauThreshold=10] Minimum score improvement to continue.
  * @param {object[]} options.patterns Loaded pattern packs.
- * @param {object|null} options.profile Parsed profile.
+ * @param {object|null} options.documentType Parsed document policy.
  * @param {object|null} options.voice Parsed voice guide.
  * @param {object|null} options.scoring Parsed scoring guide.
  * @param {string} options.text Source text to improve.
@@ -30,13 +30,13 @@ import { createLogger } from '../src/logger.js';
  * @returns {Promise<{finalText: string, finalScore: number, iterations: number, reason: string, log: object[]}>} Final text and iteration log.
  * @throws {Error} When model calls or scoring fail outside handled schema fallbacks.
  * @example
- * const result = await runIterativeRewriteBaseline({ config, patterns, profile, voice, scoring, text });
+ * const result = await runIterativeRewriteBaseline({ config, patterns, documentType, voice, scoring, text });
  */
 export async function runIterativeRewriteBaseline({
   config,
   policy = {},
   patterns,
-  profile,
+  documentType,
   voice,
   scoring,
   text,
@@ -109,7 +109,7 @@ export async function runIterativeRewriteBaseline({
   let previousCombined = combinedScore({
     aiLikeness: initialScore,
     fidelity: 100,
-    profile: config.profile,
+    documentType: config.documentType,
     config,
     deterministicScore: initialScoreResult?.deterministicScore,
   });
@@ -118,7 +118,7 @@ export async function runIterativeRewriteBaseline({
     const prompt = buildPrompt({
       config,
       patterns,
-      profile,
+      documentType,
       voice,
       scoring,
       text: currentText,
@@ -144,7 +144,7 @@ export async function runIterativeRewriteBaseline({
     // Strip them before scoring and before re-feeding: otherwise the AI-likeness
     // score, MPS, and fidelity all see the self-audit meta-commentary, and the next
     // iteration humanizes text with nested tags.
-    const humanized = stripSelfAudit(rawOutput, { logger });
+    const humanized = cleanRewriteOutput(rawOutput, { logger });
 
     const scoreResult = await scoreText({
       text: humanized,
@@ -213,7 +213,7 @@ export async function runIterativeRewriteBaseline({
     const combined = combinedScore({
       aiLikeness: currentScore,
       fidelity,
-      profile: config.profile,
+      documentType: config.documentType,
       config,
       deterministicScore: scoreResult?.deterministicScore,
     });

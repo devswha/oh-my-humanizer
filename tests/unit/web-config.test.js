@@ -7,13 +7,16 @@ import yaml from 'js-yaml';
 import { loadWebConfig, resolveBundleRoot } from '../../src/web-config.js';
 
 function readBaseline(root = resolveBundleRoot()) {
-  return yaml.load(readFileSync(resolve(root, '.patina.default.yaml'), 'utf8'));
+  const baseline = yaml.load(readFileSync(resolve(root, '.patina.default.yaml'), 'utf8'));
+  baseline.documentType = baseline['document-type'] || 'default';
+  delete baseline['document-type'];
+  return baseline;
 }
 
 test('loadWebConfig returns the baseline config mapping', () => {
   const config = loadWebConfig();
   assert.equal(config.language, 'ko');
-  assert.equal(config.profile, 'default');
+  assert.equal(config.documentType, 'default');
   assert.ok(config.lexicon && typeof config.lexicon === 'object');
   assert.deepEqual(config, readBaseline());
 });
@@ -24,11 +27,11 @@ test('loadWebConfig ignores ambient project .patina.yaml overrides', () => {
   const previous = existsSync(ambientPath) ? readFileSync(ambientPath, 'utf8') : null;
 
   try {
-    writeFileSync(ambientPath, 'language: en\nprofile: poisoned\nlexicon:\n  enabled: false\n', 'utf8');
+    writeFileSync(ambientPath, 'language: en\ndocument-type: poisoned\nlexicon:\n  enabled: false\n', 'utf8');
     const config = loadWebConfig({ repoRoot: root });
     assert.deepEqual(config, readBaseline(root));
     assert.equal(config.language, 'ko');
-    assert.equal(config.profile, 'default');
+    assert.equal(config.documentType, 'default');
     assert.equal(config.lexicon.enabled, true);
   } finally {
     if (previous === null) rmSync(ambientPath, { force: true });

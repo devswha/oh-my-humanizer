@@ -69,19 +69,19 @@ console.log(result.interpretation); // mostly human
 
 const personaCliReference = `## Persona CLI commands
 
-Personas are the reusable voice-composition unit. The YAML frontmatter is the
-deterministic single source of truth; the Markdown body is docs-only and is
-never sent to the model. Custom personas live in \`custom/personas/<lang>/\` and
-shadow same-id built-ins under \`personas/<lang>/\`. Every write and edit passes
-the persona safety gate (\`validatePersona\`), which clamps the MPS/fidelity
-floors to their core minimum and rejects gate-weakening keys.
+Personas are optional, reusable voice fingerprints. Omitting \`--persona\`
+preserves the source voice. Persona v2 frontmatter is the deterministic single
+source of truth; the Markdown body is docs-only and is never sent to the model.
+Custom personas live in \`custom/personas/<lang>/\` and shadow same-id built-ins
+under \`personas/<lang>/\`. Validation rejects document policy, register,
+verification, and meaning-preservation fields: those belong to separate axes.
 
 | Command | Description |
 | --- | --- |
-| \`patina persona new <id>\` | Author a custom persona (\`--from-sample <file>\`, \`--describe "<text>"\`, \`--template\`, or an interactive wizard). |
-| \`patina persona list\` | List built-in and custom personas (\`--lang\`, \`--format json\`). |
-| \`patina persona show <id>\` | Print a persona's normalized config — id, name, lang, depth, MPS/fidelity floors, active blocks, \`target_features\` keys, resolved path, and source. \`--json\` emits the normalized object. The docs-only body is never printed. |
-| \`patina persona rm <id>\` | Remove a custom persona. Built-in library seeds and the \`preserve\` default are protected. Requires \`--force\` or an interactive y/N confirm; only files under \`custom/personas/<lang>/\` are ever deleted. |
+| \`patina persona new <id>\` | Author a custom Persona (\`--from-sample <file>\`, \`--describe "<text>"\`, \`--template\`, or an interactive wizard). |
+| \`patina persona list\` | List built-in and custom Personas (\`--lang\`, \`--format json\`). |
+| \`patina persona show <id>\` | Print a Persona's normalized voice config: id, name, language, active blocks, \`target_features\` keys, resolved path, and source. \`--json\` emits the normalized object. The docs-only body is never printed. |
+| \`patina persona rm <id>\` | Remove a custom Persona. Built-in library Personas are protected. Requires \`--force\` or an interactive y/N confirm; only files under \`custom/personas/<lang>/\` are ever deleted. |
 | \`patina persona edit <id>\` | Copy-on-edit into \`custom/personas/<lang>/\`. Editing a built-in copies it into custom (a shadow), preserving the library. Re-derive the voice with \`--from-sample <file>\` / \`--describe "<text>"\`, or keep it and rename with \`--name "<new name>"\`. |
 
 Common options: \`--lang <ko|en|zh|ja>\` (default \`ko\`), and \`--backend <name>\` for

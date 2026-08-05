@@ -1,20 +1,9 @@
 ---
-schema: patina.persona.v1
+schema: patina.persona.v2
 id: blog-essay
 name: 個人ブログのエッセイ（日本語）
 lang: ja
 source: library
-depth: content
-persona_depth_directive:
-  content_scope: emphasis-and-coverage-only
-  mps_advisory: false
-  fidelity_advisory: false
-mps:
-  enforce: true
-  floor: 70
-fidelity:
-  enforce: true
-  floor: 70
 blocks:
   preferred_words:
     active: true
@@ -44,7 +33,6 @@ blocks:
       - 温度
       - 手ざわり
       - 足あと
-    forbid_new_facts: true
     max_new_metaphors_per_500_chars: 1
   explanation_habits:
     active: true
@@ -58,7 +46,6 @@ blocks:
       - 根拠のない一般化
   sentence_structure:
     active: true
-    register: mixed
     sentence_length_cv_target: [0.55, 0.95]
     paragraph_sentence_count_target: [2, 5]
     opener_diversity_min: 0.6
