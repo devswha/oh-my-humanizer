@@ -194,7 +194,7 @@ per-attempt usage, so schema-retry doubling and hidden reasoning tokens are
 visible instead of silently distorting judge cost comparisons.
 
 The fixture set lives in `tests/fixtures/live-quality/{en,ko}/*.md` with YAML
-frontmatter (`fixture_id`, `language`, optional `profile`, `anchors`,
+frontmatter (`fixture_id`, `language`, optional `documentType`, `anchors`,
 `expected_focus`) plus the body text. The legacy
 `tests/quality/live-fixtures.jsonl` remains loadable via `--fixtures`.
 

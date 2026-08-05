@@ -81,7 +81,7 @@ describe('CLI End-to-End with Mock API', () => {
 
     await main([
       '--lang', 'en',
-      '--profile', 'default',
+      '--document-type', 'default',
       '--api-key-file', mockApiKeyPath,
       '--base-url', `http://127.0.0.1:${mock.port}`,
       '--model', 'gpt-5',
@@ -712,8 +712,8 @@ describe('CLI End-to-End with Mock API', () => {
     const help = logs.join('\n');
 
     assert.ok(help.includes('MODES'), 'help should group modes');
-    assert.ok(help.includes('OUTPUT & BATCH'), 'help should group output options');
-    assert.ok(help.includes('LANGUAGE & PROFILE'), 'help should group language options');
+    assert.ok(help.includes('--document-type'), 'Help should document --document-type');
+    assert.ok(help.includes('DOCUMENT & VOICE'), 'help should group document and voice options');
     assert.ok(help.includes('MODEL & AUTH'), 'help should group backend options');
     assert.ok(help.includes('ADVANCED'), 'help should group advanced options');
     assert.ok(help.includes('EXAMPLES'), 'help should include examples');
@@ -761,7 +761,7 @@ describe('CLI End-to-End with Mock API', () => {
       exitCode: 0,
     });
     assert.strictEqual(parsed.categories[0].name, 'style');
-    assert.ok(parsed.tone);
+    assert.strictEqual(parsed.register, null);
     await mock.stop();
     mock = await startMockServer('This is the humanized result.');
   });
@@ -876,10 +876,10 @@ describe('CLI End-to-End with Mock API', () => {
     assert.strictEqual(mock.callCount, 1, 'Should make exactly one API call');
     assert.deepStrictEqual(errors, []);
     assert.match(logs.join('\n'), /This is the humanized result\./);
-    assert.doesNotMatch(logs.join('\n'), /tone_source:/);
+    assert.doesNotMatch(logs.join('\n'), /register_source:/);
   });
 
-  it('should keep --format text to the rewritten body without tone metadata', async () => {
+  it('should keep --format text to the rewritten body without register metadata', async () => {
     mock.callCount = 0;
     mock.lastRequestBody = null;
 

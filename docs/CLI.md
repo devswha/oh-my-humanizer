@@ -25,7 +25,9 @@ patina --lang en --score --exit-on 30 draft.md
 
 ## Output formats
 
-`--format markdown` is the default and preserves the existing human-readable output. `--format text` emits the same user-facing content without the YAML tone footer. `--format json` wraps every mode in a stable envelope:
+`--format markdown` is the default human-readable output. `--format text` emits
+the same user-facing content without metadata. `--format json` wraps every mode
+in a stable envelope:
 
 ```json
 {
@@ -33,9 +35,10 @@ patina --lang en --score --exit-on 30 draft.md
   "format": "json",
   "overall": 23,
   "categories": [],
-  "tone": { "tone": null, "tone_source": "profile_only" },
+  "register": null,
   "mps": null,
   "gateResult": { "threshold": 30, "overall": 23, "passed": true, "exitCode": 0 },
+  "persona": null,
   "output": "raw model output after patina cleanup"
 }
 ```
@@ -58,67 +61,102 @@ patina --verify --lang ko --backend codex-cli draft.md
 
 - It is a rewrite modifier, not a separate mode: combining it with `--score`, `--audit`, `--diff`, or `--preview` is an input error (those do not rewrite).
 - The MPS/fidelity scorers run through the **selected backend**, so `--verify` works with HTTP and local CLI backends alike. It adds up to four extra model calls (two scorers, plus a retry that re-scores), so the plain rewrite stays the fast/cheap default.
-The Node CLI keeps `scoring` and `verification` separate; `--verify` uses
-`verification.{mps-floor,fidelity-floor}`, while persona thresholds remain in
-persona definitions.
+The Node CLI keeps Persona quality and verification separate. `--verify` uses
+`verification.{mps-floor,fidelity-floor}`; `personas.thresholds` contains only
+advisory voice-match and surface-churn thresholds.
 
 ### Deterministic meaning guard (always on, no LLM)
 
 Every rewrite (with or without `--verify`) runs a cheap deterministic guard that warns on stderr when numbers present in the source go missing from the rewrite. It never blocks output and makes no model calls (length is intentionally not checked — a humanizer legitimately changes length).
 
-## Korean persona rewrite: `--persona`
+## Three independent rewrite axes
 
-`--persona <name>` selects a validated Korean persona from `personas/ko` (or a same-id custom persona) for the rewrite harness. With no explicit persona, Korean rewrite mode uses the conservative `preserve` persona: style-only, minimal change, and MPS/fidelity hard floors still enforced.
+These options compose but never imply one another:
 
-v1 KO seed library (`personas/ko`): `preserve` (default), `blog-essay`, `pragmatic-founder`, `technical-explainer`, `soft-professional`, and `natural-ko` — a cleanup persona that strips AI-tell register (wellness-translationese, flattery, hype vocabulary) into plain Korean while preserving claims.
+| Axis | Input | Runtime asset | Omission |
+|---|---|---|---|
+| Document Type | `--document-type <name>` / `document-type:` | `document-types/<name>.md` or `custom/document-types/<name>.md` | `default` document policy |
+| Persona | `--persona <name>` / `persona:` | `personas/<lang>/<name>.md` or a custom Persona | preserve source voice |
+| Register | `--register casual|professional` / `register:` | delivery directive | preserve source register |
+
+Document Type controls purpose, audience, structure, style, avoidance rules, and
+`pattern-overrides`; Persona controls reusable voice; Register controls only
+casual/professional delivery. None may change claims, numbers, polarity,
+causation, or verification floors. The removed v6 inputs `--profile`, `--tone`,
+and `--formality` are rejected rather than aliased.
+Meaning and safety remain above all three axes. Apparent conflicts resolve by
+field ownership rather than by letting one axis override another wholesale:
+Document Type owns structure and domain constraints, Persona owns idiolect and
+rhythm, and Register owns casual/professional markers. Explicit axes do not
+populate omitted axes.
+
+
+## Optional voice Persona: `--persona`
+
+`--persona <name>` selects a validated Persona v2 voice fingerprint from
+`personas/<lang>/` or a same-id custom Persona. Omitting the option preserves
+the source voice in every language.
+
+Built-in libraries:
+
+- ko: `blog-essay`, `natural-ko`, `pragmatic-founder`, `soft-professional`,
+  `technical-explainer`
+- en: `blog-essay`, `natural-en`, `technical-explainer`
+- zh: `blog-essay`, `natural-zh`
+- ja: `blog-essay`, `natural-ja`
 
 ```bash
-patina --persona preserve draft.md
 patina --lang ko --persona pragmatic-founder draft.md
+patina --lang en --persona natural-en draft.md
 ```
 
 Contract:
 
-| Combination | v1 behavior | Reason |
-|---|---|---|
-| `patina file` | allowed; equivalent to `persona=preserve` in Korean rewrite | safe default |
-| `--persona p file` | allowed | core v1 surface |
-| `--lang ko --persona p` | allowed | KO library only |
-| `--lang en|zh|ja --persona p` | input error | no non-KO persona library |
-| `--score/--audit/--diff --persona p` | input error | persona v1 is rewrite-only |
-| `--preview --persona p` | input error | preview migration is later |
-| `--persona p --jargon x,y`, `--tone a,b` | input error | comma-list variants are preview-only |
-| `--persona p --tone casual` | allowed as compatibility hint | persona remains outer contract |
-| `--persona p --profile blog` | allowed as compatibility hint | legacy profile remains non-authoritative |
-| `--persona p --jargon explain|remove` | input error | terminology rewrite is not gated in v1 |
+| Combination | v2 behavior |
+|---|---|
+| `patina file` | no Persona; preserve source voice |
+| `--persona p file` | apply only Persona `p`'s voice blocks |
+| `--lang ko|en|zh|ja --persona p` | use that language's Persona library |
+| `--score/--audit/--diff --persona p` | input error; Persona is rewrite-only |
+| `--preview --persona p` | allowed |
+| `--persona p --register casual|professional` | allowed; independent axes |
+| `--persona p --document-type blog` | allowed; independent axes |
+| `--persona p --jargon explain|remove` | allowed in rewrite/preview |
 
-Persona files are frontmatter-only at runtime. Markdown bodies are documentation and never enter prompts. The `worldview` block is reserved but inactive in v1. Even `depth: content` personas may adjust emphasis and coverage only; they cannot invent claims or make MPS/fidelity advisory.
+Persona v2 files are frontmatter-only at runtime. Markdown bodies are
+documentation and never enter prompts. Persona fields may define vocabulary,
+metaphor preferences, explanation habits, sentence structure, and measurable
+voice targets. They may not define Document Type, Register, pattern policy,
+verification, MPS/fidelity floors, or rewrite depth.
 
-For `--format json`, rewrite output includes a `persona` field when a persona gate ran:
+For `--format json`, rewrite output includes advisory voice-quality metadata
+only when a Persona is active:
 
 ```json
 {
   "persona": {
-    "id": "preserve",
-    "depth": "style-only",
+    "id": "natural-en",
     "thresholds_source": "placeholder",
     "match": 82.4,
-    "mps": 91,
-    "fidelity": 88,
     "over_edit_churn": 0.18,
-    "gate_result": { "pass": true, "hardFailures": [] }
+    "gate_result": {
+      "pass": true,
+      "hardFailures": [],
+      "safetyFailures": [],
+      "advisory": []
+    }
   }
 }
 ```
 
 ## Transformations beyond cleanup: `--jargon`
 
-By default patina is a conservative humanizer: it removes AI tells without changing a sentence's claim or framing. `--jargon` is an explicit opt-in for adjusting terminology for a different audience. It applies to the default rewrite and `--preview` only; combining it with `--score`, `--audit`, or `--diff` is an input error (those modes do not rewrite). A full voice/register change is `--persona` / `--tone`, not a rewrite depth.
+By default patina is a conservative humanizer: it removes AI tells without changing a sentence's claim or framing. `--jargon` is an explicit opt-in for adjusting terminology for a different audience. It applies to the default rewrite and `--preview` only; combining it with `--score`, `--audit`, or `--diff` is an input error (those modes do not rewrite). A voice or delivery override uses `--persona` or `--register`; neither changes rewrite depth.
 
 ```bash
 patina --jargon remove draft.md                        # de-jargonized rewrite
 patina --preview --jargon remove https://example.com/  # de-jargonized in-place preview
-patina --jargon explain --tone casual draft.md         # gloss terms, casual register
+patina --jargon explain --register casual draft.md     # gloss terms, casual register
 ```
 
 - `--jargon keep` (default) — technical terms untouched.
@@ -127,17 +165,19 @@ patina --jargon explain --tone casual draft.md         # gloss terms, casual reg
 
 ### Variant comparison in the preview
 
-With `--preview`, `--jargon` **and `--tone`** accept comma-separated lists; every combination becomes a **variant** — one rewrite call each, capped at 4 — and the preview bar gains a second toggle group to switch between them in place:
+With `--preview`, `--jargon` and `--register` accept comma-separated lists;
+every combination becomes a variant — one rewrite call each, capped at 4 — and
+the preview bar gains a second toggle group:
 
 ```bash
-patina --preview --jargon keep,remove <url>                  # cleanup / de-jargoned side by side
-patina --preview --jargon remove --tone casual,professional <url>  # same policy, two voices
-patina --preview --tone casual,professional <url>           # register comparison
+patina --preview --jargon keep,remove <url>
+patina --preview --jargon remove --register casual,professional <url>
+patina --preview --register casual,professional <url>
 ```
 
-- The bar groups variants two-level: one primary button per jargon policy (cleanup/explain/remove) and, when a policy carries multiple options (tone), a secondary chip row that appears only while that policy is selected — click **remove**, then pick **casual** or **professional**. Each policy remembers its own option selection. The switch is CSS-only (chained radio groups), so the snapshot stays scriptless and the page CSP keeps `script-src 'none'`.
+- The bar groups variants by jargon policy, with a secondary Register chip row when needed.
 - The score chip shows each variant's deterministic score (`score 23 → cleanup 5 · remove 8`).
-- A comma-listed `--tone` joins the cross product: each variant resolves its own register (genre profile is fixed by `--profile`), exactly as a single run with that `--tone` would. Labels carry the tone when it varies (`remove·casual`).
+- A comma-listed `--register` joins the cross product. Document Type and Persona stay fixed.
 - A block counts as changed when **any** variant changes it; a variant that left a block alone shows the original text under that button.
 - stdout carries the first variant's prose (pipe-safe); the explanation call is skipped in compare mode to keep the call budget at one per variant.
 - Compare mode needs a page snapshot (URL or `.html`) and is incompatible with `--ocr`; comma lists without `--preview` are an input error.
@@ -146,7 +186,7 @@ patina --preview --tone casual,professional <url>           # register compariso
 
 The view toggle has four states: **rewritten** (default), **original**, **both**, and **diff**. The diff view renders each changed block as one merged stream — common words plain, removed words struck red, added words highlighted green — so the exact edit is visible instead of a whole-sentence strikethrough. It is computed deterministically when the page is built (LCS over whitespace tokens, matrix-capped with a whole-text del/ins fallback for huge blocks) and works per variant in compare mode.
 
-In every depth, facts, numbers, names, and causal claims must never be invented, dropped, or reversed — the directive relaxes style and structure, not truth.
+Facts, numbers, names, and causal claims must never be invented, dropped, or reversed. Transform options change terminology or delivery, not truth.
 
 ## Stderr logs
 
@@ -176,7 +216,7 @@ URL contract:
 Document context:
 - Rewrites run under a **document brief**: the prompt instructs the model to first identify what the document is, who is speaking to whom, the dominant register, and the recurring domain terms — and to keep that frame for every edit. All rewritten sentences are unified to the document's dominant register (register mixing is itself an AI tell).
 - For Korean text the dominant register is **measured deterministically** (sentence-ending distribution: 합쇼체/해요체/-다체) and injected into the prompt as ground truth; the "patina notes" panel shows the measurement in a *document context* card.
-- `--tone <casual|professional|auto>` works with `--preview` and overrides the target register; the register-unification rule still applies. (academic/marketing/narrative/instructional are genres — use `--profile`.)
+- `--register <casual|professional>` works with `--preview` and overrides delivery; omission preserves the source register. Genre values such as `academic`, `marketing`, and `narrative` belong to `--document-type`.
 
 File contract (local `.html`):
 - A local `.html`/`.htm` file goes through the same snapshot pipeline as a fetched URL: prose blocks are extracted, rewritten, and swapped back in place. Markdown/text drafts are not accepted as preview input.
@@ -299,4 +339,4 @@ What it does, in order: detect and normalize the file's `target-language` (`ko-K
 - **`--max-segments <n>`** overrides the default cap of 50 unique segments per file (the cap is enforced after dedup, before any LLM call; over the cap fails closed in execution mode and is flagged in `--dry-run`).
 - **Cross-file dedup (`--batch`).** Deduplication also spans the whole batch: a segment repeated across files (same target-language + text) is humanized once and the verified result is reused for every other file — no extra LLM calls. Reuse is scoped by target-language (identical text in a `ko` file and a `ja` file is humanized separately), errors are never cached (the next file retries), and `--dry-run` reports the cross-file reuse count.
 
-`--xliff` accepts backend/model/provider/base-url/auth/timeout/concurrency/retry/failure-budget flags and `--suffix`/`--outdir`/`--in-place`/`--batch`/`--format`. It rejects rewrite-shaping and other-mode flags (`--audit`/`--score`/`--diff`/`--preview`/`--ocr`/`--serve`/`--exit-on`/`--persona`/`--jargon`/`--tone`/`--profile`/`--rewrite-headings`/`--verify`) with a clear input error. `--dry-run` and `--max-segments` are valid only with `--xliff`.
+`--xliff` accepts backend/model/provider/base-url/auth/timeout/concurrency/retry/failure-budget flags and `--suffix`/`--outdir`/`--in-place`/`--batch`/`--format`. It rejects rewrite-shaping and other-mode flags (`--audit`/`--score`/`--diff`/`--preview`/`--ocr`/`--serve`/`--exit-on`/`--persona`/`--jargon`/`--register`/`--document-type`/`--rewrite-headings`/`--verify`) with a clear input error. `--dry-run` and `--max-segments` are valid only with `--xliff`.

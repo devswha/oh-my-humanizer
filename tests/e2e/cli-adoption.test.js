@@ -7,7 +7,7 @@ import { dirname } from 'node:path';
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 
-import { main, resolveProfileForLanguage } from '../../src/cli.js';
+import { main, resolveDocumentTypeForLanguage } from '../../src/cli.js';
 import { startMockServer } from './helpers/mock-server.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -282,14 +282,14 @@ describe('CLI adoption commands', () => {
     assert.doesNotMatch(result.stderr, /empty input/);
   });
 
-  it('falls back from the ko-only NamuWiki profile outside Korean', () => {
+  it('falls back from the ko-only NamuWiki Document Type outside Korean', () => {
     const warnings = [];
-    const resolved = resolveProfileForLanguage('namuwiki', 'en', {
+    const resolved = resolveDocumentTypeForLanguage('namuwiki', 'en', {
       warn: (event, payload) => warnings.push({ event, payload }),
     });
     assert.strictEqual(resolved, 'default');
-    assert.strictEqual(warnings[0]?.event, 'profile.unsupported_language');
-    assert.match(warnings[0]?.payload?.message, /profile "namuwiki" is ko-only/);
+    assert.strictEqual(warnings[0]?.event, 'document_type.unsupported_language');
+    assert.match(warnings[0]?.payload?.message, /document type "namuwiki" is ko-only/);
   });
 });
 
@@ -319,7 +319,7 @@ describe('CLI adoption exit/error behavior', () => {
 
   it('value-taking usage errors use the standardized input exit code', () => {
     const cases = [
-      { args: ['--tone'], message: /--tone requires a value/ },
+      { args: ['--document-type'], message: /--document-type requires a value/ },
       { args: ['--exit-on', 'nope'], message: /--exit-on expects a number/ },
       { args: ['--api-key-file'], message: /--api-key-file requires a value/ },
     ];

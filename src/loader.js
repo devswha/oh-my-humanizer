@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 import yaml from 'js-yaml';
-import { validateProfileName } from './security.js';
+import { validateDocumentTypeName } from './security.js';
 import { inputError, runtimeError } from './errors.js';
 
 /**
@@ -85,51 +85,117 @@ export function loadPatterns(repoRoot, lang, skipPatterns = []) {
 }
 
 /**
- * Load a named profile from profiles/{profileName}.md after path validation.
+ * Load a named document type. A custom policy at
+ * custom/document-types/{name}.md shadows the built-in document-types/{name}.md.
+ *
+ * The Markdown body is explanatory documentation only. Runtime policy comes
+ * from validated structured frontmatter.
  *
  * @param {string} repoRoot Repository root path.
- * @param {string} profileName Profile file stem.
- * @returns {{frontmatter: object|null, body: string}} Parsed profile document.
- * @throws {Error} When the profile name is invalid or the file cannot be read.
+ * @param {string} documentTypeName Document-type file stem.
+ * @returns {{frontmatter: object, body: string}} Parsed and validated policy document.
+ * @throws {Error} When the name is invalid or the file cannot be read.
  * @example
- * const profile = loadProfile(getRepoRoot(), 'default');
+ * const documentType = loadDocumentType(getRepoRoot(), 'technical');
  */
-export function loadProfile(repoRoot, profileName) {
-  validateProfileName(profileName);
-  const profilesDir = resolve(repoRoot, 'profiles');
-  const profilePath = resolve(profilesDir, `${profileName}.md`);
-  if (!profilePath.startsWith(profilesDir + sep)) {
-    // Defense-in-depth after validateProfileName; an escape here is an internal
-    // invariant breach, not user input — keep it a typed runtime error (#449).
-    throw runtimeError(
-      'profile path escaped the profiles directory',
-      `${profilePath} is outside ${profilesDir}.`,
-      'This is an internal guard; report it if you see it with a normal --profile value.'
+export function loadDocumentType(repoRoot, documentTypeName) {
+  validateDocumentTypeName(documentTypeName);
+  const builtInDir = resolve(repoRoot, 'document-types');
+  const customDir = resolve(repoRoot, 'custom', 'document-types');
+  const builtInPath = resolve(builtInDir, `${documentTypeName}.md`);
+  const customPath = resolve(customDir, `${documentTypeName}.md`);
+  for (const [dir, path] of [[builtInDir, builtInPath], [customDir, customPath]]) {
+    if (!path.startsWith(dir + sep)) {
+      throw runtimeError(
+        'document type path escaped its policy directory',
+        `${path} is outside ${dir}.`,
+        'This is an internal guard; report it if you see it with a normal --document-type value.'
+      );
+    }
+  }
+  const path = existsSync(customPath) ? customPath : builtInPath;
+  const documentType = splitFrontmatter(loadFile(path));
+  validateDocumentTypePolicy(documentType, documentTypeName);
+  return documentType;
+}
+
+function validateDocumentTypePolicy(documentType, expectedName) {
+  const policy = documentType?.frontmatter;
+  if (!policy || typeof policy !== 'object' || Array.isArray(policy)) {
+    throw invalidDocumentTypePolicy(expectedName, 'frontmatter must be a YAML mapping');
+  }
+  if (policy['document-type'] !== expectedName) {
+    throw invalidDocumentTypePolicy(
+      expectedName,
+      `document-type must equal the filename stem "${expectedName}"`
     );
   }
-  const content = loadFile(profilePath);
-  return splitFrontmatter(content);
+  for (const key of ['persona', 'register', 'profile', 'tone', 'formality', 'verification', 'mps', 'fidelity']) {
+    if (Object.prototype.hasOwnProperty.call(policy, key)) {
+      throw invalidDocumentTypePolicy(
+        expectedName,
+        `${key} belongs to another rewrite axis or the global verification layer`
+      );
+    }
+  }
+  for (const field of ['name', 'version', 'scope', 'purpose']) {
+    if (typeof policy[field] !== 'string' || policy[field].trim() === '') {
+      throw invalidDocumentTypePolicy(expectedName, `${field} must be a non-empty string`);
+    }
+  }
+  for (const field of ['audience', 'structure', 'style', 'avoid']) {
+    const values = policy[field];
+    if (!Array.isArray(values) || values.length === 0 || values.some((value) => typeof value !== 'string' || value.trim() === '')) {
+      throw invalidDocumentTypePolicy(expectedName, `${field} must be a non-empty list of strings`);
+    }
+  }
+  const overrides = policy['pattern-overrides'];
+  if (overrides === undefined) return;
+  if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) {
+    throw invalidDocumentTypePolicy(expectedName, 'pattern-overrides must be a language-scoped mapping');
+  }
+  const languages = new Set(['ko', 'en', 'zh', 'ja']);
+  const actions = new Set(['suppress', 'reduce', 'amplify']);
+  for (const [lang, entries] of Object.entries(overrides)) {
+    if (!languages.has(lang) || !entries || typeof entries !== 'object' || Array.isArray(entries)) {
+      throw invalidDocumentTypePolicy(
+        expectedName,
+        'pattern-overrides keys must be ko, en, zh, or ja mappings'
+      );
+    }
+    for (const action of Object.values(entries)) {
+      if (!actions.has(action)) {
+        throw invalidDocumentTypePolicy(
+          expectedName,
+          'pattern override actions must be suppress, reduce, or amplify'
+        );
+      }
+    }
+  }
+}
+
+function invalidDocumentTypePolicy(name, detail) {
+  return inputError(
+    `invalid document type policy "${name}"`,
+    `${detail}.`,
+    'Define document-type, name, version, scope, purpose, audience, structure, style, avoid, and language-scoped pattern-overrides.'
+  );
 }
 
 /**
- * Strip the individual pattern sections a profile marks `suppress` from loaded
- * pattern packs, so the rewrite/audit/score prompt never carries those rules.
+ * Apply a document type's deterministic pattern policy.
  *
- * `pattern-overrides` in a profile's frontmatter is keyed by language then
- * numeric pattern id, with action `suppress` or `reduce`. v1 honors `suppress`
- * deterministically (the LLM cannot flag a rule it was never given); `reduce`
- * has no weight knob yet and is intentionally left in place. Packs without a
- * matching override are returned unchanged (same object identity).
+ * `suppress` removes the pattern definition before any prompt is built.
+ * `reduce` and `amplify` remain in the structured policy passed to the model;
+ * the deterministic layer does not invent unsupported numeric weights.
  *
- * @param {Array<{body: string}>} packs Loaded pattern packs from loadPatterns.
- * @param {{frontmatter: object|null}|null} profile Loaded profile (loadProfile).
+ * @param {Array<{body: string}>} packs Loaded pattern packs.
+ * @param {{frontmatter: object|null}|null} documentType Loaded document type.
  * @param {string} lang Active language code.
  * @returns {Array<{body: string}>} Packs with suppressed sections removed.
- * @example
- * const packs = applyProfilePatternOverrides(loadPatterns(root, 'ko'), loadProfile(root, 'legal'), 'ko');
  */
-export function applyProfilePatternOverrides(packs, profile, lang) {
-  const overrides = profile?.frontmatter?.['pattern-overrides']?.[lang];
+export function applyDocumentTypePatternPolicy(packs, documentType, lang) {
+  const overrides = documentType?.frontmatter?.['pattern-overrides']?.[lang];
   if (!overrides || typeof overrides !== 'object') return packs;
   const suppressIds = Object.entries(overrides)
     .filter(([, action]) => action === 'suppress')

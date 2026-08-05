@@ -1,7 +1,7 @@
 ---
 fixture_id: ko-public-docs-01
 language: ko
-profile: default
+documentType: default
 register: public-docs
 source_type: synthetic-ai
 model_family: fixture

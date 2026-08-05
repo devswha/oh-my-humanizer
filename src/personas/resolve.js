@@ -2,26 +2,20 @@
 // Single source of truth for "which persona (if any) is active for a rewrite".
 // Shared by the CLI run path (src/cli/run.js) and the web/hosted rewrite path
 // (src/web-rewrite.js) so both surfaces resolve voice ownership identically —
-// the two must not drift (a web-only copy is exactly how the ko voice-parity
-// regression happened after the v6.2 profile-voice retirement).
+// the two must not drift.
 import { loadPersona } from './loader.js';
 import { inputError } from '../errors.js';
 
-// Languages with a persona library (personas/{lang}/). Multilingual as of the
-// persona multilang line; each ships at least a `preserve` default.
+// Languages with a bundled persona library (personas/{lang}/).
 export const PERSONA_LANGS = new Set(['ko', 'en', 'zh', 'ja']);
 
 /**
  * Resolve the active persona for a rewrite invocation, or null when none applies.
  *
  * Policy (identical for CLI and web):
- * - persona only applies when the effective mode is `rewrite`, preview is off,
- *   and the language has a persona library;
- * - `ko` keeps its implicit-preserve default (a plain rewrite resolves preserve);
- * - `en`/`zh`/`ja` are opt-in: a plain rewrite stays persona-free unless a
- *   persona is explicitly requested via `parsed.persona` or a non-default
- *   `config.persona`.
- *
+ * - personas apply only to rewrite surfaces and supported languages;
+ * - every language is opt-in through `--persona`, web request, or config;
+ * - omitting persona preserves the source voice.
  * @param {object} [options]
  * @param {object} [options.parsed] Parsed CLI args (web passes `{}`).
  * @param {object} [options.config] Effective config (may carry `persona`).
@@ -29,26 +23,20 @@ export const PERSONA_LANGS = new Set(['ko', 'en', 'zh', 'ja']);
  * @param {string} [options.lang] Rewrite language.
  * @param {string} [options.repoRoot] Bundle/repo root for persona lookup.
  * @returns {object|null} Normalized persona object, or null when none applies.
- * @throws {import('../errors.js').PatinaCliError} When a persona is explicitly
- *   requested for a surface that does not support it.
+ * @throws {import('../errors.js').PatinaCliError} When a persona is requested
+ *   for a non-rewrite or unsupported-language surface.
  */
 export function resolvePersonaForRun({ parsed = {}, config = {}, mode = 'rewrite', lang = 'ko', repoRoot = process.cwd() } = {}) {
-  const defaultPreserve = parsed.persona === undefined && config.persona === 'preserve';
-  const explicitPersona = parsed.persona !== undefined || (config.persona !== undefined && !defaultPreserve);
   const personaId = parsed.persona ?? config.persona ?? null;
-  const effective = mode === 'rewrite' && !parsed.preview && PERSONA_LANGS.has(lang);
-  if (explicitPersona && !effective) {
+  const explicitPersona = typeof personaId === 'string' && personaId.length > 0;
+  const supported = mode === 'rewrite' && PERSONA_LANGS.has(lang);
+  if (explicitPersona && !supported) {
     throw inputError(
       'persona is only supported for rewrite mode',
-      'A persona runs only when the effective mode is rewrite, preview is off, and the language is one of ko, en, zh, ja.',
-      'Use `patina --persona <name> <file>` on a rewrite (drop --score/--audit/--diff/--preview), or remove the persona setting.'
+      'A persona runs only for rewrite/preview in ko, en, zh, or ja.',
+      'Use `patina --persona <name> <file>` on a rewrite, or remove the persona setting.'
     );
   }
-  if (!effective) return null;
-  // Back-compat: ko keeps its implicit-preserve default (a plain `patina` run
-  // resolves preserve). For en/zh/ja the persona axis is opt-in — a plain rewrite
-  // stays persona-free unless the user explicitly asks (--persona / config), so
-  // existing non-ko rewrites are unchanged.
-  if (lang !== 'ko' && !explicitPersona) return null;
-  return loadPersona(repoRoot, lang, personaId ?? 'preserve');
+  if (!supported || !explicitPersona) return null;
+  return loadPersona(repoRoot, lang, personaId);
 }

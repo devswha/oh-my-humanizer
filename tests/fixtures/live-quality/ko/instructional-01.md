@@ -1,7 +1,7 @@
 ---
 fixture_id: ko-instructional-01
 language: ko
-profile: instructional
+documentType: instructional
 register: instructional
 source_type: synthetic-ai
 model_family: fixture

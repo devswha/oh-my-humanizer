@@ -28,7 +28,7 @@ const SAMPLES = {
     title: 'AI가 쓴 글은 왜 티가 날까',
     eyebrow: '에디터 노트',
     sectionHeading: '어디서 티가 나나',
-    tone: 'casual',
+    register: 'casual',
     blocks: [
       {
         before: '결론적으로, AI가 작성한 글은 다양한 측면에서 특유의 패턴을 지속적으로 드러내는 경향이 있다고 할 수 있습니다. 이러한 문장들은 체계적인 구조를 통해 효율적으로 구성될 수 있습니다. 하지만 효과적인 표현의 이면에는 미묘한 위화감이 지속적으로 존재할 수 있습니다. 과도한 수식어와 번역투는 글의 진정성을 효과적으로 저해할 수 있습니다. 이를 통해 우리는 글의 신뢰도가 지속적으로 약화될 수 있다는 점을 확인할 수 있습니다.',
@@ -175,7 +175,9 @@ function main() {
     sourceUrl: '',
     scoreChip,
     contextCardHtml: buildContextCardHtml({
-      tone: { tone: sample.tone, tone_source: 'user' },
+      register: sample.register
+        ? { register: sample.register, register_source: 'user' }
+        : null,
     }),
   });
 

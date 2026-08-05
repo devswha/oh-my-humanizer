@@ -1,20 +1,9 @@
 ---
-schema: patina.persona.v1
+schema: patina.persona.v2
 id: soft-professional
 name: 부드러운 업무 문체
 lang: ko
 source: library
-depth: style-only
-persona_depth_directive:
-  content_scope: emphasis-and-coverage-only
-  mps_advisory: false
-  fidelity_advisory: false
-mps:
-  enforce: true
-  floor: 70
-fidelity:
-  enforce: true
-  floor: 70
 blocks:
   preferred_words:
     active: true
@@ -26,7 +15,6 @@ blocks:
   preferred_metaphors:
     active: true
     allow: [정리, 방향, 흐름]
-    forbid_new_facts: true
     max_new_metaphors_per_500_chars: 0
   explanation_habits:
     active: true
@@ -34,7 +22,6 @@ blocks:
     avoid: [과한 격식어, 압박성 표현, 모호한 요청]
   sentence_structure:
     active: true
-    register: polite_professional
     sentence_length_cv_target: [0.35, 0.75]
     avg_sentence_eojeol_target: [8, 18]
     paragraph_sentence_count_target: [1, 4]
@@ -48,8 +35,6 @@ target_features:
   lexicon_density_preferred: { target: 7.0, tolerance: 4.0, weight: 0.10 }
   lexicon_density_avoid: { target: 0.0, tolerance: 1.0, weight: 0.14 }
   sentence_opener_diversity: { target: 0.58, tolerance: 0.18, weight: 0.10 }
-  ko_register_plain_ratio: { target: 0.10, tolerance: 0.18, weight: 0.08 }
-  ko_register_polite_ratio: { target: 0.75, tolerance: 0.18, weight: 0.08 }
   comma_per_sentence: { target: 0.5, tolerance: 0.4, weight: 0.08 }
   suffix_class_diversity: { target: 0.38, tolerance: 0.16, weight: 0.08 }
   over_edit_churn: { max: 0.40, weight: 0.06 }

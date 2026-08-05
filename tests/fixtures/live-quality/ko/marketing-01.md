@@ -1,7 +1,7 @@
 ---
 fixture_id: ko-marketing-01
 language: ko
-profile: marketing
+documentType: marketing
 register: marketing
 source_type: synthetic-ai
 model_family: fixture

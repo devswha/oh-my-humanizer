@@ -1,7 +1,7 @@
 ---
 fixture_id: en-howto-01
 language: en
-profile: instructional
+documentType: instructional
 register: technical-how-to
 source_type: synthetic-ai
 model_family: fixture

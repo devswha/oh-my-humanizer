@@ -50,10 +50,10 @@ export function createRewriteThread({ lang }) {
      * Build a request body WITHOUT mutating thread state. State is only
      * committed on an accepted rewrite (see commit), so a failed/floor-rejected
      * turn never poisons the next request's original/history (fail-closed UX).
-     * @param {{text:string, tier:string, provider?:string, model?:string, apiKey?:string, persona?:string}} input
+     * @param {{text:string, tier:string, provider?:string, model?:string, apiKey?:string, documentType?:string, persona?:string, register?:string}} input
      * @returns {Record<string, unknown>}
      */
-    buildRequest({ text, tier, provider, model, apiKey, persona }) {
+    buildRequest({ text, tier, provider, model, apiKey, documentType, persona, register }) {
       const cleanText = String(text ?? '');
       const isRefine = original != null;
       const body = {
@@ -63,9 +63,9 @@ export function createRewriteThread({ lang }) {
         text: cleanText,
       };
 
-      // Voice persona is a voice-only directive (no cost/security escalation),
-      // so it applies to both tiers and every turn of a conversation.
+      if (documentType) body.documentType = documentType;
       if (persona) body.persona = persona;
+      if (register) body.register = register;
 
       if (isRefine) {
         Object.assign(body, { original, history: capTurns(turns) });

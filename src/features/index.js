@@ -68,8 +68,7 @@ export function analyzeText(text, opts = {}) {
     lexiconMinHotMatches = DEFAULT_LEXICON_MIN_HOT_MATCHES,
     lexicon: providedLexicon,
     structuralModel = null,
-    profile = 'default',
-    register = null,
+    documentType = 'default',
     shortFormLimits,
   } = opts;
 
@@ -101,14 +100,13 @@ export function analyzeText(text, opts = {}) {
     providedLexicon ??
     (repoRoot ? loadLexicon(lang, repoRoot) : { strict: [], phrases: [] });
 
-  // Short-form (social/marketing) punctuation tell: em-dash count/density on
-  // short English input. Advisory + register-gated — it never enters the `hot`
-  // verdict below (that would let one dash in a single paragraph read as 1/1 =
+  // Short-form social/marketing punctuation tell: em-dash count/density on
+  // short English input. Advisory + Document-Type-gated — it never enters the
+  // `hot` verdict below (that would let one dash in one paragraph read as
   // 100). The scorer routes it through a small calibrated evidence floor.
   const shortForm = detectEnglishShortFormTells(normalized, {
     lang,
-    profile,
-    register,
+    documentType,
     limits: shortFormLimits,
   });
 

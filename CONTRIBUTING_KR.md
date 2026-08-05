@@ -1,10 +1,10 @@
 # Patina에 기여하기
 
-기여를 검토해 주셔서 감사합니다. Patina는 패턴 기반 도구이므로 가장 큰 도움이 되는 기여는 새 패턴, 더 나은 예시, 프로필 개선인 경우가 많습니다.
+기여를 검토해 주셔서 감사합니다. Patina는 패턴 기반 도구이므로 가장 큰 도움이 되는 기여는 새 패턴, 더 나은 예시, Document Type 정책, Persona 개선인 경우가 많습니다.
 
 ## 공개 문서와 내부 문서
 
-사용자용 문서는 `README*.md`, `docs/`, `examples/`, `patterns/`, `profiles/`, 스킬 엔트리포인트에 둡니다. 유지보수자나 에이전트용 메모(백로그, 런북, 런치 플레이북)는 이 저장소에 두지 않습니다 — 유지보수자의 비공개 작업 공간에 보관하며, `docs/internal/`은 안전장치로 gitignore 처리되어 있습니다. 실제 사용자에게 필요한 사실만 공개 문서 목록으로 승격합니다.
+사용자용 문서는 `README*.md`, `docs/`, `examples/`, `patterns/`, `document-types/`, `personas/`, 스킬 엔트리포인트에 둡니다. 유지보수자나 에이전트용 메모(백로그, 런북, 런치 플레이북)는 이 저장소에 두지 않습니다 — 유지보수자의 비공개 작업 공간에 보관하며, `docs/internal/`은 안전장치로 gitignore 처리되어 있습니다. 실제 사용자에게 필요한 사실만 공개 문서 목록으로 승격합니다.
 
 루트의 Markdown 파일을 옮길 때 공개 문서라면 `README.md`에서 링크하고, 유지보수자 내부 문서라면 저장소 밖으로 옮깁니다.
 
@@ -73,7 +73,7 @@ PR에서 위 영어 문서를 바꾸면 같은 PR에서 한국어 쌍도 갱신�
 1. false-positive 이슈 템플릿을 사용합니다.
 2. 언어, 장르/문체, score/audit excerpt, 과하게 감지된 패턴을 포함합니다.
 3. 비공개 텍스트를 제거하거나 재배포 가능한 최소 발췌로 바꿉니다.
-4. 수정 방향이 exclusion rule, 낮은 severity, profile override, benchmark fixture 중 무엇인지 제안합니다.
+4. 수정 방향이 exclusion rule, 낮은 severity, Document Type `pattern-overrides` 변경, benchmark fixture 중 무엇인지 제안합니다.
 
 유지보수자는 패턴을 바로 삭제하기보다 exclusion을 좁히는 쪽을 우선해야 합니다.
 
@@ -126,11 +126,17 @@ npm run benchmark:report
 - 어떤 표현이 해당 문체에서는 정상이라면 대상 언어의 오탐 메모를 추가합니다.
 - 예시는 재배포 가능해야 합니다. 비공개 사용자 텍스트를 붙여 넣지 마세요.
 
-## 프로필 추가
+## Document Type 추가
 
-프로필은 `profiles/{name}.md`에 있습니다. 기존 파일(예: `blog.md`)을 복사한 뒤 조정합니다.
-- `voice-overrides`: 어떤 voice dimension을 키우거나 줄일지
-- `pattern-overrides`: 언어별 패턴 severity 조정
+Document Type은 `document-types/{name}.md`에 있습니다. 기존 정책(예:
+`blog.md`)을 복사하고 `document-type:`을 파일명 stem과 맞춘 뒤 `scope`,
+`purpose`, `audience`, `structure`, `style`, `avoid`, 언어별
+`pattern-overrides`를 정의합니다. `suppress`는 결정론적으로 적용되며
+`reduce`/`amplify`는 현재 정책 의도만 기록합니다. Persona 목소리,
+casual/professional Register 표지, 검증 하한은 이 축에 넣지 않습니다.
+
+재사용 voice는 `patina persona new`로 Persona v2를 만드세요. schema는
+document policy, Register, safety field가 Persona에 들어오면 거부합니다.
 
 ## 패턴 노후화
 
@@ -142,7 +148,7 @@ AI 문체 패턴은 모델이 미세 조정되면서 바뀝니다. 어떤 패턴
 - **분기별 리뷰:** 유지보수자는 [`process/pattern-freshness.md`](process/pattern-freshness.md)의 corpus freeze window, promotion threshold, frontmatter metadata 규칙을 따릅니다.
 - **Lexicon provenance:** 새로 마이닝하거나 다시 마이닝한 lexicon 항목은 동작을 바꾸기 전에 `added`, `source`, `last_validated` provenance를 기록해야 하며, `npm run lexicon:freshness`로 sidecar가 실제 shipped entry와 맞는지 확인합니다.
 - **버전 메모:** 각 패턴 팩에는 `version` 필드가 있습니다. 패턴이 바뀌면 올립니다.
-- **대체 없는 삭제 금지:** 패턴을 바로 제거하지 않습니다. `low` severity로 낮추거나 프로필에서 `reduce`로 옮깁니다.
+- **대체 없는 삭제 금지:** 패턴을 바로 제거하지 않습니다. `low` severity로 낮추거나 Document Type에서 `reduce`로 옮깁니다.
 
 ## 버전 정책
 

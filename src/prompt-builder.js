@@ -33,7 +33,7 @@ const INPUT_DATA_FENCE = '⟦⟦⟦PATINA_INPUT_DATA⟧⟧⟧';
  * Split a built prompt into a cacheable static prefix and a dynamic tail for
  * provider prompt caching. The prefix is everything before the FIRST input
  * fence: on a first-turn prompt that is the full static catalog (identical
- * across requests for a given lang/profile/persona), while refine prompts
+ * across requests for a given language/document-type/persona), while refine prompts
  * carry variable fenced references near the top, so their prefix falls under
  * the minimum and caching is skipped — avoiding cache writes that would never
  * be re-read.
@@ -125,19 +125,75 @@ function buildSeverityOverrideNote(config) {
   );
 }
 
+function formatDocumentTypePolicy(documentType, lang) {
+  const frontmatter = documentType?.frontmatter ?? {};
+  const policy = {
+    document_type: frontmatter['document-type'] ?? 'default',
+    name: frontmatter.name ?? null,
+    scope: frontmatter.scope ?? null,
+    purpose: frontmatter.purpose ?? null,
+    audience: frontmatter.audience ?? [],
+    structure: frontmatter.structure ?? [],
+    style: frontmatter.style ?? [],
+    avoid: frontmatter.avoid ?? [],
+    pattern_policy: frontmatter['pattern-overrides']?.[lang] ?? {},
+  };
+  return `\`\`\`json\n${JSON.stringify(policy, null, 2)}\n\`\`\``;
+}
+function buildRewriteAxisContract({ personaActive = false, registerActive = false } = {}) {
+  const personaRule = personaActive
+    ? 'Persona is explicit: apply only its reusable vocabulary, rhythm, metaphor, and explanation habits.'
+    : 'Persona is omitted: preserve the source voice; do not invent an author identity or personality.';
+  const registerRule = registerActive
+    ? 'Register is explicit: apply only casual/professional delivery markers while preserving the audience relationship.'
+    : 'Register is omitted: preserve the source’s dominant casual/professional delivery.';
+  return (
+    `## Rewrite Axis Contract\n\n` +
+    `- Meaning and safety are global: no axis may change claims, numbers, polarity, causation, commitments, or verification floors.\n` +
+    `- Document Type owns purpose, audience, structure, domain vocabulary/precision, and pattern bounds. It never selects Persona or Register.\n` +
+    `- ${personaRule}\n` +
+    `- ${registerRule}\n` +
+    `- Never infer one axis from another. If instructions appear to conflict, field ownership wins: Document Type for document conventions, Persona for idiolect, Register for casual/professional markers; meaning and safety override all three.\n\n`
+  );
+}
+
+
+function buildRegisterDirective(value, lang) {
+  const directives = {
+    ko: {
+      casual: '명시적 목표는 casual이다. 합니다체·보고서식 -다체를 자연스러운 해요체로 바꾼다. 주장과 상대 관계는 유지하고, 반말·유행어·새 친밀감은 추가하지 않는다.',
+      professional: '명시적 목표는 professional이다. 해요체·반말을 문서 관습에 맞는 명료한 합니다체 또는 -다체로 바꾸고, 요청은 -하세요로 쓴다. 주장과 상대 관계는 유지하며 -하십시오 관료체나 과도한 격식은 추가하지 않는다.',
+    },
+    en: {
+      casual: 'Keep the claims and audience relationship unchanged; make only the wording and sentence endings naturally casual. Do not add slang or false familiarity.',
+      professional: 'Keep the claims and audience relationship unchanged; make only the wording and sentence endings clear and professional. Do not add corporate stiffness.',
+    },
+    zh: {
+      casual: '保持原文主张和受众关系不变，只把措辞与句式调整为自然的轻松表达；不要添加俚语或虚假的亲近感。',
+      professional: '保持原文主张和受众关系不变，只把措辞与句式调整为清晰的专业表达；不要添加官样文章。',
+    },
+    ja: {
+      casual: '原文の主張と読み手との関係は変えず、語彙と文末だけを自然なカジュアル表現に整える。流行語や不自然な馴れ馴れしさは足さない。',
+      professional: '原文の主張と読み手との関係は変えず、語彙と文末だけを明快な業務表現に整える。過剰な堅さや官僚表現は足さない。',
+    },
+  };
+  return `${directives[lang]?.[value] ?? directives.en[value]}\n`;
+}
+
 /**
  * Build the LLM prompt for rewrite, diff, audit, or score mode.
  *
  * @param {object} options Prompt inputs.
  * @param {object} options.config Effective patina config.
  * @param {object[]} options.patterns Loaded pattern packs.
- * @param {object|null} options.profile Parsed profile document.
- * @param {object|null} options.voice Parsed voice guide.
- * @param {object|null} [options.persona] Optional validated persona payload.
+ * @param {object|null} options.documentType Parsed document-type policy.
+ * @param {object|null} options.voice Parsed claim-safe voice baseline.
+ * @param {object|null} [options.persona] Optional validated voice persona.
  * @param {object|null} options.scoring Parsed scoring guide.
  * @param {string} options.text Input text.
  * @param {string} [options.mode=rewrite] Output mode.
- * @param {object|null} [options.tone=null] Tone resolution metadata.
+ * @param {object|null} [options.register=null] Explicit register metadata.
+ * @param {'strict'|'minimal'} [options.promptMode=strict] Prompt catalog detail level.
  * @param {string[]|null} [options.documentSignals=null] Deterministic document
  *   measurements (e.g. dominant Korean register) injected into rewrite prompts
  *   as ground truth for the Phase 0 document brief.
@@ -150,21 +206,21 @@ function buildSeverityOverrideNote(config) {
  *   instruct the model to preserve Markdown ATX heading lines verbatim as
  *   structure (#473); true opts back into rewording/adding/removing them.
  * @returns {string} Complete prompt text.
- * @throws {TypeError} When `options.tone.tone_evidence` contains values JSON.stringify cannot serialize (circular references, BigInt).
+ * @throws {TypeError} When register evidence cannot be JSON-serialized.
  * @example
- * const prompt = buildPrompt({ config, patterns, profile, voice, scoring, text: 'Draft' });
+ * const prompt = buildPrompt({ config, patterns, documentType, voice, scoring, text: 'Draft' });
  */
 export function buildPrompt(options) {
   const {
     config,
     patterns,
-    profile,
+    documentType,
     voice,
     persona = null,
     scoring,
     text,
     mode = 'rewrite',
-    tone = null,
+    register = null,
     documentSignals = null,
     // The iterative rewrite runner passes false so it does not pay self-audit
     // tokens it strips anyway; external scorers perform the AI-tell/meaning
@@ -175,16 +231,18 @@ export function buildPrompt(options) {
     rewriteHeadings = false,
   } = options;
   const promptMode = /** @type {any} */ (options).promptMode || 'strict';
-  // v3.11+ internal backend prompt-style dispatch. The compact prompt strips
-  // pattern definitions/examples and uses a casual instruction; it only applies
-  // to rewrite mode where voice prior matters most. Profile body is still passed
-  // through (Round 2 found Gemini ignored casual-conversation when omitted).
+  // Compact prompt mode keeps the same document/persona/register contract;
+  // only the pattern catalog representation differs.
   if (promptMode === 'minimal' && mode === 'rewrite') {
-    return buildMinimalPrompt({ config, patterns, profile, persona, text, tone, documentSignals, jargon, rewriteHeadings });
+    return buildMinimalPrompt({
+      config, patterns, documentType, persona, text, register,
+      documentSignals, jargon, rewriteHeadings,
+    });
   }
 
   const lang = config.language || 'ko';
-  const profileName = config.profile || 'default';
+  const documentTypeName = config.documentType || 'default';
+  const isRewriteLike = mode === 'rewrite' || mode === 'diff';
 
   // score_only packs (e.g., viral-hook) are detection-only: included in score
   // and audit modes but excluded from rewrite/diff so we don't force
@@ -199,30 +257,17 @@ export function buildPrompt(options) {
 
   let prompt = `You are an editor who detects and removes AI writing patterns from text, rewriting it into natural, human-written prose.\n\n`;
 
-  // Tone context (v3.10). Surface resolved tone metadata at the top so the LLM
-  // applies Phase 4.5b/5b/6 logic per SKILL.md. Body text in rewrite mode must
-  // not leak tone metadata (A7) — only the YAML footer at the end carries it.
-  if (tone && tone.tone_source) {
-    prompt += `## Tone Resolution (v3.10)\n\n`;
-    prompt += `- resolved_tone: ${tone.tone === null ? 'null' : tone.tone}\n`;
-    prompt += `- tone_source: ${tone.tone_source}\n`;
-    prompt += `- tone_evidence: ${JSON.stringify(tone.tone_evidence ?? [])}\n`;
-    prompt += `- tone_confidence: ${tone.tone_confidence ?? 'null'}\n`;
-    if (tone.tone_source === 'auto') {
-      prompt += `\nRun Phase 4.5b heuristic detection per SKILL.md to resolve a single tone, evidence, and confidence. Apply Phase 5b tone-derived overrides (replace, not stack) and emit Phase 6 YAML footer.\n`;
-    } else if (tone.tone_source === 'user') {
-      prompt += `\nApply Phase 5b tone-derived overrides for "${tone.tone}" (replace, not stack with profile overrides). Emit Phase 6 YAML footer with these exact values.\n`;
-    } else if (tone.tone_source === 'unsupported_language_fallback') {
-      prompt += `\nzh/ja with explicit tone is unsupported in v1; proceed in profile-only mode. Emit Phase 6 YAML footer with tone: null and the fallback warning preserved in tone_evidence.\n`;
-    } else if (tone.tone_source === 'profile_only') {
-      prompt += `\nNo tone specified — profile-only mode (regression-safe path). Phase 4.5b is skipped. Emit Phase 6 YAML footer with tone: null and tone_source: profile_only.\n`;
-    }
+  if (isRewriteLike && register) {
+    prompt += `## Register\n\n`;
+    prompt += `- value: ${register.register}\n`;
+    prompt += `- source: ${register.register_source}\n\n`;
+    prompt += buildRegisterDirective(register.register, lang);
     prompt += `\n`;
   }
 
   prompt += `## Configuration\n\n`;
   prompt += `- Language: ${lang}\n`;
-  prompt += `- Profile: ${profileName}\n`;
+  prompt += `- Document type: ${documentTypeName}\n`;
   prompt += `- Output mode: ${mode}\n`;
   if (config.blocklist?.length > 0) {
     prompt += `- Blocklist: ${config.blocklist.join(', ')}\n`;
@@ -231,6 +276,13 @@ export function buildPrompt(options) {
     prompt += `- Allowlist: ${config.allowlist.join(', ')}\n`;
   }
   prompt += `\n`;
+  if (isRewriteLike) {
+    prompt += buildRewriteAxisContract({
+      personaActive: Boolean(persona),
+      registerActive: Boolean(register),
+    });
+  }
+
 
   prompt += `## Pattern Packs\n\n`;
   for (const pack of activePatterns) {
@@ -238,25 +290,16 @@ export function buildPrompt(options) {
     prompt += `${pack.body}\n\n`;
   }
 
-  prompt += `## Profile\n\n`;
-  if (profile) {
-    if (mode === 'rewrite' && persona) {
-      // Persona is the sole voice owner (v6.2 profile-voice retirement): the
-      // profile's pattern policy already applied to the packs above; ALL voice
-      // guidance now comes from the active persona (incl. the preserve default).
-      prompt += `- Profile "${profileName}" pattern policy applies; voice guidance defers to the active persona below.\n\n`;
-    } else {
-      prompt += `${profile.body}\n\n`;
-    }
-  }
+  prompt += `## Document Policy\n\n`;
+  prompt += `${formatDocumentTypePolicy(documentType, lang)}\n\n`;
 
-  prompt += `## Voice Guidelines\n\n`;
+  prompt += `## Claim-safe Rewrite Baseline\n\n`;
   if (voice) {
     prompt += `${voice.body}\n\n`;
   }
 
-  if (mode === 'rewrite' && persona) {
-    prompt += formatPersonaDirective(persona, { lang, tone });
+  if (isRewriteLike && persona) {
+    prompt += formatPersonaDirective(persona, { lang });
     prompt += '\n';
   }
 
@@ -275,7 +318,13 @@ export function buildPrompt(options) {
   prompt += `Process the following text according to the output mode "${mode}".\n\n`;
 
   if (mode === 'rewrite') {
-    prompt += buildRewriteInstructions(structurePacks, lexicalPacks, { lang, includeSelfAudit, rewriteHeadings, personaActive: Boolean(persona) });
+    prompt += buildRewriteInstructions(structurePacks, lexicalPacks, {
+      lang,
+      includeSelfAudit,
+      rewriteHeadings,
+      personaActive: Boolean(persona),
+      registerActive: Boolean(register),
+    });
     prompt += buildTransformDirective({ jargon, korean: false });
   } else if (mode === 'diff') {
     prompt += buildDiffInstructions();
@@ -286,7 +335,7 @@ export function buildPrompt(options) {
   }
 
   // Per-document deterministic measurements sit adjacent to the input, after
-  // the stable instruction prefix, so the large pattern-pack/profile/voice/
+  // stable instruction prefix, so the large pattern/document-policy/voice/
   // instruction prefix stays byte-identical across documents in a batch and
   // maximizes provider prompt-cache hits. Only these signals and the fenced
   // input below vary per document.
@@ -344,7 +393,7 @@ function buildHeadingPreservationRule(lang, rewriteHeadings = false) {
 function buildRewriteInstructions(
   structurePacks,
   lexicalPacks,
-  { includeSelfAudit = true, lang = 'ko', includeKoreanAdvisory = true, rewriteHeadings = false, personaActive = false } = {}
+  { includeSelfAudit = true, lang = 'ko', includeKoreanAdvisory = true, rewriteHeadings = false, personaActive = false, registerActive = false } = {}
 ) {
   const phaseCount = includeSelfAudit ? 3 : 2;
   let inst = `Follow the ${phaseCount}-Phase pipeline:\n\n`;
@@ -353,7 +402,14 @@ function buildRewriteInstructions(
   // into the model's own default voice — the output stays AI-flavored even
   // after every named pattern is fixed. Frame first, then edit.
   inst += `### Phase 0: Document Brief (internal — never output)\n\n`;
-  inst += `Before any edit, read the whole input and fix in your head: what this document is (landing page / blog post / notice / documentation), who is speaking to whom, the document's dominant register and tone, and its recurring domain terms. Keep that frame for every edit below. Unify all rewritten sentences to the document's dominant register — register mixing across sentences is itself an AI tell. Reuse the document's own domain terms instead of generic synonyms.\n\n`;
+  inst += `Before any edit, read the whole input and fix in your head: what this document is, who is speaking to whom, and its recurring domain terms. Keep that frame for every edit below. `;
+  inst += personaActive
+    ? `Use the explicit Persona as the voice target, but preserve the source’s speaker identity, audience relationship, and content. `
+    : `Preserve the source’s dominant voice; do not invent a personality. `;
+  inst += registerActive
+    ? `Use the explicit Register for casual/professional delivery; do not preserve incompatible source endings merely because they are dominant. `
+    : `Preserve and unify the source’s dominant register; register mixing across sentences is itself an AI tell. `;
+  inst += `Reuse the document’s own domain terms instead of generic synonyms.\n\n`;
 
   const headingRule = buildHeadingPreservationRule(lang, rewriteHeadings);
   if (headingRule) inst += `${headingRule}\n\n`;
@@ -381,16 +437,12 @@ function buildRewriteInstructions(
   inst += `3. Preserve core meaning, claims, polarity, causation, numbers. Numbers are frozen tokens: render every numeral exactly as the source writes it (digits stay digits, grouping and units unchanged) and exactly as many times as the source states it — never repeat a number into a sentence that did not carry it, and never move one earlier or later in the text\n`;
   inst += `4. Never add a claim, fact, number, guarantee, or commitment the source does not state. When a pattern asks for specificity the source does not supply — a concrete CTA, a named authority, a mechanism, a benefit — cut the vague sentence instead of inventing a replacement. Invented commitments ("cancel anytime", "no hidden fees", "saves you time every day") are the worst case: they publish false promises in the author's name\n`;
   inst += `5. Keep overall length close to the original — the fidelity gate measures character length and full marks require staying within 50-130% of the input. Cut filler and hype freely, but replace it with natural phrasing of similar weight; never compress the text into a summary\n`;
-  if (personaActive) {
-    // v6.2: persona is the sole voice owner; the profile contributes pattern
-    // policy only, so the strict instructions must not tell the model to take
-    // tone/personality from the (now voice-retired) profile body.
-    inst += `6. Follow the active persona's voice — the profile contributes pattern policy only\n`;
-    inst += `7. Do not apply profile-body voice guidance while a persona is active\n`;
-  } else {
-    inst += `6. Match profile tone\n`;
-    inst += `7. Inject personality per voice guidelines\n`;
-  }
+  inst += personaActive
+    ? `6. Apply the active persona's voice traits\n`
+    : `6. Preserve the source voice; do not invent a personality\n`;
+  inst += registerActive
+    ? `7. Apply the explicit register directive above\n`
+    : `7. Preserve the source's dominant register\n`;
   inst += `8. Respect blocklist/allowlist and pattern overrides\n\n`;
   const cjkGuard = buildCjkClauseRewriteGuard(lang);
   if (cjkGuard) {
@@ -410,7 +462,7 @@ function buildRewriteInstructions(
     inst += `4. Ensure Phase 1 corrections were not reverted in Phase 2\n`;
     inst += `5. Final check: meaning preserved?\n\n`;
 
-    inst += buildOutputFormatBlock();
+    inst += buildOutputFormatBlock({ registerActive });
   } else {
     // Self-audit suppressed: external evaluators (scoreText, scoreMPS,
     // scoreFidelity) handle AI-tell detection, polarity, and meaning checks
@@ -422,24 +474,21 @@ function buildRewriteInstructions(
   return inst;
 }
 
-function buildOutputFormatBlock() {
+function buildOutputFormatBlock({ registerActive = false } = {}) {
+  const footer = registerActive
+    ? (
+      `3. Append this YAML register footer after \`[/SELF_AUDIT]\`:\n` +
+      `\`---\\nregister: ...\\nregister_source: ...\\nregister_evidence: [...]\\nregister_confidence: ...\\n---\`\n`
+    )
+    : '';
   return (
-    `### Output format (STRICT — v3.11)\n\n` +
+    `### Output format (STRICT)\n\n` +
     `Produce output in this exact order, with no other text outside the tagged blocks:\n\n` +
     `1. The rewritten text wrapped in \`[BODY]\`/\`[/BODY]\` tags. The body ` +
-      `block must contain ONLY the user-facing rewrite — no headings, no ` +
-      `Phase labels, no preamble like "잔여 AI 티" or "최종 결과물".\n` +
-    `2. Self-audit notes wrapped in \`[SELF_AUDIT]\`/\`[/SELF_AUDIT]\` tags ` +
-      `(brief: what still looks AI-written, which patterns were applied). ` +
-      `This block is for downstream review — patina strips it before showing the user.\n` +
-    `3. The Phase 6 YAML footer if tone resolution requires it.\n\n` +
-    `Example shape (uses [BODY]/[/BODY]):\n\n` +
-    '```\n' +
-    `[BODY]\n<rewritten text>\n[/BODY]\n\n` +
-    `[SELF_AUDIT]\n- residual signals: ...\n` +
-    `- patterns applied: ...\n[/SELF_AUDIT]\n\n` +
-    `---\ntone: ...\ntone_source: ...\ntone_evidence: [...]\ntone_confidence: ...\n---\n` +
-    '```\n'
+      `must contain only the user-facing rewrite — no phase labels or preamble.\n` +
+    `2. Brief self-audit notes wrapped in \`[SELF_AUDIT]\`/\`[/SELF_AUDIT]\` tags. ` +
+      `Patina strips this block before showing the user.\n` +
+    footer
   );
 }
 
@@ -532,7 +581,7 @@ export function buildScoreMathCore(config, lang, text = '', patterns = []) {
   // Same config-read pattern as the weights above: yaml `scoring.severity-points`
   // overrides the documented defaults, and the prompt text follows it.
   const severityPoints = resolveSeverityPoints(config);
-  let inst = `Calculate an AI-likeness score (0-100) using EXACTLY these category weights. Do NOT invent extra categories (no "discord", no "tone", no "general"). Use only the categories listed:\n\n`;
+  let inst = `Calculate an AI-likeness score (0-100) using EXACTLY these category weights. Do NOT invent extra categories (for example, "discord" or "general"). Use only the categories listed:\n\n`;
 
   for (const [cat, weight] of Object.entries(weights)) {
     inst += `- ${cat}: ${weight}\n`;
@@ -657,7 +706,7 @@ export function isShortText(text) {
 // model's natural voice prior isn't overridden by analytical framing. Only
 // invoked for rewrite mode; score/audit/diff stay on the strict
 // path because they need precise pattern references.
-function buildMinimalPrompt({ config, patterns, profile, persona = null, text, tone, documentSignals = null, jargon = 'keep', rewriteHeadings = false }) {
+function buildMinimalPrompt({ config, patterns, documentType, persona = null, text, register, documentSignals = null, jargon = 'keep', rewriteHeadings = false }) {
   const lang = config.language || 'ko';
   const activePatterns = patterns.filter((p) => !p.isScoreOnly);
 
@@ -677,9 +726,23 @@ function buildMinimalPrompt({ config, patterns, profile, persona = null, text, t
   // Document brief: without a global frame the model paraphrases block by
   // block in its own default voice and the result still reads AI. Same
   // contract as the strict prompt's Phase 0.
+  const voiceFrame = persona
+    ? (lang === 'ko'
+      ? '목소리는 아래의 명시적 Persona를 목표로 하되, 화자 정체성·독자 관계·내용은 원문대로 보존해.'
+      : 'Use the explicit Persona below as the voice target, but preserve the source speaker, audience relationship, and content.')
+    : (lang === 'ko'
+      ? '원문의 지배적 목소리를 보존하고 새 화자나 성격을 만들지 마.'
+      : 'Preserve the source’s dominant voice; do not invent an author identity or personality.');
+  const registerFrame = register
+    ? (lang === 'ko'
+      ? 'casual/professional 전달 방식은 아래의 명시적 Register를 적용하고, 원문의 종결어미가 다르다는 이유로 되돌리지 마.'
+      : 'Use the explicit Register below for casual/professional delivery; do not preserve incompatible source endings merely because they are dominant.')
+    : (lang === 'ko'
+      ? '원문의 지배 어투를 유지하고 모든 재작성 문장을 그 어투 하나로 통일해. 문장마다 어투가 오락가락하면 안 돼.'
+      : 'Preserve and unify the source’s dominant register; register drift between sentences is not allowed.');
   const brief = lang === 'ko'
-    ? `고치기 전에 글 전체를 먼저 읽고 속으로 파악해 둬 — 이 글이 무엇인지(랜딩페이지/블로그/공지/문서), 누가 누구에게 말하는지, 지배 어투가 무엇인지(해요체/합니다체/-다체), 반복되는 핵심 용어가 무엇인지. 재작성 내내 그 틀을 유지하고, 어투는 글의 지배 어투 하나로 통일해 — 어투가 문장마다 오락가락하는 것 자체가 AI 신호야. 핵심 용어는 일반 동의어로 바꾸지 말고 글이 쓰는 표현 그대로 재사용해. 파악한 내용은 출력하지 말고 본문에만 반영해.`
-    : `Before editing, read the whole text and fix in your head: what this document is (landing page / blog post / notice / docs), who is speaking to whom, the dominant register and tone, and the recurring domain terms. Keep that frame throughout, unify every rewritten sentence to the document's dominant register — register drift between sentences is itself an AI tell — and reuse the document's own terms instead of generic synonyms. Never output this analysis; apply it to the body only.`;
+    ? `고치기 전에 글 전체를 먼저 읽고 속으로 파악해 둬 — 이 글이 무엇인지, 누가 누구에게 말하는지, 반복되는 핵심 용어가 무엇인지. 재작성 내내 그 틀을 유지해. ${voiceFrame} ${registerFrame} 핵심 용어는 일반 동의어로 바꾸지 말고 글이 쓰는 표현 그대로 재사용해. 파악한 내용은 출력하지 말고 본문에만 반영해.`
+    : `Before editing, read the whole text and fix in your head what the document is, who is speaking to whom, and its recurring domain terms. Keep that frame throughout. ${voiceFrame} ${registerFrame} Reuse the document’s own terms instead of generic synonyms. Never output this analysis; apply it to the body only.`;
 
   // Sentence-length rhythm: the single strongest deterministic AI signal is
   // uniform sentence length (low burstiness CV). Vocabulary swaps alone never
@@ -712,46 +775,34 @@ function buildMinimalPrompt({ config, patterns, profile, persona = null, text, t
     prompt += '\n\n';
   }
 
-  // v3.11 Round 2 fix: profile body must reach the model in minimal mode too,
-  // otherwise voice profiles like casual-conversation get ignored. Keep it
-  // compact — just the profile body, no full pattern-overrides table.
-  if (profile && profile.body) {
-    prompt += lang === 'ko' ? `## 톤·프로필 가이드\n\n` : `## Tone & profile guide\n\n`;
-    if (persona) {
-      // Persona is the sole voice owner (v6.2): profile pattern policy applies,
-      // all voice comes from the active persona (incl. the preserve default).
-      const pn = config.profile || 'default';
-      prompt += lang === 'ko'
-        ? `- 프로필 "${pn}"의 패턴 정책은 적용되고, 어조는 아래 페르소나를 따른다.\n\n`
-        : `- Profile "${pn}" pattern policy applies; voice defers to the persona below.\n\n`;
-    } else {
-      prompt += `${profile.body}\n\n`;
-    }
-  }
+  prompt += buildRewriteAxisContract({
+    personaActive: Boolean(persona),
+    registerActive: Boolean(register),
+  });
 
-  if (tone && tone.tone_source) {
-    prompt += lang === 'ko' ? `## 톤 메타\n` : `## Tone metadata\n`;
-    prompt += `- tone: ${tone.tone === null ? 'null' : tone.tone}\n`;
-    prompt += `- source: ${tone.tone_source}\n`;
-    if (tone.tone_source === 'auto') {
-      // Minimal mode previously emitted `tone: auto` without telling the model
-      // to resolve it, so auto-tone quality diverged from the strict path (#527 H4).
-      prompt += lang === 'ko'
-        ? `- (auto: 본문에서 단일 톤을 추정해 적용하고, 아래 YAML 푸터의 tone/tone_evidence/tone_confidence를 그 값으로 채운다.)\n`
-        : `- (auto: infer a single tone from the text, apply it, and fill the YAML footer's tone/tone_evidence/tone_confidence with the resolved values.)\n`;
-    }
-    prompt += `\n`;
+  prompt += lang === 'ko' ? `## 문서 정책\n\n` : `## Document policy\n\n`;
+  prompt += `${formatDocumentTypePolicy(documentType, lang)}\n\n`;
+
+  if (register) {
+    prompt += lang === 'ko' ? `## 레지스터\n\n` : `## Register\n\n`;
+    prompt += `- value: ${register.register}\n`;
+    prompt += `- source: ${register.register_source}\n\n`;
+    prompt += buildRegisterDirective(register.register, lang);
+    prompt += '\n';
   }
 
   if (persona) {
-    prompt += formatPersonaDirective(persona, { lang, tone });
+    prompt += formatPersonaDirective(persona, { lang });
     prompt += '\n';
   }
 
   prompt += lang === 'ko' ? `## 출력 형식\n\n` : `## Output format\n\n`;
   prompt += `1. 다듬은 본문을 \`[BODY]\` ... \`[/BODY]\` 안에. 본문만, 머리말·메타·"최종 결과물" 같은 라벨 없이.\n`;
-  prompt += `2. \`[SELF_AUDIT]\` ... \`[/SELF_AUDIT]\` 안에 짧게: 어떤 부분 손봤는지, 남은 AI 신호 있는지.\n`;
-  prompt += `3. 톤 정보가 있으면 마지막에 YAML 푸터: \`---\\ntone: ...\\ntone_source: ...\\ntone_evidence: [...]\\ntone_confidence: ...\\n---\`\n\n`;
+  prompt += `2. \`[SELF_AUDIT]\` ... \`[/SELF_AUDIT]\` 안에 짧게: 어떤 부분을 손봤는지와 남은 AI 신호.\n`;
+  if (register) {
+    prompt += `3. 마지막에 YAML 푸터: \`---\\nregister: ${register.register}\\nregister_source: ${register.register_source}\\nregister_evidence: ["user-specified"]\\nregister_confidence: high\\n---\`\n`;
+  }
+  prompt += '\n';
 
   prompt += lang === 'ko' ? `## 입력\n\n` : `## Input\n\n`;
   prompt += fenceInputText(text, { lang });

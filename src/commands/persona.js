@@ -7,7 +7,7 @@ import { getRepoRoot } from '../config.js';
 import { inputError } from '../errors.js';
 import { createLogger } from '../logger.js';
 import { loadFile, splitFrontmatter } from '../loader.js';
-import { validatePersona, PERSONA_SCHEMA_ID, MIN_MPS_FLOOR, MIN_FIDELITY_FLOOR, PERSONA_DEPTHS } from '../personas/schema.js';
+import { validatePersona, PERSONA_SCHEMA_ID } from '../personas/schema.js';
 import { listPersonas, loadPersona, resolvePersonaPath, safePersonaPath } from '../personas/loader.js';
 import { extractPersonaFeatureVector } from '../features/persona-match.js';
 import { selectBackendChain, invokeBackendChain } from '../backends/index.js';
@@ -27,7 +27,7 @@ function assertPersonaId(id) {
     throw inputError(
       `invalid persona id: ${JSON.stringify(id)}`,
       'A persona id must match /^[a-z0-9][a-z0-9-]*$/ (lowercase letters, digits, hyphens).',
-      'Use an id like my-voice or founder-casual.'
+      'Use an id like my-voice or founder-direct.'
     );
   }
 }
@@ -72,34 +72,21 @@ function shortStringArray(value, max = 12) {
     .slice(0, max);
 }
 
-function normalizeDepth(value) {
-  const depth = String(value ?? 'style-only').trim();
-  return PERSONA_DEPTHS.includes(depth) ? depth : 'style-only';
-}
 
-// Assemble the raw (snake_case) persona frontmatter that validatePersona expects.
-// Only whitelisted voice fields are ever read from LLM output, so gate-weakening
-// keys can never leak into a generated persona.
-function buildFrontmatter({ id, lang, name, depth, register, prefer = [], avoid = [], moves = [], avoidMoves = [], targetFeatures = {} }) {
+// Assemble the raw persona frontmatter accepted by validatePersona. Only
+// voice fields are read from model output; document policy, register, and
+// meaning-preservation controls cannot enter a persona.
+function buildFrontmatter({ id, lang, name, prefer = [], avoid = [], moves = [], avoidMoves = [], targetFeatures = {} }) {
   const preferWords = shortStringArray(prefer);
   const avoidWords = shortStringArray(avoid);
   const explMoves = shortStringArray(moves);
   const explAvoid = shortStringArray(avoidMoves);
-  const hasRegister = typeof register === 'string' && register.trim();
   return {
     schema: PERSONA_SCHEMA_ID,
     id,
     name: (typeof name === 'string' && name.trim()) ? name.trim() : id,
     lang,
     source: 'learned',
-    depth: normalizeDepth(depth),
-    persona_depth_directive: {
-      content_scope: 'emphasis-and-coverage-only',
-      mps_advisory: false,
-      fidelity_advisory: false,
-    },
-    mps: { enforce: true, floor: MIN_MPS_FLOOR },
-    fidelity: { enforce: true, floor: MIN_FIDELITY_FLOOR },
     blocks: {
       preferred_words: {
         active: preferWords.length > 0 || avoidWords.length > 0,
@@ -118,10 +105,7 @@ function buildFrontmatter({ id, lang, name, depth, register, prefer = [], avoid 
         moves: explMoves,
         avoid: explAvoid,
       },
-      sentence_structure: {
-        active: Boolean(hasRegister),
-        register: hasRegister ? register.trim() : null,
-      },
+      sentence_structure: { active: false },
       worldview: { active: false },
     },
     target_features: targetFeatures && typeof targetFeatures === 'object' ? targetFeatures : {},
@@ -155,15 +139,13 @@ function buildVoicePrompt({ kind, text, lang }) {
     'Output STRICT JSON and nothing else, with exactly these keys:',
     '{',
     '  "name": "<= 6 word human label for this voice",',
-    '  "depth": "style-only" | "content",',
-    '  "register": "one short phrase, e.g. casual / professional / warm-professional",',
     '  "prefer": ["words or short phrases this voice favors"],',
     '  "avoid": ["words or short phrases this voice avoids"],',
     '  "explanation_moves": ["how this voice explains things"],',
     '  "explanation_avoid": ["explanation habits this voice avoids"]',
     '}',
     '',
-    'Rules: prefer "style-only" unless the input explicitly asks to reweight emphasis/coverage.',
+    'Do not infer document genre, casual/professional register, claims, or safety thresholds.',
     'Each array <= 12 short items. Emit no keys other than those listed. No prose outside the JSON.',
     '',
     `${label}:`,
@@ -186,8 +168,6 @@ async function deriveVoiceViaLLM({ kind, text, lang, callLLM }) {
   }
   return {
     name: typeof parsed.name === 'string' ? parsed.name : undefined,
-    depth: parsed.depth,
-    register: typeof parsed.register === 'string' ? parsed.register : undefined,
     prefer: shortStringArray(parsed.prefer),
     avoid: shortStringArray(parsed.avoid),
     moves: shortStringArray(parsed.explanation_moves),
@@ -272,7 +252,7 @@ async function runWizard({ id, lang, ask, callLLM, repoRoot }) {
 }
 
 function templateFields(id) {
-  return { name: id, depth: 'style-only', register: null, prefer: [], avoid: [], moves: [], avoidMoves: [], targetFeatures: {} };
+  return { name: id, prefer: [], avoid: [], moves: [], avoidMoves: [], targetFeatures: {} };
 }
 
 /**
@@ -316,8 +296,6 @@ export async function runPersonaNew(args, deps = {}) {
   }
 
   const frontmatter = buildFrontmatter({ id: opts.id, lang: opts.lang, ...fields });
-  // Safety gate: the generated frontmatter must pass the persona schema
-  // (FORBIDDEN_KEYS rejected, floors clamped) before it is ever written.
   validatePersona(frontmatter, { id: opts.id, lang: opts.lang });
   const path = writePersonaFile({ repoRoot, lang: opts.lang, id: opts.id, frontmatter, force: opts.force });
   logger.info?.('persona.created', { message: `[patina] created persona '${opts.id}' (${opts.lang}) → ${path}\n  use it: patina --lang ${opts.lang} --persona ${opts.id} <file>` });
@@ -417,9 +395,6 @@ export function runPersonaShow(args, deps = {}) {
     `id:              ${persona.id}`,
     `name:            ${persona.name}`,
     `lang:            ${persona.lang}`,
-    `depth:           ${persona.depth}`,
-    `mps:             floor ${persona.mps.floor} (enforce: ${persona.mps.enforce})`,
-    `fidelity:        floor ${persona.fidelity.floor} (enforce: ${persona.fidelity.enforce})`,
     `active blocks:   ${activeBlocks.join(', ') || '(none)'}`,
     `target_features: ${targetKeys.join(', ') || '(none)'}`,
     `path:            ${path}`,
@@ -430,9 +405,8 @@ export function runPersonaShow(args, deps = {}) {
 }
 
 /**
- * `patina persona rm <id>` — remove a custom persona. Built-in library seeds
- * and the meaning-preserving `preserve` default can never be removed.
- *
+ * `patina persona rm <id>` — remove a custom persona. Built-in personas cannot
+ * be removed.
  * @param {string[]} args CLI args after `persona rm`.
  * @param {object} [deps] Injected dependencies (repoRoot, ask, logger).
  * @returns {Promise<string|null>} Removed path, or null if aborted.
@@ -453,13 +427,6 @@ export async function runPersonaRm(args, deps = {}) {
   if (!id) throw inputError('persona rm requires an id', 'Usage: patina persona rm <id> [--lang ..] [--force]', 'e.g. `patina persona rm my-voice`.');
   assertLang(lang);
   assertPersonaId(id);
-  if (id === 'preserve') {
-    throw inputError(
-      'the preserve persona cannot be removed',
-      'preserve is the meaning-preserving default and must always be available.',
-      'Leave preserve in place; author a different custom persona instead.'
-    );
-  }
   // Reuse the loader's path-containment guard for both candidate paths.
   const customPath = safePersonaPath(resolve(repoRoot, 'custom', 'personas', lang), id);
   const libraryPath = safePersonaPath(resolve(repoRoot, 'personas', lang), id);
@@ -580,7 +547,7 @@ export function printPersonaHelp() {
     '  new <id>     Author a reusable custom persona (saved to custom/personas/<lang>/<id>.md)',
     '  list         List built-in and custom personas',
     '  show <id>    Print a persona\'s normalized config (never the docs body)',
-    '  rm <id>      Remove a custom persona (built-ins and preserve are protected)',
+    '  rm <id>      Remove a custom persona (built-ins are protected)',
     '  edit <id>    Copy-on-edit a persona into custom/personas/<lang>/',
     '',
     'persona new options',
