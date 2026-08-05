@@ -18,16 +18,16 @@ the inputs; deploy the resulting `playground/launch-config.js` with that release
 |---|---|---|
 | `PATINA_PRO_CHECKOUT_ENABLED` | Missing or `false` generates disabled checkout. | Must be exactly `true`. |
 | `PATINA_DEPLOYMENT_CHANNEL` | Not used while checkout is disabled. | Exactly `staging` or `production` and the binding channel. |
-| `PATINA_PRO_CHECKOUT_URL` | Not used while checkout is disabled. | Exact bound Lemon Squeezy HTTPS URL: no userinfo, port, query, fragment, alternate host/subdomain, encoded path, or trailing slash. |
+| `PATINA_PRO_CHECKOUT_URL` | Not used while checkout is disabled. | Exact bound provider HTTPS checkout URL (production: `https://buy.polar.sh/polar_cl_*`): no userinfo, port, query, fragment, alternate host/subdomain, encoded path, or trailing slash. |
 | `PATINA_PRO_GATE_EVIDENCE_ID` | Not used while checkout is disabled. | Staging: `PAY-STG-`; production: `PAY-B-`; exact bound evidence ID in either case. |
 
 `scripts/checkout-evidence-bindings.mjs` is the only authorization table. Its
-production bindings are empty and deeply frozen; environment values alone can
-never enable checkout. Add a real binding only after review of an immutable
-`PAY-STG`/`PAY-B` record and a human supplies the exact Lemon Squeezy URL. Do
-not add a placeholder or sample live binding. Invalid enabled configuration
-fails generation rather than publishing a partly enabled checkout, and explicit
-`false` wins over every other input.
+bindings are deeply frozen; environment values alone can never enable checkout.
+Add a real binding only after review of an immutable `PAY-STG`/`PAY-B` record
+and a human supplies the exact provider checkout URL (currently the Polar
+checkout link). Do not add a placeholder or sample live binding. Invalid
+enabled configuration fails generation rather than publishing a partly enabled
+checkout, and explicit `false` wins over every other input.
 
 The generated public shape is `{schemaVersion:1, channel, enabled,
 checkoutOrigin, checkoutPath, evidence}`. It contains the checkout origin and
@@ -35,7 +35,7 @@ path only, never a secret, payment-provider credential, or license key.
 
 Keep payment-provider dashboard/API credentials and alerting/monitor webhook
 credentials only in the deployment secret manager. This runbook neither assumes
-nor claims that Lemon credentials or customer receipts exist. The application
+nor claims that provider credentials or customer receipts exist. The application
 accepts a customer's license only in the `Authorization: Bearer <license_key>`
 header; raw licenses are not a browser-config, log, or durable-memory value.
 ## Production monitor readiness
@@ -104,7 +104,7 @@ config prefix from `PAY-B-`.
 
 1. Keep production checkout disabled.
 2. After the immutable `PAY-STG-...` record is reviewed and a human supplies the
-   exact Lemon Squeezy URL, add its exact `{channel, evidence, origin, path}`
+   exact provider checkout URL, add its exact `{channel, evidence, origin, path}`
    binding to source control. Then set `PATINA_PRO_CHECKOUT_ENABLED=true`,
    `PATINA_DEPLOYMENT_CHANNEL=staging`, that exact URL, and that evidence ID in
    the staging deployment environment.
@@ -121,8 +121,13 @@ config prefix from `PAY-B-`.
 ## Gate B
 
 Gate B authorizes a production checkout candidate, not an unreviewed payment
-integration. Require staging evidence, a reviewed immutable `PAY-B-...` record,
-the human-supplied exact production Lemon Squeezy URL and its reviewed
+integration. Require staging evidence — or, for the Polar route, the recorded
+`PAY_STG_SUPERSEDED_BY_PRODUCTION_RUNTIME` decision backed by the sandbox
+integration record and the production zero-amount runtime evidence
+(`PAY-LIVE-20260729-POLAR-ea8385dc-4c9c3f17`) — plus a reviewed immutable
+`PAY-B-...` record,
+the human-supplied exact production checkout URL (currently the Polar checkout
+link) and its reviewed
 source-controlled binding, server health/admission checks, rollback owner,
 support/cancel path, and telemetry and PII review.
 
@@ -146,7 +151,7 @@ coverage, and the 10-minute sale-close drill result. Record named approvers and
 the UTC decision in the launch evidence record.
 
 A failed or missing Gate D check means leave checkout disabled. Do not substitute
-a dashboard observation, an assumed Lemon credential, or a presumed receipt for
+a dashboard observation, an assumed provider credential, or a presumed receipt for
 recorded evidence.
 
 ## Live open
@@ -154,7 +159,7 @@ recorded evidence.
 1. Starting from the approved checkout-disabled production artifact, use the
    reviewed source-controlled production binding and set
    `PATINA_PRO_CHECKOUT_ENABLED=true`, `PATINA_DEPLOYMENT_CHANNEL=production`,
-   its exact Lemon Squeezy URL, and its approved `PAY-B-...` evidence ID.
+   its exact provider checkout URL, and its approved `PAY-B-...` evidence ID.
 2. Generate and deploy the browser config atomically with the approved release.
 3. Inspect the deployed config and CTA. It must be production, enabled, and
    limited to the bound origin/path; it must not expose secrets or a full URL
