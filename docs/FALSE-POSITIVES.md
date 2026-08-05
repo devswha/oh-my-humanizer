@@ -62,6 +62,6 @@ Open a false-positive issue with:
 2. a safe sample you are allowed to share;
 3. the Patina score or audit output;
 4. why the passage should remain acceptable in that register;
-5. whether the fix should be an exclusion, lower severity, profile override, or benchmark fixture.
+5. whether the fix should be an exclusion, lower severity, Document Type `pattern-overrides` change, or benchmark fixture.
 
 Maintainer side: accepted reports follow the intake path in `docs/research/humanization-data-backlog.md` ("False-Positive Feedback Intake Path") from issue to intake row to benchmark fixture.

@@ -2,7 +2,7 @@
 // patina-lane: B (persona / LLM rewrite) — post-rewrite meaning verification. See docs/ARCHITECTURE.md.
 import { scoreMPS as defaultScoreMPS, scoreFidelity as defaultScoreFidelity } from './scoring.js';
 import { buildPrompt } from './prompt-builder.js';
-import { stripSelfAudit } from './output.js';
+import { cleanRewriteOutput } from './output.js';
 import { createLogger } from './logger.js';
 
 // Numeric tokens (integers, decimals, grouped numbers). Used by the cheap,
@@ -95,9 +95,15 @@ export async function verifyRewrite({
   rewrite,
   config,
   patterns,
-  profile,
+  documentType,
   voice,
+  persona = null,
+  register = null,
   scoring,
+  promptMode = 'strict',
+  documentSignals = null,
+  jargon = 'keep',
+  rewriteHeadings = false,
   apiKey,
   baseURL,
   model,
@@ -135,9 +141,15 @@ export async function verifyRewrite({
   const retryPrompt = buildPrompt({
     config,
     patterns,
-    profile,
+    documentType,
     voice,
+    persona,
+    register,
     scoring,
+    promptMode,
+    documentSignals,
+    jargon,
+    rewriteHeadings,
     text: original,
     mode: 'rewrite',
     includeSelfAudit: false,
@@ -146,7 +158,7 @@ export async function verifyRewrite({
   let retryText;
   try {
     const raw = await callLLM({ prompt: retryPrompt, apiKey, baseURL, model, signal, timeout });
-    retryText = stripSelfAudit(raw, { logger });
+    retryText = cleanRewriteOutput(raw, { logger });
   } catch (err) {
     logger.warn?.('verify.retry_failed', {
       message: `[patina] verify: retry call failed (${/** @type {any} */ (err)?.message || err}); keeping the first rewrite.`,

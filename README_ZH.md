@@ -70,8 +70,8 @@ curl -fsSL https://raw.githubusercontent.com/devswha/patina/main/install.sh | ba
 常用 skill 调用：
 
 ```text
-/patina --tone professional
-/patina --tone auto --lang en
+/patina --document-type email --register professional
+/patina --document-type blog --persona pragmatic-founder
 ```
 
 ### 独立 CLI
@@ -101,17 +101,33 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 | **184 条模式** | 每种语言 37 条可改写模式 + 9 条仅评分的病毒式钩子模式（KO/EN/ZH/JA 各 46 条）—— 完整的 184 条模式目录见 [PATTERNS.md](docs/PATTERNS.md) |
 | **模式** | rewrite · verify · audit · score · diff |
 | **使用入口** | agent skill · Node CLI · 页面内 preview · 浏览器 playground（改写 + 评分） |
-| **声音控制** | `--persona` 是可复用声音 · `--tone` 覆盖语域 · `--profile` 设置 Node 模式策略（部分 skill/core 路径仍有旧的 profile 声音指导） |
+| **三个改写轴** | `--document-type` 控制体裁/策略 · `--persona` 控制可复用声音 · `--register` 控制 casual/professional 语域 |
 | **免费使用** | 已登录的 `codex`、`claude` 或 `gemini` CLI 可直接运行改写，无需 `PATINA_API_KEY` |
 | **校准** | 编辑热点命中率 67.3% [63.5–71.0%]，跨 GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro（n=600，KO+EN）；在 KO+EN 人类对照上误检率 16.0% [11.6–21.7%]（n=200） |
 | **许可证** | MIT |
 
 分数是有误报和漏报的编辑信号，不是作者身份的证明。见 [Ethics](docs/ETHICS.md)。
 
+## 三个相互独立的轴
+
+patina 不会从一个轴推断另一个轴。省略 Persona 和 Register 时，会保留原文的声音与语域。
+
+| 轴 | 控制 | 不控制 | CLI | 配置 | Playground |
+|---|---|---|---|---|---|
+| **Document Type** | 体裁、用途、结构惯例、模式策略 | 声音、casual/professional 表达、含义保留下限 | `--document-type` | `document-type` | Document |
+| **Persona** | 可复用声音指纹：词汇、节奏、解释习惯 | 体裁、模式策略、Register、含义保留下限 | `--persona` | `persona` | Voice |
+| **Register** | `casual` 或 `professional` 表达方式 | 体裁、Persona 身份、模式策略 | `--register` | `register` | Register |
+
+```bash
+patina --document-type email --register professional note.md
+patina --document-type blog --persona pragmatic-founder post.md
+patina --document-type technical --persona technical-explainer --register casual guide.md
+```
+
 ## 常用命令
 
 ```bash
-patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
+patina --lang <ko|en|zh|ja> [mode] [--document-type <name>] [--persona <name>] [--register <name>] input.txt
 ```
 
 | 命令 | 用途 |
@@ -124,10 +140,13 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 | `patina --diff input.txt` | 按模式逐项展示改动 |
 | `patina --preview page.html` | 把改写结果渲染回保存的 HTML 页面，带视图切换和内联 diff |
 | `patina --verify input.txt` | 改写后检查 MPS/忠实度下限，并重试一次 |
-| `patina --tone auto --lang en input.txt` | 推断并应用 KO/EN 语气轴 |
+| `patina --document-type email --register professional input.txt` | 使用邮件惯例和 professional 语域 |
 | `patina --persona pragmatic-founder input.txt` | 用内置声音人格改写 |
 | `patina persona new my-voice --from-sample past.txt` | 从写作样本创建你自己的人格 |
 | `patina persona list` | 列出内置 + 自制人格 |
+| `patina persona show my-voice --json` | 查看人格的规范化声音配置 |
+| `patina persona edit my-voice --name "New Name"` | 将内置人格复制为 custom shadow 后编辑 |
+| `patina persona rm my-voice` | 删除自制人格（内置人格受保护） |
 | `patina --format json --quiet input.txt` | 适合脚本的输出 |
 | `patina --batch docs/*.md --outdir cleaned/` | 批量文件处理 |
 
@@ -143,7 +162,7 @@ patina persona new my-voice --describe "plain-spoken founder, casual"
 patina --persona my-voice draft.md                          # 之后复用
 ```
 
-可在 ko/en/zh/ja 上与 `--tone`/`--profile` 组合。Node 中，persona 负责可复用声音，语域优先级是 `--tone` > persona，profile 负责模式策略。部分 skill/core-prompt 路径仍保留旧的 profile 声音指导，因此这一区分尚未在所有路径中完全实现。任何控制都不会降低含义下限：自制 persona 会在保存时校验，改写仍强制执行 MPS/忠实度和数字缺失检查。
+可在 ko/en/zh/ja 上独立组合 `--document-type`、`--persona` 与 `--register`。Persona v2 只改变可复用声音，不能定义文档类型、语域、模式策略、verification 或含义下限。自制 Persona 会在保存时校验；全局 rewrite guard 和 `--verify` 独立负责含义保留。
 
 ## CI
 
@@ -191,9 +210,9 @@ Input
 # .patina.default.yaml
 version: "7.0.0"
 language: ko              # ko | en | zh | ja
-profile: default
-output: rewrite           # rewrite | diff | audit | score
-tone:                     # casual | professional | auto  (register override; profile = pattern policy)
+document-type: default    # 体裁/用途 + 模式策略
+persona:                  # 可选；省略时保留原文声音
+register:                 # casual | professional；省略时保留原文语域
 ```
 
 项目级 `.patina.yaml` 会覆盖默认值。模式包按语言前缀自动发现。可追加的列表键（`blocklist`、`allowlist`、`skip-patterns`）会合并；其他数组会直接替换。

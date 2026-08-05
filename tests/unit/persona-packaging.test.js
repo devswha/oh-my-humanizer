@@ -19,20 +19,20 @@ test('package files allowlist includes personas/', () => {
   assert.ok(pkg.files.includes('personas/'), 'package.json files must include personas/ so built-in personas ship');
 });
 
-test('npm pack artifact contains the built-in KO personas (incl. natural-ko)', () => {
+test('npm pack artifact contains the built-in KO Persona catalog', () => {
   const res = spawnSync('npm', ['pack', '--dry-run', '--json'], { cwd: REPO_ROOT, encoding: 'utf8' });
   assert.equal(res.status, 0, res.stderr);
   const packed = JSON.parse(res.stdout)[0].files.map((f) => f.path);
-  assert.ok(packed.includes('personas/ko/natural-ko.md'), 'natural-ko persona must be in the packed artifact');
-  assert.ok(packed.includes('personas/ko/preserve.md'), 'preserve persona must be in the packed artifact');
+  assert.ok(packed.includes('personas/ko/natural-ko.md'), 'natural-ko Persona must be in the packed artifact');
+  assert.ok(packed.includes('personas/ko/technical-explainer.md'), 'technical-explainer Persona must be in the packed artifact');
 });
 
 test('loadPersona resolves the built-in natural-ko from the package layout', () => {
   const persona = loadPersona(REPO_ROOT, 'ko', 'natural-ko');
   assert.equal(persona.id, 'natural-ko');
   assert.equal(persona.lang, 'ko');
-  assert.equal(persona.mps.floor, 70);
-  assert.equal(persona.fidelity.floor, 70);
+  assert.equal(persona.schema, 'patina.persona.v2');
+  assert.equal(Object.hasOwn(persona, 'mps'), false);
   const ids = listPersonas(REPO_ROOT, 'ko').map((p) => p.id ?? p);
   assert.ok(ids.includes('natural-ko'), 'natural-ko must be discoverable via listPersonas');
 });

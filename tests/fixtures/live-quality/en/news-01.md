@@ -1,7 +1,7 @@
 ---
 fixture_id: en-news-01
 language: en
-profile: formal
+documentType: formal
 register: news
 source_type: synthetic-ai
 model_family: fixture
@@ -13,7 +13,7 @@ anchors:
   - 2026
   - loan guarantees
 expected_focus:
-  - neutral tone
+  - neutral register
   - keep figures
 ---
 The government has unveiled a multifaceted support package designed to alleviate the financial burden on small businesses in 2026. The cornerstone of this initiative is the provision of $2.4 billion in loan guarantees, which is expected to deliver tangible relief to entrepreneurs facing liquidity challenges.

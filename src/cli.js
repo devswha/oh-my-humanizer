@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 // The default-run pipeline and its helpers moved to src/cli/run.js (#411).
 // Re-exported so existing imports from src/cli.js keep working unchanged.
-export { createCancellationController, resolvePromptMode, resolveProfileForLanguage } from './cli/run.js';
+export { createCancellationController, resolvePromptMode, resolveDocumentTypeForLanguage } from './cli/run.js';
 
 const PACKAGE_VERSION = JSON.parse(
   readFileSync(resolve(getRepoRoot(), 'package.json'), 'utf8')

@@ -1,7 +1,7 @@
 ---
 fixture_id: ko-news-01
 language: ko
-profile: formal
+documentType: formal
 register: news
 source_type: synthetic-ai
 model_family: fixture

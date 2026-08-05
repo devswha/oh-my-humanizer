@@ -45,20 +45,25 @@ test('H1: out-of-range numeric entities do not throw in preview decoding', () =>
   assert.ok(blocks.some((b) => (b.text || '').includes('ABC')));
 });
 
-// H4 — minimal-mode rewrite with --tone auto includes the detection instruction.
-test('H4: minimal prompt with tone auto includes the auto-detection instruction', () => {
+// H4 — minimal-mode rewrite carries an explicit Register directive.
+test('H4: minimal prompt includes the explicit register directive', () => {
   const prompt = buildPrompt({
-    config: { language: 'en' },
+    config: { language: 'en', documentType: 'default' },
     patterns: [],
-    profile: null,
+    documentType: null,
     voice: null,
     scoring: null,
     text: 'A short draft paragraph that needs a gentle humanizing rewrite pass.',
     mode: 'rewrite',
     promptMode: 'minimal',
-    tone: { tone: null, tone_source: 'auto', tone_evidence: [], tone_confidence: null },
+    register: {
+      register: 'professional',
+      register_source: 'command',
+      register_evidence: ['user-specified'],
+      register_confidence: 'high',
+    },
   });
-  assert.ok(/infer a single tone/i.test(prompt), 'minimal auto prompt must instruct tone detection');
+  assert.match(prompt, /clear and professional/);
 });
 
 // H11 — a whitespace-only env key no longer mis-advertises kimi as authenticated.

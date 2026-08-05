@@ -31,7 +31,7 @@ test('persona new --template writes a valid, loadable custom persona', async () 
   assert.equal(loaded.id, 'my-voice');
   assert.equal(loaded.lang, 'en');
   assert.equal(loaded.source, 'learned');
-  assert.equal(loaded.mps.floor, 70);
+  assert.equal(loaded.schema, 'patina.persona.v2');
 });
 
 test('persona new --describe uses the backend but never leaks gate-weakening keys', async () => {
@@ -48,11 +48,10 @@ test('persona new --describe uses the backend but never leaks gate-weakening key
   });
   const path = await runPersonaNew(['founder-warm', '--lang', 'ko', '--describe', '담백하고 따뜻한 창업자'], { repoRoot, callLLM: mockLLM, logger: silent });
   const raw = readFileSync(path, 'utf8');
-  assert.doesNotMatch(raw, /skip_patterns|blocklist|allowlist|disable_/);
-  // Floors are clamped to the core minimum, not the smuggled value.
+  assert.doesNotMatch(raw, /skip_patterns|blocklist|allowlist|disable_|register:|depth:|mps:|fidelity:/);
   const loaded = loadPersona(repoRoot, 'ko', 'founder-warm');
-  assert.equal(loaded.mps.floor, 70);
-  assert.equal(loaded.mps.enforce, true);
+  assert.equal(loaded.schema, 'patina.persona.v2');
+  assert.equal(Object.hasOwn(loaded, 'mps'), false);
   assert.deepEqual(loaded.blocks.preferredWords.allow, ['구체적으로', '솔직히']);
 });
 
@@ -116,7 +115,7 @@ test('persona list reports built-in and custom personas per language', async () 
   const repoRoot = tempRepo();
   await runPersonaNew(['mine', '--lang', 'ko', '--template'], { repoRoot, logger: silent });
   const listing = runPersonaList(['--lang', 'ko', '--format', 'json'], { repoRoot });
-  assert.ok(listing.ko.builtin.includes('preserve'));
+  assert.ok(listing.ko.builtin.includes('natural-ko'));
   assert.ok(listing.ko.custom.includes('mine'));
   assert.ok(!listing.ko.builtin.includes('mine'));
 });
@@ -138,9 +137,9 @@ function captureLog(fn) {
 
 test('persona show --json prints the normalized persona and never the body', () => {
   const repoRoot = tempRepo();
-  const { logs, ret } = captureLog(() => runPersonaShow(['preserve', '--lang', 'ko', '--json'], { repoRoot }));
+  const { logs, ret } = captureLog(() => runPersonaShow(['natural-ko', '--lang', 'ko', '--json'], { repoRoot }));
   const printed = JSON.parse(logs.join('\n'));
-  const expected = loadPersona(repoRoot, 'ko', 'preserve');
+  const expected = loadPersona(repoRoot, 'ko', 'natural-ko');
   assert.deepEqual(printed, expected);
   assert.deepEqual(ret, expected);
   // The docs-only Markdown body must never appear in JSON output.
@@ -167,13 +166,6 @@ test('persona rm refuses a built-in library persona and leaves it intact', async
   assert.ok(existsSync(libPath));
 });
 
-test('persona rm refuses the preserve default', async () => {
-  const repoRoot = tempRepo();
-  await assert.rejects(
-    () => runPersonaRm(['preserve', '--force'], { repoRoot, logger: silent }),
-    (err) => err instanceof PatinaCliError && err.exitCode === 2,
-  );
-});
 
 test('persona rm requires a custom persona to exist', async () => {
   const repoRoot = tempRepo();
@@ -222,8 +214,8 @@ test('persona edit --name copies a library persona into custom and preserves the
   const reloaded = loadPersona(repoRoot, 'ko', 'natural-ko');
   assert.equal(reloaded.name, 'My Natural KO');
   assert.equal(reloaded.source, 'learned');
-  assert.equal(reloaded.mps.floor, 70);
-  assert.equal(reloaded.fidelity.floor, 70);
+  assert.equal(reloaded.schema, 'patina.persona.v2');
+  assert.equal(Object.hasOwn(reloaded, 'mps'), false);
 });
 
 test('persona edit requires an edit input flag', async () => {

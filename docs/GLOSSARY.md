@@ -28,11 +28,20 @@ The mode that shows changes pattern by pattern, making the edit auditable
 instead of a black-box paraphrase. See the [mode table](../README.md#modes)
 and [examples checklist](EXAMPLES.md#what-patina-is-checking).
 
+## Document Type
+
+The document-policy axis. It selects purpose, audience, structural conventions,
+domain vocabulary/precision, avoidance rules, and language-scoped pattern
+bounds without changing Persona voice, Register, or meaning thresholds. CLI:
+`--document-type`; config: `document-type`. The historical ids `formal` and
+`casual-conversation` refer to structured-document and chat/message conventions;
+they do not select professional or casual Register.
+
 ## Fidelity
 
-A meaning-accuracy score comparing original text with the output. Higher is
-better: it checks whether claims, facts, tone, and length stayed faithful. See
-[Fidelity Scoring](../core/scoring.md#9-fidelity-scoring--overview).
+A meaning-accuracy score comparing original text with a rewrite. Higher is
+better: it checks whether claims, facts, audience/register, and length stayed
+faithful. See [Fidelity Scoring](../core/scoring.md#9-fidelity-scoring--overview).
 
 ## Meaning preservation
 
@@ -49,9 +58,9 @@ language limitations. See [Stylometry](../core/stylometry.md#5-ttr-via-mattr).
 
 ## Mode
 
-A CLI output path such as rewrite, verify, audit, score, or diff. Modes
-control whether patina edits text, verifies meaning preservation, reports
-findings, or scores text. See the [mode table](../README.md#modes).
+A CLI output path such as rewrite, audit, score, or diff. Modes control whether
+patina edits text or reports findings. `--verify` is a rewrite modifier, not a
+separate mode. See the [mode table](../README.md#modes).
 
 ## MPS
 
@@ -73,11 +82,19 @@ A language and category file such as `patterns/en-style.md` or
 `patterns/ko-content.md`. Packs group related patterns and provide counts used
 by scoring. See [PATTERNS.md](PATTERNS.md#language-specific-patterns).
 
-## Profile
+## Persona
 
-A voice preset that can amplify, reduce, or suppress specific patterns for a
-use case such as blog, academic, technical, or legal writing. See
-[profile override adjustments](../core/scoring.md#5-profile-override-adjustments).
+An optional, reusable voice fingerprint. Persona v2 may shape vocabulary,
+rhythm, metaphors, and explanation habits; it cannot select Document Type,
+Register, pattern policy, or meaning thresholds. Omitting `--persona` preserves
+the source voice.
+
+## Register
+
+The `casual` or `professional` delivery axis: wording and sentence-ending
+markers only. Omitting `--register` preserves the source register. Genre values
+such as `academic` and `marketing` are Document Types, while idiolect and rhythm
+belong to Persona.
 
 ## Rewrite mode
 
@@ -87,8 +104,9 @@ meaning survived the edit. See the [Quick Start](../README.md#quick-start) and
 
 ## Score mode
 
-The mode that returns a 0-100 AI-likeness score with category breakdowns and,
-when original text is available, fidelity and MPS signals. See
+The mode that returns a 0-100 AI-likeness score. Default scoring combines
+LLM-judged categories with deterministic signals; `--offline` reports the
+deterministic subset without a backend. See
 [Score Interpretation](../core/scoring.md#7-score-interpretation).
 
 ## Semantic anchor
@@ -103,11 +121,6 @@ A paragraph or sentence group marked for closer inspection by stylometry,
 usually because burstiness, MATTR, or lexicon signals fired. See
 [the stylometry delivery format](../core/stylometry.md#9-llm-delivery-format).
 
-## Tone
-
-A named voice axis, such as casual, professional, academic, narrative,
-marketing, instructional, or auto. Tone is applied on top of pattern rewriting.
-See [Tones](../README.md#tones).
 
 ## Viral hook
 

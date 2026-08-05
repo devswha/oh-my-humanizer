@@ -1,13 +1,39 @@
 import { describe, it } from 'node:test';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import assert from 'node:assert';
 import { loadConfig } from '../../src/config.js';
-import { loadPatterns, loadProfile, loadCoreFile, splitFrontmatter } from '../../src/loader.js';
+import { loadPatterns, loadDocumentType, loadCoreFile, splitFrontmatter } from '../../src/loader.js';
 import { buildPrompt } from '../../src/prompt-builder.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
+function documentPolicySource(id, name, { purpose = 'Explain a thing.' } = {}) {
+  return [
+    '---',
+    `document-type: ${id}`,
+    `name: ${name}`,
+    'version: 1.0.0',
+    'scope: Test documents',
+    `purpose: ${purpose}`,
+    'audience:',
+    '  - Test readers',
+    'structure:',
+    '  - Keep source order',
+    'style:',
+    '  - Use concrete terms',
+    'avoid:',
+    '  - Inventing facts',
+    'pattern-overrides:',
+    '  en:',
+    '    7: amplify',
+    '---',
+    '# Documentation only',
+  ].join('\n');
+}
+
 
 describe('Config Loading', () => {
   it('should load .patina.default.yaml', () => {
@@ -15,13 +41,13 @@ describe('Config Loading', () => {
     assert.ok(config);
     assert.match(config.version, /^\d+\.\d+\.\d+$/);
     assert.ok(config.language);
-    assert.ok(config.profile);
+    assert.ok(config.documentType);
     assert.ok(config.patterns);
     assert.ok(config.scoring);
     assert.ok(config.verification);
   });
 
-  it('should have combined-weights for all profiles', () => {
+  it('should have combined-weights for all calibrated Document Types', () => {
     const config = loadConfig(resolve(REPO_ROOT, '.patina.default.yaml'));
     const weights = config.scoring?.['combined-weights'];
     assert.ok(weights);
@@ -79,8 +105,8 @@ describe('Pattern Loading', () => {
   });
 });
 
-describe('Profile Loading', () => {
-  it('should load all checked-in profiles', () => {
+describe('Document Type Loading', () => {
+  it('should load all checked-in Document Types', () => {
     const names = [
       'default',
       'blog',
@@ -101,23 +127,75 @@ describe('Profile Loading', () => {
       'namuwiki',
     ];
     for (const name of names) {
-      const profile = loadProfile(REPO_ROOT, name);
-      assert.ok(profile, `Profile ${name} should load`);
-      assert.ok(profile.frontmatter || profile.body, `Profile ${name} should have content`);
+      const documentType = loadDocumentType(REPO_ROOT, name);
+      assert.ok(documentType, `Document Type ${name} should load`);
+      assert.ok(documentType.frontmatter || documentType.body, `Document Type ${name} should have content`);
+      const policy = documentType.frontmatter;
+      assert.equal(typeof policy?.purpose, 'string', `Document Type ${name} should define purpose`);
+      for (const field of ['audience', 'structure', 'style', 'avoid']) {
+
+        assert.ok(Array.isArray(policy?.[field]), `Document Type ${name} should define ${field} as a list`);
+        assert.ok(policy[field].length > 0, `Document Type ${name} should define at least one ${field} item`);
+      }
+      const actions = Object.values(policy?.['pattern-overrides'] ?? {}).flatMap((overrides) =>
+        Object.values(overrides ?? {})
+      );
+      assert.ok(
+        actions.every((action) => ['suppress', 'reduce', 'amplify'].includes(action)),
+        `Document Type ${name} should use only suppress/reduce/amplify pattern actions`
+      );
     }
   });
 
-  it('ships the NamuWiki profile as a ko-scoped, license-safe profile', () => {
-    const profile = loadProfile(REPO_ROOT, 'namuwiki');
-    assert.strictEqual(profile.frontmatter?.language, 'ko');
-    assert.match(profile.frontmatter?.['license-note'], /do not copy/i);
-    assert.ok(profile.frontmatter?.['pattern-overrides']?.ko);
-    assert.match(profile.body, /실제 나무위키 문서 문장/);
-    assert.match(profile.body, /\*\*Before\*\*/);
-    assert.match(profile.body, /\*\*After\*\*/);
+  it('prefers a valid custom Document Type over a same-id built-in policy', () => {
+    const root = mkdtempSync(resolve(tmpdir(), 'patina-document-type-'));
+    try {
+      mkdirSync(resolve(root, 'document-types'), { recursive: true });
+      mkdirSync(resolve(root, 'custom', 'document-types'), { recursive: true });
+      writeFileSync(
+        resolve(root, 'document-types', 'newsletter.md'),
+        documentPolicySource('newsletter', 'Built-in newsletter')
+      );
+      writeFileSync(
+        resolve(root, 'custom', 'document-types', 'newsletter.md'),
+        documentPolicySource('newsletter', 'Custom newsletter')
+      );
+
+      const loaded = loadDocumentType(root, 'newsletter');
+      assert.strictEqual(loaded.frontmatter.name, 'Custom newsletter');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
-  it('should ship dev-native genre profiles with targeted guidance and examples', () => {
+  it('rejects a custom Document Type whose frontmatter crosses the axis contract', () => {
+    const root = mkdtempSync(resolve(tmpdir(), 'patina-document-type-'));
+    try {
+      mkdirSync(resolve(root, 'custom', 'document-types'), { recursive: true });
+      const invalid = documentPolicySource('newsletter', 'Invalid newsletter')
+        .replace('style:\n', 'register: professional\nstyle:\n');
+      writeFileSync(resolve(root, 'custom', 'document-types', 'newsletter.md'), invalid);
+
+      assert.throws(
+        () => loadDocumentType(root, 'newsletter'),
+        (error) => error?.exitCode === 2 && /register belongs to another rewrite axis/.test(error.message)
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('ships the NamuWiki Document Type as a ko-scoped, license-safe policy', () => {
+    const documentType = loadDocumentType(REPO_ROOT, 'namuwiki');
+    assert.strictEqual(documentType.frontmatter?.language, 'ko');
+    assert.match(documentType.frontmatter?.['license-note'], /do not copy/i);
+    assert.ok(documentType.frontmatter?.['pattern-overrides']?.ko);
+    assert.match(documentType.body, /실제 나무위키 문서 문장/);
+    assert.match(documentType.body, /\*\*Before\*\*/);
+    assert.match(documentType.body, /\*\*After\*\*/);
+  });
+
+  it('should ship dev-native Document Types with targeted guidance and examples', () => {
     const expected = {
       'code-comment': ['This function', 'TODO(#421)', 'Uninformative inline summary'],
       'commit-message': ['This commit', 'Tested:', 'Inflated future promise'],
@@ -125,34 +203,34 @@ describe('Profile Loading', () => {
     };
 
     for (const [name, markers] of Object.entries(expected)) {
-      const profile = loadProfile(REPO_ROOT, name);
-      const overrides = profile.frontmatter?.['pattern-overrides'];
-      assert.ok(overrides, `Profile ${name} should define pattern-overrides`);
+      const documentType = loadDocumentType(REPO_ROOT, name);
+      const overrides = documentType.frontmatter?.['pattern-overrides'];
+      assert.ok(overrides, `Document Type ${name} should define pattern-overrides`);
       for (const lang of ['ko', 'en', 'zh', 'ja']) {
-        assert.ok(overrides[lang], `Profile ${name} should define ${lang} overrides`);
+        assert.ok(overrides[lang], `Document Type ${name} should define ${lang} overrides`);
       }
       for (const marker of markers) {
-        assert.match(profile.body, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+        assert.match(documentType.body, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
       }
-      assert.match(profile.body, /\*\*Before\*\*/);
-      assert.match(profile.body, /\*\*After\*\*/);
+      assert.match(documentType.body, /\*\*Before\*\*/);
+      assert.match(documentType.body, /\*\*After\*\*/);
     }
   });
 
-  it('should provide zh/ja pattern overrides for multilingual profile parity', () => {
+  it('should provide zh/ja pattern overrides for multilingual Document Type parity', () => {
     const names = ['blog', 'casual-conversation', 'formal', 'instructional', 'narrative'];
     const documentedValues = new Set(['suppress', 'reduce', 'amplify']);
     for (const name of names) {
-      const profile = loadProfile(REPO_ROOT, name);
-      const overrides = profile.frontmatter?.['pattern-overrides'];
-      assert.ok(overrides, `Profile ${name} should define pattern-overrides`);
+      const documentType = loadDocumentType(REPO_ROOT, name);
+      const overrides = documentType.frontmatter?.['pattern-overrides'];
+      assert.ok(overrides, `Document Type ${name} should define pattern-overrides`);
       for (const lang of ['zh', 'ja']) {
-        assert.ok(overrides[lang], `Profile ${name} should define ${lang} overrides`);
+        assert.ok(overrides[lang], `Document Type ${name} should define ${lang} overrides`);
         const values = Object.values(overrides[lang]);
-        assert.ok(values.length > 0, `Profile ${name} ${lang} overrides should not be empty`);
+        assert.ok(values.length > 0, `Document Type ${name} ${lang} overrides should not be empty`);
         assert.ok(
           values.some((value) => documentedValues.has(value)),
-          `Profile ${name} ${lang} should document suppress/reduce/amplify behavior`
+          `Document Type ${name} ${lang} should document suppress/reduce/amplify behavior`
         );
       }
     }
@@ -196,13 +274,13 @@ describe('Prompt Building', () => {
   it('should build a rewrite prompt', () => {
     const config = loadConfig(resolve(REPO_ROOT, '.patina.default.yaml'));
     const patterns = loadPatterns(REPO_ROOT, 'en');
-    const profile = loadProfile(REPO_ROOT, 'default');
+    const documentType = loadDocumentType(REPO_ROOT, 'default');
     const voice = loadCoreFile(REPO_ROOT, 'voice.md');
 
     const prompt = buildPrompt({
       config,
       patterns,
-      profile: profile.body ? profile : null,
+      documentType: documentType.body ? documentType : null,
       voice: voice.body ? voice : null,
       text: 'This is a test sentence.',
       mode: 'rewrite',
@@ -217,14 +295,14 @@ describe('Prompt Building', () => {
   it('should build a score prompt', () => {
     const config = loadConfig(resolve(REPO_ROOT, '.patina.default.yaml'));
     const patterns = loadPatterns(REPO_ROOT, 'en');
-    const profile = loadProfile(REPO_ROOT, 'default');
+    const documentType = loadDocumentType(REPO_ROOT, 'default');
     const voice = loadCoreFile(REPO_ROOT, 'voice.md');
     const scoring = loadCoreFile(REPO_ROOT, 'scoring.md');
 
     const prompt = buildPrompt({
       config,
       patterns,
-      profile: profile.body ? profile : null,
+      documentType: documentType.body ? documentType : null,
       voice: voice.body ? voice : null,
       scoring: scoring.body ? scoring : null,
       text: 'This is a test sentence.',

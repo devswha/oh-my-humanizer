@@ -1,7 +1,7 @@
 ---
 fixture_id: en-instructional-01
 language: en
-profile: instructional
+documentType: instructional
 register: instructional
 source_type: synthetic-ai
 model_family: fixture

@@ -15,6 +15,17 @@
 /** Languages the rewrite pipeline supports. */
 export const SUPPORTED_LANGS = Object.freeze(['ko', 'en', 'zh', 'ja']);
 
+/** Public document-policy names shared by the CLI and hosted API. */
+export const WEB_DOCUMENT_TYPES = Object.freeze([
+  'default', 'blog', 'academic', 'technical', 'formal', 'social', 'email',
+  'legal', 'medical', 'marketing', 'narrative', 'instructional',
+  'casual-conversation', 'code-comment', 'commit-message', 'release-notes',
+  'namuwiki',
+]);
+
+/** Explicit register overrides. Omission preserves the source register. */
+export const WEB_REGISTERS = Object.freeze(['casual', 'professional']);
+
 /**
  * Whether the env describes a production deployment. Shared by the rate
  * limiter, the entitlement layer (both via rate-limit.js's re-export), and the
@@ -196,13 +207,11 @@ export const PROVIDER_PRESETS = Object.freeze({
 });
 
 /**
- * Voice personas offered by the hosted playground, per language. Curated genre
- * voices only: when no persona is chosen the server applies its default (ko ->
- * preserve; en/zh/ja stay voice-free), so this list is the OPT-IN set. It is the
- * isomorphic single source of truth — the browser builds the Voice selector from
- * it, and the server validates a requested id against it before ever touching the
- * persona loader. Every id MUST ship as personas/<lang>/<id>.md (pinned by a
- * bundled-assets test in tests/unit/web-rewrite.test.js).
+ * Voice personas offered by the hosted playground, per language. These are
+ * opt-in reusable voices: when no persona is chosen, the server preserves the
+ * source voice. The browser builds its Voice selector from this list, and the
+ * server validates an id before touching the persona loader. Every id MUST ship
+ * as personas/<lang>/<id>.md.
  */
 export const WEB_PERSONAS = Object.freeze({
   ko: Object.freeze([
@@ -419,6 +428,28 @@ export function validateRewriteRequest(body, env = {}, options = {}) {
     return { ok: false, status: 400, error: 'text must be a non-empty string' };
   }
 
+  if (Object.prototype.hasOwnProperty.call(body, 'profile')) {
+    return { ok: false, status: 400, error: 'profile was removed; use documentType' };
+  }
+  for (const retiredKey of ['tone', 'formality']) {
+    if (Object.prototype.hasOwnProperty.call(body, retiredKey)) {
+      return { ok: false, status: 400, error: `${retiredKey} was removed; use register` };
+    }
+  }
+  const documentTypeRaw = /** @type {any} */ (body).documentType;
+  const documentType = documentTypeRaw == null || documentTypeRaw === '' ? 'default' : documentTypeRaw;
+  if (typeof documentType !== 'string' || !WEB_DOCUMENT_TYPES.includes(documentType)) {
+    return { ok: false, status: 400, error: `documentType must be one of ${WEB_DOCUMENT_TYPES.join(', ')}` };
+  }
+  if (documentType === 'namuwiki' && lang !== 'ko') {
+    return { ok: false, status: 400, error: 'documentType "namuwiki" is available only for ko' };
+  }
+  const registerRaw = /** @type {any} */ (body).register;
+  const register = registerRaw == null || registerRaw === '' ? undefined : registerRaw;
+  if (register !== undefined && (typeof register !== 'string' || !WEB_REGISTERS.includes(register))) {
+    return { ok: false, status: 400, error: `register must be one of ${WEB_REGISTERS.join(', ')}` };
+  }
+
   // Pro tier gates on the license credential BEFORE char caps or provider/model
   // resolution, so an unauthenticated pro request always fails closed with 401
   // LICENSE_REQUIRED and never leaks limit/config state ahead of the auth
@@ -479,9 +510,8 @@ export function validateRewriteRequest(body, env = {}, options = {}) {
   const normHistory = normalizeHistory(history);
   if (!normHistory.ok) return { ok: false, status: 400, error: 'error' in normHistory ? normHistory.error : 'invalid history' };
 
-  // Optional voice persona. Absent -> the server default (ko preserve; en/zh/ja
-  // voice-free). When present it MUST be one of the offered voices for this
-  // language, so an arbitrary/adversarial id can never reach the persona loader.
+  // Optional voice persona. Absent means preserve the source voice. When
+  // present it MUST be one of the offered voices for this language.
   const personaRaw = /** @type {any} */ (body).persona;
   let persona;
   if (personaRaw != null && personaRaw !== '') {
@@ -505,6 +535,8 @@ export function validateRewriteRequest(body, env = {}, options = {}) {
       baseURL: resolved.baseURL,
       apiKey: tier === WEB_TIERS.BYOK ? apiKey : undefined,
       persona,
+      documentType,
+      register,
     },
   };
 }

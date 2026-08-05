@@ -503,7 +503,7 @@ export function scoreDeterministicSignals({
     }
     const result = analyzer(String(text || ''), {
       lang,
-      profile: config.profile,
+      documentType: config.documentType,
       register: config.register ?? null,
       repoRoot,
       burstinessBands: config.stylometry?.burstiness?.bands,
@@ -550,7 +550,7 @@ export function scoreDeterministicSignals({
     // Calibrated weak short-form (social/marketing) punctuation floor (#13
     // short-form branch). Register-gated and Low-severity by design, so it only
     // nudges eligible SNS text off an exact 0 and is inert for the default
-    // profile. Reconstructs the same category math as the LLM path (style
+    // document type. Reconstructs the same category math as the LLM path (style
     // pattern count x severity, short-text 1.5x boost) rather than an ad-hoc
     // penalty, so a single em dash contributes ~1.7 and stays in the human band.
     const shortFormFloor = computeShortFormEvidenceFloor({ result, config, lang, patterns });
@@ -921,7 +921,7 @@ export function lengthRatioPoints(original, rewritten) {
  * @returns {Promise<Object>} Fidelity result.
  * @throws {Error} When the operation is aborted.
  * @example
- * const fidelity = await scoreFidelity({ original: 'A', rewritten: 'A', callLLM: async () => '{"criteria":{"meaning":3,"tone":3,"no_unintended_additions":3}}' });
+ * const fidelity = await scoreFidelity({ original: 'A', rewritten: 'A', callLLM: async () => '{"claims_preserved":3,"no_fabrication":3,"audience_register_match":3}' });
  */
 export async function scoreFidelity({
   original,
@@ -958,14 +958,14 @@ Each criterion: 0-3 points. High=3 (preserved), Medium=2 (minor drift), Low=1 (n
 Criteria:
 1. claims_preserved — every factual claim in ORIGINAL appears (perhaps rephrased) in REWRITTEN. Stylistic packaging is not a claim: hype and intensifiers ("cutting-edge", "unprecedented", "seamlessly", "revolutionary", "transformative") carry no checkable content, so their absence is never a loss. Score only entities, numbers, causal links, conclusions, and polarity.
 2. no_fabrication — REWRITTEN does not add claims/facts not present in ORIGINAL.
-3. tone_match — REWRITTEN still serves the same audience and domain register as ORIGINAL: a policy notice reads as a policy notice, a product page as a product page. Judge that function, not surface polish. Dropping AI-ish formality, hype, or ceremony while the audience and domain hold is High, not drift. Score Low or Fail only for a real register violation, such as an academic passage rewritten as slang or a casual note rewritten as legalese.
+3. audience_register_match — REWRITTEN still serves the same audience and document function as ORIGINAL: a policy notice reads as a policy notice, a product page as a product page. Judge that function, not surface polish. Dropping AI-ish stiffness, hype, or ceremony while the audience and function hold is High, not drift. Score Low or Fail only for a real register mismatch, such as an academic passage rewritten as slang or a casual note rewritten as legalese.
 
 Return ONLY this JSON, no markdown:
 
 {
   "claims_preserved": 0,
   "no_fabrication": 0,
-  "tone_match": 0,
+  "audience_register_match": 0,
   "rationale": "one sentence per criterion"
 }
 
@@ -1009,14 +1009,14 @@ ${rewritten}
 
   const claims = clamp03(parsed?.claims_preserved);
   const noFab = clamp03(parsed?.no_fabrication);
-  const tone = clamp03(parsed?.tone_match);
-  const fidelity = ((claims + noFab + tone + lengthPoints) / 12) * 100;
+  const registerMatch = clamp03(parsed?.audience_register_match);
+  const fidelity = ((claims + noFab + registerMatch + lengthPoints) / 12) * 100;
 
   return {
     criteria: {
       claims_preserved: claims,
       no_fabrication: noFab,
-      tone_match: tone,
+      audience_register_match: registerMatch,
       length_ratio: lengthPoints,
     },
     length_ratio_pct: lengthRatio,
@@ -1047,24 +1047,24 @@ function rethrowIfAborted(err, signal) {
 }
 
 // Combined score per core/scoring.md §13: AI-likeness × ai_weight + (100 - fidelity) × fidelity_weight.
-// Lower is better. Falls back to default weights if profile not configured.
+// Lower is better. Falls back to default weights if the document type is not configured.
 /**
  * Combine AI-likeness, inverted fidelity, and optional deterministic score.
  *
  * @param {object} options Combined score inputs.
  * @param {number} options.aiLikeness AI-likeness score, lower is better.
  * @param {number} options.fidelity Fidelity score, higher is better.
- * @param {string} [options.profile] Profile name for configured weights.
+ * @param {string} [options.documentType] Document type for configured weights.
  * @param {object} [options.config] Effective config.
  * @param {number|object|null} [options.deterministicScore] Optional deterministic score.
  * @returns {number} Combined score, lower is better.
  * @example
- * const score = combinedScore({ aiLikeness: 20, fidelity: 90, profile: 'default', config: {} });
+ * const score = combinedScore({ aiLikeness: 20, fidelity: 90, documentType: 'default', config: {} });
  */
-export function combinedScore({ aiLikeness, fidelity, profile, config, deterministicScore }) {
-  const profileWeights = config?.scoring?.['combined-weights']?.[profile];
-  const ai = profileWeights?.['ai-likeness'] ?? 0.6;
-  const fid = profileWeights?.fidelity ?? 0.4;
+export function combinedScore({ aiLikeness, fidelity, documentType, config, deterministicScore }) {
+  const documentTypeWeights = config?.scoring?.['combined-weights']?.[documentType];
+  const ai = documentTypeWeights?.['ai-likeness'] ?? 0.6;
+  const fid = documentTypeWeights?.fidelity ?? 0.4;
   const deterministicWeight = deterministicScoringOptions(config).combinedWeight;
   const deterministic = toFiniteScore(deterministicScore?.overall ?? deterministicScore);
   const fidelityInverted = 100 - fidelity;

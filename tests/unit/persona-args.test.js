@@ -15,8 +15,8 @@ function assertPersonaAllowed(args) {
   assert.doesNotThrow(() => validatePersonaRequest(parseArgs(args)));
 }
 
-test('--persona rejects non-rewrite and preview surfaces', () => {
-  for (const flag of ['--score', '--audit', '--diff', '--preview']) {
+test('--persona rejects non-rewrite surfaces', () => {
+  for (const flag of ['--score', '--audit', '--diff']) {
     assertPersonaInputError([flag, '--persona', 'preserve', 'draft.md']);
   }
 });
@@ -25,14 +25,11 @@ test('--persona rejects unsupported options at parse time', () => {
   assertPersonaInputError(['--persona', 'preserve', '--unsupported-option', 'draft.md']);
 });
 
-test('--persona rejects comma-list transform variants', () => {
-  assertPersonaInputError(['--persona', 'preserve', '--jargon', 'keep,remove', 'draft.md']);
-  assertPersonaInputError(['--persona', 'preserve', '--tone', 'casual,professional', 'draft.md']);
-});
-
-test('--persona rejects jargon rewrite policies', () => {
-  assertPersonaInputError(['--persona', 'preserve', '--jargon', 'explain', 'draft.md']);
-  assertPersonaInputError(['--persona', 'preserve', '--jargon', 'remove', 'draft.md']);
+test('--persona composes with rewrite transformations', () => {
+  assertPersonaAllowed(['--persona', 'natural-ko', '--jargon', 'keep,remove', 'draft.md']);
+  assertPersonaAllowed(['--persona', 'natural-ko', '--register', 'casual,professional', 'draft.md']);
+  assertPersonaAllowed(['--persona', 'natural-ko', '--jargon', 'explain', 'draft.md']);
+  assertPersonaAllowed(['--persona', 'natural-ko', '--jargon', 'remove', 'draft.md']);
 });
 
 test('--persona now allows all supported languages (multilingual)', () => {
@@ -41,7 +38,7 @@ test('--persona now allows all supported languages (multilingual)', () => {
   }
 });
 
-test('--persona allows single tone and profile', () => {
-  assertPersonaAllowed(['--persona', 'preserve', '--tone', 'casual', 'draft.md']);
-  assertPersonaAllowed(['--persona', 'preserve', '--profile', 'blog', 'draft.md']);
+test('--persona allows a single register and Document Type', () => {
+  assertPersonaAllowed(['--persona', 'preserve', '--register', 'casual', 'draft.md']);
+  assertPersonaAllowed(['--persona', 'preserve', '--document-type', 'blog', 'draft.md']);
 });

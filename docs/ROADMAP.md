@@ -186,31 +186,32 @@ Acceptance criteria:
 - Integration docs are tested manually before public launch posts.
 - Each integration has one minimal example and one realistic example.
 
-### Phase 4 — custom persona authoring
+### Phase 4 — custom Persona authoring (shipped in 7.0.0)
 
-**Voice-axis baseline (release 7.0.0 documentation):** persona owns reusable voice composition. In Korean and English, `--tone casual|professional|auto` is the register override and wins over a persona's register. A profile currently supplies deterministic pattern policy.
+The shipped axis contract is explicit:
 
-This is a current-vs-target distinction: some skill and core-prompt paths still carry legacy voice guidance from profiles, so “profile is pattern-policy only everywhere” is not yet a universal invariant. This release changes no prompts or runtime behavior, does not merge the axes or rename `--tone`, and exposes no new hosted controls.
+- Document Type owns genre, purpose, structural conventions, and pattern policy.
+- Persona v2 is optional and owns only reusable voice.
+- Register owns only `casual` or `professional` delivery.
+- Meaning preservation and verification are global; no axis can weaken them.
+
+`patina persona new|list|show|edit|rm` covers the custom Persona lifecycle in
+ko/en/zh/ja. Omitting `--persona` preserves the source voice. The v7 CLI rejects
+the retired `--profile`, `--tone`, and `--formality` inputs with migration
+errors rather than aliases.
 
 Later work, not shipped behavior:
-- Complete profile-policy-only handling across the remaining paths.
-- Verify retry-context preservation when persona, tone, and profile are combined.
-- Consider whether user-facing copy should call the register control “Register” while retaining `--tone`.
 
-Goal: let users define and reuse a persona rather than supplying raw style samples.
+- **Corpus-distilled quantitative bands**: a separately approved
+  `persona new --from-corpus <dir>` path could derive per-metric allow-bands from
+  the user's own corpus using LLM-free stylometry.
+- **Personalized avoided lexicon**: derive a Persona's avoid list from terms
+  absent from the user's corpus.
+- **Holdout validation**: reserve part of the user's corpus to verify that a
+  derived voice fingerprint generalizes before offering it.
 
-- Build on the existing persona harness (`src/personas/`, `personas/ko/`) and the separate `--persona` / `--tone` / `--profile` axes rather than a sample-injection path.
-- Provide an authoring entry point so a user can create and reuse a named custom persona for voice composition and genre; tone remains the run-level register override, with the same MPS/fidelity floors enforced.
-- This replaces the removed `--voice-sample` style anchor (dropped in 6.0.0): the "sound like me" use case becomes a saved custom persona, not a per-run sample file.
-- **Corpus-distilled quantitative bands**: a `persona new --from-corpus <dir>` path that ingests a multi-document personal corpus and distills per-metric allow-bands (p5/p95) from patina's existing deterministic stylometry (burstiness / MATTR / lexicon density / line rhythm) — promoting a persona from qualitative blocks to a quantitative, verifiable voice fingerprint, optionally segmented by genre/channel. Bands live in `src/features/*` (LLM-free); the persona still cannot lower the MPS/fidelity floors.
-- **Personalized avoided-lexicon**: derive a persona's `avoid` list from the user corpus's zero-occurrence terms (a personal AI-tell dictionary), complementing the generic corpus-grounded AI lexicon.
-- **Holdout validation methodology**: seal ~15% of the user corpus, build bands only on the rest, and verify a distilled persona generalizes to the unseen holdout (plus a corpus manifest/ledger integrity check) before it is offered.
-- Trigger + attribution: a large effort that competes with the payment/launch path — implementation starts only after payment stabilization and a **separate** approval. The genre×channel fingerprint bands, personalized zero-occurrence tells, and holdout/ledger methodology are adopted (idea-level) from `kimsh-1/gn-voice` (MIT — Section A: `scripts/`, `references/fingerprint-slim.json`, `references/ai-tells.json`, `style-profile/`). patina distills only the user's own corpus and never ingests gn-voice's `corpus/`, `analysis/`, or `examples/` (Section B, all rights reserved). Credit gn-voice in `NOTICE` if any Section A structure is reused.
-
-Acceptance criteria:
-- A user can author, save, and select a custom persona without editing source.
-- Custom personas honor the same meaning-preservation/fidelity hard floors as bundled personas.
-- No regression to the conservative `preserve` default for users who do not author one.
+These larger personalization paths remain gated behind payment stabilization
+and separate approval.
 
 ## 3. Community roadmap
 

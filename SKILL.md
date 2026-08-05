@@ -33,7 +33,9 @@ Glob ./.patina.yaml → 있으면 Read
 우선순위는 `.patina.default.yaml` → `~/.patina.yaml` → `./.patina.yaml` → `$ARGUMENTS`다. YAML 매핑은 재귀 병합하고 `blocklist`, `allowlist`, `skip-patterns`는 중복 없이 합친다. 다른 배열은 뒤 설정의 값으로 교체한다.
 
 설정에서 다음을 확인:
-- `profile`: 사용할 프로필 (기본: `default`)
+- `document-type`: 문서 장르·용도와 패턴 정책 (기본: `default`)
+- `persona`: 선택적 재사용 목소리. 생략하면 원문 목소리 보존
+- `register`: 선택적 격식 수준 (`casual | professional`). 생략하면 원문 레지스터 보존
 - `patterns`: 로드할 패턴 팩 목록
 - `skip-patterns`: 건너뛸 패턴 팩
 - `output`: 출력 모드 (`rewrite` | `diff` | `audit` | `score`)
@@ -41,41 +43,32 @@ Glob ./.patina.yaml → 있으면 Read
 - `allowlist`: 감지 제외 어휘
 
 `$ARGUMENTS`에서 옵션을 파싱하여 설정을 오버라이드:
-- `--profile <name>`: 프로필 변경
+- `--document-type <name>`: 문서 유형 변경
+- `--persona <name>`: 재사용 목소리 선택
+- `--register <casual|professional>`: 격식 수준 변경. `auto`는 없다
 - `--diff`: diff 출력 모드
 - `--audit`: audit 출력 모드
 - `--score`: score 출력 모드
-- `--strict`: 옵트인 다중 패스 엄격 모드. rewrite 출력 모드를 사용한다. `--lang`, `--tone`, `--profile`와 함께 사용할 수 있다. `--audit`, `--diff`, `--score`와 함께 사용할 수 없다.
-- `--lang <code>`: 처리 언어 변경 (ko, en, zh, ja). 설정 파일의 `language` 값을 오버라이드한다.
-- `--tone <name>`: 어투(레지스터) 지정. 유효값: `casual | professional | auto`. academic/marketing/narrative/instructional 은 장르이므로 `--profile <name>` 을 쓴다. 알 수 없는 값이면 즉시 오류: "Unknown tone '<name>'. Valid tones: casual, professional, auto"
-- `--batch <files>`: 여러 파일을 한꺼번에 처리 (glob 또는 명시적 경로 목록).
-  - `--in-place`: 원본 파일을 교정된 텍스트로 덮어쓴다.
-  - `--suffix <ext>`: 결과를 `{원본명}{ext}` 파일로 저장한다 (예: `--suffix .humanized`).
-  - `--outdir <dir>`: 결과를 지정 디렉토리에 저장한다.
+- `--strict`: 옵트인 다중 패스 엄격 모드. rewrite 출력 모드를 사용하며 세 축과 조합할 수 있다. `--audit`, `--diff`, `--score`와는 함께 쓸 수 없다
+- `--lang <code>`: 처리 언어 변경 (`ko | en | zh | ja`)
+- `--batch <files>`: 여러 파일을 한꺼번에 처리 (glob 또는 명시적 경로 목록)
+  - `--in-place`: 원본 파일을 교정된 텍스트로 덮어쓴다
+  - `--suffix <ext>`: 결과를 `{원본명}{ext}` 파일로 저장한다
+  - `--outdir <dir>`: 결과를 지정 디렉토리에 저장한다
 
-**톤 해석 우선순위 (v3.10):**
+세 축은 서로를 추론하거나 선택하지 않는다:
 
 ```
-resolved_tone = CLI --tone || config.tone || null
-
-if resolved_tone == null and config.profile present:
-  → "profile-only mode" (4.5b 단계 건너뜀; footer: tone=null, tone_source=profile_only)
-
-if resolved_tone == "auto":
-  → 4.5b 단계에서 휴리스틱 자동 감지 수행 (casual 또는 professional 로 확정)
-
-if resolved_tone in {casual, professional}:
-  → tone_source=user, tone_evidence=["user-specified"], tone_confidence=high
-  → 톤은 어투(레지스터)만 정한다. 장르 프로필은 `--profile` 로만 결정되며 톤은 프로필을 고르지 않는다 (백본 매핑 제거, 6.0).
-  → academic / narrative / marketing / instructional 은 더 이상 톤이 아니다 — 그건 장르이므로 `--profile <name>` 을 쓴다.
-
-if --lang in {zh, ja} and resolved_tone != null:
-  → footer에 경고 추가: tone "<name>" is en/ko-only in v1; falling back to default profile
-  → tone_source=unsupported_language_fallback
-  → profile-only 경로로 fallback
+document_type = CLI --document-type || config.document-type || "default"
+persona       = CLI --persona       || config.persona       || null
+register      = CLI --register      || config.register      || null
 ```
 
-**legal/medical fidelity 보존 (R2):** resolved_tone=professional이더라도 config.profile이 `legal` 또는 `medical`이면 `scoring.combined-weights.legal/medical` (fidelity 0.65)을 강제 적용한다.
+- Document Type은 문서 관습과 `pattern-overrides`만 정한다. 목소리와 격식을 바꾸지 않는다.
+- Persona는 목소리 특성만 정한다. 문서 유형·레지스터·안전 하한을 바꾸지 않는다.
+- Register는 `casual | professional` 전달 방식만 정한다. 장르나 페르소나를 고르지 않는다.
+- 생략된 Persona와 Register는 각각 원문의 목소리와 레지스터를 보존한다.
+- `profile`, `tone`, `formality`, `--profile`, `--tone`, `--formality`는 v7 입력이 아니다. 사용되면 새 축 이름을 안내하고 실패한다.
 
 `--score`이면 `core/scoring.md`도 로드한다.
 파일이 없으면 에러: "core/scoring.md not found. Please update patina."
@@ -104,28 +97,28 @@ Glob custom/patterns/{lang}-*.md → Read (사용자 커스텀 패턴 추가 로
 
 ---
 
-## 3단계: 프로필 로드
+## 3단계: Document Type 로드
 
 ```
-Read profiles/{profile}.md
-Glob custom/profiles/{profile}.md → Read (사용자 커스텀 프로필 우선 로드)
+Glob custom/document-types/{document-type}.md → 있으면 Read
+Read document-types/{document-type}.md
 ```
 
-커스텀 프로필(`custom/profiles/{profile}.md`)이 있으면 우선 사용한다. 없으면 `profiles/{profile}.md`를 사용한다. 둘 다 없으면 `profiles/default.md`를 사용한다. `profiles/namuwiki.md`는 한국어 전용이므로 `--lang`이 `ko`가 아니면 기본 프로필로 폴백한다.
+커스텀 문서 유형이 있으면 우선 사용한다. 둘 다 없으면 `document-types/default.md`를 사용한다. `namuwiki`는 한국어 전용이므로 다른 언어에서는 `default`로 폴백한다.
 
-프로필에 `voice-overrides`와 `pattern-overrides`가 있으면 이를 파싱하여 5단계에서 적용한다.
-- `voice-overrides`: voice.md 지침의 강도를 프로필별로 조절 (amplify/allow/suppress)
-- `pattern-overrides`: 특정 패턴의 교정 강도를 조절 (amplify/normal/reduce/suppress)
-
-이 필드가 없는 프로필(예: default.md)은 기본값을 사용한다.
+문서 유형의 frontmatter에서 `purpose`, `audience`, `structure`, `style`, `avoid`, `pattern-overrides`를 읽어 4.8단계 문서 브리프와 5단계 패턴 처리에 적용한다. Markdown 본문은 문서로만 취급한다. Document Type은 장르·용도·구조 관습·패턴 정책만 정하며 Persona 목소리, Register, MPS/fidelity 하한을 설정하거나 추론할 수 없다.
 
 ---
 
-## 4단계: 목소리 지침 로드
+## 4단계: 기본 목소리와 Persona 로드
 
 ```
 Read core/voice.md
+Glob custom/personas/{lang}/{persona}.md → 명시한 persona가 있으면 Read
+Read personas/{lang}/{persona}.md → 커스텀이 없을 때
 ```
+
+`core/voice.md`는 모든 rewrite에 적용되는 기본 편집 원칙이다. Persona가 생략되면 원문 목소리를 보존한다. Persona가 있으면 YAML frontmatter의 목소리 블록만 적용하고 Markdown 본문은 문서로만 취급한다. Persona는 Document Type, Register, 패턴 정책, MPS/fidelity 하한을 바꿀 수 없다.
 
 ---
 
@@ -156,46 +149,6 @@ Read core/voice.md
 - 각 앵커는 `{type, content, paragraph_index, polarity}` 형태로 기록한다.
 - 앵커 목록은 내부 작업 메모리이며 사용자 대면 출력에 포함하지 않는다.
 - 앵커 구조는 언어와 무관하다. 추출은 원문 언어로 수행한다.
-
----
-
-## 4.5b단계: 톤 자동 감지 (Tone Auto-Detection)
-
-**실행 조건:** `resolved_tone == "auto"` 일 때만 실행한다. `resolved_tone`이 null이거나 명시 톤(`casual`/`professional`)이면 이 단계를 건너뛴다.
-
-**짧은 입력 예외:** 텍스트가 단락 < 2 OR 전체 문장 < 2이면 감지를 실행하지 않는다 → `professional` 톤으로 기록, `tone_source: skipped_short_input`, `tone_confidence: low`, `tone_evidence: ["input too short"]`. 이것은 폴백이 아니라 감지 시작 안 함이다 (A5 위배 아님). `skipped_short_input` 은 감지를 **건너뛴** 경우 전용 라벨이며, 감지가 실행되었으나 잔류 규칙으로 떨어진 경우(아래 잔류 규칙 항목)와 명확히 구분된다.
-
-**휴리스틱 신호 (각 신호가 트리거되면 해당 tone 버킷에 +1점):**
-
-| 신호 | 트리거 조건 | 귀속 톤 |
-|------|------------|---------|
-| **어휘: casual-ko** | `진짜`, `솔직히`, `근데`, `뭐`, `어`, `걍`, `좀`, `그냥`, `ㅋ`, `ㅎ` 중 3개 이상 | casual |
-| **어휘: casual-en** | 축약형(`don't`, `I'm`, `it's`, `can't`, `won't`) 2개 이상 OR `honestly`, `actually`, `kinda`, `tbh` 등장 | casual |
-
-**잔류(residual) 규칙:** 위 신호 중 어느 버킷도 임계값(1점)을 넘기지 못하면 → `professional` (중립 기본값).
-- `tone_source: auto` (감지는 실행되었음 — short-input 의 `skipped_short_input` 과 구분)
-- `tone_evidence: ["no signal cluster reached threshold; residual default"]`
-- `tone_confidence: low`
-
-**신뢰도 버킷:**
-```
-high:   top-bucket score >= 2 × runner-up
-medium: top-bucket score >= 1.3 × runner-up
-low:    otherwise (여전히 단일 톤으로 확정 — A5)
-```
-
-**출력:** 내부 `<detected-tone>` 블록으로만 기록. 사용자 대면 본문에 절대 포함하지 않는다.
-
-```
-<detected-tone>
-tone: casual
-tone_source: auto
-tone_evidence: ["casual-ko lexical hit: 진짜/솔직히/근데", "first-person-ratio: 0.62"]
-tone_confidence: high
-</detected-tone>
-```
-
-감지 완료 후 결과 톤(`casual`/`professional`)은 어투(레지스터)에만 반영한다. 톤은 프로필을 고르지 않으며, 장르 프로필은 `--profile` 로만 결정된다 (백본 매핑 제거, 6.0).
 
 ---
 
@@ -378,17 +331,20 @@ document is SUSPECT iff
 
 **파악 항목 (각 한 줄, 내부 작업 메모리):**
 
-1. **문서 종류** — 랜딩페이지 / 블로그 / 공지 / 문서 / 에세이 중 무엇인가
-2. **화자와 독자** — 누가 누구에게 말하는 글인가
-3. **지배 어투** — 해요체 / 합쇼체(-습니다) / 평서체(-다) 중 어느 것이 지배적인가. 한국어는 문장 종결어미 분포를 직접 세어 판정한다(-니다/-니까 → 합쇼체, -요/-죠 → 해요체, 그 외 -다 → 평서체). 60% 이상 점유한 어투가 없으면 "혼합"으로 판정하고, 문서 성격에 맞는 어투 하나를 선택한다
-4. **핵심 도메인 용어** — 글이 반복 사용하는 고유 표현 목록
+1. **문서 종류와 목적** — 활성 Document Type과 실제 입력이 랜딩 페이지, 블로그, 공지, 기술 문서, 학술문, 이메일, 에세이 중 어디에 해당하며 무엇을 달성해야 하는가
+2. **화자와 독자** — 누가 누구에게 말하는 글이며, 원문이 유지하는 관계와 관점은 무엇인가
+3. **구조 관습** — 제목 계층, CTA, 표·목록·코드, 근거 배치 등 해당 문서에서 고정해야 할 형식은 무엇인가
+4. **지배 어투** — 해요체 / 합쇼체(-습니다) / 평서체(-다) 중 어느 것이 지배적인가. 한국어는 문장 종결어미 분포를 직접 세어 판정한다(-니다/-니까 → 합쇼체, -요/-죠 → 해요체, 그 외 -다 → 평서체). 60% 이상 점유한 어투가 없으면 "혼합"으로 판정하고, 문서 성격에 맞는 어투 하나를 선택한다
+5. **핵심 도메인 용어** — 글이 반복 사용하는 고유 표현 목록
 
 **5단계 적용 규칙:**
 
 - 5a/5b의 모든 재작성은 이 브리프 프레임 안에서 수행한다
 - 재작성 문장 전체를 지배 어투 하나로 통일한다 — **문장 간 어투 혼용 자체가 AI 신호다**
 - 핵심 용어는 일반 동의어로 치환하지 않고 글의 표현을 그대로 재사용한다
-- `--tone` 이 명시된 경우(4.5b 참조) 톤은 그 지시를 따르되, 어투 통일 규칙은 동일하게 적용한다
+- `--register`가 명시되면 그 값을 따르되, 어투 통일 규칙은 동일하게 적용한다
+- `--persona`가 명시되면 그 Persona의 목소리 블록만 적용하고, 생략되면 원문 목소리를 보존한다
+- Document Type이 정한 목적·독자·구조·스타일·회피 규칙을 따르되, 원문에 없는 주장·사례·인물·성과·CTA 약속을 만들지 않는다
 
 > **주의:** 브리프는 4.5단계 앵커와 동일한 내부 작업 메모리다. 사용자 대면 출력에 포함하지 않는다.
 > **CLI 동기화:** Node CLI는 같은 단계를 프롬프트로 수행한다 — 지배 어투는 `src/features/stylometry.js#detectKoreanRegister`가 결정론으로 측정해 "문서 신호" 섹션으로 주입하고, 브리프 지시는 rewrite 프롬프트(minimal·strict 모두)에 포함된다.
@@ -398,7 +354,7 @@ document is SUSPECT iff
 
 ## Strict 모드 (다중 패스) (`--strict`)
 
-`--strict` 플래그가 있으면 아래 5단계 패스를 순차적으로 수행한다. 1~4단계(설정, 패턴, 프로필, 목소리 로드)는 한 번만 실행한다.
+`--strict` 플래그가 있으면 아래 5단계 패스를 순차적으로 수행한다. 1~4단계에서 설정·패턴·Document Type·기본 목소리·Persona를 한 번만 로드한다.
 
 **실행 모드 (자동 선택):**
 
@@ -412,13 +368,13 @@ document is SUSPECT iff
 
 #### P1: 전체 감지 패스 (Detection Pass)
 
-4.x단계(4.5 의미 앵커 추출, 4.5b 톤 감지, 4.6 통계 기반 의심 구간, 4.7 AI-lexicon 매칭, 4.8 문서 브리프)를 완전히 실행한다. 결과는 심각도가 부여된 발견 목록(`findings list`)으로 정리한다.
+4.x단계(4.5 의미 앵커 추출, 4.6 통계 기반 의심 구간, 4.7 AI-lexicon 매칭, 4.8 문서 브리프)를 완전히 실행한다. 결과는 심각도가 부여된 발견 목록(`findings list`)으로 정리한다.
 
 **위임 모드:** 이 패스를 `patina-detector` 서브에이전트에 위임한다(반환: 심각도가 부여된 발견 목록). 폴백 모드에서는 메인 스킬이 위 4.x단계를 직접 실행한다.
 
 - 각 발견 항목: `{paragraph_index, span, signal_type, severity}` 형태 (내부 작업 메모리)
 - `signal_type`: `burstiness_low` | `MATTR_low` | `lexicon_hot` | `pattern_match`
-- 발견이 0건이면 즉시 종료 — 원문을 그대로 출력하고 Strict 모드 결과 footer를 붙인다
+- 발견이 0건이면 즉시 종료하고 원문만 출력한다
 
 #### P2: 근거 기반 재작성 (Evidence-Based Rewrite)
 
@@ -474,31 +430,20 @@ retry 조건 (accept 실패 시, 재시도 횟수 < 3):
 rollback 조건 (retry 상한 초과 또는 retry 후에도 accept 실패):
   offending 스팬의 교정을 취소하고 해당 구간을 원문으로 복원한다
   나머지 통과된 스팬의 교정은 유지한다
-  롤백 사유를 footer에 보고한다
+  롤백 사유는 내부 진단에 기록하고 사용자 본문에는 넣지 않는다
 ```
 
 ### 출력 형식
 
-P5 게이트 결과 이후 최종 교정 텍스트와 함께 다음 footer를 출력한다 (6단계 공통 YAML footer에 추가):
-
-```
----
-strict_mode: true
-passes: [P1, P2, P3, P4, P5]
-fidelity_score: <값>
-mps_score: <값>
-residual_hot_zones: <개수>
-over_edit: <true|false>
-retries: <횟수>
-rollback_spans: <롤백된 스팬 수 또는 0>
-gate_result: accept | rollback
----
-```
+P5 게이트 이후 수락되거나 부분 롤백된 최종 본문만 출력한다.
+`strict_mode`, 점수, 재시도 수, 롤백 스팬, 게이트 결과는 내부 진단으로
+유지하며 사용자 본문이나 YAML footer로 붙이지 않는다. 구조화된 출력
+환경에서만 본문 밖의 별도 필드로 제공한다.
 
 
 ## 배치 모드 (`--batch`)
 
-`--batch` 플래그가 있으면 아래 절차를 따른다. 1~4단계(설정, 패턴, 프로필, 목소리 로드)는 한 번만 실행한다.
+`--batch` 플래그가 있으면 아래 절차를 따른다. 1~4단계의 설정·패턴·Document Type·기본 목소리·Persona는 한 번만 로드한다.
 
 ### 입력
 
@@ -538,7 +483,7 @@ Glob {지정된 파일 패턴} → 파일 목록 확보
 
 ## 5단계: 텍스트 처리
 
-로드된 패턴, 프로필, 목소리 지침을 조합하여 텍스트를 처리한다. 처리는 3개 하위 단계로 나뉜다.
+로드된 패턴, Document Type 정책, 기본 목소리, 선택적 Persona와 Register를 조합하여 텍스트를 처리한다. 처리는 3개 하위 단계로 나뉜다.
 
 ### 5a단계: 구조 분석 (Phase 1)
 
@@ -602,22 +547,11 @@ FOR each anchor IN anchor_list:
 1. **AI 패턴 식별** - 로드된 문장/어휘 패턴 팩의 모든 패턴을 스캔
 2. **문제 구간 다시 쓰기** - AI스러운 표현을 토큰 단위로 치환하지 말고, 문맥을 읽은 뒤 절/문장 단위로 자연스럽게 다시 쓴다
 3. **의미 보존** - 핵심 메시지를 유지
-4. **어조 맞추기** - 프로필의 어조 지침에 따라 톤 조절
-5. **개성 불어넣기** - voice.md의 지침에 따라 실제 사람의 목소리를 넣기
+4. **Register 적용** - 명시값이 있으면 `casual | professional` 격식 수준만 적용하고, 없으면 원문 레지스터를 보존한다
+5. **목소리 적용** - 기본 지침을 따르고, Persona가 있으면 그 목소리 특성만 적용한다. Persona가 없으면 원문 목소리를 보존한다
 6. **blocklist/allowlist 적용** - 설정의 blocklist 어휘도 추가 감지, allowlist 어휘는 감지에서 제외
-7. **프로필 오버라이드 적용** - 프로필에 `pattern-overrides`가 있으면 해당 패턴의 교정 강도를 조절 (suppress/reduce/amplify)
-8. **톤 파생 오버라이드 적용 (v3.10)** — `resolved_tone != null`이면 프로필 오버라이드 위에 톤별 오버라이드를 추가 적용한다. 충돌 시 톤 오버라이드가 우선한다.
-
-   > **Override stack 규칙 (H5):** 동일 instruction이 두 레이어(profile + tone)에서 발화하면 한 번만 적용한다 (멱등). 톤 오버라이드는 프로필 오버라이드를 **대체(replace)** 하는 것이지 **중첩(stack)** 이 아니다. 즉, 같은 패턴 번호에 대해 profile=`reduce`, tone=`amplify` 가 동시 지정되면 최종은 `amplify` 단일이며 `reduce` × `amplify` 같은 누적 연산은 일어나지 않는다.
-
-   | Tone | ko 오버라이드 | en 오버라이드 |
-   |------|-------------|-------------|
-   | `casual` | 14:suppress, 15:reduce, 17:reduce, 18:amplify, 8:amplify | 14:suppress, 15:reduce, 17:reduce, 7:amplify, 8:amplify |
-   | `professional` | 17:suppress, 25:reduce, 28:amplify | 17:suppress, 25:reduce, 28:amplify |
-
-   **legal/medical fidelity 강제 (R2):** resolved_tone=professional이고 config.profile이 `legal` 또는 `medical`이면, `scoring.combined-weights.legal` / `scoring.combined-weights.medical` (fidelity 0.65)을 강제 적용한다. 톤 오버라이드가 fidelity 하한을 낮추지 않도록 한다.
-
-9. **의미 보존 제약 주입** — 의미 위험도가 HIGH인 패턴을 적용할 때, 해당 문단의 앵커를 교정 프롬프트에 포함한다: "다음 주장을 반드시 유지하라: {앵커 목록}". MEDIUM 위험도 패턴은 극성(Polarity) 또는 부정(Negation) 앵커가 있는 문단에서만 제약을 주입한다. LOW 위험도 패턴은 제약 없이 적용한다.
+7. **Document Type 패턴 정책 적용** - `pattern-overrides`에 따라 해당 패턴의 교정 강도를 조절한다 (`suppress | reduce | amplify`). 이 정책은 목소리나 레지스터를 바꾸지 않는다
+8. **의미 보존 제약 주입** — 의미 위험도가 HIGH인 패턴을 적용할 때, 해당 문단의 앵커를 교정 프롬프트에 포함한다: "다음 주장을 반드시 유지하라: {앵커 목록}". MEDIUM 위험도 패턴은 극성(Polarity) 또는 부정(Negation) 앵커가 있는 문단에서만 제약을 주입한다. LOW 위험도 패턴은 제약 없이 적용한다.
 
 **CJK 절/문장 단위 교정 가드 (issue #352):** `--lang ko|zh|ja`에서는 구두점이나 단어 1개만 1:1로 바꾸지 않는다. em dash, 콜론, 세미콜론, 슬래시, 쉼표 접속, 괄호식 삽입구처럼 절 관계를 표시하는 구두점이 AI 신호와 함께 보이면, 문장 전체를 읽고 목표 언어의 자연스러운 절 구조·문장 분리·접속 표현으로 다시 짠다. 번역체/직역 명사구가 구두점에 붙어 있으면 둘을 함께 고친다. 한국어 예: `무 TUI` 식 직역은 `TUI 없이 완전 자율로 설치하려면 ...`처럼 풀고, `"끝난 것 같아요"로는 부족한 열린 작업`은 `"끝난 것 같아요"만으로는 부족한, 결과를 끝까지 확인해야 하는 열린 작업`처럼 절 관계를 드러낸다. 교정 중 행위자·극성·조건·숫자·인과는 유지한다.
 
@@ -645,43 +579,26 @@ FOR each anchor IN anchor_list:
 
 ## 6단계: 출력
 
-**모든 출력 모드 공통 — YAML footer (v3.10):**
+**출력 채널 분리:**
 
-모든 출력 모드(rewrite, diff, audit, score)의 최종 결과 끝에 다음 YAML footer 블록을 추가한다. 이것이 tone 정보의 **유일한** 노출 지점이다. rewrite 본문에 `[tone: ...]` 같은 인라인 표기를 절대 포함하지 않는다 (A7).
-
-```
----
-tone: <resolved_tone | null>
-tone_source: user | auto | unsupported_language_fallback | profile_only | skipped_short_input
-tone_evidence: ["<신호 1>", "<신호 2>"]
-tone_confidence: low | medium | high
----
-```
-
-- `tone_source: profile_only`: `--tone` 미사용 + config `tone:` 미설정 (profile-only 모드)
-- `tone_source: user`: 명시적 `--tone` 또는 config `tone:` 으로 지정
-- `tone_source: auto`: `--tone auto` 또는 `tone: auto` 로 자동 감지 수행 (잔류 규칙으로 떨어진 경우 포함)
-- `tone_source: unsupported_language_fallback`: zh/ja에서 명시 톤 사용 시
-- `tone_source: skipped_short_input`: 단락<2 OR 문장<2 이라 4.5b 감지를 시작 안 한 경우 (auto 요청이었지만 검출 자체가 실행되지 않음)
+- rewrite의 text/markdown 출력에는 최종 사용자 본문만 쓴다. 축 메타데이터, YAML footer, 분석 라벨을 붙이지 않는다.
+- diff/audit/score는 해당 모드의 결과만 출력하며 공통 footer를 붙이지 않는다.
+- 구조화된 JSON 출력이 필요한 환경에서는 `documentType`, `persona`, `register`를 본문 밖의 독립 필드로 제공한다.
+- Register가 생략되면 `register: null`; 명시되면 `register`, `register_source`, `register_evidence`, `register_confidence`를 별도 객체로 제공한다.
 
 ### rewrite 모드 (기본)
 
-다음을 제공한다:
-1. 초안
-2. "아래 글에서 AI가 쓴 것처럼 보이는 부분은?" (간단한 목록)
-3. 최종본
-4. 변경 사항 요약 (필요시)
-5. YAML footer (위 공통 규칙 적용)
+최종 교정본만 제공한다. 내부 초안, 자기검수, 패턴 목록, 축 메타데이터는 출력하지 않는다.
 
-> **주의 (A7):** rewrite 최종본 본문에 tone 정보를 언급하거나 삽입하지 않는다. "이 텍스트는 casual 톤으로 재작성되었습니다" 같은 내러티브 인터젝션 금지.
+> **주의:** rewrite 본문에 Document Type, Persona, Register 정보를 언급하거나 삽입하지 않는다.
 
 ### diff 모드 (`--diff`)
 
-변경 사항을 패턴별로 표시한다. 뭘 왜 바꿨는지 보여준다. 끝에 YAML footer 추가.
+변경 사항을 패턴별로 표시한다. 뭘 왜 바꿨는지 보여준다.
 
 ### audit 모드 (`--audit`)
 
-감지만 하고 수정하지 않는다. 패턴별 발견 위치와 심각도를 테이블로 출력한다. 끝에 YAML footer 추가.
+감지만 하고 수정하지 않는다. 패턴별 발견 위치와 심각도를 테이블로 출력한다.
 
 ### score 모드 (`--score`)
 
@@ -689,7 +606,7 @@ AI 유사도 점수를 0-100 척도로 산출한다. `core/scoring.md`를 참조
 
 1. **패턴 감지**: audit 모드와 동일하게 모든 패턴을 스캔하고, 감지된 각 패턴에 대해
    severity를 부여한다 (`core/scoring.md`의 심각도 루브릭 참조)
-2. **프로필 오버라이드 적용**: pattern-overrides가 있으면 심각도를 조정한다
+2. **Document Type 패턴 정책 적용**: `pattern-overrides`가 있으면 심각도를 조정한다
    - `amplify`: 심각도 × 1.5 (최대 3)
    - `reduce`: 심각도 × 0.5
    - `suppress`: 심각도 = 0 (해당 패턴 건너뜀)
@@ -712,9 +629,6 @@ AI 유사도 점수를 0-100 척도로 산출한다. `core/scoring.md`를 참조
 | structure | 0.15  | 1/5       | 20.0   | 3.0       |
 | viral-hook | 0.10 | 0/9       | 0.0    | 0.0       |
 | **전체** |        |           |        | **13.3 (±10)** |
-| **tone** | —      | —         | casual | auto/high  |
-
-> **참고:** 카테고리 점수는 소수점으로 계산하고, 표시는 소수 첫째 자리까지 반올림한다. tone 행은 resolved_tone과 tone_source/tone_confidence를 표시한다. 끝에 공통 YAML footer를 추가한다.
 
 점수 해석: 0-15 사람다움 / 16-30 거의 사람다움 / 31-50 혼재 / 51-70 AI 느낌 / 71-100 AI 생성
 
@@ -724,7 +638,7 @@ AI 유사도 점수를 0-100 척도로 산출한다. `core/scoring.md`를 참조
 
 1. **Claims Preserved** — 원본의 사실적 주장이 교정본에 보존되었는지 (0-3)
 2. **No Fabrication** — 교정본에 원본에 없는 내용이 추가되지 않았는지 (0-3)
-3. **Tone Match** — 문체/격식 수준이 일치하는지 (0-3, 프로필 오버라이드 고려)
+3. **Audience/Register Match** — 문서 기능과 독자 관계를 보존했는지 평가한다. 명시적 `--register`가 있으면 그 목표를 기준으로 삼는다 (0-3)
 4. **Length Ratio** — 길이 비율이 적절한지 (0-3, 결정론적 계산)
 
 | 지표 | 점수 |
@@ -737,7 +651,7 @@ AI 유사도 점수를 0-100 척도로 산출한다. `core/scoring.md`를 참조
 의미 보존 점수(MPS)는 4.5단계에서 추출된 의미 앵커가 최종 결과물에 얼마나 보존되었는지를 측정한다. `core/scoring.md` §14를 참조한다.
 
 종합 점수 = `(AI 유사도 × ai_weight) + ((100 - 충실도) × fidelity_weight)`.
-가중치는 `scoring.combined-weights.{profile}` 설정에 따른다 (기본: AI 0.60, 충실도 0.40).
+가중치는 `scoring.combined-weights.{document-type}` 설정에 따른다 (기본: AI 0.60, 충실도 0.40).
 
 > **참고:** 점수는 LLM의 심각도 판단에 기반하므로 ±8-10 포인트의 변동이 있을 수 있다.
 > 정확한 수치보다 범위로 해석한다.
