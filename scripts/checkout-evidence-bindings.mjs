@@ -10,22 +10,23 @@ export function checkoutEvidenceBindingKey({ channel, evidence, origin, path }) 
   return JSON.stringify([channel, evidence, origin, path]);
 }
 
-// The approved staging and production tuples are source controlled; environment
-// variables cannot add, alter, or promote checkout bindings. The production
-// tuple integrates the owner's PAY-B pre-deployment approval
-// (docs/operations/pay-b-binding-20260723.json); enabling checkout still
-// requires the full Gate-B/Gate-D env-side sequence.
+// The approved production tuple is source controlled; environment variables
+// cannot add, alter, or promote checkout bindings. The production tuple
+// integrates the verified Polar identities
+// (docs/operations/pay-b-binding-polar-20260729.json) and the production
+// zero-amount purchase runtime evidence
+// (docs/operations/pay-live-runtime-polar-20260729.json); enabling checkout
+// still requires the full Gate-B/Gate-D env-side sequence.
+//
+// The retired Lemon Squeezy tuples were removed on 2026-08-03: Lemon Squeezy
+// declined the account (docs/operations/payment-provider-reset-20260729.md),
+// so retaining them would have kept a dead checkout route authorizable. The
+// LS evidence artifacts remain on disk, hash-frozen, as history.
 export const CHECKOUT_EVIDENCE_BINDINGS = deepFreeze({
   [checkoutEvidenceBindingKey({
-    channel: 'staging',
-    evidence: 'PAY-STG-20260716-1199625-1875389',
-    origin: 'https://vibetip.lemonsqueezy.com',
-    path: '/checkout/buy/9e53eb90-c8a8-4cef-b06d-3ca0b429e514',
-  })]: true,
-  [checkoutEvidenceBindingKey({
     channel: 'production',
-    evidence: 'PAY-B-20260723-1236551-1932893',
-    origin: 'https://vibetip.lemonsqueezy.com',
-    path: '/checkout/buy/8ab3a49b-cc55-49e8-bd94-9cbdff5e6a7d',
+    evidence: 'PAY-B-20260729-POLAR-ea8385dc-4c9c3f17',
+    origin: 'https://buy.polar.sh',
+    path: '/polar_cl_qKqtaZKLhUNJetr1h7XHY6wn8lRJEtG5DAPr02tG1pW',
   })]: true,
 });

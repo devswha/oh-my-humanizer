@@ -5,7 +5,7 @@ import { evaluateNumberSafety } from './features/meaning-proxy.js';
 import { formatRewriteBodyForBrowser } from './output.js';
 import { loadWebConfig, resolveBundleRoot } from './web-config.js';
 import { buildWebRewritePrompt, loadWebAssets } from './web-rewrite.js';
-import { evaluateFloors, redactSecrets, STREAM_FRAME_TYPES } from './web-rewrite-contract.js';
+import { evaluateFloors, redactSecrets, STREAM_FRAME_TYPES, WEB_TIERS } from './web-rewrite-contract.js';
 
 /**
  * Extract a score field RAW (no coercion) so evaluateFloors can strictly reject
@@ -119,13 +119,18 @@ function summarizeDiff(before, after) {
  * tests/fixtures/meaning-proxy/pairs.json (3 preserving + 3 broken, KO+EN):
  * 6/6 verdicts identical to the default and 6/6 matching the expected verdict.
  *
- * Scoped to `gemini` because that is the provider it was measured on: the
+ * Scoped to the providers it was measured on: gemini (2026-07-29, above) and
+ * deepseek (2026-08-03 — deepseek-v4-flash accepts `reasoning_effort` and its
+ * default thinking runs ~11.5k tokens per call, so uncut scorers would
+ * dominate both latency and cost;
+ * docs/operations/serving-engine-deepseek-0731-correction-20260803.md). The
  * same field is rejected outright by some providers (gemini itself returns
  * HTTP 400 for `reasoning_effort: 'none'`), so it is never sent blind to a
  * BYOK caller's provider. `PATINA_SCORING_REASONING=off` disables it.
  *
- * The rewrite call is deliberately excluded: reduced thinking on rewrites was
- * previously measured to amputate content.
+ * The rewrite call carries no scoring reasoning control: reduced thinking on
+ * gemini rewrites was previously measured to amputate content. The free-tier
+ * deepseek rewrite has its own, separately measured control below.
  *
  * @param {string|undefined} provider
  * @param {Record<string,string|undefined>} [env]
@@ -133,7 +138,40 @@ function summarizeDiff(before, after) {
  */
 export function scoringExtraBody(provider, env = {}) {
   if (env.PATINA_SCORING_REASONING === 'off') return undefined;
-  return provider === 'gemini' ? { reasoning_effort: 'low' } : undefined;
+  return provider === 'gemini' || provider === 'deepseek' ? { reasoning_effort: 'low' } : undefined;
+}
+
+/** Reasoning levels the free-tier rewrite control may request. */
+const FREE_REWRITE_REASONING_LEVELS = Object.freeze(['low', 'medium', 'high']);
+
+/**
+ * Provider-specific request fields for the REWRITE call, free tier only.
+ *
+ * deepseek-v4-flash spends ~11.5k thinking tokens (~60-94s) per rewrite at
+ * its default; `reasoning_effort: 'low'` halves that (~5.3k, ~44s) and held
+ * 20/22 on the live-quality gate (2026-08-03, repeat-validated before the
+ * production flip; docs/operations/serving-engine-deepseek-0731-correction-20260803.md).
+ * That latency point is what makes deepseek serviceable as the free-tier
+ * engine, so the cut applies ONLY when the server is paying for a free-tier
+ * request on deepseek:
+ * - BYOK callers keep their provider's default thinking — quality is theirs
+ *   to configure, and unknown providers may reject the field with a 400.
+ * - Pro requests keep full thinking: a paid rewrite never trades quality for
+ *   the server's latency preference (the gemini amputation lesson).
+ * `PATINA_FREE_REWRITE_REASONING` overrides the level (`low`|`medium`|`high`)
+ * or disables the control entirely (`off`).
+ *
+ * @param {string|undefined} provider
+ * @param {string|undefined} tier
+ * @param {Record<string,string|undefined>} [env]
+ * @returns {{reasoning_effort: string}|undefined}
+ */
+export function rewriteExtraBody(provider, tier, env = {}) {
+  if (tier !== WEB_TIERS.FREE || provider !== 'deepseek') return undefined;
+  const configured = env.PATINA_FREE_REWRITE_REASONING;
+  if (configured === 'off') return undefined;
+  const level = FREE_REWRITE_REASONING_LEVELS.includes(/** @type {string} */ (configured)) ? configured : 'low';
+  return { reasoning_effort: /** @type {string} */ (level) };
 }
 
 /**
@@ -233,6 +271,7 @@ export async function runWebRewriteStream({
   let rewrite = '';
   const original = String(request.original ?? request.text ?? '');
   let numberSafety = null;
+  const rewriteExtra = rewriteExtraBody(request.provider, request.tier, env);
   // Attempt 1 streams deltas live for UX. If the rewrite fails the
   // deterministic number-safety gate, retry the LLM call up to
   // `numberSafetyRetries` more times WITHOUT emitting deltas (the client has
@@ -251,6 +290,7 @@ export async function runWebRewriteStream({
     const indexBase = attemptCounts.rewrite;
     try {
       const streamResult = await callLLMStream({
+        extraBody: rewriteExtra,
         prompt,
         apiKey: request.apiKey,
         baseURL: request.baseURL,
