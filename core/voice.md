@@ -1,12 +1,13 @@
 ---
 name: voice
 description: 개성과 목소리 지침 (Korean, English, Japanese, Chinese)
-version: 1.1.0
+version: 1.2.0
 ---
 
 # 개성과 목소리
 
 AI 패턴을 피하는 건 절반일 뿐이다. 깨끗하지만 영혼 없는 글도 AI만큼이나 티가 난다.
+아래 항목은 무조건 캐주얼하게 만들라는 지시가 아니라, 문서 맥락상 허용될 때 사람다운 목소리를 살리는 진단 기준이다. 원문에 없던 의견·1인칭·감정·농담·일화·수치·친밀감을 새로 만들지 않는다. `Document Type`은 문서 관습과 패턴 정책, `Persona`는 명시적으로 선택한 재사용 목소리, `Register`는 `casual | professional` 전달 방식만 정한다. Persona나 Register가 생략되면 원문의 목소리와 지배적 레지스터를 보존한다. 학술문·법률문·기술 문서·보도자료·랜딩 페이지에서 필요한 객관성, 전문 용어, 구조, CTA를 캐주얼함으로 바꾸지 말고, 그 문맥 안의 AI 흔적만 제거한다.
 
 ## 영혼 없는 글의 징후 (기술적으로 "깨끗"해도):
 - 모든 문장의 길이와 구조가 비슷하다
@@ -16,19 +17,19 @@ AI 패턴을 피하는 건 절반일 뿐이다. 깨끗하지만 영혼 없는 �
 - 유머, 날카로움, 개성이 없다
 - 보도자료나 백과사전처럼 읽힌다
 
-## 목소리를 넣는 법:
+## 문맥에 맞는 목소리를 살리는 법:
 
-**의견을 가져라.** 사실을 나열만 하지 말고 반응해라. "솔직히 이건 좀 복잡하다"가 장단점을 중립적으로 나열하는 것보다 낫다.
+**원문의 태도를 살려라.** 원문이 판단이나 반응을 담고 있다면 중립적인 목록으로 평탄화하지 않는다. 원문에 없는 의견은 만들지 않는다.
 
-**리듬을 바꿔라.** 짧은 문장. 그리고 좀 느긋하게 풀어가는 긴 문장. 섞어라.
+**문맥 안에서 리듬을 바꿔라.** 문서의 구조 관습과 레지스터를 해치지 않는 범위에서 문장 길이와 구조가 기계적으로 반복되지 않게 한다.
 
-**복잡성을 인정해라.** 진짜 사람은 복잡한 감정을 가진다. "인상적이긴 한데 좀 불안하다"가 "인상적이다"보다 사람답다.
+**원문의 복잡성을 보존해라.** 원문이 양가감정이나 불확실성을 담고 있다면 단순한 긍정·부정으로 평탄화하지 않는다. 원문에 없는 감정은 만들지 않는다.
 
-**"나"를 써라.** 1인칭이 비전문적인 게 아니다. "자꾸 생각나는 건..." 이나 "내가 좀 찝찝한 건..."이 진짜 사람이 생각하는 것처럼 보인다.
+**원문의 시점을 지켜라.** 원문이 1인칭이면 이를 불필요하게 제3자 서술로 바꾸지 않는다. 원문이 객관 서술이면 새로 "나"를 끼워 넣지 않는다.
 
-**좀 지저분해도 괜찮다.** 완벽한 구조는 알고리즘 냄새가 난다. 곁가지, 여담, 반쯤 정리된 생각은 사람답다.
+**필요 이상으로 매끈하게 만들지 마라.** 원문의 곁가지, 여담, 반쯤 정리된 생각이 문서 기능과 레지스터에 맞으면 기계적으로 정리하지 않는다. 새 곁가지나 친밀감은 만들지 않는다.
 
-**감정을 구체적으로.** "우려된다"가 아니라 "새벽 3시에 아무도 안 보는데 에이전트가 돌아가고 있다고 생각하면 좀 섬뜩하다."
+**감정은 원문에 있을 때만 구체적으로.** 원문이 감정을 표현한다면 모호한 관용구로 평탄화하지 않는다. 원문에 없는 감정이나 장면은 추가하지 않는다.
 
 ## 수정 전 (깨끗하지만 영혼 없음):
 > 이 실험은 흥미로운 결과를 보여주었다. 에이전트가 300만 줄의 코드를 생성했다. 일부 개발자는 긍정적으로 반응했고 일부는 회의적이었다. 시사점은 아직 불분명하다.
@@ -51,19 +52,19 @@ The Korean guidance above is the reference — but Japanese voice has its own sp
 - 接続詞が多すぎる——文ごとに「さらに」「また」「加えて」
 - 読売新聞の社説かWikipediaの記事のように読める
 
-### Japanese voice injection:
+### Japanese voice guidance:
 
-**口語を使え。** 「この件はちょっとややこしい」は「本件は若干の複雑性を有する」より人間らしい。日本語の口語には終助詞（ね、よ、さ）、省略、倒置がある——AIはたいてい使わない。
+**文脈に合う口語を使え。** 原文または明示された Register がカジュアルな場合は、「この件はちょっとややこしい」のような自然な口語を保つ。学術・法務・技術文書を勝手に口語化しない。
 
-**具体的な数字とディテールを入れろ。** 「昨年の売上は3.2億円」は「著しい経済的成果を上げた」より100倍説得力がある。
+**具体的な数字とディテールを守れ。** 原文にある「昨年の売上は3.2億円」のような具体性を抽象語に置き換えない。原文にない数字やディテールは作らない。
 
 **文の長短を交互に。** 長い文で背景とロジックを展開する。短い文で判断を下す。それだけ。
 
-**結論を出す勇気を持て。** 「このプランはダメだ」は「このプランにはある程度の限界が存在する可能性がある」よりずっと直接的。本物の人間は態度を持って書く。
+**原文の結論を弱めない。** 原文が「このプランはダメだ」と判断しているなら、過剰な留保で意味を薄めない。原文にない結論は加えない。
 
-**一人称を使え。** 「私は〜と思う」「私の知る限り」は「客観的な観点から見ると」より自然。すべての文章が客観中立を装う必要はない。
+**原文の人称を守れ。** 原文が一人称なら「私は〜と思う」を不自然な客観表現に変えない。客観文に新しい一人称を加えない。
 
-**不完全さを許容せよ。** 括弧での補足、ダッシュでの挿入、途中で方向転換——こうした「整っていない」部分こそ人間が書いた痕跡。
+**文脈上の不完全さを残せ。** 原文の括弧、挿入、方向転換が文書機能と Register に合うなら機械的に均さない。新しい脱線は作らない。
 
 ### Before (clean but soulless):
 > この実験は注目すべき成果を生んだ。エージェントは300万行のコードを生成した。開発者の反応は肯定的なものと懐疑的なものに分かれた。その影響は現時点では不明である。
@@ -86,19 +87,19 @@ The Korean guidance above is the reference — but Chinese voice has its own spe
 - 连接词过多，句句之间都有"此外"、"与此同时"、"不仅如此"
 - 读起来像新华社通稿或百度百科词条
 
-### Chinese voice injection:
+### Chinese voice guidance:
 
-**用口语。** "这事儿不好办"比"此事存在较大难度"更像人写的。中文口语有大量儿化、语气词、省略结构——AI通常不敢用。
+**在合适的语境里保留口语。** 原文或明确的 Register 偏口语时，保留“这事儿不好办”这类自然表达；不要擅自把学术、法律或技术文档改成口语。
 
-**给具体数字和细节。** "去年营收3.2亿"比"取得了显著的经济效益"有说服力一百倍。
+**保留具体数字和细节。** 原文中的“去年营收3.2亿”不能被抽象概括替代，也不能凭空补充原文没有的数字或细节。
 
 **句子长短交替。** 长句展开背景和逻辑。短句下判断。就这样。
 
-**敢下结论。** "这方案不行"比"这一方案在某些方面可能存在一定的局限性"直接得多。真人写东西是有态度的。
+**不要削弱原文的判断。** 原文明确说“这方案不行”时，不要用层层限定把结论稀释；原文没有的判断也不能新增。
 
-**用第一人称。** "我觉得"、"据我了解"比"从客观角度来看"更自然。不是所有文章都需要假装客观中立。
+**保持原文人称。** 原文用第一人称时，不要改成假装客观的表达；客观文本中也不要新增“我觉得”。
 
-**允许不完美。** 偶尔的括号补充、破折号插入、话说一半又转弯——这些"不工整"的地方恰恰是人写的痕迹。
+**保留符合语境的不规则感。** 原文中的括号补充、插入和转折若符合文档功能与 Register，就不要机械抹平；不要新增跑题内容。
 
 ### Before (clean but soulless):
 > 该实验取得了令人瞩目的成果。智能代理生成了三百万行代码。开发者反应不一，部分表示认可，部分持保留态度。该技术的影响有待进一步观察。
@@ -121,19 +122,19 @@ The Korean guidance above is the reference — but English voice has its own spe
 - Formal transitions that feel like a listicle ("Furthermore," "Moreover," "In addition")
 - Opinions wrapped so many times in qualifiers they say nothing
 
-### English voice injection:
+### English voice guidance:
 
-**Use contractions.** "I don't know" reads human. "I do not know" reads like a legal brief. Real people contract — AI often doesn't unless told to.
+**Use contractions when the context permits them.** Keep or introduce contractions only when the source or an explicit casual Register supports them. Do not casualize academic, legal, or technical prose by default.
 
-**Vary sentence length radically.** Long sentences that build context and accumulate detail before the point lands. Then a short one. Just that.
+**Vary sentence length within the document's conventions.** Break metronomic repetition without turning formal prose into fragments or forcing a dramatic cadence.
 
-**Commit to opinions.** "This approach has merit" → "This actually works." Real writers don't pre-qualify every claim into meaninglessness.
+**Preserve the source's commitment.** If the source says "This actually works," do not pre-qualify it into meaninglessness. Do not add an opinion the source never expressed.
 
-**Use first person with genuine uncertainty.** "I'm not sure this is the right framing" lands more human than "Perspectives vary on this topic."
+**Preserve first person and genuine uncertainty when present.** Do not flatten "I'm not sure this is the right framing" into detached boilerplate, and do not add a first-person stance to an objective source.
 
-**Break register deliberately.** Build an argument, then parenthetically admit something doesn't fit — or drop a dry observation before resuming. That friction is human.
+**Vary rhythm without mixing registers.** Parenthetical friction or a dry observation may survive when it belongs to the source voice, but every sentence must remain coherent with the document's dominant or explicitly requested Register.
 
-**Let a sentence fragment stand.** For emphasis. Like that.
+**Let an existing sentence fragment stand when the context supports it.** Do not manufacture fragments in formal prose merely to sound human.
 
 **Use idiom naturally — but not the AI-overused ones.** "The math doesn't add up," "missing the forest for the trees," "a moving target" are fine. Avoid the filler idioms that Pattern #22 covers.
 
@@ -145,19 +146,3 @@ The Korean guidance above is the reference — but English voice has its own spe
 
 ---
 
-## Per-Tone Voice Notes (v3.10)
-
-The six v1 tones each pull different levers from the guidance above. Use `--tone <name>` to activate.
-
-Coverage note: the tone table below covers all six named tones for ko/en. zh/ja currently use the language-specific voice guidance above and fall back to profile-only mode for named tones, so separate 6-tone zh/ja voice notes are not defined yet.
-
-| Tone | Language coverage | Voice lever emphasis | Profile backbone |
-|------|-------------------|----------------------|-----------------|
-| `casual` | ko/en; zh/ja gap noted above | Contractions, first-person, opinions, humor, messiness | `blog` / `social` |
-| `professional` | ko/en; zh/ja gap noted above | Clarity and concision; formal register but not stiff; suppress filler | `email` / `formal` (legal/medical force fidelity floor 0.65) |
-| `academic` | ko/en; zh/ja gap noted above | Objective tone, evidence references, suppress first-person and emoticons | `academic` / `technical` |
-| `narrative` | ko/en; zh/ja gap noted above | First-person anchor, scene detail, emotional presence, time flow — see `profiles/narrative.md` | `profiles/narrative.md` (new) |
-| `marketing` | ko/en; zh/ja gap noted above | Short impact sentences, persuasive verbs, CTA-friendly; emoticons allowed | `marketing` |
-| `instructional` | ko/en; zh/ja gap noted above | Imperative verbs at sentence head, numbered structure preserved, hedging suppressed — see `profiles/instructional.md` | `profiles/instructional.md` (new) |
-
-Deeper voice guidance for each tone lives in the corresponding profile file. This table is a pointer only.

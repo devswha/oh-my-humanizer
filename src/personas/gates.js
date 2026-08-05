@@ -36,52 +36,21 @@ export function editChurn(original, rewritten) {
 }
 
 /**
- * Evaluate the persona gate.
+ * Evaluate persona-specific voice signals.
  *
- * Splits into two decisions (see docs/ARCHITECTURE.md, seam #1):
- *   - SAFETY (enforcing): mps, fidelity, and dropped source numbers — the
- *     meaning-and-facts signals. A safety failure means meaning may not be
- *     preserved; the caller enforces it (non-zero exit, non-destructive).
- *     MPS/fidelity are only enforced when evaluated (a real score is present);
- *     the deterministic dropped-numbers guard always enforces.
- *   - ADVISORY (never blocks): personaMatch (voice quality) and churn (surface
- *     change). Surface churn is NOT a meaning signal — legitimate humanizing
- *     rewrites churn heavily while preserving meaning — so it warns but never
- *     fails the gate. Likewise a low voice match warns only.
- *
- * `hardFailures` / `pass` reflect SAFETY only. `advisory` carries the non-
- * blocking signals (personaMatch, churn).
+ * Persona quality is advisory: persona-match and surface churn can warn, but
+ * never block output. Meaning, numbers, and fidelity are enforced by the
+ * global rewrite/verification path instead of this voice module.
  *
  * @param {object} input Gate inputs.
- * @param {number} [input.personaMatch] Deterministic persona-match score (advisory).
- * @param {number|null} [input.mps] LLM meaning-preservation score, or null if not evaluated.
- * @param {number|null} [input.fidelity] LLM fidelity score, or null if not evaluated.
+ * @param {number} [input.personaMatch] Deterministic persona-match score.
  * @param {number} [input.churn] Deterministic token churn 0..1.
- * @param {string[]} [input.droppedNumbers] Source numbers missing from the rewrite (deterministic safety signal).
- * @param {object} [input.thresholds] Threshold config (snake or camel keyed).
- * @param {object} [input.persona] Normalized persona (may raise floors).
- * @returns {{pass: boolean, hardFailures: string[], safetyFailures: string[], advisory: string[], personaMatch: number, personaMatchMin: number, personaMatchEvaluated: boolean, personaMatchPass: boolean, mps: number|null, fidelity: number|null, churn: number, droppedNumbers: string[], mpsEvaluated: boolean, fidelityEvaluated: boolean, thresholdSource: string|null}}
+ * @param {object} [input.thresholds] Persona-quality thresholds.
+ * @returns {object} Advisory persona-quality result.
  */
-export function evaluatePersonaGate({ personaMatch, mps, fidelity, churn, droppedNumbers = [], thresholds = {}, persona, meaningProxy = null }) {
-  const mpsFloor = Math.max(persona?.mps?.floor ?? 70, thresholds.mpsFloor ?? thresholds.mps_floor ?? 70);
-  const fidelityFloor = Math.max(persona?.fidelity?.floor ?? 70, thresholds.fidelityFloor ?? thresholds.fidelity_floor ?? 70);
+export function evaluatePersonaGate({ personaMatch, churn, thresholds = {} }) {
   const churnMax = thresholds.churnMax ?? thresholds.churn_max ?? 0.45;
   const personaMatchMin = thresholds.personaMatchMin ?? thresholds.persona_match_min ?? 70;
-  const dropped = Array.isArray(droppedNumbers) ? droppedNumbers.filter(Boolean) : [];
-
-  const mpsEvaluated = typeof mps === 'number' && Number.isFinite(mps);
-  const fidelityEvaluated = typeof fidelity === 'number' && Number.isFinite(fidelity);
-
-  // SAFETY (enforcing): meaning + facts only. Surface churn is NOT a meaning
-  // signal — live KO humanizing rewrites routinely churn 0.5–0.85 while fully
-  // preserving meaning — so it is advisory, not a hard gate (see churn below).
-  const safetyFailures = [];
-  if (mpsEvaluated && mps < mpsFloor) safetyFailures.push('mps');
-  if (fidelityEvaluated && fidelity < fidelityFloor) safetyFailures.push('fidelity');
-  if (dropped.length > 0) safetyFailures.push('numbers');
-
-  // ADVISORY (never blocks): voice-match quality and surface churn. These warn
-  // but do not fail the gate or change the exit code.
   const personaMatchEvaluated = typeof personaMatch === 'number' && Number.isFinite(personaMatch);
   const personaMatchPass = !personaMatchEvaluated || personaMatch >= personaMatchMin;
   const churnEvaluated = typeof churn === 'number' && Number.isFinite(churn);
@@ -89,17 +58,12 @@ export function evaluatePersonaGate({ personaMatch, mps, fidelity, churn, droppe
   const advisory = [];
   if (!personaMatchPass) advisory.push('personaMatch');
   if (!churnPass) advisory.push('churn');
-  // Deterministic meaning-floor proxy (Phase A: ADVISORY only — even a 'fail'
-  // severity never blocks the gate or changes the exit code; enforcement awaits
-  // formal calibration). Numbers stay separately enforced via safetyFailures.
-  const meaningProxyEvaluated = Boolean(meaningProxy) && typeof meaningProxy.severity === 'string';
-  const meaningProxyPass = !meaningProxyEvaluated || meaningProxy.severity === 'pass';
-  if (meaningProxyEvaluated && !meaningProxyPass) advisory.push('meaningProxy');
+
 
   return {
-    pass: safetyFailures.length === 0,
-    hardFailures: safetyFailures,
-    safetyFailures,
+    pass: true,
+    hardFailures: [],
+    safetyFailures: [],
     advisory,
     churnMax,
     churnEvaluated,
@@ -108,15 +72,7 @@ export function evaluatePersonaGate({ personaMatch, mps, fidelity, churn, droppe
     personaMatchMin,
     personaMatchEvaluated,
     personaMatchPass,
-    mps,
-    fidelity,
     churn,
-    droppedNumbers: dropped,
-    meaningProxy: meaningProxy ?? null,
-    meaningProxyEvaluated,
-    meaningProxyPass,
-    mpsEvaluated,
-    fidelityEvaluated,
     thresholdSource: thresholds.source ?? thresholds.thresholdSource ?? null,
   };
 }

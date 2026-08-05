@@ -128,7 +128,7 @@ test('runXliffMode: --batch shares the cache across files (one rewrite for a cro
   writeFileSync(f2, doc('ko-KR', [SHARED]));
 
   const calls = [];
-  const ctx = { config: { language: 'ko', profile: 'default' }, repoRoot: process.cwd(), voice: {}, scoring: {}, backends: [], resolved: { model: 'm' }, promptMode: 'strict', timeoutMs: 1000, providerName: 'deepseek' };
+  const ctx = { config: { language: 'ko', documentType: 'default' }, repoRoot: process.cwd(), voice: {}, scoring: {}, backends: [], resolved: { model: 'm' }, promptMode: 'strict', timeoutMs: 1000, providerName: 'deepseek' };
   const logger = { info() {}, warn() {}, error() {}, closeProgress() {} };
 
   await runXliffMode(

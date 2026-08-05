@@ -7,11 +7,11 @@ import { loadPersona } from '../../src/personas/loader.js';
 
 const repoRoot = getRepoRoot();
 
-// A mock rewrite that lightly edits the treatment (persona) side and leaves the
-// baseline (preserve) side almost untouched, so persona-match improves and churn
-// stays measurable — no LLM, fully deterministic.
+// A mock rewrite that lightly edits the treatment (Persona) side and leaves the
+// source-voice baseline untouched, so Persona match improves and churn stays
+// measurable — no LLM, fully deterministic.
 function mockRewrite({ text, persona }) {
-  if (persona.id === 'preserve') return `[BODY]\n${text}\n[/BODY]`;
+  if (!persona) return `[BODY]\n${text}\n[/BODY]`;
   // Treatment: drop a stock AI-hype clause to nudge the voice.
   const edited = text.replace('오늘날처럼 빠르게 변화하는 환경 속에서 ', '').replace('바로 ', '');
   return `[BODY]\n${edited}\n[/BODY]`;
@@ -50,16 +50,14 @@ test('buildLiveAblationReport runs real rewrite+score injections deterministical
 
 test('comparePersonaFixtureLive strips BODY tags before deterministic churn', async () => {
   const persona = loadPersona(repoRoot, 'ko', 'pragmatic-founder');
-  const preserve = loadPersona(repoRoot, 'ko', 'preserve');
   const row = await comparePersonaFixtureLive({
     fixture: fixtures[0],
     persona,
-    preservePersona: preserve,
     thresholds: { mps_floor: 70, fidelity_floor: 70, churn_max: 0.45, persona_match_min: 70 },
     rewrite: mockRewrite,
     score: mockScore,
   });
-  // preserve side is untouched → near-zero churn once BODY tags are stripped.
+  // Source-voice baseline is untouched → near-zero churn once BODY tags are stripped.
   assert.ok(row.baseline.churn < 0.05, `baseline churn should be ~0, got ${row.baseline.churn}`);
   // treatment dropped a clause → strictly positive churn.
   assert.ok(row.treatment.churn > 0, `treatment churn should be > 0, got ${row.treatment.churn}`);

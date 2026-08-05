@@ -79,8 +79,8 @@ Then run the skill from Claude Code, Codex CLI, Cursor, or OpenCode:
 Useful skill calls:
 
 ```text
-/patina --tone professional
-/patina --tone auto --lang en
+/patina --document-type email --register professional
+/patina --document-type blog --persona pragmatic-founder
 ```
 
 ### Standalone CLI
@@ -110,17 +110,41 @@ For large `--batch` runs, prefer an OpenAI-compatible HTTP backend; local CLI ba
 | **184 patterns** | 37 rewrite-capable + 9 score-only viral-hook per language (46 each across KO/EN/ZH/JA) — see the full 184-pattern catalog in [PATTERNS.md](docs/PATTERNS.md) |
 | **Modes** | rewrite · verify · audit · score · diff |
 | **Surfaces** | agent skill · Node CLI · in-place preview · browser playground (rewrite + score) |
-| **Voice controls** | `--persona` is the reusable voice axis · `--tone` overrides register · `--profile` sets Node pattern policy; some skill/core paths still carry legacy profile voice guidance |
+| **Rewrite axes** | `--document-type` controls genre/policy · `--persona` controls reusable voice · `--register` controls casual/professional delivery |
 | **Free usage** | logged-in `codex`, `claude`, or `gemini` CLI can run rewrites without `PATINA_API_KEY` |
 | **Calibration** | 67.3% editing-hotspot catch [63.5–71.0%] across GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro (n=600, KO+EN); 16.0% false positives [11.6–21.7%] on KO+EN human controls (n=200) |
 | **License** | MIT |
 
 Scores are editing signals with false positives and false negatives, not proof of authorship. See [Ethics](docs/ETHICS.md).
 
+## Three Independent Axes
+
+Patina does not infer one axis from another. Omit Persona and Register to keep
+the source voice and register.
+
+| Axis | Controls | Does not control | CLI | Config | Playground |
+|---|---|---|---|---|---|
+| **Document Type** | Genre, purpose, structural conventions, pattern policy | Voice, casual/professional delivery, meaning floors | `--document-type` | `document-type` | Document |
+| **Persona** | Reusable voice fingerprint: vocabulary, rhythm, explanation habits | Genre, pattern policy, register, meaning floors | `--persona` | `persona` | Voice |
+| **Register** | `casual` or `professional` delivery | Genre, persona identity, pattern policy | `--register` | `register` | Register |
+Meaning preservation is the outer guard. If instructions appear to overlap,
+field ownership resolves them: Document Type wins for document structure and
+domain constraints, Persona for idiolect and rhythm, and Register for
+casual/professional markers. An explicit value never fills an omitted axis.
+
+
+Examples:
+
+```bash
+patina --document-type email --register professional note.md
+patina --document-type blog --persona pragmatic-founder post.md
+patina --document-type technical --persona technical-explainer --register casual guide.md
+```
+
 ## Common Commands
 
 ```bash
-patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
+patina --lang <ko|en|zh|ja> [mode] [--document-type <name>] [--persona <name>] [--register <name>] input.txt
 ```
 
 | Command | Purpose |
@@ -133,13 +157,13 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 | `patina --diff input.txt` | show pattern-by-pattern changes |
 | `patina --preview page.html` | render rewrites back onto a saved HTML page with toggles and inline diff |
 | `patina --verify input.txt` | rewrite, then check MPS/fidelity floors with one retry |
-| `patina --tone auto --lang en input.txt` | infer and apply a KO/EN tone axis |
+| `patina --document-type email --register professional input.txt` | use email conventions with professional delivery |
 | `patina --persona pragmatic-founder input.txt` | rewrite in a built-in voice persona |
 | `patina persona new my-voice --from-sample past.txt` | author your own persona from a writing sample |
 | `patina persona list` | list built-in + custom personas |
 | `patina persona show my-voice --json` | print a persona's normalized config (never the docs body) |
 | `patina persona edit my-voice --name "New Name"` | copy-on-edit a persona into `custom/personas/` |
-| `patina persona rm my-voice` | remove a custom persona (built-ins + `preserve` protected) |
+| `patina persona rm my-voice` | remove a custom persona (built-ins are protected) |
 | `patina --format json --quiet input.txt` | script-friendly output |
 | `patina --batch docs/*.md --outdir cleaned/` | batch file processing |
 
@@ -159,7 +183,7 @@ patina persona edit my-voice --name "Founder voice"         # copy-on-edit into 
 patina persona rm my-voice                                  # remove a custom persona (--force to skip the confirm)
 ```
 
-Works on ko/en/zh/ja and composes with `--tone` and `--profile`. In Node, persona owns reusable voice, register precedence is `--tone` > persona, and profile controls pattern policy. Some skill/core-prompt paths still contain legacy profile voice guidance, so that separation is not universal yet. None of these controls lowers the meaning floors: authored personas are validated on save, and rewrites still enforce MPS/fidelity and dropped-number checks.
+Works on ko/en/zh/ja and composes independently with `--document-type` and `--register`. Persona v2 changes reusable voice only; it cannot select a document type, set register, change pattern policy, or define verification/meaning floors. Authored Personas are validated on save, while global rewrite guards and `--verify` enforce meaning preservation independently.
 
 ## CI
 
@@ -204,12 +228,12 @@ If meaning drifts, the change is retried or rolled back. Deterministic analysis 
 ## Configuration
 
 ```yaml
-# .patina.default.yaml
+# .patina.yaml
 version: "7.0.0"
 language: ko              # ko | en | zh | ja
-profile: default
-output: rewrite           # rewrite | diff | audit | score
-tone:                     # casual | professional | auto  (register override; profile = pattern policy)
+document-type: default    # genre/purpose + pattern policy
+persona:                  # optional reusable voice; omit to preserve source
+register:                 # casual | professional; omit to preserve source
 ```
 
 Project `.patina.yaml` overrides defaults. Pattern packs are auto-discovered by language prefix. Additive list keys (`blocklist`, `allowlist`, `skip-patterns`) merge; other arrays replace.

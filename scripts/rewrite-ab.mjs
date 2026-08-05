@@ -23,7 +23,7 @@ import { resolve } from 'node:path';
 
 import { callLLM as defaultCallLLM } from '../src/api.js';
 import { loadConfig, getRepoRoot } from '../src/config.js';
-import { loadCoreFile, loadPatterns, loadProfile } from '../src/loader.js';
+import { loadCoreFile, loadPatterns, loadDocumentType } from '../src/loader.js';
 import { runIterativeRewriteBaseline } from './iterative-rewrite-baseline.mjs';
 import {
   DEFAULT_POLICY,
@@ -147,17 +147,17 @@ async function produceIterativeBaseline(fixture, { settings, callLLM, repoRoot, 
   const baselineConfig = {
     ...config,
     language: fixture.language,
-    ...(fixture.profile ? { profile: fixture.profile } : {}),
+    ...(fixture.documentType ? { documentType: fixture.documentType } : {}),
   };
   const patterns = loadPatterns(repoRoot, fixture.language);
-  const profile = loadProfile(repoRoot, baselineConfig.profile || 'default');
+  const documentType = loadDocumentType(repoRoot, baselineConfig.documentType || 'default');
   const voice = loadCoreFile(repoRoot, 'voice.md');
   const scoring = loadCoreFile(repoRoot, 'scoring.md');
   const result = await runIterativeRewriteBaseline({
     config: baselineConfig,
     policy: ITERATIVE_BASELINE_POLICY,
     patterns,
-    profile: profile.body ? profile : null,
+    documentType,
     voice,
     scoring,
     text: fixture.text,

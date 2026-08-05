@@ -1,8 +1,8 @@
-import { loadConfig, getRepoRoot, resolveTone } from '../config.js';
+import { loadConfig, getRepoRoot, resolveRegister } from '../config.js';
 import {
   loadPatterns,
-  applyProfilePatternOverrides,
-  loadProfile,
+  applyDocumentTypePatternPolicy,
+  loadDocumentType,
   loadCoreFile,
 } from '../loader.js';
 import { buildPrompt } from '../prompt-builder.js';
@@ -10,7 +10,7 @@ import { buildTransformVariants } from './args.js';
 import { invokeBackendChain, selectBackendChain, selectOcrBackends, listBackends } from '../backends/index.js';
 import { selectProvider, resolveProviderConfig } from '../providers.js';
 import { validateBaseURL, applyInsecureBaseURLOptIn, applyPrivateBaseURLOptIn } from '../security.js';
-import { formatOutput, formatRewriteBodyForBrowser, validateScoreWeights, buildDeterministicAuditBackstop, stripSelfAudit, cleanRewriteOutput } from '../output.js';
+import { formatOutput, formatRewriteBodyForBrowser, validateScoreWeights, buildDeterministicAuditBackstop, cleanRewriteOutput } from '../output.js';
 import {
   buildBrowserDiffPromptInput,
   renderExplanationHtml,
@@ -35,8 +35,6 @@ import { resolve } from 'node:path';
 import { resolvePersonaForRun } from '../personas/resolve.js';
 import { evaluatePersonaGate } from '../personas/gates.js';
 import { personaMatchScore } from '../features/persona-match.js';
-import { personaHasVoiceTraits } from '../personas/compose.js';
-import { evaluateMeaningProxy } from '../features/meaning-proxy.js';
 import { pathToFileURL } from 'node:url';
 import { humanizeXliffDocument, resolveUniqueCap } from './xliff.js';
 
@@ -56,35 +54,40 @@ export async function runDefault(parsed, logger) {
     : {});
 
   if (parsed.lang) config.language = parsed.lang;
-  if (parsed.profile) config.profile = parsed.profile;
-
+  if (parsed.documentType) config.documentType = parsed.documentType;
 
   const repoRoot = getRepoRoot();
   const lang = config.language || 'ko';
+  const mode = parsed.diff ? 'diff'
+    : parsed.audit ? 'audit'
+    : parsed.score ? 'score'
+    : 'rewrite';
 
-  // Tone resolution (v3.10): CLI --tone > config tone > null.
-  // null + config.profile → profile-only mode (regression-safe; v3.9 behavior).
-  // zh/ja + explicit tone → unsupported_language_fallback (warn + profile-only path).
-  // --tone may carry a comma list for --preview variant comparison; the global
-  // resolution (and the backbone-profile mapping below) follows the FIRST
-  // tone, and the preview compare loop re-resolves per variant.
-  const firstCliTone = typeof parsed.tone === 'string' ? parsed.tone.split(',')[0] : parsed.tone;
-  const toneResolution = resolveTone({ cliTone: firstCliTone, configTone: config.tone, lang });
-  if (toneResolution.warning) {
-    logger.warn('tone.warning', { message: `[patina] ${toneResolution.warning}` });
+  if (mode !== 'rewrite' && (parsed.register || config.register)) {
+    throw inputError(
+      `--register cannot be combined with --${mode}`,
+      'Register changes rewritten prose; this mode inspects the source as-is.',
+      'Remove --register/config register, or run a rewrite.'
+    );
   }
+  const firstCliRegister = typeof parsed.register === 'string'
+    ? parsed.register.split(',')[0]
+    : parsed.register;
+  const registerResolution = resolveRegister({
+    cliRegister: firstCliRegister,
+    configRegister: config.register,
+  });
 
-  let profileName = config.profile || 'default';
-  const resolvedProfileName = resolveProfileForLanguage(profileName, lang, logger);
-  if (resolvedProfileName !== profileName) {
-    profileName = resolvedProfileName;
-    config.profile = 'default';
+  let documentTypeName = config.documentType || 'default';
+  const resolvedDocumentTypeName = resolveDocumentTypeForLanguage(documentTypeName, lang, logger);
+  if (resolvedDocumentTypeName !== documentTypeName) {
+    documentTypeName = resolvedDocumentTypeName;
+    config.documentType = 'default';
   }
-
-  const profile = loadProfile(repoRoot, profileName);
-  const patterns = applyProfilePatternOverrides(
+  const documentType = loadDocumentType(repoRoot, documentTypeName);
+  const patterns = applyDocumentTypePatternPolicy(
     loadPatterns(repoRoot, lang, config['skip-patterns'] || []),
-    profile,
+    documentType,
     lang,
   );
   if (parsed.offline) {
@@ -105,24 +108,7 @@ export async function runDefault(parsed, logger) {
 
   const voice = loadCoreFile(repoRoot, 'voice.md');
   const scoring = loadCoreFile(repoRoot, 'scoring.md');
-  const mode = parsed.diff ? 'diff'
-    : parsed.audit ? 'audit'
-    : parsed.score ? 'score'
-    : 'rewrite';
   const persona = resolvePersonaForRun({ parsed, config, mode, lang, repoRoot });
-
-  // v6.2 profile-voice retirement: profiles no longer carry voice — the active
-  // persona is the sole voice owner. Warn once when a non-default profile is
-  // requested for a rewrite but the active persona injects no genre voice
-  // traits, so users relying on the old profile voice migrate to a persona
-  // (e.g. --persona blog-essay). Keyed on the EFFECTIVE profile name so the
-  // warning also fires for `.patina.yaml` profile users (not just --profile),
-  // and stays silent when namuwiki fell back to default for a non-ko run.
-  if (mode === 'rewrite' && profileName !== 'default' && !personaHasVoiceTraits(persona)) {
-    logger.warn?.('profile.voice_retired', {
-      message: `[patina] profile "${profileName}" no longer provides voice — profiles are pattern-policy only now. For genre voice use a persona (e.g. patina --lang ${lang} --persona <id> ...); run \`patina persona list --lang ${lang}\`.`,
-    });
-  }
 
   const inputTexts = parsed.preview ? [] : await loadInputs(parsed, logger);
   const timeoutMs = parsed.timeoutMs ?? DEFAULT_BACKEND_TIMEOUT_MS;
@@ -175,10 +161,11 @@ export async function runDefault(parsed, logger) {
       parsed,
       config,
       patterns,
-      profile,
+      documentType,
       voice,
       scoring,
-      toneResolution,
+      persona,
+      registerResolution,
       promptMode,
       backends,
       resolved,
@@ -203,12 +190,12 @@ export async function runDefault(parsed, logger) {
     prompt: readError ? null : buildPrompt({
       config,
       patterns,
-      profile: profile.body ? profile : null,
+      documentType,
       voice: voice.body ? voice : null,
       scoring: scoring.body ? scoring : null,
       text,
       mode,
-      tone: toneResolution,
+      register: registerResolution,
       promptMode,
       documentSignals: mode === 'rewrite' ? buildDocumentSignals({ text, lang }).signals : null,
       jargon: parsed.jargon,
@@ -257,16 +244,12 @@ export async function runDefault(parsed, logger) {
         });
         cancellation.throwIfCanceled();
 
-        // Real MPS/fidelity from --verify's scoring pass, reused by the persona
-        // safety gate so the two meaning checks share one decision (single path).
-        let verifyScores = null;
+        // Meaning preservation belongs to the global rewrite contract. Persona
+        // selection may change voice, never whether safety checks are enforced.
         if (mode === 'rewrite') {
-          // The backend result still carries the [BODY]/[SELF_AUDIT] tags that
-          // formatOutput strips for display; verify scoring and the meaning guard
-          // must measure the clean prose, not the tags.
           const stripQuiet = { warn() {} };
           if (parsed.verify) {
-            const cleanRewrite = stripSelfAudit(result, { logger: stripQuiet });
+            const cleanRewrite = cleanRewriteOutput(result, { logger: stripQuiet });
             const verifyCallLLM = ({ prompt: verifyPrompt, signal: verifySignal, timeout: verifyTimeout }) =>
               invokeBackendChain({
                 backends,
@@ -286,9 +269,15 @@ export async function runDefault(parsed, logger) {
               rewrite: cleanRewrite,
               config,
               patterns,
-              profile: profile.body ? profile : null,
+              documentType,
               voice: voice.body ? voice : null,
+              persona,
+              register: registerResolution,
               scoring: scoring.body ? scoring : null,
+              promptMode,
+              documentSignals: buildDocumentSignals({ text, lang }).signals,
+              jargon: parsed.jargon,
+              rewriteHeadings: parsed.rewriteHeadings,
               apiKey: resolved.apiKey,
               baseURL: resolved.baseURL,
               model: resolved.model,
@@ -298,14 +287,20 @@ export async function runDefault(parsed, logger) {
               logger,
             });
             result = verification.text;
-            verifyScores = { mps: verification.mps ?? null, fidelity: verification.fidelity ?? null };
             logger.info('verify.result', {
               message: `[patina] verify: MPS ${verification.mps ?? 'n/a'}, fidelity ${verification.fidelity}${verification.verified ? ' (passed)' : ' (below floor)'}${verification.retried ? ' [retried]' : ''}`,
             });
+            if (!verification.verified) {
+              process.exitCode = Math.max(Number(process.exitCode) || 0, 4);
+            }
           }
-          const finalText = parsed.verify ? result : stripSelfAudit(result, { logger: stripQuiet });
-          for (const w of deterministicMeaningGuard(text, finalText)) {
-            logger.warn('rewrite.meaning_guard', { message: `[patina] ${w}` });
+
+          const finalText = cleanRewriteOutput(result, { logger: stripQuiet });
+          for (const warning of deterministicMeaningGuard(text, finalText)) {
+            logger.warn('rewrite.meaning_guard', { message: `[patina] ${warning}` });
+          }
+          if (droppedNumbers(text, finalText).length > 0) {
+            process.exitCode = Math.max(Number(process.exitCode) || 0, 4);
           }
         }
 
@@ -323,7 +318,12 @@ export async function runDefault(parsed, logger) {
             : '';
         let personaReport = null;
         if (persona && mode === 'rewrite') {
-          const rewrittenForPersona = formatOutput(result, mode, { ...parsed, format: 'text' }, { tone: toneResolution, logger });
+          const rewrittenForPersona = formatOutput(
+            result,
+            mode,
+            { ...parsed, format: 'text' },
+            { register: registerResolution, logger },
+          );
           personaReport = buildPersonaReport({
             rewritten: rewrittenForPersona,
             original: text,
@@ -331,28 +331,8 @@ export async function runDefault(parsed, logger) {
             lang,
             repoRoot,
             thresholds: config.personas?.thresholds || {},
-            // Prefer --verify's real scoring pass; fall back to the backend's
-            // self-reported metrics only when verify did not run.
-            mps: verifyScores ? verifyScores.mps : extractNumericMetric(result, rewrittenForPersona, 'mps'),
-            fidelity: verifyScores ? verifyScores.fidelity : extractNumericMetric(result, rewrittenForPersona, 'fidelity'),
           });
           const gate = personaReport.gate_result;
-          if (!gate.pass) {
-            // SAFETY failure: meaning may not be preserved. Enforce with a
-            // non-zero exit (catchable in CI/automation) but stay non-destructive
-            // — the rewrite is still emitted for the user to review.
-            logger.warn('persona.safety_gate_failed', {
-              message: `[patina] persona safety gate failed: ${gate.safetyFailures.join(', ') || 'unknown'} — meaning may have drifted; review before publishing.`,
-              persona: personaReport,
-            });
-            process.exitCode = Math.max(Number(process.exitCode) || 0, 4);
-          }
-          // ADVISORY (never blocks or changes the exit code): voice-match
-          // quality and surface churn. meaningProxy is Phase A JSON-only — it
-          // rides gate.advisory + the meaning_proxy report but MUST NOT emit a
-          // CLI warning, so key the warning on the CLI-warnable bits (not on
-          // gate.advisory.length, which would print an empty/leaky message when
-          // meaningProxy is the only advisory item).
           const bits = [];
           if (!gate.personaMatchPass) bits.push(`voice match ${gate.personaMatch} < ${gate.personaMatchMin}`);
           if (!gate.churnPass) bits.push(`surface churn ${gate.churn} > ${gate.churnMax}`);
@@ -365,7 +345,7 @@ export async function runDefault(parsed, logger) {
 
         let output;
         let scoreValidationOutput = null;
-        output = formatOutput(result, mode, parsed, { tone: toneResolution, logger, auditBackstop, persona: personaReport });
+        output = formatOutput(result, mode, parsed, { register: registerResolution, logger, auditBackstop, persona: personaReport });
         if (mode === 'score') {
           scoreValidationOutput = formatOutput(result, mode, { ...parsed, format: 'markdown' }, { logger });
         }
@@ -513,22 +493,22 @@ export async function runXliffMode(parsed, ctx, logger, overrides = {}) {
   const assetCache = new Map();
   const getAssets = (lang) => {
     if (assetCache.has(lang)) return assetCache.get(lang);
-    const profileName = resolveProfileForLanguage(config.profile || 'default', lang, logger);
-    const profile = loadProfile(repoRoot, profileName);
-    const patterns = applyProfilePatternOverrides(loadPatterns(repoRoot, lang, config['skip-patterns'] || []), profile, lang);
-    const assets = { patterns, profile };
+    const documentTypeName = resolveDocumentTypeForLanguage(config.documentType || 'default', lang, logger);
+    const documentType = loadDocumentType(repoRoot, documentTypeName);
+    const patterns = applyDocumentTypePatternPolicy(loadPatterns(repoRoot, lang, config['skip-patterns'] || []), documentType, lang);
+    const assets = { patterns, documentType };
     assetCache.set(lang, assets);
     return assets;
   };
   const rewriteSegment = overrides.rewriteSegment || (async ({ core, lang }) => {
-    const { patterns, profile } = getAssets(lang);
+    const { patterns, documentType } = getAssets(lang);
     const prompt = buildPrompt({
       config: { ...config, language: lang }, patterns,
-      profile: profile.body ? profile : null,
+      documentType,
       voice: voice.body ? voice : null,
       scoring: scoring.body ? scoring : null,
       text: core, mode: 'rewrite',
-      tone: { tone: null, source: 'profile_only' },
+      register: null,
       promptMode, documentSignals: null,
     });
     const raw = await invokeBackendChain({
@@ -540,7 +520,7 @@ export async function runXliffMode(parsed, ctx, logger, overrides = {}) {
     return cleanRewriteOutput(raw, { logger: { warn() {} } });
   });
   const verifySegment = overrides.verifySegment || (async ({ core, candidate, lang }) => {
-    const { patterns, profile } = getAssets(lang);
+    const { patterns, documentType } = getAssets(lang);
     const callLLM = ({ prompt, signal, timeout }) => invokeBackendChain({
       backends, prompt, apiKey: resolved.apiKey, baseURL: resolved.baseURL,
       model: resolved.model, modelSource: resolved.modelSource,
@@ -549,9 +529,9 @@ export async function runXliffMode(parsed, ctx, logger, overrides = {}) {
     });
     const v = await verifyRewrite({
       original: core, rewrite: candidate, config: { ...config, language: lang }, patterns,
-      profile: profile.body ? profile : null,
+      documentType,
       voice: voice.body ? voice : null,
-      scoring: scoring.body ? scoring : null,
+      scoring: scoring.body ? scoring : null, promptMode, register: null,
       apiKey: resolved.apiKey, baseURL: resolved.baseURL, model: resolved.model,
       callLLM, signal: cancellation.signal, timeout: timeoutMs, logger,
     });
@@ -620,62 +600,22 @@ export async function runXliffMode(parsed, ctx, logger, overrides = {}) {
 }
 
 
-function buildPersonaReport({ rewritten, original, persona, lang, repoRoot, thresholds, mps, fidelity }) {
+function buildPersonaReport({ rewritten, original, persona, lang, repoRoot, thresholds }) {
   const match = personaMatchScore({ text: rewritten, persona, lang, repoRoot, original });
   const overEditChurn = match.overEditChurn ?? match.deltas?.overEditChurn ?? match.featureVector?.over_edit_churn ?? 0;
-  const mpsValue = mps ?? null;
-  const fidelityValue = fidelity ?? null;
-  // Deterministic safety signal: source numbers that vanished from the rewrite.
-  const dropped = droppedNumbers(original, rewritten);
-  // Deterministic, LLM-free meaning-floor proxy (Lane A). Phase A: ADVISORY —
-  // rides the JSON report and the gate's advisory list only; it never adds a CLI
-  // warning or changes the exit code (numbers stay separately enforced above).
-  const meaningProxy = evaluateMeaningProxy({ original, rewrite: rewritten, lang });
   const gate = evaluatePersonaGate({
     personaMatch: match.score,
-    mps: mpsValue,
-    fidelity: fidelityValue,
     churn: overEditChurn,
-    droppedNumbers: dropped,
     thresholds,
     persona,
-    meaningProxy,
   });
   return {
     id: persona.id,
-    depth: persona.depth,
     thresholds_source: thresholds?.source ?? gate.thresholdSource ?? null,
     match: match.score,
-    mps: mpsValue,
-    fidelity: fidelityValue,
     over_edit_churn: overEditChurn,
-    dropped_numbers: dropped,
-    meaning_proxy: meaningProxy,
     gate_result: gate,
   };
-}
-
-function extractNumericMetric(result, body, key) {
-  const direct = toFiniteNumberLocal(result?.[key] ?? result?.best?.[key]);
-  if (direct !== null) return direct;
-  const parsed = parseFirstJsonLocal(body);
-  return toFiniteNumberLocal(parsed?.[key]);
-}
-
-function toFiniteNumberLocal(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-function parseFirstJsonLocal(text) {
-  const raw = String(text || '');
-  const start = raw.indexOf('{');
-  if (start === -1) return null;
-  for (let end = raw.lastIndexOf('}'); end > start; end = raw.lastIndexOf('}', end - 1)) {
-    try { return JSON.parse(raw.slice(start, end + 1)); } catch {}
-  }
-  return null;
 }
 
 function cancellationError() {
@@ -768,20 +708,20 @@ export function resolvePromptMode({ backend, model }) {
 }
 
 /**
- * Resolve a profile name against language-specific profile limits.
+ * Resolve a document type against language-specific policy limits.
  *
- * @param {string} profileName Requested profile name.
+ * @param {string} documentTypeName Requested document type.
  * @param {string} lang Active language code.
  * @param {object} [logger] Logger with warn(event, payload).
- * @returns {string} Effective profile name.
+ * @returns {string} Effective document type.
  * @example
- * resolveProfileForLanguage('namuwiki', 'en') // 'default'
+ * resolveDocumentTypeForLanguage('namuwiki', 'en') // 'default'
  */
-export function resolveProfileForLanguage(profileName, lang, logger = null) {
-  const effective = profileName || 'default';
+export function resolveDocumentTypeForLanguage(documentTypeName, lang, logger = null) {
+  const effective = documentTypeName || 'default';
   if (effective === 'namuwiki' && lang !== 'ko') {
-    logger?.warn?.('profile.unsupported_language', {
-      message: `[patina] profile "namuwiki" is ko-only; falling back to default profile for --lang ${lang}`,
+    logger?.warn?.('document_type.unsupported_language', {
+      message: `[patina] document type "namuwiki" is ko-only; falling back to default for --lang ${lang}`,
     });
     return 'default';
   }
@@ -802,10 +742,11 @@ async function runPreviewJob({
   parsed,
   config,
   patterns,
-  profile,
+  documentType,
   voice,
   scoring,
-  toneResolution,
+  persona,
+  registerResolution,
   promptMode,
   backends,
   resolved,
@@ -889,10 +830,11 @@ async function runPreviewJob({
     const basePromptInputs = {
       config,
       patterns,
-      profile: profile.body ? profile : null,
+      documentType,
       voice: voice.body ? voice : null,
       scoring: scoring.body ? scoring : null,
-      tone: toneResolution,
+      persona,
+      register: registerResolution,
       promptMode,
       jargon: parsed.jargon,
       rewriteHeadings: parsed.rewriteHeadings,
@@ -947,8 +889,8 @@ async function runPreviewJob({
       .join('\n\n');
     const documentContext = buildDocumentSignals({ text: rewriteText, lang: config.language || 'ko' });
 
-    // Variant comparison (--jargon x,y / --tone a,b): one rewrite call per
-    // variant, all baked into the preview page behind a scriptless toggle.
+    // Variant comparison (--jargon x,y / --register a,b): one rewrite call
+    // per variant, all baked into the preview page behind a scriptless toggle.
     // Calls run sequentially — local CLI backends carry concurrency caps of
     // 1-2, and a variant is a whole-document rewrite, not a cheap request.
     const transformVariants = buildTransformVariants(parsed);
@@ -957,35 +899,30 @@ async function runPreviewJob({
       throw runtimeError(
         'transform-variant comparison needs a page snapshot',
         'Plain-text file previews render as a single reading document, which cannot hold multiple toggleable variants.',
-        'Run the compare against a URL or .html input, or pick a single --jargon/--tone value.'
+        'Run the compare against a URL or .html input, or pick a single --jargon/--register value.'
       );
     }
     const variantBodies = [];
     let rewrittenBody;
     if (compareMode) {
-      const previewLang = config.language || 'ko';
-      const firstCliTone = typeof parsed.tone === 'string' ? parsed.tone.split(',')[0] : parsed.tone;
+      const firstCliRegister = typeof parsed.register === 'string' ? parsed.register.split(',')[0] : parsed.register;
       for (const [index, variant] of transformVariants.entries()) {
         logger.info('preview.variant', {
           message: `[patina] Rewriting variant ${variant.label} (${index + 1}/${transformVariants.length})…`,
         });
-        // Per-variant tone: a comma-listed --tone makes each variant carry its
-        // own register, re-resolved here to mirror a single run with that --tone.
-        // Profile (genre) is fixed across variants — tone no longer remaps it.
-        let variantTone = toneResolution;
-        if (variant.tone && variant.tone !== firstCliTone) {
-          variantTone = resolveTone({ cliTone: variant.tone, configTone: config.tone, lang: previewLang });
-          if (variantTone.warning) {
-            logger.warn('tone.warning', { message: `[patina] ${variantTone.warning}` });
-          }
+        // A comma-listed --register resolves independently for each variant.
+        let variantRegister = registerResolution;
+        if (variant.register && variant.register !== firstCliRegister) {
+          variantRegister = resolveRegister({
+            cliRegister: variant.register,
+            configRegister: config.register,
+          });
         }
-        const variantProfile = basePromptInputs.profile;
         const variantRaw = await invokeBackendChain({
           ...invokeInputs,
           prompt: buildPrompt({
             ...basePromptInputs,
-            profile: variantProfile,
-            tone: variantTone,
+            register: variantRegister,
             jargon: variant.jargon,
             text: rewriteText,
             mode: 'rewrite',
@@ -1008,6 +945,16 @@ async function runPreviewJob({
       });
       cancellation.throwIfCanceled();
       rewrittenBody = formatRewriteBodyForBrowser(rawResult, { logger });
+    }
+
+    const previewCandidates = compareMode ? variantBodies : [rewrittenBody];
+    for (const candidate of previewCandidates) {
+      const dropped = droppedNumbers(rewriteText, candidate);
+      if (dropped.length === 0) continue;
+      logger.warn('rewrite.meaning_guard', {
+        message: `[patina] Rewrite dropped source number(s): ${dropped.slice(0, 6).join(', ')}${dropped.length > 6 ? ', …' : ''}`,
+      });
+      process.exitCode = Math.max(Number(process.exitCode) || 0, 4);
     }
 
     // Best-effort pattern explanation, same contract as the browser diff
@@ -1092,7 +1039,7 @@ async function runPreviewJob({
         ? transformVariants.map((variant, index) => ({
           label: variant.label,
           jargon: variant.jargon,
-          tone: variant.tone,
+          register: variant.register,
           rewrites: (index === 0 ? rewrites : alignOne(variantBodies[index], variant.label)).slice(0, blocks.length),
         }))
         : null;
@@ -1114,12 +1061,11 @@ async function runPreviewJob({
         scoreChip,
         imageFindings,
         contextCardHtml: buildContextCardHtml({
-          register: documentContext.register,
-          // With per-variant tones one global tone row would be wrong for
-          // every variant but the first — show the register measurement only.
-          tone: compareMode && transformVariants.some((v) => v.tone !== transformVariants[0].tone)
+          sourceRegister: documentContext.register,
+          // A compared register axis has no single global value.
+          register: compareMode && transformVariants.some((v) => v.register !== transformVariants[0].register)
             ? null
-            : toneResolution,
+            : registerResolution,
         }),
       });
       if (compareMode) {

@@ -7,9 +7,10 @@ import { createRewriteThread, streamRewrite, classifyRewriteError, REWRITE_ERROR
 import launchConfig from '/launch-config.js';
 import {
   PROVIDER_PRESETS,
+  WEB_DOCUMENT_TYPES,
   WEB_PERSONAS,
-  TIER_LIMITS,
   WEB_TIERS,
+  TIER_LIMITS,
   MPS_FLOOR,
   FIDELITY_FLOOR,
 } from '../src/web-rewrite-contract.js';
@@ -24,7 +25,9 @@ const els = {
   // nav controls (shared by landing + chat)
   lang: /** @type {HTMLSelectElement} */ ($('#lang')),
   tier: /** @type {HTMLSelectElement} */ ($('#tier')),
+  documentType: /** @type {HTMLSelectElement} */ ($('#document-type')),
   persona: /** @type {HTMLSelectElement} */ ($('#persona')),
+  register: /** @type {HTMLSelectElement} */ ($('#register')),
   provider: /** @type {HTMLSelectElement} */ ($('#provider')),
   model: /** @type {HTMLSelectElement} */ ($('#model')),
   apiKey: /** @type {HTMLInputElement} */ ($('#api-key')),
@@ -77,7 +80,7 @@ const I18N = {
     ctaTitle: 'Paste your own and see',
     ctaSub: 'Drop an AI-sounding draft into the box above. No code, no key.',
     ctaBtn: 'Start at the top ↑',
-    note: ['Deterministic humanizer —', 'same claim, numbers, tone.'],
+    note: ['Deterministic humanizer —', 'same claim, numbers, voice.'],
     hint: 'patina changes only the wording — never the claim, numbers, or causation. Rewrites run the real patina pipeline server-side; MPS/fidelity are scored live.',
     chatPh: 'Keep refining…  (Enter to send · Shift+Enter for newline)',
     newchat: 'New chat',
@@ -242,21 +245,21 @@ const PRO_I18N = {
 const SAMPLES = {
   ko: [
     { t: 'Marketing copy', x: '본 솔루션은 혁신적인 시너지를 활용하여 고객에게 전례 없는 가치를 원활하게 제공합니다.' },
-    { t: 'Report tone', x: '결론적으로, 이러한 다각적인 접근 방식은 조직의 역량을 한층 더 제고하는 데 기여할 것으로 사료됩니다.' },
+    { t: 'Report register', x: '결론적으로, 이러한 다각적인 접근 방식은 조직의 역량을 한층 더 제고하는 데 기여할 것으로 사료됩니다.' },
     { t: 'Announcement', x: '저희는 여러분께 혁신적인 신규 플랫폼을 선보이게 되어 진심으로 기쁘게 생각합니다.' },
   ],
   en: [
     { t: 'Marketing copy', x: 'Our cutting-edge, best-in-class solution leverages synergies to seamlessly deliver world-class value at scale.' },
     { t: 'Announcement', x: 'We are thrilled to announce that our innovative platform will revolutionize the way you work.' },
-    { t: 'Report tone', x: 'In conclusion, this multifaceted approach will further enhance the overall capabilities of the organization.' },
+    { t: 'Report register', x: 'In conclusion, this multifaceted approach will further enhance the overall capabilities of the organization.' },
   ],
   zh: [
     { t: 'Marketing copy', x: '本解决方案充分利用前沿协同效应，无缝赋能客户，释放前所未有的价值。' },
-    { t: 'Formal tone', x: '综上所述，这种多元化的方法将进一步全面提升组织的核心竞争力。' },
+    { t: 'Formal register', x: '综上所述，这种多元化的方法将进一步全面提升组织的核心竞争力。' },
   ],
   ja: [
     { t: 'Marketing copy', x: '本ソリューションは革新的なシナジーを活用し、お客様にかつてない価値をシームレスに提供します。' },
-    { t: 'Report tone', x: '結論として、この多角的なアプローチは組織の能力を一層向上させることに寄与すると考えられます。' },
+    { t: 'Report register', x: '結論として、この多角的なアプローチは組織の能力を一層向上させることに寄与すると考えられます。' },
   ],
 };
 
@@ -426,12 +429,26 @@ function syncTier() {
   els.licenseSignOut.hidden = !signedIn;
 }
 
-// Populate the Voice selector from the contract's per-language persona list.
-// The empty option = the server's default voice (ko preserve; en/zh/ja voice-free).
+// Populate opt-in voices. The empty option preserves the source voice.
+function populateDocumentTypes() {
+  const prev = els.documentType.value;
+  els.documentType.innerHTML = '';
+  for (const id of WEB_DOCUMENT_TYPES) {
+    if (id === 'namuwiki' && els.lang.value !== 'ko') continue;
+    const label = id === 'default'
+      ? 'Default'
+      : id.split('-').map((word) => word[0].toUpperCase() + word.slice(1)).join(' ');
+    els.documentType.appendChild(new Option(label, id));
+  }
+  els.documentType.value = Array.from(els.documentType.options).some((option) => option.value === prev)
+    ? prev
+    : 'default';
+}
+
 function populatePersonas() {
   const prev = els.persona.value;
   els.persona.innerHTML = '';
-  els.persona.appendChild(new Option('Default voice', ''));
+  els.persona.appendChild(new Option('Preserve source', ''));
   for (const p of (WEB_PERSONAS[els.lang.value] || [])) {
     els.persona.appendChild(new Option(p.label, p.id));
   }
@@ -962,6 +979,8 @@ async function submit(text, source = 'hero') {
     provider: els.provider.value, model: els.model.value,
     apiKey: tier === WEB_TIERS.BYOK ? els.apiKey.value : undefined,
     persona: els.persona.value || undefined,
+    documentType: els.documentType.value,
+    register: els.register.value || undefined,
   });
   await runAttempt({
     convo, clean, reqBody, body, textEl, statusEl,
@@ -1211,6 +1230,7 @@ function onLangChange() {
   applyI18n(els.lang.value);
   renderSuggest();
   populatePersonas();
+  populateDocumentTypes();
   // Re-localize stateful button labels (e.g. an active Stop control's aria-label).
   updateHeroSend(); updateChatSend();
   const convo = activeConvo();

@@ -394,10 +394,10 @@ test('resolveStreamedHtml keeps fallbacks whose segment never streamed', () => {
   assert.ok(out.includes('still loading fallback text here'));
 });
 
-test('buildContextCardHtml renders register and tone rows, empty without either', () => {
+test('buildContextCardHtml renders source and override register rows, empty without either', () => {
   const card = buildContextCardHtml({
-    register: { register: 'polite', label: '해요체', shares: { formal: 0.1, polite: 0.8, plain: 0.1 }, classified: 20, sentenceCount: 22 },
-    tone: { tone: 'professional', tone_source: 'user' },
+    sourceRegister: { register: 'polite', label: '해요체', shares: { formal: 0.1, polite: 0.8, plain: 0.1 }, classified: 20, sentenceCount: 22 },
+    register: { register: 'professional', register_source: 'user' },
   });
   assert.ok(card.includes('ptna-ctx-card'));
   assert.ok(card.includes('document context'));
@@ -406,7 +406,7 @@ test('buildContextCardHtml renders register and tone rows, empty without either'
   assert.ok(card.includes('professional'));
 
   assert.strictEqual(buildContextCardHtml({}), '');
-  assert.strictEqual(buildContextCardHtml({ tone: { tone: null, tone_source: 'profile_only' } }), '');
+  assert.strictEqual(buildContextCardHtml({ register: { register: null, register_source: 'source' } }), '');
 });
 
 test('inlineSrcdocIframes decodes srcdoc detail content into first-class DOM', () => {

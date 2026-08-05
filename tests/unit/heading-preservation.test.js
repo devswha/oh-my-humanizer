@@ -10,14 +10,14 @@ import { buildPrompt } from '../../src/prompt-builder.js';
 // and drop that instruction only when --rewrite-headings opts in.
 
 const EN_BASE = {
-  config: { language: 'en', profile: 'default' },
+  config: { language: 'en', documentType: 'default' },
   patterns: [],
-  profile: null,
+  documentType: null,
   voice: null,
   scoring: null,
   text: 'Sample body text for prompt construction.',
 };
-const KO_BASE = { ...EN_BASE, config: { language: 'ko', profile: 'default' } };
+const KO_BASE = { ...EN_BASE, config: { language: 'ko', documentType: 'default' } };
 
 const EN_RULE = 'preserve headings (required)';
 const KO_RULE = '제목 보존(필수)';

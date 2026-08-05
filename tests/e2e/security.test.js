@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import {
-  validateProfileName,
+  validateDocumentTypeName,
   validateBaseURL,
   isLoopbackHost,
   isPrivateOrSpecialIP,
@@ -12,7 +12,7 @@ import {
   shouldAllowPrivateBaseURL,
   applyPrivateBaseURLOptIn,
 } from '../../src/security.js';
-import { loadProfile } from '../../src/loader.js';
+import { loadDocumentType } from '../../src/loader.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
@@ -34,35 +34,35 @@ function withEnv(envOverrides, fn) {
   }
 }
 
-describe('validateProfileName (issue #90)', () => {
-  it('accepts known profile names', () => {
+describe('validateDocumentTypeName (issue #90)', () => {
+  it('accepts known Document Type names', () => {
     for (const name of ['default', 'blog', 'academic', 'technical', 'tech-writer', 'name_with_underscore']) {
-      assert.doesNotThrow(() => validateProfileName(name));
+      assert.doesNotThrow(() => validateDocumentTypeName(name));
     }
   });
 
   it('rejects path traversal attempts', () => {
     for (const bad of ['../etc/passwd', '../../README', '..\\windows\\path', '/abs/path', 'sub/dir', 'name with space']) {
-      assert.throws(() => validateProfileName(bad), /Invalid profile name/);
+      assert.throws(() => validateDocumentTypeName(bad), /Invalid document type name/);
     }
   });
 
   it('rejects empty, null, and non-strings', () => {
-    assert.throws(() => validateProfileName(''), /Invalid profile name/);
-    assert.throws(() => validateProfileName(null), /Invalid profile name/);
-    assert.throws(() => validateProfileName(undefined), /Invalid profile name/);
-    assert.throws(() => validateProfileName(123), /Invalid profile name/);
+    assert.throws(() => validateDocumentTypeName(''), /Invalid document type name/);
+    assert.throws(() => validateDocumentTypeName(null), /Invalid document type name/);
+    assert.throws(() => validateDocumentTypeName(undefined), /Invalid document type name/);
+    assert.throws(() => validateDocumentTypeName(123), /Invalid document type name/);
   });
 
-  it('loadProfile refuses traversal even though resolve() would normalize it', () => {
-    assert.throws(() => loadProfile(REPO_ROOT, '../../package'), /Invalid profile name/);
-    assert.throws(() => loadProfile(REPO_ROOT, '../README'), /Invalid profile name/);
+  it('loadDocumentType refuses traversal even though resolve() would normalize it', () => {
+    assert.throws(() => loadDocumentType(REPO_ROOT, '../../package'), /Invalid document type name/);
+    assert.throws(() => loadDocumentType(REPO_ROOT, '../README'), /Invalid document type name/);
   });
 
-  it('loadProfile still loads real profiles', () => {
-    const profile = loadProfile(REPO_ROOT, 'default');
-    assert.ok(profile);
-    assert.ok(profile.frontmatter || profile.body);
+  it('loadDocumentType still loads real Document Types', () => {
+    const documentType = loadDocumentType(REPO_ROOT, 'default');
+    assert.ok(documentType);
+    assert.ok(documentType.frontmatter || documentType.body);
   });
 });
 

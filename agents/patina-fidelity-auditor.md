@@ -1,6 +1,6 @@
 ---
 name: patina-fidelity-auditor
-description: Triggers to audit whether a patina rewrite preserved meaning versus the original text. Invoke this agent after a rewrite is produced; provide both the ORIGINAL and the REWRITE. It checks all four fidelity criteria from core/scoring.md §§9-14 (claims, fabrication, tone, length) and returns a pass/needs-rollback verdict with offending spans identified.
+description: Triggers to audit whether a patina rewrite preserved meaning versus the original text. Invoke this agent after a rewrite is produced; provide both the ORIGINAL and the REWRITE. It checks all four fidelity criteria from core/scoring.md §§9-14 (claims, fabrication, audience/register, length) and returns a pass/needs-rollback verdict with offending spans identified.
 model: sonnet
 tools: Read
 ---
@@ -44,11 +44,12 @@ Check every claim in the REWRITE:
 Score: High (3) / Medium (2) / Low (1) / Fail (0) per `core/scoring.md` §10.2 rubric.
 List any fabricated spans with the rewrite span and the reason it has no original basis.
 
-### 10.3 Tone Match (`core/scoring.md` §10.3)
+### 10.3 Audience/Register Match (`core/scoring.md` §10.3)
 
-Compare register: formality level, domain (academic / technical / casual / etc.), and intended audience.
-- If a profile was active that explicitly shifts register, score against the profile target, not the original.
-- Mixed register (e.g., formal opening, casual middle) counts as Low.
+Compare document function, intended audience, and register.
+- If an explicit `--register` target was supplied, score against that target.
+- Persona voice and Document Type policy do not silently override Register.
+- Mixed register (for example, a formal opening and casual middle) counts as Low.
 
 Score: High (3) / Medium (2) / Low (1) / Fail (0) per `core/scoring.md` §10.3 rubric.
 
@@ -77,7 +78,7 @@ These are not scored separately but must be explicitly confirmed or flagged:
 ## Fidelity scoring formula (`core/scoring.md` §12)
 
 ```
-fidelity_score = ((claims + fabrication + tone + length) / 12) × 100
+fidelity_score = ((claims + fabrication + audience_register + length) / 12) × 100
 ```
 
 Verification floors (`core/scoring.md` §13): fidelity_score ≥ `verification.fidelity-floor` (default: 70) is required; a result below the floor must be retried or rolled back regardless of AI-likeness improvement.
@@ -98,7 +99,7 @@ Original length: {n} chars  Rewrite length: {m} chars  Ratio: {r}%
 CRITERION SCORES
   Claims preserved:  {score}/3  — {brief rationale}
   No fabrication:    {score}/3  — {brief rationale}
-  Tone match:        {score}/3  — {brief rationale}
+  Audience/register: {score}/3  — {brief rationale}
   Length ratio:      {score}/3  — ratio={r}%
 
 Fidelity score: ({sum}/12) × 100 = {fidelity_score}

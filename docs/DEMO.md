@@ -14,7 +14,7 @@ This transcript uses the checked-in English marketing fixture so the example is 
 $ cat examples/short/marketing-launch-en.md
 The newly released Notion template pack is an innovative solution designed to transform productivity for modern teams. It offers 30 templates optimized for diverse workflows, with a user-friendly design that enables anyone to leverage them effortlessly. This product introduces a new paradigm for maximizing work efficiency.
 
-$ patina --lang en --tone marketing examples/short/marketing-launch-en.md
+$ patina --lang en --document-type marketing examples/short/marketing-launch-en.md
 If Notion still starts as a blank page for your team, open this pack first. It includes 30 templates for common workflows. Duplicate one, adjust the fields you need, and use it for a team project or your own planning without starting from scratch.
 ```
 
@@ -30,7 +30,7 @@ This is the Korean fixture used by `README_KR.md`.
 $ cat examples/short/marketing-launch.md
 새롭게 출시된 노션 템플릿 팩은 생산성 향상을 위한 혁신적인 솔루션입니다. 다양한 워크플로우에 최적화된 30개의 템플릿을 제공하며, 사용자 친화적인 디자인으로 누구나 손쉽게 활용 가능합니다. 본 제품은 업무 효율성을 극대화하는 새로운 패러다임을 제시합니다.
 
-$ patina --lang ko --tone marketing examples/short/marketing-launch.md
+$ patina --lang ko --document-type marketing examples/short/marketing-launch.md
 노션을 자주 쓰지만 매번 빈 페이지에서 막힌다면 이 팩부터 열어 보세요. 업무별 템플릿 30개를 담았습니다. 복잡한 설정 없이 복제해서 바로 고치고, 팀 프로젝트든 개인 정리든 필요한 형태로 손보면 됩니다.
 ```
 

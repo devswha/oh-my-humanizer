@@ -8,7 +8,7 @@ const BASE_TEXT = 'Original claim text.';
 function baseConfig() {
   return {
     language: 'en',
-    profile: 'default',
+    documentType: 'default',
     scoring: {
       'combined-weights': {
         default: {
@@ -70,7 +70,7 @@ function createLLMFixture({
       return JSON.stringify({
         claims_preserved: grade,
         no_fabrication: grade,
-        tone_match: grade,
+        audience_register_match: grade,
         rationale: 'test fixture',
       });
     }
@@ -87,7 +87,7 @@ function runWithFixture(fixture, { config = baseConfig(), policy = {} } = {}) {
     config,
     policy,
     patterns: [],
-    profile: null,
+    documentType: null,
     voice: null,
     scoring: null,
     text: BASE_TEXT,
@@ -197,7 +197,7 @@ test('iterative baseline logs per-iteration score progress and latency', async (
     config: baseConfig(),
     policy: { targetScore: 75 },
     patterns: [],
-    profile: null,
+    documentType: null,
     voice: null,
     scoring: null,
     text: BASE_TEXT,

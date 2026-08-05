@@ -68,8 +68,8 @@ curl -fsSL https://raw.githubusercontent.com/devswha/patina/main/install.sh | ba
 便利なスキル呼び出し：
 
 ```text
-/patina --tone professional
-/patina --tone auto --lang en
+/patina --document-type email --register professional
+/patina --document-type blog --persona pragmatic-founder
 ```
 
 ### スタンドアロン CLI
@@ -99,17 +99,33 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 | **184 パターン** | 各言語 37 個の書き換え可能パターン + 9 個のスコア専用 viral-hook（KO/EN/ZH/JA 各 46 個） — 完全な 184 パターンカタログは [PATTERNS.md](docs/PATTERNS.md) を参照 |
 | **モード** | rewrite · verify · audit · score · diff |
 | **利用形態** | agent skill · Node CLI · ページ内 preview · ブラウザ playground（rewrite + score） |
-| **ボイス制御** | `--persona` は再利用ボイス · `--tone` はレジスター上書き · `--profile` は Node のパターン方針（一部 skill/core 経路には旧 profile ボイス指示が残る） |
+| **3つの書き換え軸** | `--document-type` はジャンル/方針 · `--persona` は再利用ボイス · `--register` は casual/professional レジスター |
 | **無料利用** | ログイン済みの `codex`、`claude`、`gemini` CLI なら `PATINA_API_KEY` なしで書き換え可能 |
 | **キャリブレーション** | GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro で編集ホットスポット再現率 67.3% [63.5–71.0%]（n=600、KO+EN）；KO+EN の人間文章コントロールで誤検出 16.0% [11.6–21.7%]（n=200） |
 | **ライセンス** | MIT |
 
 スコアは誤検出と見逃しを含む編集シグナルであり、著者判定の根拠ではありません。[Ethics](docs/ETHICS.md) を参照してください。
 
+## 互いに独立した3つの軸
+
+patina は一つの軸から別の軸を推論しません。Persona と Register を省略すると、原文のボイスとレジスターを保持します。
+
+| 軸 | 制御するもの | 制御しないもの | CLI | 設定 | Playground |
+|---|---|---|---|---|---|
+| **Document Type** | ジャンル、目的、構造慣習、パターン方針 | ボイス、casual/professional の伝え方、意味保全フロア | `--document-type` | `document-type` | Document |
+| **Persona** | 再利用ボイス指紋：語彙、リズム、説明習慣 | ジャンル、パターン方針、Register、意味保全フロア | `--persona` | `persona` | Voice |
+| **Register** | `casual` または `professional` の伝え方 | ジャンル、Persona の同一性、パターン方針 | `--register` | `register` | Register |
+
+```bash
+patina --document-type email --register professional note.md
+patina --document-type blog --persona pragmatic-founder post.md
+patina --document-type technical --persona technical-explainer --register casual guide.md
+```
+
 ## 主なコマンド
 
 ```bash
-patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
+patina --lang <ko|en|zh|ja> [mode] [--document-type <name>] [--persona <name>] [--register <name>] input.txt
 ```
 
 | コマンド | 目的 |
@@ -122,10 +138,13 @@ patina --lang <ko|en|zh|ja> [mode] [--profile <name>] input.txt
 | `patina --diff input.txt` | 変更をパターンごとに表示 |
 | `patina --preview page.html` | 保存済み HTML ページ上に書き換えを反映し、トグルとインライン diff を表示 |
 | `patina --verify input.txt` | 書き換え後、1 回のリトライで MPS/忠実度フロアを検査 |
-| `patina --tone auto --lang en input.txt` | KO/EN のトーン軸を推定して適用 |
+| `patina --document-type email --register professional input.txt` | メールの慣習と professional レジスターを適用 |
 | `patina --persona pragmatic-founder input.txt` | 組み込みボイスペルソナで書き換え |
 | `patina persona new my-voice --from-sample past.txt` | 文章サンプルから自分のペルソナを作成 |
 | `patina persona list` | 組み込み + カスタムペルソナを一覧表示 |
+| `patina persona show my-voice --json` | Persona の正規化済みボイス設定を表示 |
+| `patina persona edit my-voice --name "New Name"` | 組み込み Persona を custom shadow にコピーして編集 |
+| `patina persona rm my-voice` | カスタム Persona を削除（組み込みは保護） |
 | `patina --format json --quiet input.txt` | スクリプト向け出力 |
 | `patina --batch docs/*.md --outdir cleaned/` | 複数ファイルの一括処理 |
 
@@ -141,7 +160,7 @@ patina persona new my-voice --describe "plain-spoken founder, casual"
 patina --persona my-voice draft.md                          # then reuse it
 ```
 
-ko/en/zh/ja で `--tone`/`--profile` と組み合わせられます。Node では persona が再利用ボイスを担い、レジスター優先順位は `--tone` > persona、profile はパターン方針を制御します。一部の skill/core-prompt 経路には旧 profile ボイス指示が残るため、この分離はまだ全経路の不変条件ではありません。どの制御も意味フロアを下げず、作成した persona は保存時に検証され、書き換えは MPS/忠実度と数値欠落チェックを引き続き強制します。
+ko/en/zh/ja で `--document-type`、`--persona`、`--register` を独立して組み合わせられます。Persona v2 は再利用ボイスだけを変え、文書タイプ、レジスター、パターン方針、verification、意味フロアを定義できません。作成した Persona は保存時に検証され、グローバル rewrite guard と `--verify` が意味保全を独立して担当します。
 
 ## CI
 
@@ -189,9 +208,9 @@ Input
 # .patina.default.yaml
 version: "7.0.0"
 language: ko              # ko | en | zh | ja
-profile: default
-output: rewrite           # rewrite | diff | audit | score
-tone:                     # casual | professional | auto  (register override; profile = pattern policy)
+document-type: default    # ジャンル/用途 + パターン方針
+persona:                  # 任意。省略時は原文ボイスを保持
+register:                 # casual | professional。省略時は原文レジスターを保持
 ```
 
 プロジェクトの `.patina.yaml` がデフォルトを上書きします。パターンパックは言語プレフィックスで自動検出されます。追加型のリストキー（`blocklist`、`allowlist`、`skip-patterns`）はマージされ、その他の配列は置き換えられます。

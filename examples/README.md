@@ -5,7 +5,19 @@
 ## 목적
 
 패턴이 의도한 대로 동작하는지 (성공), 의도치 않게 오탐/과교정하는지 (실패) 두 가지 케이스를 각 패턴별로 문서화한다.
-프로필 전용 예시는 `examples/profiles/`에 둔다. 이 예시는 패턴 번호보다 register/voice 보존을 설명하며, 외부 라이선스가 있는 원문을 복사하지 않는다.
+Document Type 전용 예시는 `examples/document-types/`에 둔다. 이 예시는 패턴 번호보다 문서 정책과 구조 관습을 설명하며, 외부 라이선스가 있는 원문을 복사하지 않는다.
+
+## 재작성 3축 예시
+
+재작성 입력은 서로 독립적인 세 축으로 나뉜다.
+
+| 축 | 예시 | 바꾸는 것 | 바꾸지 않는 것 |
+|---|---|---|---|
+| Document Type | [`document-types/`](document-types/), [`rewrite-axes/academic-ko.md`](rewrite-axes/academic-ko.md) | 장르·용도·구조 관습·패턴 정책 | 목소리, casual/professional 전달 방식, 사실 |
+| Persona | `patina --persona <name>` | 사용자가 명시적으로 고른 재사용 목소리 | 장르, Register, 사실, 검증 하한 |
+| Register | [`rewrite-axes/casual-ko.md`](rewrite-axes/casual-ko.md), [`rewrite-axes/professional-ko.md`](rewrite-axes/professional-ko.md) | `casual | professional` 전달 방식 | 장르, Persona, 사실 |
+
+Persona와 Register를 생략하면 원문의 목소리와 레지스터를 보존한다. 모든 before/after는 주장·수치·극성·인과를 그대로 유지해야 하며, Document Type이나 Register를 바꾼다는 이유로 인물·장면·성과·사례를 새로 만들 수 없다.
 
 ## 파일 명명 규칙
 
