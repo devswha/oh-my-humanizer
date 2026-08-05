@@ -83,38 +83,34 @@ test('clamp03 clamps out-of-range values and rounds fractions', () => {
   }
 });
 
-test('combinedScore uses default and profile-specific config weights', () => {
+test('combinedScore uses default and document-type-specific config weights', () => {
   const config = loadConfig();
 
   assert.strictEqual(
-    combinedScore({ aiLikeness: 40, fidelity: 80, profile: 'missing', config }),
+    combinedScore({aiLikeness: 40, fidelity: 80, documentType: 'missing', config}),
     32
   );
 
   assert.strictEqual(
-    combinedScore({ aiLikeness: 40, fidelity: 80, profile: 'legal', config }),
+    combinedScore({aiLikeness: 40, fidelity: 80, documentType: 'legal', config}),
     27
   );
 
   assert.strictEqual(
-    combinedScore({ aiLikeness: 40, fidelity: 80, profile: 'marketing', config }),
+    combinedScore({aiLikeness: 40, fidelity: 80, documentType: 'marketing', config}),
     33
   );
 
   assert.strictEqual(
-    combinedScore({
-      aiLikeness: 40,
-      fidelity: 80,
-      deterministicScore: { overall: 90 },
-      profile: 'legal',
-      config: {
-        ...config,
-        scoring: {
-          ...config.scoring,
-          deterministic: { ...config.scoring.deterministic, 'combined-weight': 0.25 },
-        },
+    combinedScore({aiLikeness: 40,
+    fidelity: 80,
+    deterministicScore: { overall: 90 }, documentType: 'legal', config: {
+      ...config,
+      scoring: {
+        ...config.scoring,
+        deterministic: { ...config.scoring.deterministic, 'combined-weight': 0.25 },
       },
-    }),
+    },}),
     39.6
   );
 });
@@ -133,16 +129,16 @@ test('fidelity prompt exempts stripped packaging and judges audience, not polish
     model: 'm',
     callLLM: async (args) => {
       prompt = args.prompt;
-      return '{ "claims_preserved": 3, "no_fabrication": 3, "tone_match": 3, "rationale": "ok" }';
+      return '{ "claims_preserved": 3, "no_fabrication": 3, "audience_register_match": 3, "rationale": "ok" }';
     },
   });
 
   // The rubric must tell the judge that removed packaging is the goal.
   assert.match(prompt, /Stylistic packaging is not a claim/);
   assert.match(prompt, /Removing that packaging is the intended outcome/);
-  // tone_match judges audience and domain, never surface formality alone.
-  assert.match(prompt, /same audience and domain register/);
-  assert.doesNotMatch(prompt, /register\/formality of REWRITTEN matches ORIGINAL/);
+  // audience_register_match judges audience and document function, not polish.
+  assert.match(prompt, /same audience and document function/);
+  assert.doesNotMatch(prompt, /surface polish is a mismatch/);
   // That rewrite is 62% of the original; compression alone must not cost points.
   assert.equal(result.criteria.length_ratio, 3);
   assert.equal(result.fidelity, 100);
@@ -163,7 +159,7 @@ test('score helpers accept an injected callLLM implementation', async () => {
     if (args.prompt.includes('Meaning Preservation evaluator')) {
       return '{ "anchors": [], "pass_count": 1, "total_count": 1, "polarity_pass_count": 0, "polarity_total_count": 0, "mps": 91 }';
     }
-    return '{ "claims_preserved": 3, "no_fabrication": 3, "tone_match": 3, "rationale": "ok" }';
+    return '{ "claims_preserved": 3, "no_fabrication": 3, "audience_register_match": 3, "rationale": "ok" }';
   };
 
   const config = loadConfig();
@@ -693,13 +689,13 @@ test('scoreDeterministicSignals floors skipped text on a structural-only verdict
 
 // --- P1: short-form (social/marketing) em-dash evidence floor ---------------
 // Register-gated weak signal: a single em dash in a short SNS reply floors the
-// score off an exact 0 (~1.7, still human band) for social/marketing profiles,
-// and is completely inert for the default profile.
+// score off an exact 0 (~1.7, still human band) for social/marketing document
+// types, and is inert for the default document type.
 
 const EN_STYLE_PACK = [{ frontmatter: { pack: 'en-style', patterns: 6 } }];
 
 test('scoreDeterministicSignals floors a social short reply on a single em dash', () => {
-  const config = { ...loadConfig(), language: 'en', profile: 'social' };
+  const config = { ...loadConfig(), language: 'en', documentType: 'social' };
   const det = scoreDeterministicSignals({
     text: 'built patina for exactly that — keeps your meaning intact.',
     config,
@@ -717,10 +713,10 @@ test('scoreDeterministicSignals floors a social short reply on a single em dash'
   assert.strictEqual(two.shortFormFloor, 3.3); // Medium severity 2
 });
 
-test('the short-form floor is inert for the default profile', () => {
+test('the short-form floor is inert for the default document type', () => {
   const det = scoreDeterministicSignals({
     text: 'built patina for exactly that — keeps your meaning intact.',
-    config: { ...loadConfig(), language: 'en', profile: 'default' },
+    config: { ...loadConfig(), language: 'en', documentType: 'default' },
     patterns: EN_STYLE_PACK,
   });
   assert.strictEqual(det.shortFormFloor, 0);
@@ -730,7 +726,7 @@ test('the short-form floor is inert for the default profile', () => {
 test('the short-form floor degrades to 0 without style pattern metadata', () => {
   const det = scoreDeterministicSignals({
     text: 'built patina for exactly that — keeps your meaning intact.',
-    config: { ...loadConfig(), language: 'en', profile: 'social' },
+    config: { ...loadConfig(), language: 'en', documentType: 'social' },
     patterns: [], // no en-style pack => cannot reconstruct category math
   });
   assert.strictEqual(det.shortFormFloor, 0);
@@ -742,17 +738,17 @@ test('scoreText surfaces the short-form floor for a social reply even at LLM 0',
 
   const social = await scoreText({
     text: 'built patina for exactly that — keeps your meaning intact.',
-    config: { ...loadConfig(), language: 'en', profile: 'social' },
+    config: { ...loadConfig(), language: 'en', documentType: 'social' },
     patterns: EN_STYLE_PACK,
     callLLM,
   });
   assert.strictEqual(social.overall, 1.7);
   assert.strictEqual(social.scorePreference?.reason, 'deterministic-evidence-floor');
 
-  // Default profile: the same dash stays 0 (no false positive on general text).
+  // Default document type: the same dash stays 0 (no false positive on general text).
   const dflt = await scoreText({
     text: 'built patina for exactly that — keeps your meaning intact.',
-    config: { ...loadConfig(), language: 'en', profile: 'default' },
+    config: { ...loadConfig(), language: 'en', documentType: 'default' },
     patterns: EN_STYLE_PACK,
     callLLM,
   });

@@ -12,22 +12,6 @@ All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 Semver rationale: patch | minor | major — explain whether this changes patterns, schemas, CLI behavior, or docs only.
 ```
 
-## Unreleased
-
-### Changed
-
-- The v6.4 preflight hold now certifies the Polar payment route instead of the
-  declined Lemon Squeezy account: the checkout evidence binding table carries
-  exactly the Polar production tuple (`PAY-B-20260729-POLAR-ea8385dc-4c9c3f17`,
-  `https://buy.polar.sh/polar_cl_…`), the hold validates the
-  `PAY-B-BINDING-POLAR-v1` and `PAY-LIVE-RUNTIME-POLAR-v1` artifacts,
-  `POLAR_APPROVAL` replaces `LS_APPROVAL`, and the secret-manager blocker names
-  `PATINA_LICENSE_PROVIDER`/`POLAR_ORGANIZATION_ID`/`POLAR_PRO_BENEFIT_ID`. The
-  retired staging chain is recorded as superseded by the production zero-amount
-  purchase evidence, not silently dropped; Lemon Squeezy records stay on disk,
-  hash-frozen, as history. Checkout remains disabled pending the owner's
-  env-side enable sequence.
-
 ## 7.0.0 — 2026-07-30
 
 **Removes the retired iterative rewrite product contract, gives scoring and verification settings neutral ownership, and preserves the comparator only as unsupported research.**
@@ -39,6 +23,7 @@ Semver rationale: major — removes public configuration keys and the obsolete a
 - The retired iterative mode is gone from the agent skill, CLI migration tombstone, default configuration, help/support surfaces, generated API, and current documentation. Node users keep `--verify`; agent-skill users keep the independent `/patina --strict` flow.
 - Loop-only `enabled`, `target-score`, `max-iterations`, and `plateau-threshold` settings are no longer product configuration.
 - The unused top-level `structured-output` setting is deleted. The scorer's explicit runtime `responseFormat` API remains available to supported callers.
+- **`--profile`, `--tone`, and `--formality` are retired** along with the `profiles/` and `examples/tones` catalogs; the CLI rejects them with migration errors pointing at the replacement axes below. The `preserve` persona files are gone — omitting `--persona` now preserves the source voice by construction.
 
 ### Changed (breaking)
 
@@ -46,16 +31,27 @@ Semver rationale: major — removes public configuration keys and the obsolete a
 - Move the shared `mps-floor` and `fidelity-floor` values to `verification`. Their defaults remain 70/70.
 - Keep `personas.thresholds.mps_floor` and `personas.thresholds.fidelity_floor` separate; persona gate overrides do not affect `--verify`, and verification overrides do not affect persona gates.
 - Rename the opt-in A/B arm to `iterative-baseline` and move its runner under `scripts/`. It remains packaged for `npm run quality:rewrite-ab`, but is unsupported research and is absent from CLI/help/config, hosted APIs, and generated public API docs.
-- Persona, profile, and tone behavior is unchanged. Persona remains the reusable voice axis, tone remains the KO/EN register override, and profile-policy consolidation remains follow-up work.
+- The rewrite-axis model is rebuilt (see Added): Document Type owns document policy, Persona v2 stays the optional reusable voice axis, and Register owns delivery. Meaning preservation and verification remain global; no axis can weaken them.
 
 ### Added
 
 - `patina --score --offline` runs the deterministic scoring layer without resolving a backend or credential. It supports markdown/JSON output and `--exit-on`; LLM-judged categories are marked unavailable, and a missing numeric local score fails instead of silently passing.
+- Three independent rewrite axes replace the overloaded profile/tone/formality model: 17 Document Types own document policy, 12 language-scoped Persona v2 files optionally supply reusable voice, and Register independently selects `casual` or `professional` delivery. Omitted Persona and Register preserve the source.
+- Document Type files now use a validated structured frontmatter contract (`purpose`, `audience`, `structure`, `style`, `avoid`, language-scoped `pattern-overrides`). Invalid or cross-axis custom policies fail before prompt assembly.
+- Rewrite prompts state axis ownership and precedence explicitly. Document Type cannot manufacture voice, Persona cannot choose document policy or Register, and Register cannot alter structure or claims.
+- The example catalog now includes comparable KO/EN rewrite-axis fixtures for academic, instructional, marketing, narrative, casual, and professional behavior.
+- Server-paid free-tier rewrites on DeepSeek get a measured reasoning cut (`reasoning_effort: low`, ~44s instead of ~90s at gate-parity quality), env-tunable via `PATINA_FREE_REWRITE_REASONING=low|medium|high|off`; the MPS/fidelity judges carry the same cut on gemini and deepseek. BYOK and Pro rewrites never receive the field. The streaming client gains `extraBody` passthrough with protocol fields protected.
 
 ### Fixed
 
 - Rewrite stdout now contains prose only. Plain, fenced, and blockquoted tone footers are stripped, while `--format json` retains structured tone metadata, including the model-resolved value from `--tone auto`.
 - The agent skill now uses the CLI's config precedence and canonical project filename: installed `.patina.default.yaml` → `~/.patina.yaml` → project `./.patina.yaml` → command arguments.
+- A model cached as rejecting `temperature` can no longer recover the field from `extraBody` in either LLM client.
+- The BYOK pricing card no longer claims the key "stays in your browser": it is sent only with your requests, relayed by the server, and never stored or logged.
+
+### Operations
+
+- The v6.4 preflight hold now certifies the Polar payment route instead of the declined Lemon Squeezy account: the binding table carries exactly the Polar production tuple (`PAY-B-20260729-POLAR-ea8385dc-4c9c3f17`), `POLAR_APPROVAL` replaces `LS_APPROVAL`, and the retired staging chain is recorded as superseded by production zero-amount purchase evidence. Checkout was opened by the owner on 2026-08-04 after the full gate sequence; the hosted free tier now serves on `deepseek-v4-flash`.
 
 ### Migration
 

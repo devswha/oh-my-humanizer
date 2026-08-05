@@ -3,13 +3,14 @@
 import { resolve } from 'node:path';
 import { callLLM as defaultCallLLM } from './api.js';
 import { inputError } from './errors.js';
-import { loadCoreFile, loadPatterns, loadProfile } from './loader.js';
+import { loadCoreFile, loadPatterns, loadDocumentType, applyDocumentTypePatternPolicy } from './loader.js';
 import { formatRewriteBodyForBrowser } from './output.js';
 import { buildPrompt, fenceReferenceText } from './prompt-builder.js';
 import { resolvePersonaForRun } from './personas/resolve.js';
 import { loadWebConfig, resolveBundleRoot } from './web-config.js';
+import { resolveRegister } from './config.js';
 
-/** @type {Map<string, { config: object, patterns: object[], profile: object, core: object|null, persona: object|null }>} */
+/** @type {Map<string, { config: object, patterns: object[], documentType: object, core: object|null, persona: object|null }>} */
 const ASSET_CACHE = new Map();
 
 /** @param {unknown} value */
@@ -21,21 +22,26 @@ function cloneConfig(value) {
  * Load and cache bundled patina assets for the web rewrite path.
  *
  * @param {object} options
- * @param {string} options.repoRoot Bundle root containing patterns/, profiles/, core/.
+ * @param {string} options.repoRoot Bundle root containing patterns/, document-types/, core/.
  * @param {string} options.lang Language code.
- * @param {string} options.profile Profile name.
- * @param {string} [options.personaId] Explicit voice persona id (from the request); default resolution applies when omitted.
+ * @param {string} options.documentType Document-policy name.
+ * @param {string} [options.personaId] Explicit voice persona id.
  * @param {object} options.config Web-safe baseline config.
- * @returns {{ config: object, patterns: object[], profile: object, core: object|null, persona: object|null }} Loaded assets.
+ * @returns {{ config: object, patterns: object[], documentType: object, core: object|null, persona: object|null }} Loaded assets.
  * @throws {import('./errors.js').PatinaCliError} When required bundled assets are missing or empty.
  */
-export function loadWebAssets({ repoRoot = resolveBundleRoot(), lang, profile, config, personaId }) {
-  const cacheKey = `${lang}::${profile}::${personaId ?? ''}`;
+export function loadWebAssets({ repoRoot = resolveBundleRoot(), lang, documentType = 'default', config, personaId }) {
+  const cacheKey = `${lang}::${documentType}::${personaId ?? ''}`;
   const cached = ASSET_CACHE.get(cacheKey);
   if (cached) return cached;
 
   try {
-    const patterns = loadPatterns(repoRoot, lang, Array.isArray(config?.['skip-patterns']) ? config['skip-patterns'] : []);
+    const loadedDocumentType = loadDocumentType(repoRoot, documentType);
+    const patterns = applyDocumentTypePatternPolicy(
+      loadPatterns(repoRoot, lang, Array.isArray(config?.['skip-patterns']) ? config['skip-patterns'] : []),
+      loadedDocumentType,
+      lang,
+    );
     if (patterns.length === 0 || patterns.every((pack) => !String(/** @type {any} */ (pack).body || '').trim())) {
       throw inputError(
         'web pattern assets are missing',
@@ -44,22 +50,10 @@ export function loadWebAssets({ repoRoot = resolveBundleRoot(), lang, profile, c
       );
     }
 
-    const loadedProfile = loadProfile(repoRoot, profile);
-    if (!String(loadedProfile.body || '').trim()) {
-      throw inputError(
-        'web profile asset is empty',
-        `profiles/${profile}.md has no profile body.`,
-        'Include a non-empty bundled profile markdown file.'
-      );
-    }
 
     const core = loadCoreFile(repoRoot, 'voice.md');
-    // v6.2 profile-voice retirement: persona is the sole voice owner. Resolve
-    // the active persona exactly like the CLI (resolvePersonaForRun) so the
-    // hosted rewrite keeps voice parity: an explicit web persona is treated like
-    // `--persona <id>`; with none, ko defaults to preserve and en/zh/ja stay
-    // voice-free. Without this the ko web prompt would lose ALL voice guidance
-    // (retired profile voice body + no persona directive).
+    // Persona is optional and is the only reusable voice owner. Omitting it
+    // preserves the source voice on both CLI and hosted surfaces.
     const persona = resolvePersonaForRun({
       parsed: personaId ? { persona: personaId } : {},
       config,
@@ -67,15 +61,15 @@ export function loadWebAssets({ repoRoot = resolveBundleRoot(), lang, profile, c
       mode: 'rewrite',
       repoRoot,
     });
-    const assets = { config, patterns, profile: loadedProfile, core: core.body ? core : null, persona };
+    const assets = { config, patterns, documentType: loadedDocumentType, core: core.body ? core : null, persona };
     ASSET_CACHE.set(cacheKey, assets);
     return assets;
   } catch (err) {
     if (/** @type {any} */ (err)?.name === 'PatinaCliError') throw err;
     throw inputError(
       'web rewrite assets could not be loaded',
-      `${lang}/${profile}: ${/** @type {Error} */ (err).message}`,
-      'Ensure the requested language pattern packs, profile, and core voice guide are included in the bundle.'
+      `${lang}/${documentType}: ${/** @type {Error} */ (err).message}`,
+      'Ensure the requested language patterns, document type, persona, and core voice guide are included in the bundle.'
     );
   }
 }
@@ -99,20 +93,22 @@ function renderHistory(history = []) {
  * @param {object} options
  * @param {object} options.request Validated web rewrite request.
  * @param {object} options.config Web-safe config.
- * @param {{ patterns: object[], profile: object, core: object|null, persona: object|null }} options.assets Loaded web assets.
+ * @param {{ patterns: object[], documentType: object, core: object|null, persona: object|null }} options.assets Loaded web assets.
  * @returns {string} Prompt text.
  */
 export function buildWebRewritePrompt({ request, config, assets }) {
   const baseOptions = {
     config,
     patterns: assets.patterns,
-    profile: assets.profile,
+    documentType: assets.documentType,
     voice: assets.core,
     persona: assets.persona,
     scoring: null,
     mode: 'rewrite',
     text: request.text,
-    tone: null,
+    register: request.register
+      ? resolveRegister({ cliRegister: request.register })
+      : null,
     documentSignals: null,
   };
 
@@ -171,9 +167,9 @@ export async function runWebRewrite({
 }) {
   const effectiveConfig = cloneConfig(config);
   effectiveConfig.language = request.lang;
-  effectiveConfig.profile = effectiveConfig.profile || 'default';
-  const profile = effectiveConfig.profile;
-  const assets = loadWebAssets({ repoRoot, lang: request.lang, profile, config: effectiveConfig, personaId: request.persona });
+  effectiveConfig.documentType = request.documentType || effectiveConfig.documentType || 'default';
+  const documentType = effectiveConfig.documentType;
+  const assets = loadWebAssets({ repoRoot, lang: request.lang, documentType, config: effectiveConfig, personaId: request.persona });
   const prompt = buildWebRewritePrompt({ request, config: effectiveConfig, assets });
   const raw = await callLLM({
     prompt,

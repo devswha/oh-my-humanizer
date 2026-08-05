@@ -16,7 +16,7 @@ Current assets:
 - `patina-playground-en.png` — expanded-result still used where PNG is required.
 - `patina-preview-en.gif` — CLI `--preview` animation, linked from the README demo section and used by the Korean, Chinese, and Japanese READMEs.
   - source: a styled local HTML page with Notion-template-pack prose.
-  - generated with: `node bin/patina.js --preview --lang en --tone marketing --backend codex-cli <sample>.html`
+  - generated with: `node bin/patina.js --preview --lang en --document-type marketing --backend codex-cli <sample>.html`
   - captured views: Rewritten → Diff → Original → Both → Diff.
   - expected visual contract: page layout stays fixed; prose blocks are numbered; the bar shows `4 OF 5 BLOCKS REWRITTEN` and `SCORE 60 → 0`; Diff view uses red strikethrough removals and green insertions.
   - size target: keep the GIF under 10 MB so GitHub renders it reliably; current target is under 1 MB.
@@ -36,7 +36,7 @@ Shared requirements:
 2. Run:
 
 ```bash
-node bin/patina.js --preview --lang en --tone marketing --backend codex-cli /tmp/patina-preview-sample.html
+node bin/patina.js --preview --lang en --document-type marketing --backend codex-cli /tmp/patina-preview-sample.html
 ```
 
 3. Open the saved preview HTML from stderr.

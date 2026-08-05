@@ -72,7 +72,7 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 > 처음 코드 리뷰를 받던 날이 아직도 가끔 떠오른다. 선배가 남긴 피드백은 한 줄씩 읽을 때마다 이상하게 크게 느껴졌다. 모니터 앞에서 댓글을 하나씩 열어보던 장면이 선명하다. 손은 마우스 위에 있었고, 머릿속은 자꾸 하얘졌다. 지금 생각하면 그날은 대단한 사건이라기보다, 내가 처음으로 내 코드를 남의 눈으로 본 날에 가까웠다.
 
-**제거한 패턴**: `마치 거대한 산처럼` (ko-content abstract metaphor), `의미 있는 전환점이었다고 표현할 수 있을 것이다` (ko-structure #25 hedge stack + ko-content inflated significance). 구체적인 신체 디테일(`손은 마우스 위에`, `머릿속은 자꾸 하얘졌다`)로 바꿨습니다. narrative profile의 `concrete-emotions: amplify` 설정입니다.
+**제거한 패턴**: `마치 거대한 산처럼` (ko-content abstract metaphor), `의미 있는 전환점이었다고 표현할 수 있을 것이다` (ko-structure #25 hedge stack + ko-content inflated significance). 구체적인 신체 디테일(`손은 마우스 위에`, `머릿속은 자꾸 하얘졌다`)로 바꿨습니다. narrative Document Type의 정책입니다.
 
 ## Korean: SNS marketing — viral-hook signals
 
@@ -116,8 +116,8 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 - **`examples/short/`** — 네 개의 짧은 Korean fixture(marketing, tutorial, essay, email)와 짝을 이루는 `*-rewritten.md` 파일.
 - **`examples/genres/`** — 세 개의 긴 Korean genre(technical, academic, narrative)와 짝을 이루는 rewrite.
-- **`examples/tones/`** — 같은 입력을 여섯 tone(`casual`, `professional`, `academic`, `narrative`, `marketing`, `instructional`)과 `auto`로 rewrite한 결과. 나란히 보려면 `examples/tones/RESULTS.md`를 참고하세요.
-- **`examples/viral-hook/`** — iterative improvement workflow를 다루는 case study(`case-01`부터 `case-09`): viral-hook detection, codex/claude/gemini comparison, voice profile, multi-genre validation.
+- **`examples/rewrite-axes/`** — v7 축 fixture. `casual`/`professional`은 Register를, `academic`/`narrative`/`marketing`/`instructional`은 Document Type을 보여 줍니다. 모든 rewrite는 주장의 강도를 보존하고 원문에 없는 사례·인물·장면·성과를 만들지 않습니다.
+- **`examples/viral-hook/`** — iterative improvement workflow를 다루는 case study(`case-01`부터 `case-09`): viral-hook detection, codex/claude/gemini comparison, Persona voice, multi-Document-Type validation.
 - **`examples/sample-rewritten-*.md`** — 같은 장문의 Korean SNS marketing post를 Codex / Claude / Gemini-3로 rewrite한 결과. `case-03`에서 cross-model comparison에 사용합니다.
 
 ## patina가 확인하는 것

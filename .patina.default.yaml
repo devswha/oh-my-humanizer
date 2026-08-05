@@ -4,41 +4,26 @@ language: ko              # Korean (default) -- auto-loads all ko-*.md patterns
                           # language: zh      -- Chinese -- auto-loads all zh-*.md patterns
                           # language: ja      -- Japanese -- auto-loads all ja-*.md patterns
                           # Override with CLI: --lang en / --lang zh / --lang ja
-profile: default
-output: rewrite           # rewrite | diff | audit | score
+document-type: default     # pattern policy: default, blog, academic, technical,
+                           # formal, social, email, legal, medical, marketing,
+                           # narrative, instructional, casual-conversation,
+                           # code-comment, commit-message, release-notes, namuwiki
+# `formal` means structured documents; `casual-conversation` means chat/message
+# structure. Neither selects casual/professional delivery — use `register`.
+output: rewrite            # rewrite | diff | audit | score
 
-
-# Tone categorization (v3.10): register axis (casual/professional) for ko/en.
-# Resolution: explicit --tone > config tone > config profile.
-# auto = heuristic single-tone detection at SKILL.md Phase 4.5b.
-# Unset = profile-only legacy behavior (regression-safe default).
-tone:                       # one of: casual, professional, auto (register only)
-                            # Override with CLI: --tone <name>
-                            # zh/ja with explicit tone: warns and falls back to profile.
-
-# Persona harness (v1): Korean rewrite defaults to the conservative preserve
-# persona. Non-rewrite and non-Korean surfaces do not apply persona implicitly.
-persona: preserve
+# Optional rewrite axes. Omit persona to preserve source voice; omit register
+# to preserve the source register.
+register:                  # casual | professional
+# --persona applies a reusable voice fingerprint from personas/{lang}/.
+persona:
 personas:
-  library: personas/ko
   thresholds:
-    schema: patina.persona.thresholds.v1
-    # source stays `placeholder` because the advisory tuning below is informed by
-    # observation, not a formal 2-round promotion. The ENFORCING floors, however,
-    # are the product's core safety contract and do not depend on calibration.
+    # Persona match and surface churn are advisory voice-quality signals.
+    # Meaning, numbers, and fidelity are enforced by the global rewrite and
+    # --verify paths whether or not a persona is active.
     source: placeholder
-    calibration_rounds_required: 2
-    # --- ENFORCING (safety gate; a miss sets a non-zero exit, non-destructive) ---
-    # Meaning + facts only. Enforced when evaluated (mps/fidelity need --verify or a
-    # backend-reported score); dropped source numbers always enforce deterministically.
-    mps_floor: 70
-    fidelity_floor: 70
-    # --- ADVISORY (warn only; never blocks or changes the exit code) ---
-    # persona_match: voice-quality signal. Observed real KO persona-match runs ~35-56,
-    # so 45 flags the low end without firing on every rewrite.
     persona_match_min: 45
-    # churn: surface token change, NOT a meaning signal. Live KO humanizing rewrites
-    # churn ~0.5-0.85 while preserving meaning, so 0.9 flags only near-total rewrites.
     churn_max: 0.9
 
 # Supported languages: ko, en, zh, ja

@@ -22,7 +22,7 @@ server-side and streams a humanized rewrite back. Invariants (pinned by
 `tests/unit/web-deploy-invariants.test.js`):
 
 - **Runtime**: Vercel Node Function at `/api/rewrite`. The function bundle MUST
-  include `patterns/**`, `profiles/**`, `core/**`, `lexicon/**`, and
+  include `patterns/**`, `document-types/**`, `personas/**`, `core/**`, `lexicon/**`, and
   `.patina.default.yaml` (`functions["api/rewrite.js"].includeFiles` in
   `vercel.json`) because the patina loader reads them from the filesystem.
 - **No-store / no-persistence**: the server never logs or persists request text,

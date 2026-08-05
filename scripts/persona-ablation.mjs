@@ -54,7 +54,7 @@ function parseArgs(argv) {
 }
 
 export function selectPersonas({ repoRoot, lang, requested }) {
-  const ids = requested?.length ? requested : listPersonas(repoRoot, lang).filter((id) => id !== 'preserve');
+  const ids = requested?.length ? requested : listPersonas(repoRoot, lang);
   return ids.length ? ids : DEFAULT_PERSONAS;
 }
 
@@ -76,7 +76,7 @@ export function buildDryRunFixtures({ personas, limit = null }) {
         fixture_id: `dry-${personaId}-${String(index).padStart(3, '0')}`,
         persona_id: personaId,
         text: fallbackTextForPersona(personaId),
-        baseline_text: fallbackTextForPersona('preserve'),
+        baseline_text: fallbackTextForPersona('source'),
         treatment_text: fallbackTextForPersona(personaId),
       });
     }
@@ -163,11 +163,11 @@ function winnerOf(baseline, treatment, deltas) {
   return 'none';
 }
 
-// Live comparison: baseline = rewrite with the preserve persona (no voice
-// block); treatment = rewrite with the target persona. Both are scored for real.
-export async function comparePersonaFixtureLive({ fixture, persona, preservePersona, thresholds, rewrite, score }) {
+// Live comparison: baseline = rewrite without a Persona (source voice);
+// treatment = rewrite with the target Persona. Both are scored for real.
+export async function comparePersonaFixtureLive({ fixture, persona, thresholds, rewrite, score }) {
   const original = fixture.text ?? '';
-  const baselineText = stripSelfAudit(await rewrite({ text: original, persona: preservePersona }), { logger: { warn() {} } });
+  const baselineText = stripSelfAudit(await rewrite({ text: original, persona: null }), { logger: { warn() {} } });
   const treatmentText = stripSelfAudit(await rewrite({ text: original, persona }), { logger: { warn() {} } });
   const [baselineScore, treatmentScore] = await Promise.all([
     score({ original, rewritten: baselineText }),
@@ -207,12 +207,11 @@ export async function buildLiveAblationReport({ repoRoot, lang = 'ko', fixtures,
   if (typeof rewrite !== 'function' || typeof score !== 'function') throw new Error('live ablation requires rewrite() and score() injections');
   const config = loadConfig();
   const effectiveThresholds = thresholds ?? config.personas?.thresholds ?? {};
-  const preservePersona = loadPersona(repoRoot, lang, 'preserve');
   const rows = [];
   for (const fixture of fixtures) {
     const personaId = fixture.persona_id;
     const persona = loadPersona(repoRoot, lang, personaId);
-    rows.push(await comparePersonaFixtureLive({ fixture, persona, preservePersona, thresholds: effectiveThresholds, rewrite, score }));
+    rows.push(await comparePersonaFixtureLive({ fixture, persona, thresholds: effectiveThresholds, rewrite, score }));
   }
   const aggregate = aggregateAblation(rows);
   const sideSummary = summarizeSides(rows);
@@ -316,7 +315,7 @@ function createBackendRunner({ repoRoot, lang, config, backendName }) {
   const { backends } = selectBackendChain({ name });
   const callLLM = ({ prompt, signal, timeout }) => invokeBackendChain({ backends, prompt, signal, timeout, maxConcurrency: 1, maxRetries: 1 });
   const rewrite = async ({ text, persona }) => {
-    const prompt = buildPrompt({ config: { ...config, language: lang }, patterns, profile: null, voice: voice?.body ? voice : null, persona, scoring: null, text, mode: 'rewrite' });
+    const prompt = buildPrompt({ config: { ...config, language: lang }, patterns, documentType: null, voice: voice?.body ? voice : null, persona, scoring: null, text, mode: 'rewrite' });
     return callLLM({ prompt });
   };
   const score = async ({ original, rewritten }) => {

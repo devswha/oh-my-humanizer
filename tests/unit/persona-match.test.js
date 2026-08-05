@@ -9,7 +9,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
 
 function personaWithAvoid() {
-  const persona = loadPersona(REPO_ROOT, 'ko', 'preserve');
+  const persona = loadPersona(REPO_ROOT, 'ko', 'natural-ko');
   return {
     ...persona,
     blocks: {

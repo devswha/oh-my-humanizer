@@ -133,9 +133,9 @@ Weights are configurable via `scoring.category-weights.{lang}` in `.patina.yaml`
 
 ---
 
-## 5. Profile Override Adjustments
+## 5. Document-Type Pattern Policy
 
-Before summing severities, apply profile `pattern-overrides` modifiers:
+Before summing severities, apply the active document type's `pattern-overrides`:
 
 | Override | Factor | Effect |
 |----------|--------|--------|
@@ -144,8 +144,8 @@ Before summing severities, apply profile `pattern-overrides` modifiers:
 | suppress | × 0.0 | Excludes pattern entirely |
 | normal (default) | × 1.0 | No change |
 
-Example: blog profile suppresses #14 (bold) → pattern #14 severity becomes 0,
-excluded from ko-style category calculation.
+Example: the `blog` document type suppresses #14 (bold), so pattern #14
+contributes 0 to the ko-style category.
 
 ### Language-Scoped Overrides
 
@@ -154,7 +154,7 @@ cross-language number collisions (e.g., ko #8 is "~적 접미사" while en #8 is
 "Copula Avoidance" — the same number refers to unrelated patterns in each language).
 
 ```yaml
-# Language-scoped format (recommended for multi-language profiles)
+# Language-scoped format (recommended for multilingual document types)
 pattern-overrides:
   ko:
     8: amplify    # ko-language #8 (~적 접미사)
@@ -179,7 +179,7 @@ category_score = (sum of adjusted severities / (pattern_count × 3)) × 100
 ```
 
 - `sum of adjusted severities`: sum severity points for all detected patterns in category,
-  after applying profile override factors
+  after applying document-type pattern factors
 - `pattern_count × 3`: maximum possible score (all patterns detected at High severity)
 - Result: 0-100 per category
 
@@ -189,7 +189,7 @@ category_score = (sum of adjusted severities / (pattern_count × 3)) × 100
 overall_score = Σ(category_score × category_weight) for all categories
 ```
 
-### Worked Example (Korean, default profile)
+### Worked Example (Korean, default document type)
 
 Input text detected patterns:
 
@@ -315,22 +315,19 @@ The output does not add claims, facts, or specifics not present or implied by th
 | Low | 1 | Noticeable fabrication — specific numbers, names, or claims not in the original |
 | Fail | 0 | Significant fabrication — output contains substantial invented content |
 
-### 10.3 Tone Match
+### 10.3 Audience/Register Match
 
-The output serves the same audience and domain register as the original (or the
-profile's target register, if explicitly overridden). This judges function, not
-surface polish: stripping AI-ish formality, hype, or ceremony while the audience
-and domain hold is High, not drift.
+The output serves the same audience and document function as the original.
+When the user explicitly supplies `--register`, assess against that requested
+register. Judge function rather than AI-ish stiffness, hype, or ceremony.
 
 | Level | Points | Criteria |
 |-------|--------|----------|
 | High | 3 | Same audience and domain — a policy notice still reads as a policy notice, a product page as a product page |
 | Medium | 2 | Slight drift — somewhat more/less formal, but still appropriate for the context |
-| Low | 1 | Noticeable mismatch — formal original made casual (or vice versa) without profile justification |
+| Low | 1 | Noticeable mismatch — formal original made casual (or vice versa) without an explicit register override |
 | Fail | 0 | Register violation — academic text made into slang, or casual text made into legalese |
 
-**Profile exception:** When a profile explicitly shifts register (e.g., blog profile amplifies
-informality), tone match is assessed against the *profile target*, not the original register.
 
 ### 10.4 Length Ratio
 
@@ -363,10 +360,10 @@ To reduce variance, apply these guidelines when scoring fidelity criteria:
 - Adding a commonly-known context note ("Seoul, the capital of South Korea") → Medium.
 - Inventing a statistic, date, or name not in the original → Low or Fail.
 
-### Tone Match
-- Compare the first and last paragraphs of original vs. output for audience and domain cues.
-- Removing hype, ceremony, or AI-ish formality is the rewrite's job → High.
-- Profile-targeted register shifts are expected, not penalized.
+### Audience/Register Match
+- Compare the first and last paragraphs for audience, function, and register cues.
+- Removing hype, ceremony, or AI-ish stiffness is the rewrite's job → High.
+- An explicit register override is expected and is not penalized.
 - Mixed register (formal opening, casual middle) counts as Low.
 
 ### Length Ratio
@@ -383,7 +380,7 @@ Each criterion is scored 0–3 (same as AI-likeness severity). The fidelity scor
 across all four criteria:
 
 ```
-fidelity_score = ((claims + fabrication + tone + length) / 12) × 100
+fidelity_score = ((claims + fabrication + audience_register + length) / 12) × 100
 ```
 
 - Maximum: (3+3+3+3) / 12 × 100 = **100** (perfect fidelity)
@@ -403,7 +400,7 @@ Output: Humanized version.
 |-----------|-------|-----------|
 | Claims preserved | 3 (High) | All policy recommendations and cited figures present |
 | No fabrication | 2 (Medium) | Added "as widely reported" — minor inference stated as fact |
-| Tone match | 3 (High) | Academic audience and domain held throughout |
+| Audience/register match | 3 (High) | Academic audience and document function held throughout |
 | Length ratio | 3 (High) | Output is 68% of original length (within the 50–130% band) |
 
 Fidelity = (3+2+3+3) / 12 × 100 = **91.7**
@@ -446,17 +443,17 @@ Where:
 | Context | AI Weight | Fidelity Weight | Rationale |
 |---------|-----------|-----------------|-----------|
 | Default | 0.60 | 0.40 | Balanced — humanization is primary goal |
-| Academic profile | 0.40 | 0.60 | Meaning preservation is critical in scholarly work |
-| Blog profile | 0.70 | 0.30 | Creative rewriting tolerated |
-| Technical profile | 0.35 | 0.65 | Accuracy is paramount in docs |
-| Social profile | 0.75 | 0.25 | Tone transformation expected |
-| Email profile | 0.50 | 0.50 | Equal importance |
-| Legal profile | 0.35 | 0.65 | Legal precision must be preserved |
-| Medical profile | 0.35 | 0.65 | Clinical accuracy is critical |
-| Marketing profile | 0.65 | 0.35 | Tone transformation tolerated, creative rewriting expected |
-| Namuwiki profile | 0.65 | 0.35 | Tone transformation tolerated for wiki-style cleanup |
+| Academic document type | 0.40 | 0.60 | Meaning preservation is critical in scholarly work |
+| Blog document type | 0.70 | 0.30 | Pattern cleanup may be more liberal |
+| Technical document type | 0.35 | 0.65 | Accuracy is paramount in docs |
+| Social document type | 0.75 | 0.25 | Fragments and platform conventions are legitimate |
+| Email document type | 0.50 | 0.50 | Equal importance |
+| Legal document type | 0.35 | 0.65 | Legal precision must be preserved |
+| Medical document type | 0.35 | 0.65 | Clinical accuracy is critical |
+| Marketing document type | 0.65 | 0.35 | Persuasive conventions are legitimate |
+| Namuwiki document type | 0.65 | 0.35 | Wiki-style structural conventions are legitimate |
 
-Configurable via `scoring.combined-weights.{profile}` in `.patina.yaml`:
+Configurable via `scoring.combined-weights.{document-type}` in `.patina.yaml`:
 ```yaml
 scoring:
   combined-weights:

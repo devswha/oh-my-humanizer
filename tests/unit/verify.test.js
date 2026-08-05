@@ -39,7 +39,7 @@ const baseArgs = {
   original: 'Original claim with the number 42.',
   config: {},
   patterns: [],
-  profile: null,
+  documentType: null,
   voice: null,
   scoring: null,
   apiKey: 'k',

@@ -5,7 +5,8 @@ import { basename } from 'node:path';
 // Options that consume the next token as their value. Drives --name=value
 // expansion and the --suffix flag-collision backstop (#440).
 const VALUE_OPTIONS = new Set([
-  '--lang', '--profile', '--tone', '--persona', '--format', '--exit-on',
+  '--lang', '--document-type', '--register', '--persona', '--jargon', '--format', '--exit-on',
+  '--profile', '--tone', '--formality',
   '--suffix', '--outdir', '--model', '--api-key-file', '--base-url',
   '--backend', '--timeout-ms', '--max-concurrency', '--max-retries',
   '--max-failures', '--max-failure-rate', '--provider', '--config', '--max-segments',
@@ -83,16 +84,32 @@ export function parseArgs(rawArgs) {
         parsed.lang = readOptionValue(args, i, arg);
         i++;
         break;
-      case '--profile':
-        parsed.profile = readOptionValue(args, i, arg);
+      case '--document-type':
+        parsed.documentType = readOptionValue(args, i, arg);
         i++;
         break;
-      case '--tone': {
-        const t = readOptionValue(args, i, arg);
+      case '--profile':
+        throw inputError(
+          '--profile was removed in v7',
+          'Document classification is now the document-type axis.',
+          'Use --document-type <name>.'
+        );
+      case '--tone':
+      case '--formality':
+        throw inputError(
+          `${arg} was removed in v7`,
+          'The casual/professional axis is now named register.',
+          'Use --register casual|professional.'
+        );
+      case '--register': {
+        const value = readOptionValue(args, i, arg);
         i++;
-        parsed.tone = parseTransformList(t, arg,
-          ['casual', 'professional', 'auto'],
-          'Use `--tone auto` to infer register from the text. academic/marketing/narrative/instructional are document genres now — use `--profile <name>`. Comma-separate tones with --preview to compare variants.');
+        parsed.register = parseTransformList(
+          value,
+          arg,
+          ['casual', 'professional'],
+          'Omit --register to preserve the source register. Comma-separate values with --preview to compare variants.'
+        );
         break;
       }
       case '--persona':
@@ -100,14 +117,12 @@ export function parseArgs(rawArgs) {
         i++;
         break;
       case '--restyle':
-        // Removed: patina's default (and only) rewrite depth is the conservative
-        // AI-tell cleanup the old `--restyle sentence` did. Voice/register
-        // rewriting moved to --persona/--tone; content re-planning
-        // is out of scope for a meaning-preserving humanizer.
+        // AI-tell cleanup is always conservative. Voice and register changes
+        // are explicit axes; content re-planning remains out of scope.
         throw inputError(
           '--restyle was removed',
-          'patina cleans AI tells without changing claims (the old --restyle sentence default). Voice/register changes are --persona / --tone now; content re-planning is out of scope.',
-          'Drop --restyle, or use --persona/--tone for a voice change.'
+          'patina cleans AI tells without changing claims. Voice changes use --persona; casual/professional register uses --register.',
+          'Drop --restyle, or use --persona/--register for an explicit voice change.'
         );
       case '--jargon': {
         const value = readOptionValue(args, i, arg);
@@ -365,11 +380,10 @@ export function validateOfflineScoreRequest(parsed) {
   }
 }
 
-// Shared parser for --jargon/--tone: a single value, or a
-// comma-separated list of values for --preview variant comparison. Tokens are
-// validated individually and deduped preserving order; the normalized joined
-// string is stored so downstream code has one canonical shape.
-const TRANSFORM_OPTION_NOUNS = { '--jargon': 'jargon policy', '--tone': 'tone' };
+// Shared parser for --jargon/--register: a single value, or a comma-separated
+// list for --preview variant comparison. Tokens are validated individually and
+// deduplicated while preserving order.
+const TRANSFORM_OPTION_NOUNS = { '--jargon': 'jargon policy', '--register': 'register' };
 
 function parseTransformList(value, option, valid, hint) {
   const tokens = String(value ?? '').split(',').map((t) => t.trim()).filter(Boolean);
@@ -394,53 +408,45 @@ function splitTransformValues(value, fallback) {
   return String(value ?? fallback).split(',').map((t) => t.trim()).filter(Boolean);
 }
 
-// Expand --jargon/--tone into the rewrite variants a run executes.
-// A single combination is the normal one-call path; multiple combinations
-// (comma lists) become --preview compare variants, one rewrite call each.
-// Tone joins the cross product so "remove in casual" and "remove in marketing"
-// are directly comparable; tone appears in the label only when it varies.
-// The cross product is capped: every variant is a full LLM call.
+// Expand --jargon/--register into the rewrite variants a run executes.
+// A single combination is the normal one-call path; comma lists become
+// --preview comparison variants, one rewrite call each.
 export const MAX_TRANSFORM_VARIANTS = 4;
 
 export function buildTransformVariants(parsed) {
   const jargons = splitTransformValues(parsed.jargon, 'keep');
-  const tones = splitTransformValues(parsed.tone, '');
-  const toneList = tones.length > 0 ? tones : [null];
-  const multiTone = toneList.length > 1;
+  const registers = splitTransformValues(parsed.register, '');
+  const registerList = registers.length > 0 ? registers : [null];
+  const compareRegister = registerList.length > 1;
   const variants = [];
   for (const jargon of jargons) {
-    for (const tone of toneList) {
+    for (const register of registerList) {
       const parts = [];
       if (jargon !== 'keep') parts.push(jargon);
       let label = parts.join('+');
-      if (multiTone) label = label ? `${label}·${tone}` : tone;
-      variants.push({ jargon, tone, label: label || 'cleanup' });
+      if (compareRegister) label = label ? `${label}·${register}` : register;
+      variants.push({ jargon, register, label: label || 'cleanup' });
     }
   }
   if (variants.length > MAX_TRANSFORM_VARIANTS) {
     throw inputError(
       `too many transform variants (${variants.length})`,
-      `--jargon × --tone combinations are capped at ${MAX_TRANSFORM_VARIANTS}; each variant is a full rewrite call.`,
-      'Drop values from one of the lists, e.g. `--jargon keep,remove` with a single --tone.'
+      `--jargon × --register combinations are capped at ${MAX_TRANSFORM_VARIANTS}; each variant is a full rewrite call.`,
+      'Drop values from one list, e.g. `--jargon keep,remove` with one --register value.'
     );
   }
   return variants;
 }
 
-// --jargon opts into transformations beyond AI-pattern cleanup. It only applies
-// where patina rewrites prose it owns end to end: the default rewrite and
-// --preview. Score/audit/diff report on text as-is — reject the combination
-// instead of silently ignoring the flag. Comma-list (compare) requests
-// additionally need the preview surface: a plain rewrite has one stdout, and
-// --ocr ties image findings to a single rewrite call, so neither can carry
-// multiple variants.
+// --jargon and --register alter rewritten prose. Score/audit/diff inspect the
+// source as-is, so reject these controls instead of silently ignoring them.
 export function validateTransformRequest(parsed) {
   const variants = buildTransformVariants(parsed);
   if (variants.length > 1) {
     if (!parsed.preview) {
       throw inputError(
         'comparing transform variants requires --preview',
-        'Comma-separated --jargon/--tone values render as toggleable variants on the preview page; a plain rewrite has a single stdout.',
+        'Comma-separated --jargon/--register values need the preview toggle UI; plain rewrite has one stdout.',
         'Run `patina --preview --jargon keep,remove <url>` or pick one value.'
       );
     }
@@ -452,9 +458,12 @@ export function validateTransformRequest(parsed) {
       );
     }
   }
-  const jargonActive = variants.some((v) => v.jargon !== 'keep');
-  if (!jargonActive && variants.length === 1) return;
-  const flag = jargonActive ? '--jargon' : '--tone';
+  const jargonActive = variants.some((variant) => variant.jargon !== 'keep');
+  const registerActive = Boolean(parsed.register);
+  if (!jargonActive && !registerActive) return;
+  const flag = jargonActive && registerActive
+    ? '--jargon/--register'
+    : jargonActive ? '--jargon' : '--register';
   const blocked = [
     ['score', '--score', 'does not rewrite text'],
     ['audit', '--audit', 'does not rewrite text'],
@@ -465,7 +474,7 @@ export function validateTransformRequest(parsed) {
       throw inputError(
         `${flag} cannot be combined with ${name}`,
         `${flag} changes how text is rewritten; ${name} ${why}.`,
-        `Use a plain rewrite (\`patina ${flag} ... <file>\`) or \`patina --preview ${flag} ...\` instead.`
+        `Use a plain rewrite or \`patina --preview ${flag} ...\` instead.`
       );
     }
   }
@@ -478,32 +487,15 @@ export function validatePersonaRequest(parsed) {
     ['score', '--score', 'score reads text as-is and does not run the rewrite persona harness'],
     ['audit', '--audit', 'audit reports detections on the original text'],
     ['diff', '--diff', 'diff is a pattern-report surface, not the persona rewrite harness'],
-    ['preview', '--preview', 'preview persona migration is reserved for a later surface'],
   ];
   for (const [key, flag, why] of blockedModes) {
     if (parsed[key]) {
       throw inputError(
         `${persona} cannot be combined with ${flag}`,
         `${flag} ${why}. A persona applies to rewrite mode only.`,
-        'Run a plain rewrite, e.g. `patina --persona preserve draft.md`, or drop --persona.'
+        'Run a rewrite, e.g. `patina --persona natural-ko draft.md`, or drop --persona.'
       );
     }
-  }
-  for (const [flag, value] of [['--jargon', parsed.jargon], ['--tone', parsed.tone]]) {
-    if (typeof value === 'string' && value.includes(',')) {
-      throw inputError(
-        `${persona} cannot be combined with comma-list ${flag}`,
-        'Comma-list transform variants are a preview comparison feature, and persona preview is not supported in v1.',
-        `Pick one ${flag} value or remove --persona.`
-      );
-    }
-  }
-  if (parsed.jargon === 'explain' || parsed.jargon === 'remove') {
-    throw inputError(
-      `--persona cannot be combined with --jargon ${parsed.jargon}`,
-      'Jargon rewriting changes terminology scope in a way persona v1 does not gate.',
-      'Use --jargon without --persona, or keep jargon policy at the default.'
-    );
   }
 }
 
@@ -642,9 +634,9 @@ export function validateOutputRouting(parsed) {
 
 // XLIFF mode is an explicit, file-to-file localization pass: it humanizes
 // already-translated <target> segments through the normal rewrite+verify path,
-// so it rejects non-rewrite modes, meaning/register-changing flags, and stdin —
-// anything that would make byte-preserving localization unsafe. Run this BEFORE
-// the generic validators so the errors are XLIFF-specific.
+// so it rejects non-rewrite modes, voice/register/document-policy controls,
+// and stdin — anything that would make byte-preserving localization unsafe.
+// Run this before the generic validators so errors are XLIFF-specific.
 export function validateXliffRequest(parsed) {
   if (!parsed.xliff) {
     // --dry-run and --max-segments are XLIFF-only in this MVP.
@@ -666,7 +658,7 @@ export function validateXliffRequest(parsed) {
     ['audit', '--audit'], ['score', '--score'], ['diff', '--diff'],
     ['preview', '--preview'], ['ocr', '--ocr'], ['serve', '--serve'],
     ['gate', '--exit-on'], ['persona', '--persona'], ['jargon', '--jargon'],
-    ['tone', '--tone'], ['profile', '--profile'], ['rewriteHeadings', '--rewrite-headings'],
+    ['register', '--register'], ['documentType', '--document-type'], ['rewriteHeadings', '--rewrite-headings'],
     ['offline', '--offline'],
   ];
   for (const [key, flag] of incompatible) {
@@ -779,6 +771,9 @@ COMMANDS
   patina persona new <id>  Author a reusable custom voice persona (from a writing
                           sample, a description, or a blank template)
   patina persona list      List built-in and custom personas per language
+  patina persona show <id> Print normalized Persona voice metadata
+  patina persona edit <id> Copy-on-edit a Persona into custom/personas/
+  patina persona rm <id>   Remove a custom Persona (built-ins are protected)
   patina pack list         List licensed pro packs (needs PATINA_LICENSE_KEY)
   patina pack install <id> Install a pro pack into custom/
 
@@ -790,8 +785,8 @@ MODES
   --exit-on <n>           With --score, exit 3 when overall score > n
   --offline               With --score, skip all backends and report deterministic
                           signals only; LLM-judged categories are unavailable
-  --verify                Rewrite, then verify meaning (MPS/fidelity floors) with
-                          one conservative retry; fail-closed to the best candidate
+  --verify                Rewrite, then verify global meaning/fidelity floors with
+                          one conservative retry; exit 4 if no candidate passes
   --preview               Rewrite one http(s) URL or local .html file in place on a snapshot
                           of the page (adds one explanation call)
   --ocr                   With --preview (URL/.html): extract text inside page images via an
@@ -820,20 +815,19 @@ LOCALIZATION (XLIFF)
   --dry-run               With --xliff: report the plan + cost estimate; make no LLM calls or writes
   --max-segments <n>      With --xliff: cap unique segments processed per run (default 50)
 
-LANGUAGE & PROFILE
+DOCUMENT & VOICE
   --lang <code>           Language: ko, en, zh, ja (default: ko)
-  --profile <name>        Profile: default, blog, academic, technical, formal,
-                          social, email, legal, medical, marketing,
+  --document-type <name>  Document policy: default, blog, academic, technical,
+                          formal, social, email, legal, medical, marketing,
                           narrative, instructional, casual-conversation,
                           code-comment, commit-message, release-notes, namuwiki
-  --tone <name[,name]>    Register: casual, professional, auto. (academic / marketing /
-                          narrative / instructional are genres now — use --profile.)
-                          Register precedence: --tone/config tone > persona
-                          register > config profile.
-                          Comma list with --preview compares tones as variants
-  --persona <name>         Rewrite voice persona for ko/en/zh/ja (default preserve
-                          on ko; opt-in on other langs); incompatible with
-                          score/audit/diff/preview
+  --persona <name>        Optional reusable voice for rewrite/preview. Omit it
+                          to preserve the source voice. Incompatible with
+                          score/audit/diff
+  --register <name[,name]>
+                          Explicit casual or professional register. Omit it
+                          to preserve the source register. A comma list with
+                          --preview compares register variants.
   --jargon <policy[,policy]>
                           Technical-term policy (rewrite/--preview only):
                           keep (default), explain = add plain-language glosses,

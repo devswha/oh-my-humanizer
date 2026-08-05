@@ -40,19 +40,19 @@ console.log(result.interpretation); // mostly human
 
 ## Persona CLI commands
 
-Personas are the reusable voice-composition unit. The YAML frontmatter is the
-deterministic single source of truth; the Markdown body is docs-only and is
-never sent to the model. Custom personas live in `custom/personas/<lang>/` and
-shadow same-id built-ins under `personas/<lang>/`. Every write and edit passes
-the persona safety gate (`validatePersona`), which clamps the MPS/fidelity
-floors to their core minimum and rejects gate-weakening keys.
+Personas are optional, reusable voice fingerprints. Omitting `--persona`
+preserves the source voice. Persona v2 frontmatter is the deterministic single
+source of truth; the Markdown body is docs-only and is never sent to the model.
+Custom personas live in `custom/personas/<lang>/` and shadow same-id built-ins
+under `personas/<lang>/`. Validation rejects document policy, register,
+verification, and meaning-preservation fields: those belong to separate axes.
 
 | Command | Description |
 | --- | --- |
-| `patina persona new <id>` | Author a custom persona (`--from-sample <file>`, `--describe "<text>"`, `--template`, or an interactive wizard). |
-| `patina persona list` | List built-in and custom personas (`--lang`, `--format json`). |
-| `patina persona show <id>` | Print a persona's normalized config — id, name, lang, depth, MPS/fidelity floors, active blocks, `target_features` keys, resolved path, and source. `--json` emits the normalized object. The docs-only body is never printed. |
-| `patina persona rm <id>` | Remove a custom persona. Built-in library seeds and the `preserve` default are protected. Requires `--force` or an interactive y/N confirm; only files under `custom/personas/<lang>/` are ever deleted. |
+| `patina persona new <id>` | Author a custom Persona (`--from-sample <file>`, `--describe "<text>"`, `--template`, or an interactive wizard). |
+| `patina persona list` | List built-in and custom Personas (`--lang`, `--format json`). |
+| `patina persona show <id>` | Print a Persona's normalized voice config: id, name, language, active blocks, `target_features` keys, resolved path, and source. `--json` emits the normalized object. The docs-only body is never printed. |
+| `patina persona rm <id>` | Remove a custom Persona. Built-in library Personas are protected. Requires `--force` or an interactive y/N confirm; only files under `custom/personas/<lang>/` are ever deleted. |
 | `patina persona edit <id>` | Copy-on-edit into `custom/personas/<lang>/`. Editing a built-in copies it into custom (a shadow), preserving the library. Re-derive the voice with `--from-sample <file>` / `--describe "<text>"`, or keep it and rename with `--name "<new name>"`. |
 
 Common options: `--lang <ko|en|zh|ja>` (default `ko`), and `--backend <name>` for
@@ -229,8 +229,8 @@ XLIFF target-language (cached), not the global config language.</p>
 <dt><a href="#createCancellationController">createCancellationController([options])</a> ⇒ <code>Object</code></dt>
 <dd><p>Create a SIGINT-aware cancellation controller for long-running CLI operations.</p>
 </dd>
-<dt><a href="#resolveProfileForLanguage">resolveProfileForLanguage(profileName, lang, [logger])</a> ⇒ <code>string</code></dt>
-<dd><p>Resolve a profile name against language-specific profile limits.</p>
+<dt><a href="#resolveDocumentTypeForLanguage">resolveDocumentTypeForLanguage(documentTypeName, lang, [logger])</a> ⇒ <code>string</code></dt>
+<dd><p>Resolve a document type against language-specific policy limits.</p>
 </dd>
 <dt><a href="#warnIfAlreadyHuman">warnIfAlreadyHuman()</a></dt>
 <dd><p>Over-editing guard (Study 1 RQ5b): rewriting text that already reads human
@@ -250,8 +250,11 @@ cannot silently override a pinned config (reproducible CI runs).</p>
 <dt><a href="#getRepoRoot">getRepoRoot()</a> ⇒ <code>string</code></dt>
 <dd><p>Return the repository root inferred from this source file location.</p>
 </dd>
-<dt><a href="#resolveTone">resolveTone(options)</a> ⇒ <code>Object</code></dt>
-<dd><p>Resolve CLI/config tone settings into prompt-ready tone metadata.</p>
+<dt><a href="#resolveRegister">resolveRegister(options)</a> ⇒ <code>object</code> | <code>null</code></dt>
+<dd><p>Resolve an explicit register override.</p>
+<p>Omitting the option preserves the source document&#39;s dominant register. There
+is no <code>auto</code> mode: source-preserving behavior is the default and avoids a
+second, model-dependent inference path.</p>
 </dd>
 <dt><a href="#inputError">inputError(what, why, action)</a> ⇒ <code>PatinaCliError</code></dt>
 <dd><p>Create a user-input error that should exit with code 2.</p>
@@ -284,17 +287,17 @@ user or pro packs in custom/patterns/{lang}-</em>.md. On a filename collision
 the custom pack wins (same precedence the persona and lexicon loaders give
 custom/), so an installed pack can also override a built-in one.</p>
 </dd>
-<dt><a href="#loadProfile">loadProfile(repoRoot, profileName)</a> ⇒ <code>Object</code></dt>
-<dd><p>Load a named profile from profiles/{profileName}.md after path validation.</p>
+<dt><a href="#loadDocumentType">loadDocumentType(repoRoot, documentTypeName)</a> ⇒ <code>Object</code></dt>
+<dd><p>Load a named document type. A custom policy at
+custom/document-types/{name}.md shadows the built-in document-types/{name}.md.</p>
+<p>The Markdown body is explanatory documentation only. Runtime policy comes
+from validated structured frontmatter.</p>
 </dd>
-<dt><a href="#applyProfilePatternOverrides">applyProfilePatternOverrides(packs, profile, lang)</a> ⇒ <code>Array.&lt;{body: string}&gt;</code></dt>
-<dd><p>Strip the individual pattern sections a profile marks <code>suppress</code> from loaded
-pattern packs, so the rewrite/audit/score prompt never carries those rules.</p>
-<p><code>pattern-overrides</code> in a profile&#39;s frontmatter is keyed by language then
-numeric pattern id, with action <code>suppress</code> or <code>reduce</code>. v1 honors <code>suppress</code>
-deterministically (the LLM cannot flag a rule it was never given); <code>reduce</code>
-has no weight knob yet and is intentionally left in place. Packs without a
-matching override are returned unchanged (same object identity).</p>
+<dt><a href="#applyDocumentTypePatternPolicy">applyDocumentTypePatternPolicy(packs, documentType, lang)</a> ⇒ <code>Array.&lt;{body: string}&gt;</code></dt>
+<dd><p>Apply a document type&#39;s deterministic pattern policy.</p>
+<p><code>suppress</code> removes the pattern definition before any prompt is built.
+<code>reduce</code> and <code>amplify</code> remain in the structured policy passed to the model;
+the deterministic layer does not invent unsupported numeric weights.</p>
 </dd>
 <dt><a href="#loadCoreFile">loadCoreFile(repoRoot, filename)</a> ⇒ <code>Object</code></dt>
 <dd><p>Load a Markdown file from the core/ directory.</p>
@@ -342,7 +345,7 @@ is a hint surface, not a verdict.</p>
 <dd><p>Split a built prompt into a cacheable static prefix and a dynamic tail for
 provider prompt caching. The prefix is everything before the FIRST input
 fence: on a first-turn prompt that is the full static catalog (identical
-across requests for a given lang/profile/persona), while refine prompts
+across requests for a given language/document-type/persona), while refine prompts
 carry variable fenced references near the top, so their prefix falls under
 the minimum and caching is skipped — avoiding cache writes that would never
 be re-read.</p>
@@ -414,8 +417,8 @@ single prompt can never carry two contradictory contracts (issue #397).</p>
 <dt><a href="#combinedScore">combinedScore(options)</a> ⇒ <code>number</code></dt>
 <dd><p>Combine AI-likeness, inverted fidelity, and optional deterministic score.</p>
 </dd>
-<dt><a href="#validateProfileName">validateProfileName(name)</a> ⇒ <code>void</code></dt>
-<dd><p>Validate a profile name before resolving profiles/{name}.md.</p>
+<dt><a href="#validateDocumentTypeName">validateDocumentTypeName(name)</a> ⇒ <code>void</code></dt>
+<dd><p>Validate a document-type name before resolving document-types/{name}.md.</p>
 </dd>
 <dt><a href="#isLoopbackHost">isLoopbackHost(hostname)</a> ⇒ <code>boolean</code></dt>
 <dd><p>Check whether a hostname is localhost or loopback.</p>
@@ -840,23 +843,23 @@ Create a SIGINT-aware cancellation controller for long-running CLI operations.
 const cancellation = createCancellationController();
 cancellation.install();
 ```
-<a name="resolveProfileForLanguage"></a>
+<a name="resolveDocumentTypeForLanguage"></a>
 
-## resolveProfileForLanguage(profileName, lang, [logger]) ⇒ <code>string</code>
-Resolve a profile name against language-specific profile limits.
+## resolveDocumentTypeForLanguage(documentTypeName, lang, [logger]) ⇒ <code>string</code>
+Resolve a document type against language-specific policy limits.
 
 **Kind**: global function
-**Returns**: <code>string</code> - Effective profile name.
+**Returns**: <code>string</code> - Effective document type.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| profileName | <code>string</code> | Requested profile name. |
+| documentTypeName | <code>string</code> | Requested document type. |
 | lang | <code>string</code> | Active language code. |
 | [logger] | <code>object</code> | Logger with warn(event, payload). |
 
 **Example**
 ```js
-resolveProfileForLanguage('namuwiki', 'en') // 'default'
+resolveDocumentTypeForLanguage('namuwiki', 'en') // 'default'
 ```
 <a name="warnIfAlreadyHuman"></a>
 
@@ -907,28 +910,31 @@ Return the repository root inferred from this source file location.
 ```js
 const root = getRepoRoot();
 ```
-<a name="resolveTone"></a>
+<a name="resolveRegister"></a>
 
-## resolveTone(options) ⇒ <code>Object</code>
-Resolve CLI/config tone settings into prompt-ready tone metadata.
+## resolveRegister(options) ⇒ <code>object</code> \| <code>null</code>
+Resolve an explicit register override.
+
+Omitting the option preserves the source document's dominant register. There
+is no `auto` mode: source-preserving behavior is the default and avoids a
+second, model-dependent inference path.
 
 **Kind**: global function
-**Returns**: <code>Object</code> - Tone metadata.
+**Returns**: <code>object</code> \| <code>null</code> - Prompt-ready register metadata, or null when omitted.
 **Throws**:
 
-- <code>Error</code> When cliTone or configTone is not supported.
+- <code>Error</code> When either value is unsupported.
 
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options | <code>object</code> | Tone inputs. |
-| [options.cliTone] | <code>string</code> \| <code>null</code> | CLI tone override. |
-| [options.configTone] | <code>string</code> \| <code>null</code> | Configured tone value. |
-| [options.lang] | <code>string</code> | Active language code. |
+| options | <code>object</code> | Register inputs. |
+| [options.cliRegister] | <code>string</code> \| <code>null</code> | CLI register override. |
+| [options.configRegister] | <code>string</code> \| <code>null</code> | Configured register value. |
 
 **Example**
 ```js
-const tone = resolveTone({ cliTone: 'casual', lang: 'ko' });
+const register = resolveRegister({ cliRegister: 'casual' });
 ```
 <a name="inputError"></a>
 
@@ -1083,52 +1089,49 @@ custom/), so an installed pack can also override a built-in one.
 ```js
 const patterns = loadPatterns(getRepoRoot(), 'en');
 ```
-<a name="loadProfile"></a>
+<a name="loadDocumentType"></a>
 
-## loadProfile(repoRoot, profileName) ⇒ <code>Object</code>
-Load a named profile from profiles/{profileName}.md after path validation.
+## loadDocumentType(repoRoot, documentTypeName) ⇒ <code>Object</code>
+Load a named document type. A custom policy at
+custom/document-types/{name}.md shadows the built-in document-types/{name}.md.
+
+The Markdown body is explanatory documentation only. Runtime policy comes
+from validated structured frontmatter.
 
 **Kind**: global function
-**Returns**: <code>Object</code> - Parsed profile document.
+**Returns**: <code>Object</code> - Parsed and validated policy document.
 **Throws**:
 
-- <code>Error</code> When the profile name is invalid or the file cannot be read.
+- <code>Error</code> When the name is invalid or the file cannot be read.
 
 
 | Param | Type | Description |
 | --- | --- | --- |
 | repoRoot | <code>string</code> | Repository root path. |
-| profileName | <code>string</code> | Profile file stem. |
+| documentTypeName | <code>string</code> | Document-type file stem. |
 
 **Example**
 ```js
-const profile = loadProfile(getRepoRoot(), 'default');
+const documentType = loadDocumentType(getRepoRoot(), 'technical');
 ```
-<a name="applyProfilePatternOverrides"></a>
+<a name="applyDocumentTypePatternPolicy"></a>
 
-## applyProfilePatternOverrides(packs, profile, lang) ⇒ <code>Array.&lt;{body: string}&gt;</code>
-Strip the individual pattern sections a profile marks `suppress` from loaded
-pattern packs, so the rewrite/audit/score prompt never carries those rules.
+## applyDocumentTypePatternPolicy(packs, documentType, lang) ⇒ <code>Array.&lt;{body: string}&gt;</code>
+Apply a document type's deterministic pattern policy.
 
-`pattern-overrides` in a profile's frontmatter is keyed by language then
-numeric pattern id, with action `suppress` or `reduce`. v1 honors `suppress`
-deterministically (the LLM cannot flag a rule it was never given); `reduce`
-has no weight knob yet and is intentionally left in place. Packs without a
-matching override are returned unchanged (same object identity).
+`suppress` removes the pattern definition before any prompt is built.
+`reduce` and `amplify` remain in the structured policy passed to the model;
+the deterministic layer does not invent unsupported numeric weights.
 
 **Kind**: global function
 **Returns**: <code>Array.&lt;{body: string}&gt;</code> - Packs with suppressed sections removed.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| packs | <code>Array.&lt;{body: string}&gt;</code> | Loaded pattern packs from loadPatterns. |
-| profile | <code>Object</code> \| <code>null</code> | Loaded profile (loadProfile). |
+| packs | <code>Array.&lt;{body: string}&gt;</code> | Loaded pattern packs. |
+| documentType | <code>Object</code> \| <code>null</code> | Loaded document type. |
 | lang | <code>string</code> | Active language code. |
 
-**Example**
-```js
-const packs = applyProfilePatternOverrides(loadPatterns(root, 'ko'), loadProfile(root, 'legal'), 'ko');
-```
 <a name="loadCoreFile"></a>
 
 ## loadCoreFile(repoRoot, filename) ⇒ <code>Object</code>
@@ -1213,7 +1216,7 @@ Format a raw backend result for CLI output mode and requested format.
 **Returns**: <code>string</code> - User-facing formatted output.
 **Throws**:
 
-- <code>TypeError</code> When `result` or `opts.tone` carries values JSON.stringify cannot serialize (circular references, BigInt) — the json format serializes the result payload, and the tone footer serializes `opts.tone.tone_evidence`.
+- <code>TypeError</code> When JSON output carries unserializable values.
 
 
 | Param | Type | Default | Description |
@@ -1222,11 +1225,11 @@ Format a raw backend result for CLI output mode and requested format.
 | mode | <code>string</code> |  | Output mode: rewrite, diff, audit, or score. |
 | [parsed] | <code>object</code> | <code>{}</code> | Parsed CLI options. |
 | [opts] | <code>object</code> | <code>{}</code> | Formatting options. |
-| [opts.tone] | <code>object</code> \| <code>null</code> |  | Tone metadata to append. |
+| [opts.register] | <code>object</code> \| <code>null</code> |  | Explicit register metadata. |
 | [opts.logger] | <code>object</code> |  | Logger for output warnings. |
 | [opts.env] | <code>object</code> |  | Environment map for color decisions. |
 | [opts.stdout] | <code>object</code> |  | Stdout-like stream for color decisions. |
-| [opts.auditBackstop] | <code>string</code> |  | Deterministic audit-mode section to append before the tone footer. |
+| [opts.auditBackstop] | <code>string</code> |  | Deterministic audit-mode section. |
 | [opts.persona] | <code>object</code> \| <code>null</code> |  | Persona metadata to append. |
 
 **Example**
@@ -1359,7 +1362,7 @@ is a hint surface, not a verdict.
 Split a built prompt into a cacheable static prefix and a dynamic tail for
 provider prompt caching. The prefix is everything before the FIRST input
 fence: on a first-turn prompt that is the full static catalog (identical
-across requests for a given lang/profile/persona), while refine prompts
+across requests for a given language/document-type/persona), while refine prompts
 carry variable fenced references near the top, so their prefix falls under
 the minimum and caching is skipped — avoiding cache writes that would never
 be re-read.
@@ -1415,7 +1418,7 @@ Build the LLM prompt for rewrite, diff, audit, or score mode.
 **Returns**: <code>string</code> - Complete prompt text.
 **Throws**:
 
-- <code>TypeError</code> When `options.tone.tone_evidence` contains values JSON.stringify cannot serialize (circular references, BigInt).
+- <code>TypeError</code> When register evidence cannot be JSON-serialized.
 
 
 | Param | Type | Default | Description |
@@ -1423,13 +1426,14 @@ Build the LLM prompt for rewrite, diff, audit, or score mode.
 | options | <code>object</code> |  | Prompt inputs. |
 | options.config | <code>object</code> |  | Effective patina config. |
 | options.patterns | <code>Array.&lt;object&gt;</code> |  | Loaded pattern packs. |
-| options.profile | <code>object</code> \| <code>null</code> |  | Parsed profile document. |
-| options.voice | <code>object</code> \| <code>null</code> |  | Parsed voice guide. |
-| [options.persona] | <code>object</code> \| <code>null</code> |  | Optional validated persona payload. |
+| options.documentType | <code>object</code> \| <code>null</code> |  | Parsed document-type policy. |
+| options.voice | <code>object</code> \| <code>null</code> |  | Parsed claim-safe voice baseline. |
+| [options.persona] | <code>object</code> \| <code>null</code> |  | Optional validated voice persona. |
 | options.scoring | <code>object</code> \| <code>null</code> |  | Parsed scoring guide. |
 | options.text | <code>string</code> |  | Input text. |
 | [options.mode] | <code>string</code> | <code>&quot;rewrite&quot;</code> | Output mode. |
-| [options.tone] | <code>object</code> \| <code>null</code> | <code></code> | Tone resolution metadata. |
+| [options.register] | <code>object</code> \| <code>null</code> | <code></code> | Explicit register metadata. |
+| [options.promptMode] | <code>&#x27;strict&#x27;</code> \| <code>&#x27;minimal&#x27;</code> | <code>strict</code> | Prompt catalog detail level. |
 | [options.documentSignals] | <code>Array.&lt;string&gt;</code> \| <code>null</code> | <code></code> | Deterministic document   measurements (e.g. dominant Korean register) injected into rewrite prompts   as ground truth for the Phase 0 document brief. |
 | [options.includeSelfAudit] | <code>boolean</code> | <code>true</code> | Include the Phase 3 self-audit   in rewrite instructions; the rewrite loop passes false to skip the token cost (#444). |
 | [options.jargon] | <code>string</code> | <code>&quot;keep&quot;</code> | Technical-term policy   (keep|explain|remove); non-default values add the opt-in   transformation directive to rewrite prompts. |
@@ -1437,7 +1441,7 @@ Build the LLM prompt for rewrite, diff, audit, or score mode.
 
 **Example**
 ```js
-const prompt = buildPrompt({ config, patterns, profile, voice, scoring, text: 'Draft' });
+const prompt = buildPrompt({ config, patterns, documentType, voice, scoring, text: 'Draft' });
 ```
 <a name="buildScoreMathCore"></a>
 
@@ -1741,7 +1745,7 @@ Score fidelity between original and rewritten text using length plus LLM criteri
 
 **Example**
 ```js
-const fidelity = await scoreFidelity({ original: 'A', rewritten: 'A', callLLM: async () => '{"criteria":{"meaning":3,"tone":3,"no_unintended_additions":3}}' });
+const fidelity = await scoreFidelity({ original: 'A', rewritten: 'A', callLLM: async () => '{"claims_preserved":3,"no_fabrication":3,"audience_register_match":3}' });
 ```
 <a name="clamp03"></a>
 
@@ -1772,32 +1776,32 @@ Combine AI-likeness, inverted fidelity, and optional deterministic score.
 | options | <code>object</code> | Combined score inputs. |
 | options.aiLikeness | <code>number</code> | AI-likeness score, lower is better. |
 | options.fidelity | <code>number</code> | Fidelity score, higher is better. |
-| [options.profile] | <code>string</code> | Profile name for configured weights. |
+| [options.documentType] | <code>string</code> | Document type for configured weights. |
 | [options.config] | <code>object</code> | Effective config. |
 | [options.deterministicScore] | <code>number</code> \| <code>object</code> \| <code>null</code> | Optional deterministic score. |
 
 **Example**
 ```js
-const score = combinedScore({ aiLikeness: 20, fidelity: 90, profile: 'default', config: {} });
+const score = combinedScore({ aiLikeness: 20, fidelity: 90, documentType: 'default', config: {} });
 ```
-<a name="validateProfileName"></a>
+<a name="validateDocumentTypeName"></a>
 
-## validateProfileName(name) ⇒ <code>void</code>
-Validate a profile name before resolving profiles/{name}.md.
+## validateDocumentTypeName(name) ⇒ <code>void</code>
+Validate a document-type name before resolving document-types/{name}.md.
 
 **Kind**: global function
 **Throws**:
 
-- <code>PatinaCliError</code> When the name is empty, non-string, or contains unsafe characters.
+- <code>PatinaCliError</code> When the name is empty, non-string, or unsafe.
 
 
 | Param | Type | Description |
 | --- | --- | --- |
-| name | <code>string</code> | Profile name supplied by CLI or config. |
+| name | <code>string</code> | Name supplied by CLI or config. |
 
 **Example**
 ```js
-validateProfileName('default');
+validateDocumentTypeName('technical');
 ```
 <a name="isLoopbackHost"></a>
 

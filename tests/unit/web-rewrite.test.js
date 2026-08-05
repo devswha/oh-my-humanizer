@@ -29,7 +29,7 @@ function baseRequest(lang, overrides = {}) {
 function configFor(lang) {
   const config = loadWebConfig({ repoRoot });
   config.language = lang;
-  config.profile = 'default';
+  config.documentType = 'default';
   return config;
 }
 
@@ -37,10 +37,10 @@ test('runWebRewrite first-turn uses real patina assets for every supported langu
   for (const lang of languages) {
     const calls = [];
     const config = configFor(lang);
-    const assets = loadWebAssets({ repoRoot, lang, profile: 'default', config });
-    const profileToken = String(assets.profile.body).split(/\s+/).find((token) => token.length >= 4);
+    const assets = loadWebAssets({ repoRoot, lang, documentType: 'default', config });
+    const documentTypeToken = String(assets.documentType.frontmatter?.name);
     const patternToken = String(assets.patterns[0].body).split(/\s+/).find((token) => token.length >= 4);
-    assert.ok(profileToken);
+    assert.notEqual(documentTypeToken, 'undefined');
     assert.ok(patternToken);
 
     const result = await runWebRewrite({
@@ -56,37 +56,28 @@ test('runWebRewrite first-turn uses real patina assets for every supported langu
     assert.equal(calls.length, 1, lang);
     assert.equal(result.rewrite, 'Canned rewrite');
     assert.match(calls[0].prompt, /## Pattern Packs/);
-    assert.match(calls[0].prompt, /## Profile/);
-    if (assets.persona) {
-      // ko: persona is the sole voice owner — the profile body is replaced by a
-      // one-line defer and the persona directive is present (voice parity with CLI).
-      assert.match(calls[0].prompt, /voice guidance defers to the active persona/, `${lang} should defer profile voice to the persona`);
-    } else {
-      assert.ok(calls[0].prompt.includes(profileToken), `${lang} prompt missing profile token ${profileToken}`);
-    }
+    assert.match(calls[0].prompt, /## Document Policy/);
+    assert.equal(assets.persona, null, `${lang} default web rewrite must preserve source voice`);
+    assert.ok(calls[0].prompt.includes(documentTypeToken), `${lang} prompt missing Document Type token ${documentTypeToken}`);
     assert.ok(calls[0].prompt.includes(patternToken), `${lang} prompt missing pattern token ${patternToken}`);
   }
 });
 
-test('ko web rewrite gives the preserve persona voice ownership (regression: v6.2 profile-voice retirement)', () => {
+test('ko web rewrite preserves source voice when Persona is omitted', () => {
   const config = configFor('ko');
-  const assets = loadWebAssets({ repoRoot, lang: 'ko', profile: 'default', config });
-  // Before the fix the web path passed no persona, so a ko rewrite lost ALL voice:
-  // the retired profile body carried none, and no persona directive was emitted.
-  assert.ok(assets.persona, 'ko web assets must resolve a persona');
-  assert.equal(assets.persona.id, 'preserve');
+  const assets = loadWebAssets({ repoRoot, lang: 'ko', documentType: 'default', config });
+  assert.equal(assets.persona, null);
   const prompt = buildWebRewritePrompt({ request: baseRequest('ko'), config, assets });
-  assert.match(prompt, /voice guidance defers to the active persona/);
-  assert.match(prompt, /페르소나:/); // localized persona directive is present
+  assert.doesNotMatch(prompt, /페르소나:/);
 });
 
-test('en/zh/ja web rewrite stays persona-free (matches CLI opt-in policy)', () => {
+test('en/zh/ja web rewrite stays Persona-free by default', () => {
   for (const lang of ['en', 'zh', 'ja']) {
     const config = configFor(lang);
-    const assets = loadWebAssets({ repoRoot, lang, profile: 'default', config });
-    assert.equal(assets.persona, null, `${lang} web assets must be persona-free`);
+    const assets = loadWebAssets({ repoRoot, lang, documentType: 'default', config });
+    assert.equal(assets.persona, null, `${lang} web assets must be Persona-free`);
     const prompt = buildWebRewritePrompt({ request: baseRequest(lang), config, assets });
-    assert.doesNotMatch(prompt, /voice guidance defers to the active persona/);
+    assert.doesNotMatch(prompt, /Persona:/);
   }
 });
 
@@ -100,19 +91,19 @@ test('WEB_PERSONAS offers only bundled personas (curated set stays in sync with 
 });
 
 test('loadWebAssets resolves an explicit request persona for any language (opt-in voice)', () => {
-  // en defaults to voice-free; an explicit offered voice loads that persona and
-  // gives it voice ownership in the prompt (same as CLI --persona).
+  // en defaults to source-voice preservation; an explicit offered voice loads
+  // that Persona, matching CLI --persona.
   const config = configFor('en');
-  const assets = loadWebAssets({ repoRoot, lang: 'en', profile: 'default', config, personaId: 'blog-essay' });
+  const assets = loadWebAssets({ repoRoot, lang: 'en', documentType: 'default', config, personaId: 'blog-essay' });
   assert.ok(assets.persona, 'explicit persona must resolve');
   assert.equal(assets.persona.id, 'blog-essay');
   const prompt = buildWebRewritePrompt({ request: baseRequest('en', { persona: 'blog-essay' }), config, assets });
-  assert.match(prompt, /voice guidance defers to the active persona/);
+  assert.match(prompt, /Persona: .* \(blog-essay\)/);
 });
 
 test('refine prompt carries a TRUSTED directive outside the data fence, with anchor/draft/history fenced', () => {
   const config = configFor('en');
-  const assets = loadWebAssets({ repoRoot, lang: 'en', profile: 'default', config });
+  const assets = loadWebAssets({ repoRoot, lang: 'en', documentType: 'default', config });
   const prompt = buildWebRewritePrompt({
     request: baseRequest('en', {
       mode: 'refine',
@@ -149,21 +140,21 @@ test('refine prompt carries a TRUSTED directive outside the data fence, with anc
   assert.ok(prompt.indexOf('ORIGINAL ANCHOR: Keep this claim about June revenue.') < inputTextIdx, 'original anchor must be a reference section, not the rewrite target');
 });
 
-test('loadWebAssets caches by language and profile', () => {
+test('loadWebAssets caches by language and Document Type', () => {
   const config = configFor('ja');
-  const first = loadWebAssets({ repoRoot, lang: 'ja', profile: 'default', config });
-  const second = loadWebAssets({ repoRoot, lang: 'ja', profile: 'default', config });
+  const first = loadWebAssets({ repoRoot, lang: 'ja', documentType: 'default', config });
+  const second = loadWebAssets({ repoRoot, lang: 'ja', documentType: 'default', config });
   assert.equal(second, first);
 });
 
 test('missing assets throw typed errors instead of returning a generic prompt', () => {
   const config = configFor('en');
   assert.throws(
-    () => loadWebAssets({ repoRoot, lang: 'xx', profile: 'default', config }),
+    () => loadWebAssets({ repoRoot, lang: 'xx', documentType: 'default', config }),
     (/** @type {any} */ err) => err?.name === 'PatinaCliError' && err?.exitCode === 2 && /pattern assets/.test(err.message),
   );
   assert.throws(
-    () => loadWebAssets({ repoRoot, lang: 'en', profile: 'definitely-missing-profile', config }),
+    () => loadWebAssets({ repoRoot, lang: 'en', documentType: 'definitely-missing-document-type', config }),
     (/** @type {any} */ err) => err?.name === 'PatinaCliError' && err?.exitCode === 2 && /assets could not be loaded/.test(err.message),
   );
 });

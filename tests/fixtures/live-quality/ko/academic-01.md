@@ -1,7 +1,7 @@
 ---
 fixture_id: ko-academic-01
 language: ko
-profile: academic
+documentType: academic
 register: academic-summary
 source_type: synthetic-ai
 model_family: fixture

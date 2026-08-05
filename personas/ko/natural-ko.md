@@ -1,20 +1,9 @@
 ---
-schema: patina.persona.v1
+schema: patina.persona.v2
 id: natural-ko
 name: 담백한 한국어 (AI 티 제거)
 lang: ko
 source: library
-depth: content
-persona_depth_directive:
-  content_scope: emphasis-and-coverage-only
-  mps_advisory: false
-  fidelity_advisory: false
-mps:
-  enforce: true
-  floor: 70
-fidelity:
-  enforce: true
-  floor: 70
 blocks:
   preferred_words:
     active: true
@@ -51,7 +40,6 @@ blocks:
   preferred_metaphors:
     active: true
     allow: []
-    forbid_new_facts: true
     max_new_metaphors_per_500_chars: 0
   explanation_habits:
     active: true
@@ -68,7 +56,6 @@ blocks:
       - 권고형 남발(~하시기 바랍니다·~해야 합니다 반복)
   sentence_structure:
     active: true
-    register: plain
     sentence_length_cv_target: [0.5, 0.9]
     avg_sentence_eojeol_target: [8, 20]
     paragraph_sentence_count_target: [2, 5]
@@ -80,7 +67,6 @@ target_features:
   mattr: { target: 0.68, tolerance: 0.12, weight: 0.14 }
   lexicon_density_avoid: { target: 0.0, tolerance: 1.0, weight: 0.20 }
   sentence_opener_diversity: { target: 0.60, tolerance: 0.20, weight: 0.12 }
-  ko_register_plain_ratio: { target: 0.6, tolerance: 0.25, weight: 0.1 }
   comma_per_sentence: { target: 0.7, tolerance: 0.5, weight: 0.08 }
   suffix_class_diversity: { target: 0.42, tolerance: 0.18, weight: 0.08 }
   over_edit_churn: { max: 0.6, weight: 0.08 }

@@ -172,10 +172,10 @@ The user can now invoke patina as a slash command in their agent:
 [paste their text here]
 ```
 
-Or with a persona or tone (register):
+Or with a Persona and/or Register:
 
 ```
-/patina --tone professional
+/patina --persona natural-en --register professional
 
 [paste their text]
 ```
@@ -190,7 +190,7 @@ Or through Docker after the GHCR release image exists:
 
 ```bash
 printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
-  | docker run --rm -i -e PATINA_API_KEY ghcr.io/devswha/patina:6.2.0 --lang en --provider openai
+  | docker run --rm -i -e PATINA_API_KEY ghcr.io/devswha/patina:7.0.0 --lang en --provider openai
 ```
 
 The Docker image intentionally does not bake in codex/claude/gemini CLI binaries or logins. Use API-backed providers inside the container, or mount your own authenticated tooling explicitly.

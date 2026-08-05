@@ -4,21 +4,20 @@ import { stripActiveContent } from './dom.js';
 
 const MAX_JUMP_CHIPS = 12;
 
-// "Document context" card for the notes panel: shows the deterministic
-// register measurement (and resolved tone) that the rewrite was pinned to,
-// so the user can see — and contest — the frame patina applied.
-export function buildContextCardHtml({ register = null, tone = null } = {}) {
+// "Document context" card for the notes panel: shows the deterministic source
+// register measurement and any explicit register override.
+export function buildContextCardHtml({ sourceRegister = null, register = null } = {}) {
   const rows = [];
-  if (register) {
+  if (sourceRegister) {
     const pct = (value) => `${Math.round(value * 100)}%`;
-    const distribution = `합쇼체 ${pct(register.shares.formal)} · 해요체 ${pct(register.shares.polite)} · -다체 ${pct(register.shares.plain)}`;
-    rows.push(`<div class="ptna-img-text"><span class="ptna-img-label">register</span>${htmlEscape(register.label)} — ${htmlEscape(distribution)}</div>`);
-    rows.push(`<div class="ptna-img-text"><span class="ptna-img-label">applied</span>${register.register === 'mixed'
+    const distribution = `합쇼체 ${pct(sourceRegister.shares.formal)} · 해요체 ${pct(sourceRegister.shares.polite)} · -다체 ${pct(sourceRegister.shares.plain)}`;
+    rows.push(`<div class="ptna-img-text"><span class="ptna-img-label">source register</span>${htmlEscape(sourceRegister.label)} — ${htmlEscape(distribution)}</div>`);
+    rows.push(`<div class="ptna-img-text"><span class="ptna-img-label">applied</span>${sourceRegister.register === 'mixed'
       ? '지배 어투 없음 — 한 어투로 통일하도록 지시됨'
       : '재작성 전체를 이 어투로 통일하도록 지시됨'}</div>`);
   }
-  if (tone?.tone && tone.tone !== 'auto') {
-    rows.push(`<div class="ptna-img-text"><span class="ptna-img-label">tone</span>${htmlEscape(tone.tone)} (${htmlEscape(tone.tone_source ?? 'user')})</div>`);
+  if (register?.register) {
+    rows.push(`<div class="ptna-img-text"><span class="ptna-img-label">register override</span>${htmlEscape(register.register)} (${htmlEscape(register.register_source ?? 'user')})</div>`);
   }
   if (rows.length === 0) return '';
   return `<article class="explain-card ptna-ctx-card"><div class="ptna-img-head"><strong>document context</strong></div>${rows.join('')}</article>`;
@@ -85,7 +84,7 @@ function renderWordDiffHtml(before, after) {
 }
 
 export function buildPreviewHtml({ html, blocks, rewrites, sourceUrl, explanationHtml = '', scoreChip = null, imageFindings = [], contextCardHtml = '', variants = null }) {
-  // Variant comparison (--preview --jargon x,y / --tone a,b): every
+  // Variant comparison (--preview --jargon x,y / --register a,b): every
   // variant's rewrite is baked into the same swap span and the bar gets a
   // scriptless radio toggle per variant — the snapshot stays inert, so the
   // switch must be CSS-only, exactly like the rewritten/original/both views.
@@ -220,9 +219,8 @@ function injectHead(html, sourceUrl) {
 
 // Group baked variants for the two-level bar UI: one primary button per
 // distinct jargon policy (cleanup/explain/remove) and, when a policy carries
-// more than one option (tone), a secondary chip row that appears only while
-// that policy is selected. Selection is two chained radio groups —
-// policy + per-policy option — so the page stays scriptless.
+// more than one register option, a secondary chip row for that policy.
+// Selection is two chained radio groups, so the page stays scriptless.
 function groupTransformVariants(variants) {
   const groups = [];
   variants.forEach((variant, index) => {
@@ -233,7 +231,7 @@ function groupTransformVariants(variants) {
       groups.push(group);
     }
     const parts = [];
-    if (variant.tone) parts.push(variant.tone);
+    if (variant.register) parts.push(variant.register);
     group.options.push({ label: parts.join('·') || 'default', variantIndex: index + 1 });
   });
   return groups;

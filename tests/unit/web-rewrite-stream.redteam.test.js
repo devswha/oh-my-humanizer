@@ -50,7 +50,7 @@ async function runStream({ request = baseRequest, callLLMStream = async ({ onDel
   const frames = [];
   const result = await runWebRewriteStream({
     request,
-    config: { language: request.lang, profile: 'default' },
+    config: { language: request.lang, documentType: 'default' },
     callLLMStream,
     scoreFns: scores,
     emit: (frame) => frames.push(frame),
