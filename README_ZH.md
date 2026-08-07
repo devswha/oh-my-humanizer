@@ -30,181 +30,73 @@ patina 是一个面向韩文、英文、中文和日文的确定性、基于模�
 
 更多例子：[Before/After Gallery](docs/EXAMPLES.md)（[한국어](docs/EXAMPLES_KR.md)） · [CLI transcript](docs/DEMO.md)。
 
+- **可审计，不是黑箱** — 184 条有名字的模式驱动每一次修改；`--diff` 展示改了什么、为什么改。
+- **含义经过验证地保留** — 每次改写都要通过含义保留（MPS）与忠实度下限；漂移的改写会重试或回滚。
+- **三个相互独立的轴** — Document Type 管体裁，Persona 管声音，Register 管语域；省略的轴保持原文。
+- **全渠道可用** — 代理技能（Claude Code · Codex · Cursor · OpenCode）、Node CLI，以及[浏览器 playground](https://patina.vibetip.help/)。
+- **对局限诚实** — 分数是编辑信号而非作者判定；我们的[预注册研究](docs/research/2026-rewrite-efficacy-study1.md)把失败之处与成功一并公开。
+
 ## 快速开始
 
-### 浏览器 playground
+**浏览器 — 无需安装。** 打开 **[patina.vibetip.help](https://patina.vibetip.help/)** 粘贴文本即可。改写与评分在服务端运行；API 模式按请求转发你自己的密钥（不存储、不记录）。
 
-打开 **[patina.vibetip.help](https://patina.vibetip.help/)** —— 粘贴 KO / EN / ZH / JA 文本，即可获得由 MPS/忠实度下限把关的真实改写，并附带确定性 AI 信号的 before → after 测量。改写与评分在服务器端执行；免费层使用服务自己的模型 key（有速率限制）。**API 模式**会把你自己的 key 按请求经由 patina 服务器转发给你选择的 provider —— 从不存储、也不记录（指标已脱敏：不含文本、prompt、输出、key 或 IP）。
-
-### Agent skill
-
-**让你的编码代理来安装** —— 把下面这行粘贴到 Claude Code、Codex CLI、Cursor、Gemini CLI 或任意代理：
+**代理技能 — 把下面这行粘贴给 Claude Code、Codex CLI、Cursor 等任意代理：**
 
 ```text
 Install patina by following https://raw.githubusercontent.com/devswha/patina/main/INSTALLATION.md
 ```
 
-代理会获取 [`INSTALLATION.md`](INSTALLATION.md)（面向 AI 代理编写），按你的宿主环境执行相应安装路径，然后验证。或者自己来：
-
-**Claude Code — 插件市场（无需克隆，推荐）：**
+然后使用：
 
 ```text
-/plugin marketplace add devswha/patina
-/plugin install patina@patina
+/patina --lang zh
+
+[在这里粘贴文本]
 ```
 
-**Claude Code · Codex CLI · Cursor · OpenCode — 安装脚本：**
+**CLI — Node 18 及以上：**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/devswha/patina/main/install.sh | bash
+npx patina-cli --lang zh input.txt          # 改写
+npx patina-cli doctor                       # 检查后端与密钥
 ```
 
-然后在 Claude Code、Codex CLI、Cursor 或 OpenCode 中运行 skill：
-
-```text
-/patina --lang en
-
-[paste your text here]
-```
-
-常用 skill 调用：
-
-```text
-/patina --document-type email --register professional
-/patina --document-type blog --persona pragmatic-founder
-```
-
-### 独立 CLI
-
-需要 Node.js >= 18。
-
-```bash
-npx patina-cli doctor
-npx patina-cli --lang en input.txt
-```
-
-使用已登录的本地模型 CLI，无需 API 密钥：
-
-```bash
-printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
-  | npx patina-cli --lang en --backend codex-cli
-```
-
-支持的本地后端：`codex-cli`、`claude-cli`、`gemini-cli`、`kimi-cli` —— patina 会按每个后端传入其文档记载的最强默认模型。见 [Authentication](docs/AUTHENTICATION.md)（[한국어](docs/AUTHENTICATION_KR.md)）。
-
-对于较大的 `--batch` 运行，建议使用兼容 OpenAI 的 HTTP 后端；本地 CLI 后端是代理运行时，会通过 `--timeout-ms`、`--max-concurrency`、`--max-retries` 和 `--max-failures` 保守设限以保证批处理安全。
-
-## 一览
-
-|  |  |
-|---|---|
-| **184 条模式** | 每种语言 37 条可改写模式 + 9 条仅评分的病毒式钩子模式（KO/EN/ZH/JA 各 46 条）—— 完整的 184 条模式目录见 [PATTERNS.md](docs/PATTERNS.md) |
-| **模式** | rewrite · verify · audit · score · diff |
-| **使用入口** | agent skill · Node CLI · 页面内 preview · 浏览器 playground（改写 + 评分） |
-| **三个改写轴** | `--document-type` 控制体裁/策略 · `--persona` 控制可复用声音 · `--register` 控制 casual/professional 语域 |
-| **免费使用** | 已登录的 `codex`、`claude` 或 `gemini` CLI 可直接运行改写，无需 `PATINA_API_KEY` |
-| **校准** | 编辑热点命中率 67.3% [63.5–71.0%]，跨 GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro（n=600，KO+EN）；在 KO+EN 人类对照上误检率 16.0% [11.6–21.7%]（n=200） |
-| **许可证** | MIT |
-
-分数是有误报和漏报的编辑信号，不是作者身份的证明。见 [Ethics](docs/ETHICS.md)。
+已登录的 `codex`、`claude` 或 `gemini` CLI 无需 API 密钥：加 `--backend codex-cli`。完整安装选项见 [INSTALLATION.md](INSTALLATION.md)。
 
 ## 三个相互独立的轴
 
 patina 不会从一个轴推断另一个轴。省略 Persona 和 Register 时，会保留原文的声音与语域。
 
-| 轴 | 控制 | 不控制 | CLI | 配置 | Playground |
-|---|---|---|---|---|---|
-| **Document Type** | 体裁、用途、结构惯例、模式策略 | 声音、casual/professional 表达、含义保留下限 | `--document-type` | `document-type` | Document |
-| **Persona** | 可复用声音指纹：词汇、节奏、解释习惯 | 体裁、模式策略、Register、含义保留下限 | `--persona` | `persona` | Voice |
-| **Register** | `casual` 或 `professional` 表达方式 | 体裁、Persona 身份、模式策略 | `--register` | `register` | Register |
+| 轴 | 控制 | 不控制 | 选择方式 |
+|---|---|---|---|
+| **Document Type** | 体裁、用途、结构惯例、模式策略 | 声音、casual/professional 表达、含义保留下限 | `--document-type` · 配置 `document-type` · Playground "Document Type" |
+| **Persona** | 可复用声音指纹：词汇、节奏、解释习惯 | 体裁、模式策略、Register、含义保留下限 | `--persona` · 配置 `persona` · Playground "Persona" |
+| **Register** | `casual` 或 `professional` 表达方式 | 体裁、Persona 身份、模式策略 | `--register` · 配置 `register` · Playground "Register" |
+
+含义保留是三轴之外的共同下限；显式指定的轴不会填充被省略的轴。
 
 ```bash
 patina --document-type email --register professional note.md
 patina --document-type blog --persona pragmatic-founder post.md
-patina --document-type technical --persona technical-explainer --register casual guide.md
 ```
 
 ## 常用命令
 
 ```bash
-patina --lang <ko|en|zh|ja> [mode] [--document-type <name>] [--persona <name>] [--register <name>] input.txt
+patina input.txt                                          # 按默认设置改写
+patina --audit input.txt                                  # 仅检测模式
+patina --score --offline --exit-on 30 input.txt           # 无需 API 密钥的确定性 CI 门槛
+patina --diff input.txt                                   # 逐模式展示改动
+patina --verify input.txt                                 # 改写 + MPS/忠实度下限检查
+patina --document-type email --register professional input.txt
+patina persona new my-voice --from-sample past-posts.txt  # 从自己的文字学习声音
+patina --persona my-voice draft.md
+patina --batch docs/*.md --outdir cleaned/
 ```
 
-| 命令 | 用途 |
-|---|---|
-| `patina input.txt` | 用默认设置改写 |
-| `patina --audit input.txt` | 仅检测模式 |
-| `patina --score input.txt` | 结合 LLM 评判与确定性信号输出 0-100 分 |
-| `patina --score --offline input.txt` | 无需后端或 API key，仅使用确定性信号评分 |
-| `patina --score --offline --exit-on 30 input.txt` | 离线 CI gate：当 `overall > 30` 时以退出码 `3` 结束 |
-| `patina --diff input.txt` | 按模式逐项展示改动 |
-| `patina --preview page.html` | 把改写结果渲染回保存的 HTML 页面，带视图切换和内联 diff |
-| `patina --verify input.txt` | 改写后检查 MPS/忠实度下限，并重试一次 |
-| `patina --document-type email --register professional input.txt` | 使用邮件惯例和 professional 语域 |
-| `patina --persona pragmatic-founder input.txt` | 用内置声音人格改写 |
-| `patina persona new my-voice --from-sample past.txt` | 从写作样本创建你自己的人格 |
-| `patina persona list` | 列出内置 + 自制人格 |
-| `patina persona show my-voice --json` | 查看人格的规范化声音配置 |
-| `patina persona edit my-voice --name "New Name"` | 将内置人格复制为 custom shadow 后编辑 |
-| `patina persona rm my-voice` | 删除自制人格（内置人格受保护） |
-| `patina --format json --quiet input.txt` | 适合脚本的输出 |
-| `patina --batch docs/*.md --outdir cleaned/` | 批量文件处理 |
+`patina --help` 打印完整参数。GitHub Actions 包装器：[devswha/patina-action](https://github.com/devswha/patina-action) · [pre-commit 等集成](docs/integrations/pre-commit.md)。
 
-`patina --help` 会打印完整的选项列表。`patina doctor --json` 会在不调用 LLM 的情况下检查 Node、后端、tmux 和 API-key 就绪状态。
-
-### 人格（声音）
-
-**人格**是可复用的“声音” —— 一个内置人格（`patina persona list`）或你自己创建的、无需改动源码的人格：
-
-```bash
-patina persona new my-voice --from-sample past-posts.txt   # 从你的写作中学习
-patina persona new my-voice --describe "plain-spoken founder, casual"
-patina --persona my-voice draft.md                          # 之后复用
-```
-
-可在 ko/en/zh/ja 上独立组合 `--document-type`、`--persona` 与 `--register`。Persona v2 只改变可复用声音，不能定义文档类型、语域、模式策略、verification 或含义下限。自制 Persona 会在保存时校验；全局 rewrite guard 和 `--verify` 独立负责含义保留。
-
-## CI
-
-对于 GitHub Actions，官方维护的 wrapper 比手写配置更简短：
-
-```yaml
-name: Patina prose score
-on:
-  pull_request:
-    paths: ['**/*.md', '**/*.mdx']
-permissions:
-  contents: read
-  pull-requests: read
-  issues: write
-jobs:
-  patina:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: devswha/patina-action@v1
-        with:
-          score-threshold: 30
-          lang: auto
-          comment: true
-```
-
-其他集成：[pre-commit](docs/integrations/pre-commit.md)、[静态站点](docs/integrations/static-sites.md)、[Docker](docs/integrations/docker.md)、[release workflow](docs/integrations/release.md)。
-
-## 工作原理
-
-```text
-Input
-  -> semantic anchor extraction (claims, polarity, causation, numbers)
-  -> stylometry + AI-lexicon scan
-  -> pattern-guided rewrite
-  -> self-audit and MPS/fidelity checks
-  -> cleaned text
-```
-
-如果含义发生偏移，改动会被重试或回滚。确定性分析位于 `src/features/*`；由 LLM 支撑的改写与评分调用则使用所选后端。
-
-## 配置
+项目配置放在 `.patina.yaml`：
 
 ```yaml
 # .patina.default.yaml
@@ -215,30 +107,25 @@ persona:                  # 可选；省略时保留原文声音
 register:                 # casual | professional；省略时保留原文语域
 ```
 
-项目级 `.patina.yaml` 会覆盖默认值。模式包按语言前缀自动发现。可追加的列表键（`blocklist`、`allowlist`、`skip-patterns`）会合并；其他数组会直接替换。
+## 一览
+
+|  |  |
+|---|---|
+| **184 条模式** | 每种语言 37 条可改写模式 + 9 条仅评分的病毒式钩子模式（KO/EN/ZH/JA 各 46 条）—— 完整的 184 条模式目录见 [PATTERNS.md](docs/PATTERNS.md) |
+| **模式** | rewrite · verify · audit · score · diff |
+| **校准** | 编辑热点命中率 67.3% [63.5–71.0%]，跨 GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro（n=600，KO+EN）；在 KO+EN 人类对照上误检率 16.0% [11.6–21.7%]（n=200） |
+| **许可证** | MIT |
+
+分数是带有误检与漏检的编辑信号，不是作者身份的证明。见 [Ethics](docs/ETHICS.md)。
 
 ## 文档
 
-从这里开始：
-
-- [Cookbook](docs/COOKBOOK.md) —— 常用配方与工作流
-- [CLI Contract](docs/CLI.md) —— 选项、格式、score gate 和退出行为
-- [Authentication](docs/AUTHENTICATION.md) —— 本地 CLI 后端与 API 服务商
-- [Patterns](docs/PATTERNS.md) —— 完整模式目录
-- [Subagents & strict flow](docs/agents.md) —— 可选的只读 detector/fidelity/naturalness 子代理，以及 `--strict` 多轮模式
-- [Benchmarks](docs/benchmarks/README.md) · [latest report](docs/benchmarks/latest.md) · [2026 rebaseline](docs/research/2026-rebaseline.md)
-- [Measurement harness](docs/HARNESS.md) —— 每个基准、校准和 gate 工具的索引（含信号影响 ablation harness）
-- [FAQ](docs/FAQ.md)（[한국어](docs/FAQ_KR.md)）
-- [Ethics](docs/ETHICS.md)
-- [Contributing](CONTRIBUTING.md)（[한국어](CONTRIBUTING_KR.md)）
-- [Changelog](CHANGELOG.md)
-
-品牌资源和使用规则见 [Branding](docs/BRANDING.md)。设计说明见 [DESIGN.md](DESIGN.md)。
-
-## 致谢
-
-灵感来自 [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh) 的插件架构、[Wikipedia 的 “Signs of AI writing”](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) 和 [blader/humanizer](https://github.com/blader/humanizer)。
+- [Cookbook](docs/COOKBOOK.md) — 常用配方 · [CLI 契约](docs/CLI.md) — 参数、门槛、退出码
+- [Before/After 画廊](docs/EXAMPLES.md) · [模式目录](docs/PATTERNS.md)
+- [架构](docs/ARCHITECTURE.md) · [配置与认证](docs/AUTHENTICATION.md)
+- [基准](docs/benchmarks/latest.md) · [研究](docs/research/2026-rewrite-efficacy-study1.md) · [FAQ](docs/FAQ.md)
+- [贡献指南](CONTRIBUTING.md) · [变更日志](CHANGELOG.md)
 
 ## 许可证
 
-MIT。见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。
+MIT。见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。灵感来自 [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh)、[Wikipedia 的 "Signs of AI writing"](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) 与 [blader/humanizer](https://github.com/blader/humanizer)。
