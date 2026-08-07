@@ -110,11 +110,11 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 
 patina は一つの軸から別の軸を推論しません。Persona と Register を省略すると、原文のボイスとレジスターを保持します。
 
-| 軸 | 制御するもの | 制御しないもの | CLI | 設定 | Playground |
-|---|---|---|---|---|---|
-| **Document Type** | ジャンル、目的、構造慣習、パターン方針 | ボイス、casual/professional の伝え方、意味保全フロア | `--document-type` | `document-type` | Document |
-| **Persona** | 再利用ボイス指紋：語彙、リズム、説明習慣 | ジャンル、パターン方針、Register、意味保全フロア | `--persona` | `persona` | Voice |
-| **Register** | `casual` または `professional` の伝え方 | ジャンル、Persona の同一性、パターン方針 | `--register` | `register` | Register |
+| 軸 | 制御するもの | 制御しないもの | 選択方法 |
+|---|---|---|---|
+| **Document Type** | ジャンル、目的、構造慣習、パターン方針 | ボイス、casual/professional の伝え方、意味保全フロア | `--document-type` · 設定 `document-type` · Playground "Document Type" |
+| **Persona** | 再利用ボイス指紋：語彙、リズム、説明習慣 | ジャンル、パターン方針、Register、意味保全フロア | `--persona` · 設定 `persona` · Playground "Persona" |
+| **Register** | `casual` または `professional` の伝え方 | ジャンル、Persona の同一性、パターン方針 | `--register` · 設定 `register` · Playground "Register" |
 
 ```bash
 patina --document-type email --register professional note.md
