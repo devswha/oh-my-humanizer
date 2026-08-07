@@ -122,16 +122,16 @@ Scores are editing signals with false positives and false negatives, not proof o
 Patina does not infer one axis from another. Omit Persona and Register to keep
 the source voice and register.
 
-| Axis | Controls | Does not control | CLI | Config | Playground |
-|---|---|---|---|---|---|
-| **Document Type** | Genre, purpose, structural conventions, pattern policy | Voice, casual/professional delivery, meaning floors | `--document-type` | `document-type` | Document |
-| **Persona** | Reusable voice fingerprint: vocabulary, rhythm, explanation habits | Genre, pattern policy, register, meaning floors | `--persona` | `persona` | Voice |
-| **Register** | `casual` or `professional` delivery | Genre, persona identity, pattern policy | `--register` | `register` | Register |
+| Axis | Controls | Does not control | Select with |
+|---|---|---|---|
+| **Document Type** | Genre, purpose, structural conventions, pattern policy | Voice, casual/professional delivery, meaning floors | `--document-type` · config `document-type` · Playground "Document Type" |
+| **Persona** | Reusable voice fingerprint: vocabulary, rhythm, explanation habits | Genre, pattern policy, register, meaning floors | `--persona` · config `persona` · Playground "Persona" |
+| **Register** | `casual` or `professional` delivery | Genre, persona identity, pattern policy | `--register` · config `register` · Playground "Register" |
+
 Meaning preservation is the outer guard. If instructions appear to overlap,
 field ownership resolves them: Document Type wins for document structure and
 domain constraints, Persona for idiolect and rhythm, and Register for
 casual/professional markers. An explicit value never fills an omitted axis.
-
 
 Examples:
 

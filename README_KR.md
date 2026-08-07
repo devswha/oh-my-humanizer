@@ -110,11 +110,12 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 
 patina는 한 축에서 다른 축을 추론하지 않습니다. Persona와 Register를 생략하면 원문의 목소리와 레지스터를 보존합니다.
 
-| 축 | 정하는 것 | 정하지 않는 것 | CLI | 설정 | Playground |
-|---|---|---|---|---|---|
-| **Document Type** | 장르·용도·구조 관습·패턴 정책 | 목소리, casual/professional 전달 방식, 의미 보존 하한 | `--document-type` | `document-type` | Document |
-| **Persona** | 재사용 보이스 지문: 어휘·리듬·설명 습관 | 장르, 패턴 정책, Register, 의미 보존 하한 | `--persona` | `persona` | Voice |
-| **Register** | `casual` 또는 `professional` 전달 방식 | 장르, Persona 정체성, 패턴 정책 | `--register` | `register` | Register |
+| 축 | 정하는 것 | 정하지 않는 것 | 선택 방법 |
+|---|---|---|---|
+| **Document Type** | 장르·용도·구조 관습·패턴 정책 | 목소리, casual/professional 전달 방식, 의미 보존 하한 | `--document-type` · 설정 `document-type` · Playground "Document Type" |
+| **Persona** | 재사용 보이스 지문: 어휘·리듬·설명 습관 | 장르, 패턴 정책, Register, 의미 보존 하한 | `--persona` · 설정 `persona` · Playground "Persona" |
+| **Register** | `casual` 또는 `professional` 전달 방식 | 장르, Persona 정체성, 패턴 정책 | `--register` · 설정 `register` · Playground "Register" |
+
 의미 보존은 세 축 바깥의 공통 하한입니다. 지시가 겹쳐 보이면 소유 필드로
 판단합니다. 문서 구조와 도메인 제약은 Document Type, 고유 어휘와 리듬은 Persona,
 casual/professional 표지는 Register가 정합니다. 명시된 한 축으로 생략된 다른 축을
