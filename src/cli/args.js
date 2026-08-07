@@ -850,7 +850,8 @@ MODEL & AUTH
   --timeout-ms <n>        Per-request/backend timeout in milliseconds
   --max-concurrency <n>   Cross-process backend cap (safe defaults per backend)
   --max-retries <n>       Retry budget per backend (local CLIs default to 0)
-  --provider <name>       Provider preset: openai, gemini, groq, kimi, moonshot, together
+  --provider <name>       Provider preset: openai, gemini, groq, kimi, moonshot, together,
+                          minimax, minimax-cn
 ADVANCED
   --config <path>         Layer explicit config after defaults and .patina.yaml
   --allow-insecure-base-url  Permit plaintext http:// to non-localhost endpoints
@@ -867,7 +868,7 @@ EXAMPLES
 ENVIRONMENT
   PATINA_API_KEY, PATINA_API_KEY_FILE, PATINA_API_BASE, PATINA_MODEL
   OPENAI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, TOGETHER_API_KEY,
-  KIMI_API_KEY, MOONSHOT_API_KEY
+  KIMI_API_KEY, MOONSHOT_API_KEY, MINIMAX_API_KEY
 
 EXIT CODES
   0 success · 1 runtime/backend · 2 input/usage · 3 score gate exceeded · 130 interrupted
