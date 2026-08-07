@@ -37,9 +37,9 @@ describe('Provider Selection', () => {
     assert.throws(() => selectProvider('madeup'), /Unknown provider/);
   });
 
-  it('lists all six providers', () => {
+  it('lists all eight providers', () => {
     const names = Object.keys(PROVIDERS).sort();
-    assert.deepStrictEqual(names, ['gemini', 'groq', 'kimi', 'moonshot', 'openai', 'together']);
+    assert.deepStrictEqual(names, ['gemini', 'groq', 'kimi', 'minimax', 'minimax-cn', 'moonshot', 'openai', 'together']);
   });
 
   it('marks free-tier providers correctly', () => {
@@ -49,6 +49,21 @@ describe('Provider Selection', () => {
     assert.strictEqual(PROVIDERS.kimi.freeTier, false);
     assert.strictEqual(PROVIDERS.moonshot.freeTier, false);
     assert.strictEqual(PROVIDERS.openai.freeTier, false);
+    assert.strictEqual(PROVIDERS.minimax.freeTier, false);
+    assert.strictEqual(PROVIDERS['minimax-cn'].freeTier, false);
+  });
+
+  it('resolves both MiniMax regions from the shared key with regional endpoints', () => {
+    withEnv({ PATINA_API_KEY: undefined, MINIMAX_API_KEY: 'mm-env' }, () => {
+      const globalRegion = resolveProviderConfig({ provider: selectProvider('minimax') });
+      assert.strictEqual(globalRegion.apiKey, 'mm-env');
+      assert.strictEqual(globalRegion.apiKeySource, 'env:MINIMAX_API_KEY');
+      assert.strictEqual(globalRegion.baseURL, 'https://api.minimax.io/v1');
+      assert.strictEqual(globalRegion.model, 'MiniMax-M3');
+      const china = resolveProviderConfig({ provider: selectProvider('minimax-cn') });
+      assert.strictEqual(china.baseURL, 'https://api.minimaxi.com/v1');
+      assert.strictEqual(china.model, 'MiniMax-M3');
+    });
   });
 });
 
