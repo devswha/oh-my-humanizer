@@ -112,11 +112,11 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 
 patina 不会从一个轴推断另一个轴。省略 Persona 和 Register 时，会保留原文的声音与语域。
 
-| 轴 | 控制 | 不控制 | CLI | 配置 | Playground |
-|---|---|---|---|---|---|
-| **Document Type** | 体裁、用途、结构惯例、模式策略 | 声音、casual/professional 表达、含义保留下限 | `--document-type` | `document-type` | Document |
-| **Persona** | 可复用声音指纹：词汇、节奏、解释习惯 | 体裁、模式策略、Register、含义保留下限 | `--persona` | `persona` | Voice |
-| **Register** | `casual` 或 `professional` 表达方式 | 体裁、Persona 身份、模式策略 | `--register` | `register` | Register |
+| 轴 | 控制 | 不控制 | 选择方式 |
+|---|---|---|---|
+| **Document Type** | 体裁、用途、结构惯例、模式策略 | 声音、casual/professional 表达、含义保留下限 | `--document-type` · 配置 `document-type` · Playground "Document Type" |
+| **Persona** | 可复用声音指纹：词汇、节奏、解释习惯 | 体裁、模式策略、Register、含义保留下限 | `--persona` · 配置 `persona` · Playground "Persona" |
+| **Register** | `casual` 或 `professional` 表达方式 | 体裁、Persona 身份、模式策略 | `--register` · 配置 `register` · Playground "Register" |
 
 ```bash
 patina --document-type email --register professional note.md
