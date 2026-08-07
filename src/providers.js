@@ -62,6 +62,22 @@ export const PROVIDERS = {
     freeTier: true,
     note: 'Free models available (suffix "-Free"). Get a key at https://api.together.xyz/settings/api-keys',
   },
+  minimax: {
+    name: 'minimax',
+    baseURL: 'https://api.minimax.io/v1',
+    apiKeyEnv: 'MINIMAX_API_KEY',
+    defaultModel: 'MiniMax-M3',
+    freeTier: false,
+    note: 'MiniMax global OpenAI-compatible API. Set MINIMAX_API_KEY or PATINA_API_KEY.',
+  },
+  'minimax-cn': {
+    name: 'minimax-cn',
+    baseURL: 'https://api.minimaxi.com/v1',
+    apiKeyEnv: 'MINIMAX_API_KEY',
+    defaultModel: 'MiniMax-M3',
+    freeTier: false,
+    note: 'MiniMax China OpenAI-compatible API. Set MINIMAX_API_KEY or PATINA_API_KEY.',
+  },
 };
 
 /**

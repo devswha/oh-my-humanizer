@@ -18,6 +18,7 @@ export const HTTP_KEY_ENV_VARS = [
   'TOGETHER_API_KEY',
   'KIMI_API_KEY',
   'MOONSHOT_API_KEY',
+  'MINIMAX_API_KEY',
 ];
 
 // Default openai-http runs against the OpenAI-compatible default endpoint, so
