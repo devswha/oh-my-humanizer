@@ -12,6 +12,12 @@ All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 Semver rationale: patch | minor | major — explain whether this changes patterns, schemas, CLI behavior, or docs only.
 ```
 
+## Unreleased
+
+### Added
+
+- MiniMax provider presets for the CLI: `--provider minimax` (global, `api.minimax.io`) and `--provider minimax-cn` (China, `api.minimaxi.com`), both defaulting to `MiniMax-M3` on the shared `MINIMAX_API_KEY`. Reimplements community PR #667 by @octo-patch on the current codebase.
+
 ## 7.0.0 — 2026-08-04
 
 **Removes the retired iterative rewrite product contract, gives scoring and verification settings neutral ownership, and preserves the comparator only as unsupported research.**
