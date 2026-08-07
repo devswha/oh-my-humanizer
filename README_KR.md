@@ -28,83 +28,38 @@ AI 티가 나는 글을 **[playground](https://patina.vibetip.help/)** 에 붙�
 
 더 많은 예시: [Before/After 갤러리](docs/EXAMPLES_KR.md) ([English](docs/EXAMPLES.md)) · [CLI transcript](docs/DEMO.md).
 
+- **블랙박스가 아닌, 감사 가능한 도구** — 184개의 이름 붙은 패턴이 모든 수정을 결정하고, `--diff`가 무엇이 왜 바뀌었는지 그대로 보여줍니다.
+- **의미는 검증되어 살아남습니다** — 모든 재작성은 의미 보존(MPS)·충실도 하한을 통과해야 하며, 어긋나면 재시도하거나 되돌립니다.
+- **서로 독립적인 세 축** — Document Type은 장르를, Persona는 목소리를, Register는 전달 방식을 정합니다. 생략한 축은 원문이 유지됩니다.
+- **모든 채널에서** — 에이전트 스킬(Claude Code · Codex · Cursor · OpenCode), Node CLI, [브라우저 playground](https://patina.vibetip.help/).
+- **한계에 정직하게** — 점수는 편집 신호이지 작성자 판정이 아니며, [사전 등록 연구](docs/research/2026-rewrite-efficacy-study1.md)에서 실패 지점까지 함께 공개합니다.
+
 ## 빠른 시작
 
-### 브라우저 playground
+**브라우저 — 설치 없음.** **[patina.vibetip.help](https://patina.vibetip.help/)** 를 열고 붙여넣으면 끝. 재작성과 채점은 서버에서 실행되고, API 모드는 개인 키를 요청 단위로만 전달합니다(저장·로깅 없음).
 
-**[patina.vibetip.help](https://patina.vibetip.help/)** 를 열고 KO / EN / ZH / JA 문장을 붙여넣으면 MPS/충실도 하한으로 게이팅된 실제 리라이트를 받아볼 수 있고, 결정론적 AI 시그널이 before → after로 측정됩니다. 리라이트와 채점은 서버에서 실행되며, 무료 티어는 서비스 자체 모델 키를 사용합니다(요청량 제한). **API 모드**는 요청마다 개인 키를 patina 서버를 경유해 선택한 프로바이더로 전달할 뿐, 저장하거나 로깅하지 않습니다(메트릭은 텍스트·프롬프트·출력·키·IP 없이 정제됩니다).
-
-### 에이전트 스킬
-
-**코딩 에이전트에게 설치를 맡기세요** — Claude Code, Codex CLI, Cursor, Gemini CLI 등 아무 에이전트에나 아래를 붙여넣으세요:
+**에이전트 스킬 — Claude Code, Codex CLI, Cursor 등 아무 에이전트에나 붙여넣으세요:**
 
 ```text
 Install patina by following https://raw.githubusercontent.com/devswha/patina/main/INSTALLATION.md
 ```
 
-에이전트가 [`INSTALLATION.md`](INSTALLATION.md)(AI 에이전트용으로 작성됨)를 가져와 사용 환경에 맞는 설치 경로를 실행하고 검증합니다. 직접 하려면:
-
-**Claude Code — 플러그인 마켓플레이스 (클론 불필요, 권장):**
+설치 후:
 
 ```text
-/plugin marketplace add devswha/patina
-/plugin install patina@patina
+/patina --lang ko
+
+[여기에 글을 붙여넣으세요]
 ```
 
-**Claude Code · Codex CLI · Cursor · OpenCode — 설치 스크립트:**
+**CLI — Node 18 이상:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/devswha/patina/main/install.sh | bash
+npx patina-cli --lang ko input.txt          # 재작성
+npx patina-cli doctor                       # 백엔드·키 상태 점검
 ```
 
-이후 Claude Code, Codex CLI, Cursor, OpenCode에서 스킬을 실행하세요:
-
-```text
-/patina --lang en
-
-[paste your text here]
-```
-
-유용한 스킬 호출:
-
-```text
-/patina --document-type email --register professional
-/patina --document-type blog --persona pragmatic-founder
-```
-
-### 독립형 CLI
-
-Node.js 18 이상이 필요합니다.
-
-```bash
-npx patina-cli doctor
-npx patina-cli --lang en input.txt
-```
-
-API 키 없이 로그인된 로컬 모델 CLI를 사용하려면:
-
-```bash
-printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
-  | npx patina-cli --lang en --backend codex-cli
-```
-
-지원 로컬 백엔드: `codex-cli`, `claude-cli`, `gemini-cli`, `kimi-cli` — patina는 백엔드별로 문서화된 가장 강력한 기본 모델을 넘깁니다. [Authentication](docs/AUTHENTICATION_KR.md) ([English](docs/AUTHENTICATION.md))를 참고하세요.
-
-대규모 `--batch` 실행에는 OpenAI 호환 HTTP 백엔드를 권장합니다. 로컬 CLI 백엔드는 에이전트 런타임이므로 배치 안전을 위해 `--timeout-ms`, `--max-concurrency`, `--max-retries`, `--max-failures`로 보수적으로 제한됩니다.
-
-## 한눈에 보기
-
-|  |  |
-|---|---|
-| **184개 패턴** | 언어별 재작성 가능 37개 + 스코어 전용 바이럴 훅 9개(KO/EN/ZH/JA 각각 46개) — 전체 184개 패턴 카탈로그는 [PATTERNS.md](docs/PATTERNS.md) 참고 |
-| **모드** | rewrite · verify · audit · score · diff |
-| **사용 채널** | 에이전트 스킬 · Node CLI · 페이지 내 preview · 브라우저 playground (리라이트 + 점수) |
-| **재작성 3축** | `--document-type`은 장르/정책 · `--persona`는 재사용 보이스 · `--register`는 casual/professional 전달 방식 |
-| **무료 사용** | 로그인된 `codex`, `claude`, `gemini` CLI 중 하나로 `PATINA_API_KEY` 없이 재작성 실행 |
-| **캘리브레이션** | GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro 기준 편집 핫스팟 catch 67.3% [63.5–71.0%] (n=600, KO+EN); KO+EN 사람 글 컨트롤에서 오탐 16.0% [11.6–21.7%] (n=200) |
-| **라이선스** | MIT |
-
-점수는 오탐과 미탐이 있는 편집 신호이지 작성자 판정의 근거가 아닙니다. [Ethics](docs/ETHICS.md)를 참고하세요.
+로그인된 `codex`·`claude`·`gemini` CLI가 있으면 API 키 없이 `--backend codex-cli`로 실행됩니다. 전체 설치 옵션: [INSTALLATION.md](INSTALLATION.md).
 
 ## 서로 독립적인 세 축
 
@@ -116,99 +71,30 @@ patina는 한 축에서 다른 축을 추론하지 않습니다. Persona와 Regi
 | **Persona** | 재사용 보이스 지문: 어휘·리듬·설명 습관 | 장르, 패턴 정책, Register, 의미 보존 하한 | `--persona` · 설정 `persona` · Playground "Persona" |
 | **Register** | `casual` 또는 `professional` 전달 방식 | 장르, Persona 정체성, 패턴 정책 | `--register` · 설정 `register` · Playground "Register" |
 
-의미 보존은 세 축 바깥의 공통 하한입니다. 지시가 겹쳐 보이면 소유 필드로
-판단합니다. 문서 구조와 도메인 제약은 Document Type, 고유 어휘와 리듬은 Persona,
-casual/professional 표지는 Register가 정합니다. 명시된 한 축으로 생략된 다른 축을
-추론하지 않습니다.
-
+의미 보존은 세 축 바깥의 공통 하한이며, 명시된 한 축이 생략된 다른 축을 채우지 않습니다.
 
 ```bash
 patina --document-type email --register professional note.md
 patina --document-type blog --persona pragmatic-founder post.md
-patina --document-type technical --persona technical-explainer --register casual guide.md
 ```
 
 ## 자주 쓰는 명령
 
 ```bash
-patina --lang <ko|en|zh|ja> [mode] [--document-type <name>] [--persona <name>] [--register <name>] input.txt
+patina input.txt                                          # 기본값으로 재작성
+patina --audit input.txt                                  # 패턴 탐지만
+patina --score --offline --exit-on 30 input.txt           # API 키 없는 결정론적 CI 게이트
+patina --diff input.txt                                   # 패턴별 변경 표시
+patina --verify input.txt                                 # 재작성 + MPS/충실도 하한 검사
+patina --document-type email --register professional input.txt
+patina persona new my-voice --from-sample past-posts.txt  # 내 글에서 보이스 학습
+patina --persona my-voice draft.md
+patina --batch docs/*.md --outdir cleaned/
 ```
 
-| 명령 | 목적 |
-|---|---|
-| `patina input.txt` | 기본값으로 재작성 |
-| `patina --audit input.txt` | 패턴 탐지만 수행 |
-| `patina --score input.txt` | LLM 판정과 결정론적 신호를 함께 사용해 0-100 점수 출력 |
-| `patina --score --offline input.txt` | 백엔드나 API 키 없이 결정론적 신호만으로 점수 계산 |
-| `patina --score --offline --exit-on 30 input.txt` | `overall > 30`이면 종료 코드 `3`을 내는 오프라인 CI 게이트 |
-| `patina --diff input.txt` | 패턴별 변경 사항 표시 |
-| `patina --preview page.html` | 저장된 HTML 페이지 위에 재작성을 다시 렌더링(토글 + 인라인 diff) |
-| `patina --verify input.txt` | 재작성 후 MPS/충실도 하한을 검사하고 1회 재시도 |
-| `patina --document-type email --register professional input.txt` | 이메일 관습과 professional 레지스터 적용 |
-| `patina --persona pragmatic-founder input.txt` | 내장 보이스 페르소나로 재작성 |
-| `patina persona new my-voice --from-sample past.txt` | 글 샘플에서 나만의 페르소나 제작 |
-| `patina persona list` | 내장 + 커스텀 페르소나 목록 |
-| `patina persona show my-voice --json` | persona의 정규화된 voice config 조회 |
-| `patina persona edit my-voice --name "New Name"` | built-in은 custom shadow로 복사해 수정 |
-| `patina persona rm my-voice` | custom persona 삭제(built-in은 보호) |
-| `patina --format json --quiet input.txt` | 스크립트 친화적 출력 |
-| `patina --batch docs/*.md --outdir cleaned/` | 배치 파일 처리 |
+`patina --help`가 전체 플래그를 출력합니다. GitHub Actions용 래퍼: [devswha/patina-action](https://github.com/devswha/patina-action) · [pre-commit 등 통합](docs/integrations/pre-commit.md).
 
-`patina --help`는 전체 플래그 목록을 출력합니다. `patina doctor --json`은 LLM 호출 없이 Node, 백엔드, tmux, API 키 준비 상태를 점검합니다.
-
-### 페르소나 (보이스)
-
-**페르소나**는 재사용 가능한 "말투"입니다 — 내장 페르소나(`patina persona list`)를 쓰거나, 소스 코드를 건드리지 않고 직접 만들 수 있습니다:
-
-```bash
-patina persona new my-voice --from-sample past-posts.txt   # 내 글에서 학습
-patina persona new my-voice --describe "plain-spoken founder, casual"
-patina --persona my-voice draft.md                          # 이후 재사용
-```
-
-ko/en/zh/ja에서 `--document-type`/`--register`와 독립적으로 조합됩니다. Persona v2는 재사용 보이스만 바꾸며 문서 유형, 레지스터, 패턴 정책, verification/의미 하한을 정의할 수 없습니다. 제작한 Persona는 저장 시 검증되고, 전역 rewrite guard와 `--verify`가 의미 보존을 독립적으로 담당합니다.
-
-## CI
-
-GitHub Actions에서는 손수 설정하는 것보다 유지 관리되는 래퍼가 더 간단합니다:
-
-```yaml
-name: Patina prose score
-on:
-  pull_request:
-    paths: ['**/*.md', '**/*.mdx']
-permissions:
-  contents: read
-  pull-requests: read
-  issues: write
-jobs:
-  patina:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: devswha/patina-action@v1
-        with:
-          score-threshold: 30
-          lang: auto
-          comment: true
-```
-
-기타 연동: [pre-commit](docs/integrations/pre-commit.md), [static sites](docs/integrations/static-sites.md), [Docker](docs/integrations/docker.md), [release workflow](docs/integrations/release.md).
-
-## 동작 원리
-
-```text
-Input
-  -> semantic anchor extraction (claims, polarity, causation, numbers)
-  -> stylometry + AI-lexicon scan
-  -> pattern-guided rewrite
-  -> self-audit and MPS/fidelity checks
-  -> cleaned text
-```
-
-의미가 어긋나면 해당 변경을 재시도하거나 롤백합니다. 결정론적 분석은 `src/features/*`에 있으며, LLM 기반 재작성과 점수 호출은 선택한 백엔드를 사용합니다.
-
-## 설정
+프로젝트 설정은 `.patina.yaml`에 둡니다:
 
 ```yaml
 # .patina.default.yaml
@@ -219,30 +105,25 @@ persona:                  # 선택 사항; 생략하면 원문 보이스 보존
 register:                 # casual | professional; 생략하면 원문 레지스터 보존
 ```
 
-프로젝트의 `.patina.yaml`이 기본값을 오버라이드합니다. 패턴 팩은 언어 접두사로 자동 탐색됩니다. 추가형 목록 키(`blocklist`, `allowlist`, `skip-patterns`)는 병합되고, 다른 배열은 대체됩니다.
+## 한눈에 보기
+
+|  |  |
+|---|---|
+| **184개 패턴** | 언어별 재작성 가능 37개 + 스코어 전용 바이럴 훅 9개(KO/EN/ZH/JA 각각 46개) — 전체 184개 패턴 카탈로그는 [PATTERNS.md](docs/PATTERNS.md) 참고 |
+| **모드** | rewrite · verify · audit · score · diff |
+| **캘리브레이션** | GPT-5.5 / Claude Sonnet 4.6 / Gemini 2.5 Pro 기준 편집 핫스팟 catch 67.3% [63.5–71.0%] (n=600, KO+EN); KO+EN 사람 글 컨트롤에서 오탐 16.0% [11.6–21.7%] (n=200) |
+| **라이선스** | MIT |
+
+점수는 오탐과 미탐이 있는 편집 신호이지 작성자 판정의 근거가 아닙니다. [Ethics](docs/ETHICS.md)를 참고하세요.
 
 ## 문서
 
-여기서 시작하세요:
-
-- [Cookbook](docs/COOKBOOK.md) — 자주 쓰는 recipe와 워크플로우
-- [CLI Contract](docs/CLI.md) — 플래그, 포맷, score gate, 종료 동작
-- [Authentication](docs/AUTHENTICATION_KR.md) ([English](docs/AUTHENTICATION.md)) — 로컬 CLI 백엔드와 API 프로바이더
-- [Patterns](docs/PATTERNS.md) — 전체 패턴 카탈로그
-- [Subagents & strict flow](docs/agents.md) — 선택형 read-only detector/fidelity/naturalness 서브에이전트와 `--strict` 멀티패스 모드
-- [Benchmarks](docs/benchmarks/README.md) · [latest report](docs/benchmarks/latest.md) · [2026 rebaseline](docs/research/2026-rebaseline.md)
-- [Measurement harness](docs/HARNESS.md) — 모든 벤치마크·보정·게이트 도구의 인덱스(신호 임팩트 ablation 하네스 포함)
-- [FAQ](docs/FAQ_KR.md) ([English](docs/FAQ.md))
-- [Ethics](docs/ETHICS.md)
-- [Contributing](CONTRIBUTING_KR.md) ([English](CONTRIBUTING.md))
-- [Changelog](CHANGELOG.md)
-
-브랜드 리소스와 사용 규칙은 [Branding](docs/BRANDING.md)에 있습니다. 디자인 메모는 [DESIGN.md](DESIGN.md)에 있습니다.
-
-## 영감
-
-[oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh)의 플러그인 아키텍처, [Wikipedia의 "Signs of AI writing"](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing), [blader/humanizer](https://github.com/blader/humanizer)에서 영감을 받았습니다.
+- [Cookbook](docs/COOKBOOK.md) — 자주 쓰는 레시피 · [CLI 계약](docs/CLI.md) — 플래그·게이트·종료 코드
+- [Before/After 갤러리](docs/EXAMPLES_KR.md) ([English](docs/EXAMPLES.md)) · [패턴 카탈로그](docs/PATTERNS.md)
+- [아키텍처](docs/ARCHITECTURE.md) · [설정과 인증](docs/AUTHENTICATION_KR.md) ([English](docs/AUTHENTICATION.md))
+- [벤치마크](docs/benchmarks/latest.md) · [연구](docs/research/2026-rewrite-efficacy-study1.md) · [FAQ](docs/FAQ_KR.md) ([English](docs/FAQ.md))
+- [기여 가이드](CONTRIBUTING_KR.md) ([English](CONTRIBUTING.md)) · [체인지로그](CHANGELOG.md)
 
 ## 라이선스
 
-MIT. [LICENSE](LICENSE)와 [NOTICE](NOTICE)를 참고하세요.
+MIT. [LICENSE](LICENSE)와 [NOTICE](NOTICE)를 참고하세요. [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh), [Wikipedia의 "Signs of AI writing"](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing), [blader/humanizer](https://github.com/blader/humanizer)에서 영감을 받았습니다.
