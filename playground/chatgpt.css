@@ -67,12 +67,12 @@ a { color: inherit; }
 .nav {
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
-  padding: 14px clamp(28px, 8vw, 120px);
+  padding: 14px clamp(20px, 4vw, 56px);
   background: transparent;
 }
 .nav__brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; letter-spacing: -.4px; text-decoration: none; }
 .nav__icon { display: block; width: 26px; height: 26px; }
-.nav__links { display: flex; align-items: center; gap: 20px; margin-left: 14px; }
+.nav__links { display: flex; align-items: center; gap: 16px; margin-left: 14px; }
 .nav__links a { font-size: 15px; color: var(--text-dim); text-decoration: none; }
 .nav__links a:hover { color: var(--text); }
 .nav__end { margin-left: auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; }
@@ -459,7 +459,7 @@ details.foldout > summary:focus-visible,
 
 /* Mid widths: drop the whole control cluster onto its own row instead of
    letting a single trailing select orphan-wrap next to the nav links. */
-@media (max-width: 1180px) {
+@media (max-width: 1020px) {
   .nav__end { flex-basis: 100%; justify-content: flex-start; }
 }
 @media (max-width: 900px) {
