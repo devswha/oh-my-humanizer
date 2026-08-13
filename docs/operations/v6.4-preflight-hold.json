@@ -170,7 +170,7 @@
       "tests/e2e/providers.test.js": "837177c5c73b46f29ce93c8dbdf6ca51045d9958ff5ea9ffcff8fcdaa869ad27",
       "tests/unit/backend-model-defaults.test.js": "908dd9b06a9d5305ad28b50007d6428435b0b6b7019d6a2210aff813bfb9cf3d",
       "tests/unit/web-deploy-invariants.test.js": "2aecb9068c04999eaf964766cdc1e0c3a551f58ecfa54a0ade8802f1b8f4f296",
-      "tests/unit/web-rewrite-contract.test.js": "2980f555bb53e7c8d93a74d60dc096adadfd1c7d07fd70f55de1670959219c13",
+      "tests/unit/web-rewrite-contract.test.js": "22cb31fe27d2e2e668763ed83b91acfe01e0c8c77c0dfa8d315e01384a5a48c9",
       "tests/unit/web-rewrite-contract.redteam.test.js": "3c7591926e168b14f486199297fd1e84ed447c1b8d339c9b4860f79da0f6a7bb",
       "tests/unit/v6.4-preflight-hold.test.js": "c5f8a3465576dff5a94f07dd8eaac741d1e0e5006b7076fe9884204eb7a0c7a8",
       "tests/unit/v6.4-release-ready.test.js": "8d88aab35ce75bc40b4782932329c0402001afabc380ac349ccc1b82d01c12d7",

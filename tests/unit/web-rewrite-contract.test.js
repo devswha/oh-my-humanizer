@@ -443,6 +443,17 @@ test('PROVIDER_PRESETS.claude includes claude-sonnet-5 as the flagship default',
   }
 });
 
+test('PROVIDER_PRESETS.gemini allowlists gemini-3.7-flash as opt-in while gemini-2.5-pro stays the pinned default', () => {
+  assert.equal(PROVIDER_PRESETS.gemini.models[0], 'gemini-2.5-pro');
+  assert.ok(PROVIDER_PRESETS.gemini.models.includes('gemini-3.7-flash'));
+  // The prior serving pin remains allowlisted (no regression).
+  assert.ok(PROVIDER_PRESETS.gemini.models.includes('gemini-3.6-flash'));
+  const byok = resolveProviderModel({ tier: WEB_TIERS.BYOK, provider: 'gemini', model: 'gemini-3.7-flash' });
+  assert.equal(byok.ok, true);
+  assert.equal(byok.model, 'gemini-3.7-flash');
+  assert.equal(byok.baseURL, PROVIDER_PRESETS.gemini.baseURL);
+});
+
 test('resolveProviderModel pins the Pro tier to claude-sonnet-5 from PATINA_PRO_* env', () => {
   const r = resolveProviderModel(
     { tier: WEB_TIERS.PRO, provider: 'evil', model: 'evil-model' },
