@@ -179,6 +179,16 @@ export const STREAM_FRAME_VALUES = new Set(Object.values(STREAM_FRAME_TYPES));
 // per rewrite vs $0.156 and 8.3s vs 27.7s. Allowlisting only makes it
 // selectable for BYOK and available to PATINA_PRO_MODEL / PATINA_FREE_MODEL;
 // every held default, including the Pro pin, is untouched here.
+//
+// 2026-08-13: gemini-3.7-flash added as an opt-in entry. Same 22 fixtures,
+// fixed judge deepseek-chat (thinking off), against gemini-3.6-flash on the
+// identical apparatus (docs/operations/
+// serving-engine-gemini-3.7-flash-20260813.md): 19 pass / 2 warn / 1 error vs
+// 18 pass / 4 warn / 0 error, half the ai_not_improved warns (2 vs 4), ~2x
+// faster (4.2s vs 8.9s per rewrite), identical published pricing. Its one
+// regression is en-social-01, where 2 of 4 samples scored MPS 50 (3.6 floor
+// on the same judge: 75). Opt-in only; the serving pin stays gemini-3.6-flash
+// until the en-social meaning loss is understood.
 export const PROVIDER_PRESETS = Object.freeze({
   openai: Object.freeze({
     baseURL: 'https://api.openai.com/v1',
@@ -190,7 +200,7 @@ export const PROVIDER_PRESETS = Object.freeze({
   }),
   gemini: Object.freeze({
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    models: Object.freeze(['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-3.1-pro-preview', 'gemini-3.6-flash']),
+    models: Object.freeze(['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-3.1-pro-preview', 'gemini-3.6-flash', 'gemini-3.7-flash']),
   }),
   deepseek: Object.freeze({
     baseURL: 'https://api.deepseek.com/v1',

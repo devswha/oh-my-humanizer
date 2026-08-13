@@ -16,6 +16,7 @@ Semver rationale: patch | minor | major — explain whether this changes pattern
 
 ### Added
 
+- **`gemini-3.7-flash` allowlisted** on the web BYOK surface and eligible for `PATINA_FREE_MODEL` / `PATINA_PRO_MODEL`, after a 22-fixture live-quality head-to-head against the serving pin on an identical apparatus (`docs/operations/serving-engine-gemini-3.7-flash-20260813.md`): 19 pass vs 18, half the `ai_not_improved` warns, ~2x faster, identical pricing. The serving pin stays `gemini-3.6-flash` — 3.7 shows a reproducible MPS-50 meaning-loss tail on `en-social-01` and worst-case MPS is the deciding column. Opt-in only; all pinned defaults unchanged.
 - MiniMax provider presets for the CLI: `--provider minimax` (global, `api.minimax.io`) and `--provider minimax-cn` (China, `api.minimaxi.com`), both defaulting to `MiniMax-M3` on the shared `MINIMAX_API_KEY`. Reimplements community PR #667 by @octo-patch on the current codebase.
 
 ## 7.0.0 — 2026-08-04
