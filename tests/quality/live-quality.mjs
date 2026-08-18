@@ -115,7 +115,7 @@ function normalizeStringArray(value, source, { required = true } = {}) {
   return value.map((item) => String(item).trim()).filter(Boolean);
 }
 
-export async function buildPatinaRewritePrompt(fixture, { repoRoot = getRepoRoot() } = {}) {
+export async function buildPatinaRewritePrompt(fixture, { repoRoot = getRepoRoot(), structureGuidance, promptMode, minimalStructureGuidance } = {}) {
   const config = loadConfig();
   config.language = fixture.language;
   if (fixture.documentType) config.documentType = fixture.documentType;
@@ -136,6 +136,9 @@ export async function buildPatinaRewritePrompt(fixture, { repoRoot = getRepoRoot
     scoring: null,
     text: fixture.text,
     mode: 'rewrite',
+    ...(structureGuidance === undefined ? {} : { structureGuidance }),
+    ...(promptMode === undefined ? {} : { promptMode }),
+    ...(minimalStructureGuidance === undefined ? {} : { minimalStructureGuidance }),
   });
 }
 
