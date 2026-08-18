@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { loadWebConfig, resolveBundleRoot } from '../../src/web-config.js';
 import { buildWebRewritePrompt, loadWebAssets, runWebRewrite } from '../../src/web-rewrite.js';
 import { WEB_PERSONAS } from '../../src/web-rewrite-contract.js';
+import { classifyWebPromptBudget, resolveWebPromptBudget } from '../../src/web-prompt-budget.js';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -32,6 +33,82 @@ function configFor(lang) {
   config.documentType = 'default';
   return config;
 }
+
+test('web prompt budget only classifies an explicit low-risk first turn as minimal', () => {
+  const lowRisk = baseRequest('en', { text: 'Welcome home.', original: 'Welcome home.' });
+  assert.deepEqual(classifyWebPromptBudget(lowRisk), { selected: 'minimal', reason: 'eligible' });
+
+  const strictCases = /** @type {Array<[Record<string, unknown>, string]>} */ ([
+    [{ ...lowRisk, mode: 'refine' }, 'not_first_turn'],
+    [{ ...lowRisk, lang: 'unknown' }, 'unsupported_language'],
+    [{ ...lowRisk, text: '   ' }, 'invalid_text'],
+    [{ ...lowRisk, text: 'First paragraph.\nSecond paragraph.' }, 'multiple_blocks'],
+    [{ ...lowRisk, text: 'a'.repeat(201) }, 'text_too_long'],
+    [{ ...lowRisk, documentType: 'article' }, 'non_default_document_type'],
+    [{ ...lowRisk, persona: 'blog-essay' }, 'persona_or_register'],
+    [{ ...lowRisk, register: 'professional' }, 'persona_or_register'],
+    [{ ...lowRisk, jargon: 'remove' }, 'transformation_options'],
+    [{ ...lowRisk, rewriteHeadings: true }, 'transformation_options'],
+    [{ ...lowRisk, rewriteHeadings: 'keep' }, 'transformation_options'],
+    [{ ...lowRisk, tone: 'keep' }, 'transformation_options'],
+    [{ ...lowRisk, history: [{ role: 'user', content: 'change it' }] }, 'unexpected_context'],
+    [{ ...lowRisk, history: 'invalid' }, 'unexpected_context'],
+    [{ ...lowRisk, original: 'Different anchor.' }, 'unexpected_context'],
+    [{ ...lowRisk, original: 42 }, 'unexpected_context'],
+    [{ ...lowRisk, text: 'We shipped 3 units.' }, 'number_date_or_percent'],
+    [{ ...lowRisk, text: 'The rate is 10 percent.' }, 'number_date_or_percent'],
+    [{ ...lowRisk, text: 'The launch is in June.' }, 'number_date_or_percent'],
+    [{ ...lowRisk, text: '안 됩니다.' }, 'negation_or_polarity'],
+    [{ ...lowRisk, text: '这不是答案。' }, 'negation_or_polarity'],
+    [{ ...lowRisk, text: 'これはありません。' }, 'negation_or_polarity'],
+    [{ ...lowRisk, text: 'The service failed because capacity ran out.' }, 'causation'],
+    [{ ...lowRisk, text: '수요 때문에 가격이 올랐습니다.' }, 'causation'],
+    [{ ...lowRisk, text: '因为降雨，所以活动取消了。' }, 'causation'],
+    [{ ...lowRisk, text: '雨のため、イベントは中止です。' }, 'causation'],
+    [{ ...lowRisk, text: 'One claim. Another claim.' }, 'multiple_claims'],
+    [{ ...lowRisk, text: 'Welcome and enjoy.' }, 'multiple_claims'],
+  ]);
+  for (const [candidate, reason] of strictCases) {
+    assert.deepEqual(classifyWebPromptBudget(candidate), { selected: 'strict', reason }, reason);
+  }
+});
+
+test('web prompt budget defaults invalid policy to off and only active applies minimal', () => {
+  const request = baseRequest('en', { text: 'Welcome home.', original: 'Welcome home.' });
+  assert.deepEqual(resolveWebPromptBudget(request, {}), {
+    policy: 'off', selected: 'minimal', applied: 'strict', reason: 'eligible',
+  });
+  assert.deepEqual(resolveWebPromptBudget(request, { PATINA_WEB_PROMPT_BUDGET: 'invalid' }), {
+    policy: 'off', selected: 'minimal', applied: 'strict', reason: 'eligible',
+  });
+  assert.deepEqual(resolveWebPromptBudget(request, { PATINA_WEB_PROMPT_BUDGET: 'shadow' }), {
+    policy: 'shadow', selected: 'minimal', applied: 'strict', reason: 'eligible',
+  });
+  assert.deepEqual(resolveWebPromptBudget(request, { PATINA_WEB_PROMPT_BUDGET: 'active' }), {
+    policy: 'active', selected: 'minimal', applied: 'minimal', reason: 'eligible',
+  });
+});
+
+test('web rewrite prompt applies minimal only when requested and refine remains strict', () => {
+  const config = configFor('en');
+  const assets = loadWebAssets({ repoRoot, lang: 'en', documentType: 'default', config });
+  const first = baseRequest('en', { text: 'Welcome home.', original: 'Welcome home.' });
+  const strict = buildWebRewritePrompt({ request: first, config, assets });
+  const minimal = buildWebRewritePrompt({ request: first, config, assets, promptMode: 'minimal' });
+  assert.notEqual(minimal, strict);
+  assert.doesNotMatch(minimal, /## Pattern Packs/);
+  assert.doesNotMatch(minimal, /5–8 words|20\+ words/);
+  assert.match(minimal, /Do not force a short input to expand/);
+  assert.match(strict, /## Pattern Packs/);
+
+  const refine = buildWebRewritePrompt({
+    request: { ...first, mode: 'refine', original: 'Welcome home.', history: [] },
+    config,
+    assets,
+    promptMode: 'minimal',
+  });
+  assert.match(refine, /## Pattern Packs/);
+});
 
 test('runWebRewrite first-turn uses real patina assets for every supported language', async () => {
   for (const lang of languages) {

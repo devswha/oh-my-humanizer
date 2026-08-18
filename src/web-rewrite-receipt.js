@@ -80,6 +80,31 @@ function publicChoice(value) {
   return value === null || value === undefined || value === '' ? null : String(value);
 }
 
+/** @param {unknown} value */
+function publicPromptBudget(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const budget = /** @type {Record<string, unknown>} */ (value);
+  const policies = new Set(['off', 'shadow', 'active']);
+  const profiles = new Set(['strict', 'minimal']);
+  const reasons = new Set([
+    'invalid_request', 'not_first_turn', 'unsupported_language', 'invalid_text',
+    'multiple_blocks', 'text_too_long', 'non_default_document_type',
+    'persona_or_register', 'transformation_options', 'unexpected_context',
+    'number_date_or_percent', 'negation_or_polarity',
+    'causation', 'multiple_claims', 'eligible',
+  ]);
+  if (!policies.has(/** @type {string} */ (budget.policy))
+    || !profiles.has(/** @type {string} */ (budget.selected))
+    || !profiles.has(/** @type {string} */ (budget.applied))
+    || !reasons.has(/** @type {string} */ (budget.reason))) return null;
+  return {
+    policy: budget.policy,
+    selected: budget.selected,
+    applied: budget.applied,
+    reason: budget.reason,
+  };
+}
+
 /**
  * Build an integrity binding, not a provider attestation, for an accepted
  * hosted rewrite. Source text is represented only by SHA-256 hashes.
@@ -94,6 +119,7 @@ function publicChoice(value) {
  * @param {unknown} input.fidelity
  * @param {unknown} input.signals
  * @param {unknown} input.diff
+ * @param {unknown} [input.budget]
  */
 export function buildWebRewriteReceipt({
   request,
@@ -106,10 +132,11 @@ export function buildWebRewriteReceipt({
   fidelity,
   signals,
   diff,
+  budget,
 }) {
   const sourceValues = new Set([String(original ?? ''), String(latest ?? ''), String(prompt ?? ''), String(output ?? '')]);
   const receipt = {
-    schemaVersion: 'patina-rewrite-receipt-v1',
+    schemaVersion: 'patina-rewrite-receipt-v2',
     assurance: 'integrity-binding-not-provider-attestation',
     request: {
       mode: publicChoice(request?.mode),
@@ -131,6 +158,7 @@ export function buildWebRewriteReceipt({
       signals: publicVerification(signals, sourceValues),
       diff: publicVerification(diff, sourceValues),
     },
+    promptBudget: publicPromptBudget(budget),
   };
   return { ...receipt, receiptHash: sha256(canonicalJson(receipt)) };
 }

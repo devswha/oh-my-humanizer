@@ -3,6 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rewriteExtraBody, runWebRewriteStream, scoringExtraBody } from '../../src/web-rewrite-stream.js';
 import { buildWebRewriteReceipt, canonicalJson, sha256 } from '../../src/web-rewrite-receipt.js';
+import { loadWebConfig, resolveBundleRoot } from '../../src/web-config.js';
+import { buildWebRewritePrompt, loadWebAssets } from '../../src/web-rewrite.js';
 
 const request = {
   mode: 'refine',
@@ -123,6 +125,56 @@ test('runWebRewriteStream emits start, deltas, and done with scores/signals/diff
   assert.equal(done.receipt.hashes.output, sha256('human text'));
   assert.deepEqual(result.receipt, done.receipt);
   assertFramesDoNotLeakPrivateMetadata(frames);
+});
+
+test('runWebRewriteStream applies the resolved prompt budget without changing successful frames or scorers', async () => {
+  const repoRoot = resolveBundleRoot();
+  const config = loadWebConfig({ repoRoot });
+  config.language = 'en';
+  config.documentType = 'default';
+  const budgetRequest = {
+    ...request,
+    mode: 'first',
+    text: 'Welcome home.',
+    original: 'Welcome home.',
+  };
+  const assets = loadWebAssets({ repoRoot, lang: 'en', documentType: 'default', config });
+  const prompts = [];
+  const calls = [];
+  const callLLMStream = async ({ prompt, onAttempt }) => {
+    prompts.push(prompt);
+    onAttempt(privateAttempt());
+    return { text: 'Welcome home.' };
+  };
+
+  const shadow = await runWebRewriteStream({
+    request: budgetRequest,
+    config,
+    repoRoot,
+    env: { PATINA_WEB_PROMPT_BUDGET: 'shadow' },
+    callLLMStream,
+    scoreFns: scoring({ calls }),
+    emit: () => {},
+  });
+  const active = await runWebRewriteStream({
+    request: budgetRequest,
+    config,
+    repoRoot,
+    env: { PATINA_WEB_PROMPT_BUDGET: 'active' },
+    callLLMStream,
+    scoreFns: scoring({ calls }),
+    emit: () => {},
+  });
+
+  assert.equal(prompts[0], buildWebRewritePrompt({ request: budgetRequest, config, assets, promptMode: 'strict' }));
+  assert.equal(prompts[1], buildWebRewritePrompt({ request: budgetRequest, config, assets, promptMode: 'minimal' }));
+  assert.deepEqual(shadow.budget, { policy: 'shadow', selected: 'minimal', applied: 'strict', reason: 'eligible' });
+  assert.deepEqual(active.budget, { policy: 'active', selected: 'minimal', applied: 'minimal', reason: 'eligible' });
+  assert.equal(shadow.receipt.schemaVersion, 'patina-rewrite-receipt-v2');
+  assert.deepEqual(shadow.receipt.promptBudget, shadow.budget);
+  assert.deepEqual(active.receipt.promptBudget, active.budget);
+  assert.equal(calls.filter(([stage]) => stage === 'mps').length, 2);
+  assert.equal(calls.filter(([stage]) => stage === 'fidelity').length, 2);
 });
 
 test('rewrite receipt canonically binds exact source inputs without exposing them', () => {
