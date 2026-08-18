@@ -96,6 +96,23 @@ test('target first delivery increments once while duplicates and non-targets do 
   assert.deepEqual(first.chunks, []);
 });
 
+test('parsed Vercel JSON bodies are re-serialized and still require an exact signature', async () => {
+  const calls = [];
+  const handler = createPolarWebhookHandler({ env, now: () => now, store: { incrementOnce: async (...args) => { calls.push(args); return true; } } });
+  const body = JSON.stringify(event);
+  const request = /** @type {any} */ (signedRequest({ body }));
+  request.body = event;
+  const accepted = response();
+  await handler(request, accepted);
+  assert.equal(accepted.statusCode, 202);
+  assert.equal(calls.length, 1);
+
+  request.body = { ...event, type: 'order.created' };
+  const rejected = response();
+  await handler(request, rejected);
+  assert.equal(rejected.statusCode, 403);
+});
+
 test('Upstash command stores only a stable HMAC delivery digest and aggregate counter', async () => {
   const calls = [];
   const store = createPolarWebhookStore({ PATINA_OBSERVABILITY_REST_API_URL: 'https://observability.upstash.io/', PATINA_OBSERVABILITY_REST_API_TOKEN: 'token' }, async (...args) => {

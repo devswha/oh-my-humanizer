@@ -25,6 +25,14 @@ async function requestBody(req) {
       const bytes = Buffer.from(req.body);
       return bytes.byteLength > BODY_LIMIT ? { tooLarge: true } : { bytes };
     }
+    // Vercel's Node helper may parse JSON before invoking a plain /api
+    // function even when bodyParser:false is present. Re-serializing remains
+    // fail-closed: verification succeeds only when these bytes exactly match
+    // the provider-signed compact JSON payload.
+    if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
+      const bytes = Buffer.from(JSON.stringify(req.body));
+      return bytes.byteLength > BODY_LIMIT ? { tooLarge: true } : { bytes };
+    }
     return { invalid: true };
   }
   if (!req || typeof req[Symbol.asyncIterator] !== 'function') return { invalid: true };
