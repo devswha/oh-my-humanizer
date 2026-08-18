@@ -259,13 +259,28 @@ short-form StyleKQC-like items as a separate slice, not to the long-form mean.
 
 ### Minimum promotion requirements
 
-- treatment preference win-rate confidence interval excludes 50%;
+- treatment preference win-rate confidence interval excludes 50% under the
+  locked confirmatory estimator;
 - no regression in exact number, polarity, causation or entity-role checks;
-- MPS/fidelity floors and worst-case tails do not regress;
-- paired deterministic AI-likeness is no worse, unless a preregistered native
-  human panel demonstrates that the signal is anti-correlated with quality;
+- the shipping MPS/fidelity floors are copied into the preregistration and
+  cannot be lowered; their locked lower-tail summaries do not regress;
 - no increase in cross-document house-style cohesion;
 - latency and cost remain within the preregistered product budget.
+
+The preregistration must freeze all decisive definitions before any confirmatory
+output is inspected:
+
+- confidence level, estimator and resampling/cluster unit;
+- treatment of ties, abstentions, judge errors and AB/BA order inconsistency;
+- the exact shipping MPS/fidelity floors and the tail quantile used for
+  non-regression;
+- exact-invariant acceptance (number, polarity, causation and entity roles);
+- the cross-document cohesion metric, baseline and non-inferiority margin;
+- latency, token and monetary budgets;
+- missing-data handling, exclusion rules and stopping rule.
+
+Deterministic AI-likeness stays in Secondary diagnostics. It cannot select a
+candidate, veto promotion or determine whether an experiment proceeds.
 
 Do not promote on mean score alone, the current 7/7 consistent subset, or the
 same model acting as both producer and judge.
@@ -287,8 +302,8 @@ same model acting as both producer and judge.
 3. Add the long-form evaluation corpus and metamorphic safety suite.
 4. Calibrate the fingerprint measurement-only.
 5. Run the preregistered 120-item blind comparison.
-6. Trial two-candidate selection only if Phase 1 improves both human preference
-   and deterministic Korean signal without a safety regression.
+6. Trial two-candidate selection only if Phase 1 improves locked native-Korean
+   outcomes without a safety regression and stays within the locked budget.
 
 This order tests the cheapest causal hypothesis first: Patina's Korean analyzer
 already knows where the defects are; the hosted rewriter simply is not being
