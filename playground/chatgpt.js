@@ -19,6 +19,50 @@ import {
 // the same globalThis convention — e.g. rewrite-client.js).
 const { document, Option } = globalThis;
 const $ = (sel) => /** @type {HTMLElement} */ (document.querySelector(sel));
+const track = (eventName, data) => {
+  try {
+    if (typeof globalThis.patinaTrack === 'function') globalThis.patinaTrack(eventName, data);
+  } catch { /* analytics is optional */ }
+};
+
+function inputBucket(length) {
+  if (length < 100) return '0-99';
+  if (length < 500) return '100-499';
+  if (length < 2000) return '500-1999';
+  return '2000+';
+}
+function latencyBucket(startedAt) {
+  const elapsed = Math.max(0, Date.now() - startedAt);
+  if (elapsed < 5000) return '<5s';
+  if (elapsed < 10000) return '5-10s';
+  if (elapsed < 30000) return '10-30s';
+  return '30s+';
+}
+function scoreBand(score) {
+  const value = Number(score);
+  if (!Number.isFinite(value) || value < 70 || value > 100) return 'failed';
+  if (value < 80) return '70-79';
+  if (value < 90) return '80-89';
+  return '90-100';
+}
+function rewriteData(source, clean, mode, lang = els.lang.value) {
+  const tier = els.tier.value;
+  return { surface: source, lang, tier, mode, inputBucket: inputBucket(clean.length) };
+}
+function failureOutcome(frame, kind, hasScores) {
+  const K = REWRITE_ERROR_KINDS;
+  const status = Number(frame?.status);
+  const code = typeof frame?.code === 'string' ? frame.code : '';
+  if (kind === K.NUMBER_SAFETY) return 'number-safety';
+  if (kind === K.FLOOR_FAILED) return 'floor';
+  if (kind === K.QUOTA_DAILY || kind === K.QUOTA_HOURLY) return 'quota';
+  if (kind === K.QUOTA_CONCURRENT) return 'concurrency';
+  if (kind === K.TEXT_TOO_LONG) return 'input';
+  if (status === 401 || status === 403) return 'auth';
+  if ([K.IP_UNAVAILABLE, K.QUOTA_STORAGE, K.QUOTA_SECRET, K.SERVICE_UNAVAILABLE].includes(kind)) return 'service';
+  if (code === 'stream_failed') return 'stream';
+  return hasScores ? 'scoring' : 'unknown';
+}
 
 const els = {
   app: $('#app'),
@@ -369,6 +413,10 @@ function wireProCta() {
     btn.removeAttribute('aria-disabled');
     btn.classList.remove('is-soon');
     btn.textContent = `Upgrade to Pro — ${PRO_PRICE}`;
+    btn.addEventListener('click', () => {
+      track('Tier Selected', { tier: 'pro', surface: 'pricing' });
+      track('Checkout Started', { surface: 'pricing', lang: els.lang.value });
+    });
   } else {
     btn.removeAttribute('href');
     btn.removeAttribute('target');
@@ -385,6 +433,7 @@ function quotaUpsell() {
     a.href = href;
     a.target = '_blank';
     a.rel = 'noreferrer';
+    a.addEventListener('click', () => track('Checkout Started', { surface: 'quota', lang: els.lang.value }));
   } else {
     a.removeAttribute('href');
     a.setAttribute('aria-disabled', 'true');
@@ -395,9 +444,13 @@ function quotaUpsell() {
 
 function wirePricingCtas() {
   const free = $('#price-free');
-  if (free) free.addEventListener('click', () => { globalThis.scrollTo({ top: 0, behavior: 'smooth' }); els.heroInput?.focus(); });
+  if (free) free.addEventListener('click', () => {
+    track('Tier Selected', { tier: 'free', surface: 'pricing' });
+    globalThis.scrollTo({ top: 0, behavior: 'smooth' }); els.heroInput?.focus();
+  });
   const byok = $('#price-byok');
   if (byok) byok.addEventListener('click', () => {
+    track('Tier Selected', { tier: 'byok', surface: 'pricing' });
     els.tier.value = WEB_TIERS.BYOK;
     syncTier();
     updateHeroSend();
@@ -814,11 +867,12 @@ function buildReportLink(meta, original) {
   a.rel = 'noopener';
   return a;
 }
-function buildOutputActions(text) {
+function buildOutputActions(text, receipt = null) {
   const actions = el('div', 'output-actions');
   const copy = el('button', 'output-action', 'Copy');
   copy.type = 'button';
   copy.addEventListener('click', async () => {
+    track('Result Action', { action: 'copy' });
     try { await globalThis.navigator.clipboard?.writeText(text); copy.textContent = 'Copied'; } catch { copy.textContent = 'Copy failed'; }
   });
   const download = el('button', 'output-action', 'Download');
@@ -828,11 +882,28 @@ function buildOutputActions(text) {
     const anchor = el('a'); anchor.href = href; anchor.download = name; anchor.click();
     globalThis.URL.revokeObjectURL(href);
   };
-  download.addEventListener('click', () => save('patina-rewrite.txt'));
+  download.addEventListener('click', () => { track('Result Action', { action: 'download' }); save('patina-rewrite.txt'); });
   const exportFile = el('button', 'output-action', 'Export');
   exportFile.type = 'button';
-  exportFile.addEventListener('click', () => save('patina-rewrite-export.txt'));
+  exportFile.addEventListener('click', () => { track('Result Action', { action: 'export' }); save('patina-rewrite-export.txt'); });
   actions.append(copy, download, exportFile);
+  if (receipt) {
+    const audit = el('button', 'output-action', 'Audit JSON');
+    audit.type = 'button';
+    audit.addEventListener('click', () => {
+      track('Result Action', { action: 'audit' });
+      const sortKeys = (value) => {
+        if (Array.isArray(value)) return value.map(sortKeys);
+        if (!value || typeof value !== 'object') return value;
+        return Object.fromEntries(Object.keys(value).sort().map((key) => [key, sortKeys(value[key])]));
+      };
+      const json = JSON.stringify(sortKeys(receipt), null, 2);
+      const href = globalThis.URL.createObjectURL(new globalThis.Blob([json], { type: 'application/json;charset=utf-8' }));
+      const anchor = el('a'); anchor.href = href; anchor.download = 'patina-audit-receipt.json'; anchor.click();
+      globalThis.URL.revokeObjectURL(href);
+    });
+    actions.appendChild(audit);
+  }
   return actions;
 }
 
@@ -875,7 +946,7 @@ function stopActive() {
 }
 function signOutLicense() {
   state.sessionEpoch += 1;
-  if (active) { active.cancelled = true; active.controller.abort(); active = null; }
+  if (active) { active.trackCancelled?.(); active.cancelled = true; active.controller.abort(); active = null; }
   state.busy = false;
   state.license = '';
   els.licenseKey.value = '';
@@ -940,7 +1011,16 @@ async function submit(text, source = 'hero') {
   if (!clean) return;
 
   clearInlineErrors();
-  if (!preflight(clean, source)) return;
+  const currentConvo = activeConvo();
+  const initialTurn = currentConvo?.thread.original == null;
+  const preflightLang = initialTurn ? (detectLang(clean) || els.lang.value) : els.lang.value;
+  const preflightMode = initialTurn ? 'first' : 'refine';
+  if (!preflight(clean, source)) {
+    const data = rewriteData(source, clean, preflightMode, preflightLang);
+    track('Rewrite Requested', data);
+    track('Rewrite Failed', { ...data, latencyBucket: '<5s', outcome: 'preflight' });
+    return;
+  }
 
   let convo = activeConvo();
   if (!convo) { newConvo(); convo = activeConvo(); }
@@ -982,8 +1062,9 @@ async function submit(text, source = 'hero') {
     documentType: els.documentType.value,
     register: els.register.value || undefined,
   });
+  const telemetry = rewriteData(source, clean, String(reqBody.mode));
   await runAttempt({
-    convo, clean, reqBody, body, textEl, statusEl,
+    convo, clean, reqBody, body, textEl, statusEl, telemetry,
     authorization: tier === WEB_TIERS.PRO ? `Bearer ${state.license}` : undefined,
     epoch: state.sessionEpoch,
   });
@@ -993,7 +1074,25 @@ async function submit(text, source = 'hero') {
 // same request context; the thread only commits on a done frame, so a failed
 // or cancelled attempt never poisons the conversation state.
 async function runAttempt(attempt) {
-  const { convo, clean, reqBody, body, textEl, statusEl, authorization, epoch } = attempt;
+  const { convo, clean, reqBody, body, textEl, statusEl, authorization, epoch, telemetry } = attempt;
+  const startedAt = Date.now();
+  track('Rewrite Requested', telemetry);
+  let terminalTracked = false;
+  const trackFailed = (outcome) => {
+    if (terminalTracked) return;
+    terminalTracked = true;
+    track('Rewrite Failed', { ...telemetry, latencyBucket: latencyBucket(startedAt), outcome });
+  };
+  const trackCompleted = (mps, fidelity) => {
+    if (terminalTracked) return;
+    terminalTracked = true;
+    track('Rewrite Completed', {
+      ...telemetry,
+      latencyBucket: latencyBucket(startedAt),
+      mpsBand: scoreBand(mps),
+      fidelityBand: scoreBand(fidelity),
+    });
+  };
   state.busy = true;
   updateHeroSend(); updateChatSend();
   els.thread.setAttribute('aria-busy', 'true');
@@ -1012,7 +1111,9 @@ async function runAttempt(attempt) {
   const run = {
     controller,
     cancelled: false,
+    trackCancelled: () => trackFailed('cancelled'),
     stop: () => {
+      trackFailed('cancelled');
       if (typing.parentElement) typing.remove();
       textEl.style.display = '';
       textEl.classList.remove('streaming');
@@ -1059,13 +1160,15 @@ async function runAttempt(attempt) {
         textEl.textContent = rewrite; textEl.classList.remove('streaming');
         body.appendChild(buildMeta(meta, clean));
         if (rejected) {
+          trackFailed(Number.isFinite(mps) && Number.isFinite(fidelity) ? 'floor' : 'scoring');
           textEl.classList.add('msg__text--flagged');
           markOutputUnapproved(textEl, statusEl);
           body.appendChild(errorNote(i18n().floorWarn));
           return;
         }
         approveOutput(textEl, statusEl);
-        body.appendChild(buildOutputActions(rewrite));
+        trackCompleted(mps, fidelity);
+        body.appendChild(buildOutputActions(rewrite, frame.receipt));
         convo.messages.push({ role: 'assistant', text: rewrite, meta });
         convo.thread.commit({ userText: clean, assistantText: rewrite });
         scrollDown();
@@ -1081,6 +1184,10 @@ async function runAttempt(attempt) {
       const ff = finalFrame || {};
       const attemptText = typeof ff.rewrite === 'string' ? ff.rewrite.trim() : '';
       const hasScores = ff.mps != null || ff.fidelity != null;
+      const kind = classifyRewriteError(ff);
+      const K = REWRITE_ERROR_KINDS;
+      const outcome = failureOutcome(ff, kind, hasScores);
+      trackFailed(outcome);
       if (attemptText || hasScores) {
         textEl.style.display = '';
         textEl.textContent = attemptText || cleanStream(textEl.textContent);
@@ -1089,9 +1196,7 @@ async function runAttempt(attempt) {
         body.appendChild(errorNote(t.floorWarn));
       } else {
         textEl.style.display = 'none';
-        const kind = classifyRewriteError(ff);
         body.appendChild(errorNote(failureMessage(kind, ff, t)));
-        const K = REWRITE_ERROR_KINDS;
         if (els.tier.value === WEB_TIERS.FREE && (kind === K.QUOTA_DAILY || kind === K.QUOTA_HOURLY)) body.appendChild(quotaUpsell());
         addRetry(body, attempt);
       }
@@ -1104,6 +1209,7 @@ async function runAttempt(attempt) {
     markOutputUnapproved(textEl, statusEl);
     const t = i18n();
     const msg = run.cancelled ? t.stopNote : timedOut ? t.timeoutNote : tfmt(t.netNote, { msg: String(e?.message || e) });
+    trackFailed(run.cancelled ? 'cancelled' : 'stream');
     body.appendChild(errorNote(msg));
     if (!run.cancelled) addRetry(body, attempt);
   } finally {
@@ -1238,12 +1344,19 @@ function onLangChange() {
 }
 
 // ---------- events ----------
+const inputStarted = new Set();
+function trackInputStarted(surface, input) {
+  if (inputStarted.has(surface) || input.value.length === 0) return;
+  inputStarted.add(surface);
+  track('Input Started', { surface, lang: els.lang.value });
+}
+
 els.heroForm.addEventListener('submit', (e) => { e.preventDefault(); if (state.busy) { stopActive(); return; } submit(els.heroInput.value, 'hero'); });
-els.heroInput.addEventListener('input', () => { autoGrow(els.heroInput); updateHeroSend(); });
+els.heroInput.addEventListener('input', () => { trackInputStarted('hero', els.heroInput); autoGrow(els.heroInput); updateHeroSend(); });
 els.heroInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!state.busy) submit(els.heroInput.value, 'hero'); } });
 
 els.composer.addEventListener('submit', (e) => { e.preventDefault(); if (state.busy) { stopActive(); return; } submit(els.input.value, 'chat'); });
-els.input.addEventListener('input', () => { autoGrow(els.input); updateChatSend(); });
+els.input.addEventListener('input', () => { trackInputStarted('chat', els.input); autoGrow(els.input); updateChatSend(); });
 els.input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!state.busy) submit(els.input.value, 'chat'); } });
 
 els.newChat.addEventListener('click', () => { if (state.busy) stopActive(); newConvo(); showChat(); els.input.value = ''; autoGrow(els.input); updateChatSend(); closeMobileSidebar(); els.input.focus(); });
@@ -1255,7 +1368,10 @@ els.homeLink.addEventListener('click', (e) => { e.preventDefault(); showLanding(
 els.ctaStart && els.ctaStart.addEventListener('click', () => { globalThis.scrollTo({ top: 0, behavior: 'smooth' }); els.heroInput.focus(); });
 
 els.lang.addEventListener('change', onLangChange);
-els.tier.addEventListener('change', () => { syncTier(); clearInlineErrors(); updateHeroSend(); updateChatSend(); });
+els.tier.addEventListener('change', () => {
+  track('Tier Selected', { tier: els.tier.value, surface: 'controls' });
+  syncTier(); clearInlineErrors(); updateHeroSend(); updateChatSend();
+});
 els.apiKey.addEventListener('input', () => {
   els.apiKey.classList.remove('is-invalid');
   const ke = $('#key-error'); if (ke) { ke.hidden = true; ke.textContent = ''; }

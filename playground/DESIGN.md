@@ -135,12 +135,25 @@ icon's copper → teal → gold story:
 
 ## Analytics
 
-`playground/analytics.js` is an **intentional no-op queue shim** for
-`window.va` (`vercel.json` rewrites `/analytics.js` to it). It is not loaded by
-`index.html` and performs no network calls; it exists so a deployment layer that
-injects Vercel Analytics finds a same-origin queue instead of erroring. Keep it
-no-op — enabling real telemetry needs an explicit product decision, and the CSP
-stays self-only either way.
+The playground emits aggregate conversion-funnel events through the self-hosted
+`/analytics.js` adapter to the same-origin `/api/funnel` endpoint. The adapter
+accepts only complete fixed event schemas with fixed categorical values, then
+sends exactly `{name,data}` via an exception-isolated JSON `fetch` with omitted
+credentials, no referrer, and keepalive delivery. The endpoint independently validates that boundary and
+increments a UTC-day aggregate KV counter with a 35-day TTL. Failed validation
+and analytics exceptions are ignored. The CSP remains self-only.
+
+The only events are `Input Started` (surface, language), `Rewrite Requested`
+(surface, language, tier, mode, input-length bucket), `Rewrite Completed`
+(the request dimensions plus wall-latency, MPS, and fidelity bands), `Rewrite
+Failed` (the request dimensions plus latency and outcome), `Result Action`,
+`Checkout Started`, and `Tier Selected`. This is intentionally an aggregate
+funnel: it never sends raw input or output, API or license keys, identifiers,
+URLs, query or referrer values, UTM/attribution values, model/provider names,
+prompt/output hashes, or Audit JSON receipts. No provider browser script
+collects pageview, URL, referrer, query, or device metadata. Client-side
+checkout starts are observable, but `Purchase Completed` remains absent: Polar
+checkout is cross-origin and requires provider-side evidence.
 
 > History: an earlier Lovable-style **warm-light** token set (near-white
 > `#faf9f6` canvas, multi-color aurora) is preserved in git history for this
