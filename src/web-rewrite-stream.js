@@ -7,6 +7,7 @@ import { loadWebConfig, resolveBundleRoot } from './web-config.js';
 import { buildWebRewritePrompt, loadWebAssets } from './web-rewrite.js';
 import { evaluateFloors, redactSecrets, STREAM_FRAME_TYPES, WEB_TIERS } from './web-rewrite-contract.js';
 import { buildWebRewriteReceipt } from './web-rewrite-receipt.js';
+import { resolveWebPromptBudget } from './web-prompt-budget.js';
 
 /**
  * Extract a score field RAW (no coercion) so evaluateFloors can strictly reject
@@ -191,7 +192,7 @@ export function rewriteExtraBody(provider, tier, env = {}) {
  * @param {(input: {tier: string, outcome: string, status: number, latencyMs: number}) => unknown} [options.observe] Closed telemetry sink.
  * @param {() => number} [options.now] Injectable clock.
  * @param {number} [options.numberSafetyRetries] Buffered LLM retries after a number-safety failure (default 1).
- * @param {Record<string,string|undefined>} [options.env] Server env, read only for scoring reasoning control.
+ * @param {Record<string,string|undefined>} [options.env] Server env, read only for explicit prompt-budget and reasoning controls.
  * @returns {Promise<object>} Small result summary.
  */
 export async function runWebRewriteStream({
@@ -243,7 +244,8 @@ export async function runWebRewriteStream({
   effectiveConfig.documentType = request.documentType || effectiveConfig.documentType || 'default';
   const documentType = effectiveConfig.documentType;
   const assets = loadWebAssets({ repoRoot, lang: request.lang, documentType, config: effectiveConfig, personaId: request.persona });
-  const prompt = buildWebRewritePrompt({ request, config: effectiveConfig, assets });
+  const budget = resolveWebPromptBudget(request, env);
+  const prompt = buildWebRewritePrompt({ request, config: effectiveConfig, assets, promptMode: budget.applied });
 
   emit({ type: STREAM_FRAME_TYPES.START });
 
@@ -377,7 +379,8 @@ export async function runWebRewriteStream({
     fidelity,
     signals,
     diff,
+    budget,
   });
   emit({ type: STREAM_FRAME_TYPES.DONE, rewrite, mps, fidelity, signals, diff, receipt });
-  return { ok: true, rewrite, mps, fidelity, signals, diff, receipt, attempts, observed: observeTerminal('completed', 200) };
+  return { ok: true, rewrite, mps, fidelity, signals, diff, receipt, budget, attempts, observed: observeTerminal('completed', 200) };
 }

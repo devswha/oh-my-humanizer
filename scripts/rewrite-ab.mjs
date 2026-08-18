@@ -24,6 +24,8 @@ import { resolve } from 'node:path';
 import { callLLM as defaultCallLLM } from '../src/api.js';
 import { loadConfig, getRepoRoot } from '../src/config.js';
 import { loadCoreFile, loadPatterns, loadDocumentType } from '../src/loader.js';
+import { fenceReferenceText } from '../src/prompt-builder.js';
+import { classifyWebPromptBudget } from '../src/web-prompt-budget.js';
 import { runIterativeRewriteBaseline } from './iterative-rewrite-baseline.mjs';
 import {
   DEFAULT_POLICY,
@@ -31,11 +33,13 @@ import {
   deliveredRewrite,
   evaluateModelGradedRewrite,
   loadLiveFixtures,
+  resolveJudgeSettings,
   resolveLiveSettings,
 } from '../tests/quality/live-quality.mjs';
 
-export const REWRITE_AB_SCHEMA_VERSION = 2;
+export const REWRITE_AB_SCHEMA_VERSION = 4;
 export const DEFAULT_CONFIGS = ['single', 'iterative-baseline'];
+export const REWRITE_CONFIGS = Object.freeze(['single', 'iterative-baseline', 'ko-contextual-v1', 'request-shaped-v1']);
 export const ITERATIVE_BASELINE_POLICY = Object.freeze({
   targetScore: 30,
   maxIterations: 3,
@@ -81,9 +85,13 @@ export function pickWinner(entries, policy = DEFAULT_POLICY) {
 // Pure comparison core. `produce(config, fixture) -> rawRewrite` and
 // `grade(fixture, rawRewrite) -> { before_score, after_score, mps, fidelity, ... }`
 // are injected so this is unit-testable without a live model.
-export async function compareRewrites({ fixtures, configs = DEFAULT_CONFIGS, produce, grade, policy = DEFAULT_POLICY }) {
+export async function compareRewrites({ fixtures, configs = DEFAULT_CONFIGS, produce, grade, prefer, policy = DEFAULT_POLICY }) {
+  if (!Array.isArray(configs) || configs.length !== 2 || new Set(configs).size !== 2) {
+    throw new Error('rewrite comparison requires exactly two distinct configs');
+  }
   const perFixture = [];
-  const tally = Object.fromEntries([...configs, 'none'].map((c) => [c, 0]));
+  const metricTally = Object.fromEntries([...configs, 'none'].map((c) => [c, 0]));
+  const preferenceTally = Object.fromEntries([...configs, 'none', 'inconsistent', 'error'].map((c) => [c, 0]));
 
   for (const fixture of fixtures) {
     const entries = [];
@@ -91,7 +99,7 @@ export async function compareRewrites({ fixtures, configs = DEFAULT_CONFIGS, pro
       try {
         const raw = await produce(config, fixture);
         const graded = await grade(fixture, raw);
-        entries.push({
+        const entry = {
           config,
           before_score: graded.before_score ?? null,
           after_score: graded.after_score ?? null,
@@ -101,17 +109,59 @@ export async function compareRewrites({ fixtures, configs = DEFAULT_CONFIGS, pro
           churn: editChurn(fixture.text, deliveredRewrite(raw)),
           status: graded.status ?? null,
           errors: graded.errors ?? [],
-        });
+        };
+        Object.defineProperty(entry, 'rewrite', { value: deliveredRewrite(raw), enumerable: false });
+        entries.push(entry);
       } catch (err) {
         entries.push({ config, status: 'error', errors: [err.message], after_score: null, mps: null, fidelity: null });
       }
     }
-    const winner = pickWinner(entries, policy);
-    tally[winner] += 1;
-    perFixture.push({ fixture_id: fixture.fixture_id, language: fixture.language, register: fixture.register, winner, entries });
+    const metric_winner = pickWinner(entries, policy);
+    metricTally[metric_winner] += 1;
+    const eligible = entries.filter((entry) =>
+      typeof entry.mps === 'number' &&
+      typeof entry.fidelity === 'number' &&
+      entry.mps >= policy.mpsFloor &&
+      entry.fidelity >= policy.fidelityFloor,
+    );
+    let preference_winner = 'none';
+    if (prefer && eligible.length === 2) {
+      try {
+        const candidates = eligible.map((entry) => ({ config: entry.config, rewrite: entry.rewrite }));
+        const [ab, ba] = await Promise.all([
+          prefer({ fixture, candidates, order: 'AB' }),
+          prefer({ fixture, candidates, order: 'BA' }),
+        ]);
+        if (!['A', 'B'].includes(ab) || !['A', 'B'].includes(ba)) {
+          preference_winner = 'error';
+        } else {
+          const abWinner = candidates[ab === 'A' ? 0 : 1].config;
+          const baWinner = candidates[ba === 'A' ? 1 : 0].config;
+          preference_winner = abWinner === baWinner ? abWinner : 'inconsistent';
+        }
+      } catch {
+        preference_winner = 'error';
+      }
+    }
+    preferenceTally[preference_winner] += 1;
+    perFixture.push({
+      fixture_id: fixture.fixture_id,
+      language: fixture.language,
+      register: fixture.register,
+      metric_winner,
+      preference_winner,
+      preference_eligible: eligible.length === 2,
+      entries,
+    });
   }
 
-  return { schema_version: REWRITE_AB_SCHEMA_VERSION, configs, policy, results: perFixture, summary: summarize(perFixture, configs, tally) };
+  return {
+    schema_version: REWRITE_AB_SCHEMA_VERSION,
+    configs,
+    policy,
+    results: perFixture,
+    summary: summarize(perFixture, configs, metricTally, preferenceTally, policy),
+  };
 }
 
 function mean(values) {
@@ -119,27 +169,110 @@ function mean(values) {
   return nums.length ? Math.round((nums.reduce((s, v) => s + v, 0) / nums.length) * 10) / 10 : null;
 }
 
-function summarize(perFixture, configs, tally) {
+function wilson95(successes, total) {
+  if (!Number.isSafeInteger(successes) || !Number.isSafeInteger(total) || total <= 0 || successes < 0 || successes > total) return null;
+  const z = 1.96;
+  const p = successes / total;
+  const denominator = 1 + (z ** 2) / total;
+  const center = (p + (z ** 2) / (2 * total)) / denominator;
+  const margin = (z / denominator) * Math.sqrt((p * (1 - p) / total) + (z ** 2 / (4 * total ** 2)));
+  return [Math.max(0, center - margin), Math.min(1, center + margin)].map((value) => Math.round(value * 1000) / 1000);
+}
+
+function summarize(perFixture, configs, metricTally, preferenceTally, policy) {
   const byConfig = {};
   for (const config of configs) {
     const entries = perFixture.map((f) => f.entries.find((e) => e.config === config)).filter(Boolean);
+    const successful = entries.filter((entry) =>
+      typeof entry.after_score === 'number'
+      && typeof entry.mps === 'number'
+      && typeof entry.fidelity === 'number'
+      && entry.status !== 'error',
+    );
+    const eligible = successful.filter((entry) =>
+      entry.mps >= policy.mpsFloor && entry.fidelity >= policy.fidelityFloor,
+    );
     byConfig[config] = {
-      n: entries.length,
-      mean_after_score: mean(entries.map((e) => e.after_score)),
-      mean_ai_delta: mean(entries.map((e) => e.ai_delta)),
-      mean_mps: mean(entries.map((e) => e.mps)),
-      mean_fidelity: mean(entries.map((e) => e.fidelity)),
-      mean_churn: mean(entries.map((e) => e.churn)),
-      wins: tally[config] ?? 0,
+      attempted: entries.length,
+      successful: successful.length,
+      failures: entries.length - successful.length,
+      eligible: eligible.length,
+      mean_after_score: mean(successful.map((e) => e.after_score)),
+      mean_ai_delta: mean(successful.map((e) => e.ai_delta)),
+      mean_mps: mean(successful.map((e) => e.mps)),
+      mean_fidelity: mean(successful.map((e) => e.fidelity)),
+      mean_churn: mean(successful.map((e) => e.churn)),
+      metric_wins: metricTally[config] ?? 0,
+      preference_wins: preferenceTally[config] ?? 0,
     };
   }
-  return { byConfig, wins: tally };
+  const paired = perFixture
+    .map((fixture) => configs.map((config) => fixture.entries.find((entry) => entry.config === config)))
+    .filter((entries) => entries.every((entry) => typeof entry?.after_score === 'number' && typeof entry?.mps === 'number' && typeof entry?.fidelity === 'number'));
+  const judged = configs.reduce((total, config) => total + (preferenceTally[config] ?? 0), 0);
+  const preferenceRates = Object.fromEntries(configs.map((config) => {
+    const wins = preferenceTally[config] ?? 0;
+    return [config, { wins, judged, rate: judged ? Math.round((wins / judged) * 1000) / 1000 : null, ci95: wilson95(wins, judged) }];
+  }));
+  return {
+    byConfig,
+    metric_wins: metricTally,
+    preference_wins: preferenceTally,
+    paired: {
+      n: paired.length,
+      after_score_delta_second_minus_first: mean(paired.map(([first, second]) => second.after_score - first.after_score)),
+      mps_delta_second_minus_first: mean(paired.map(([first, second]) => second.mps - first.mps)),
+      fidelity_delta_second_minus_first: mean(paired.map(([first, second]) => second.fidelity - first.fidelity)),
+    },
+    preference: {
+      eligible: perFixture.filter((fixture) => fixture.preference_eligible).length,
+      judged,
+      inconsistent: preferenceTally.inconsistent ?? 0,
+      errors: preferenceTally.error ?? 0,
+      none: preferenceTally.none ?? 0,
+      byConfig: preferenceRates,
+    },
+    decision: 'advisory_only',
+  };
 }
 
 // ---- live (LLM-backed) production runners ----
 
 async function produceSingle(fixture, { settings, callLLM, repoRoot }) {
   const prompt = await buildPatinaRewritePrompt(fixture, { repoRoot });
+  return callLLM({ prompt, apiKey: settings.apiKey, baseURL: settings.baseURL, model: settings.model, temperature: 0.2 });
+}
+
+async function produceKoreanContextual(fixture, { settings, callLLM, repoRoot }) {
+  if (fixture.language !== 'ko') {
+    throw new Error('rewrite config ko-contextual-v1 requires Korean fixtures');
+  }
+  const prompt = await buildPatinaRewritePrompt(fixture, { repoRoot, structureGuidance: 'ko-contextual-v1' });
+  return callLLM({ prompt, apiKey: settings.apiKey, baseURL: settings.baseURL, model: settings.model, temperature: 0.2 });
+}
+
+export function requestShapedPromptMode(fixture) {
+  return classifyWebPromptBudget({
+    mode: fixture.mode || 'first',
+    lang: fixture.language,
+    text: fixture.text,
+    documentType: fixture.documentType || 'default',
+    persona: fixture.persona,
+    register: fixture.requestRegister,
+    jargon: fixture.jargon,
+    rewriteHeadings: fixture.rewriteHeadings,
+    original: fixture.original ?? fixture.text,
+    history: fixture.history ?? [],
+  }).selected;
+}
+
+async function produceRequestShaped(fixture, { settings, callLLM, repoRoot }) {
+  const promptMode = requestShapedPromptMode(fixture);
+  const prompt = await buildPatinaRewritePrompt(fixture, {
+    repoRoot,
+    promptMode,
+    minimalStructureGuidance: promptMode === 'minimal' ? 'short-safe-v1' : 'baseline',
+  });
   return callLLM({ prompt, apiKey: settings.apiKey, baseURL: settings.baseURL, model: settings.model, temperature: 0.2 });
 }
 
@@ -173,21 +306,61 @@ function liveProducer(deps) {
   return (config, fixture) => {
     if (config === 'single') return produceSingle(fixture, deps);
     if (config === 'iterative-baseline') return produceIterativeBaseline(fixture, deps);
+    if (config === 'ko-contextual-v1') return produceKoreanContextual(fixture, deps);
+    if (config === 'request-shaped-v1') return produceRequestShaped(fixture, deps);
     throw new Error(`unknown rewrite config: ${config}`);
   };
 }
 
 function parseArgs(argv) {
-  const opts = { configs: DEFAULT_CONFIGS, json: false, language: null, limit: null, live: undefined };
+  const opts = { configs: DEFAULT_CONFIGS, fixtures: null, json: false, language: null, limit: null, live: undefined };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--json') opts.json = true;
     else if (arg === '--live') opts.live = true;
     else if (arg === '--configs') opts.configs = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
+    else if (arg === '--fixtures') opts.fixtures = argv[++i];
     else if (arg === '--language') opts.language = argv[++i];
     else if (arg === '--limit') opts.limit = Number(argv[++i]);
+    else if (arg === '--judge-provider') opts.judgeProvider = argv[++i];
+    else if (arg === '--judge-model') opts.judgeModel = argv[++i];
+    else if (arg === '--judge-base-url') opts.judgeBaseURL = argv[++i];
+    else if (arg === '--judge-timeout-ms') opts.judgeTimeoutMs = Number(argv[++i]);
+    else if (arg === '--judge-extra-body') opts.judgeExtraBody = argv[++i];
+    else if (arg === '--help') {
+      console.log('Usage: quality:rewrite-ab -- --configs single,iterative-baseline|ko-contextual-v1|request-shaped-v1 --language ko --live');
+      process.exit(0);
+    }
   }
   return opts;
+}
+
+export function buildPreferenceJudgePrompt({ original, candidates, order }) {
+  const [first, second] = order === 'AB' ? candidates : [candidates[1], candidates[0]];
+  return [
+    'You are a blind rewrite-quality judge. Given the original and two unlabeled candidates, reply with exactly A or B: choose the candidate that is more faithful, useful, natural, minimally over-edited, and publishable. Do not explain.',
+    fenceReferenceText(original, { label: '## Original' }),
+    fenceReferenceText(first.rewrite, { label: '## Candidate A' }),
+    fenceReferenceText(second.rewrite, { label: '## Candidate B' }),
+  ].join('\n');
+}
+
+export function createPreferenceJudge(judgeSettings, callLLM = defaultCallLLM) {
+  if (!judgeSettings) throw new Error('A fixed HTTP judge is required for blind preference comparison; configure PATINA_LIVE_JUDGE_* settings.');
+  if (judgeSettings.backend) throw new Error('Blind preference comparison supports HTTP judge settings only; PATINA_LIVE_JUDGE_BACKEND is unsupported.');
+  if (!judgeSettings.hasApiKey) throw new Error('Fixed HTTP judge has no API key; configure PATINA_LIVE_JUDGE_API_KEY or matching primary HTTP credentials.');
+  return async ({ fixture, candidates, order }) => {
+    const response = await callLLM({
+      prompt: buildPreferenceJudgePrompt({ original: fixture.text, candidates, order }),
+      apiKey: judgeSettings.apiKey,
+      baseURL: judgeSettings.baseURL,
+      model: judgeSettings.model,
+      temperature: 0,
+      timeout: judgeSettings.timeoutMs,
+      ...(judgeSettings.extraBody ? { extraBody: judgeSettings.extraBody } : {}),
+    });
+    return String(response).trim();
+  };
 }
 
 function renderMarkdown(report) {
@@ -195,17 +368,24 @@ function renderMarkdown(report) {
   const lines = [
     '# Rewrite A/B',
     '',
-    `configs: ${report.configs.join(' vs ')} | fixtures: ${report.results.length}`,
+    `configs: ${report.configs.join(' vs ')} | fixtures: ${report.results.length} | decision: ${report.summary.decision}`,
     '',
     '## Per-config aggregate',
     '',
-    '| config | mean after-AI | mean ai-delta | mean MPS | mean fidelity | mean churn | wins |',
-    '|---|---:|---:|---:|---:|---:|---:|',
+    '| config | attempted | successful | eligible | mean after-AI | mean ai-delta | mean MPS | mean fidelity | mean churn | metric wins | preference wins |',
+    '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|',
     ...report.configs.map(
-      (c) => `| ${c} | ${s[c].mean_after_score} | ${s[c].mean_ai_delta} | ${s[c].mean_mps} | ${s[c].mean_fidelity} | ${s[c].mean_churn} | ${s[c].wins} |`,
+      (c) => `| ${c} | ${s[c].attempted} | ${s[c].successful} | ${s[c].eligible} | ${s[c].mean_after_score} | ${s[c].mean_ai_delta} | ${s[c].mean_mps} | ${s[c].mean_fidelity} | ${s[c].mean_churn} | ${s[c].metric_wins} | ${s[c].preference_wins} |`,
     ),
     '',
-    `head-to-head wins: ${Object.entries(report.summary.wins).map(([k, v]) => `${k}=${v}`).join(' · ')}`,
+    `metric wins: ${Object.entries(report.summary.metric_wins).map(([k, v]) => `${k}=${v}`).join(' · ')}`,
+    `preference wins: ${Object.entries(report.summary.preference_wins).map(([k, v]) => `${k}=${v}`).join(' · ')}`,
+    `preference evidence: eligible=${report.summary.preference.eligible} · judged=${report.summary.preference.judged} · inconsistent=${report.summary.preference.inconsistent} · errors=${report.summary.preference.errors}`,
+    `paired successful rows: ${report.summary.paired.n} · after-score Δ(second−first)=${report.summary.paired.after_score_delta_second_minus_first} · MPS Δ=${report.summary.paired.mps_delta_second_minus_first} · fidelity Δ=${report.summary.paired.fidelity_delta_second_minus_first}`,
+    ...report.configs.map((config) => {
+      const preference = report.summary.preference.byConfig[config];
+      return `${config} blind preference: ${preference.wins}/${preference.judged} · rate=${preference.rate} · Wilson95=${preference.ci95 ? preference.ci95.join('–') : 'n/a'}`;
+    }),
     '',
   ];
   return lines.join('\n');
@@ -213,6 +393,8 @@ function renderMarkdown(report) {
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
+  const invalidConfig = opts.configs.find((config) => !REWRITE_CONFIGS.includes(config));
+  if (invalidConfig) throw new Error(`unknown rewrite config: ${invalidConfig}. Accepted configs: ${REWRITE_CONFIGS.join(', ')}`);
   const repoRoot = getRepoRoot();
   const settings = resolveLiveSettings(opts);
   const live = opts.live ?? (process.env.PATINA_LIVE === '1' || Boolean(process.env.PATINA_LIVE_PROVIDER || process.env.PATINA_LIVE_API_KEY));
@@ -224,7 +406,7 @@ async function main() {
     console.error('No API key found for the live rewrite. Set PATINA_LIVE_API_KEY or the provider key.');
     process.exit(1);
   }
-  let fixtures = loadLiveFixtures();
+  let fixtures = loadLiveFixtures(opts.fixtures || undefined);
   if (opts.language) fixtures = fixtures.filter((f) => f.language === opts.language);
   if (Number.isFinite(opts.limit) && opts.limit >= 0) fixtures = fixtures.slice(0, opts.limit);
   if (fixtures.length === 0) {
@@ -241,7 +423,9 @@ async function main() {
     fidelityFloor: config.verification?.['fidelity-floor'] ?? DEFAULT_POLICY.fidelityFloor,
   };
   const grade = (fixture, raw) => evaluateModelGradedRewrite(fixture, raw, { settings, policy, callLLM: defaultCallLLM });
-  const report = await compareRewrites({ fixtures, configs: opts.configs, produce, grade, policy });
+  const fixedJudge = resolveJudgeSettings(opts, settings);
+  const prefer = createPreferenceJudge(fixedJudge, defaultCallLLM);
+  const report = await compareRewrites({ fixtures, configs: opts.configs, produce, grade, prefer, policy });
   console.log(opts.json ? JSON.stringify(report, null, 2) : renderMarkdown(report));
 }
 
