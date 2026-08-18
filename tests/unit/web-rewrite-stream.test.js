@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rewriteExtraBody, runWebRewriteStream, scoringExtraBody } from '../../src/web-rewrite-stream.js';
+import { buildWebRewriteReceipt, canonicalJson, sha256 } from '../../src/web-rewrite-receipt.js';
 
 const request = {
   mode: 'refine',
@@ -72,6 +73,7 @@ function assertFramesDoNotLeakPrivateMetadata(frames) {
   };
 
   for (const [index, frame] of frames.entries()) {
+    if (frame.type !== 'done') assert.equal('receipt' in frame, false, `frames[${index}] must not carry a receipt`);
     inspect(frame, `frames[${index}]`);
   }
 }
@@ -115,7 +117,53 @@ test('runWebRewriteStream emits start, deltas, and done with scores/signals/diff
   assert.equal(done.signals.before.text, 'original anchor');
   assert.equal(done.signals.after.text, 'human text');
   assert.equal(done.diff.beforeChars, 'original anchor'.length);
+  assert.match(done.receipt.receiptHash, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(done.receipt.hashes.original, sha256('original anchor'));
+  assert.equal(done.receipt.hashes.latest, sha256('latest draft'));
+  assert.equal(done.receipt.hashes.output, sha256('human text'));
+  assert.deepEqual(result.receipt, done.receipt);
   assertFramesDoNotLeakPrivateMetadata(frames);
+});
+
+test('rewrite receipt canonically binds exact source inputs without exposing them', () => {
+  const input = {
+    request: { mode: 'refine', lang: 'en', tier: 'pro', persona: '', register: 'plain', apiKey: 'sk-private' },
+    documentType: 'article',
+    original: 'original private text',
+    latest: 'latest private text',
+    prompt: 'exact private prompt',
+    output: 'accepted private output',
+    mps: { mps: 95, provider: 'private-provider', raw: 'exact private prompt' },
+    fidelity: { fidelity: 92, model: 'private-model' },
+    signals: { before: { text: 'original private text', overall: 40 }, after: { text: 'accepted private output', overall: 10 } },
+    diff: { beforeChars: 21, afterChars: 23 },
+  };
+  const receipt = buildWebRewriteReceipt(input);
+  const again = buildWebRewriteReceipt({ ...input, request: { ...input.request } });
+
+  assert.deepEqual(receipt, again);
+  assert.match(receipt.receiptHash, /^sha256:[0-9a-f]{64}$/);
+  for (const hash of Object.values(receipt.hashes)) assert.match(hash, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(receipt.request.persona, null);
+  assert.equal(receipt.request.documentType, 'article');
+  assert.equal(receipt.receiptHash, sha256(canonicalJson({ ...receipt, receiptHash: undefined })));
+  const serialized = JSON.stringify(receipt);
+  for (const privateValue of ['original private text', 'latest private text', 'exact private prompt', 'accepted private output', 'sk-private', 'private-provider', 'private-model']) {
+    assert.doesNotMatch(serialized, new RegExp(privateValue));
+  }
+  const verification = /** @type {{mps: object, fidelity: object}} */ (receipt.verification);
+  assert.equal('provider' in verification.mps, false);
+  assert.equal('model' in verification.fidelity, false);
+  assert.equal('raw' in verification.mps, false);
+
+  for (const [field, value] of Object.entries({
+    original: 'changed original',
+    latest: 'changed latest',
+    prompt: 'changed prompt',
+    output: 'changed output',
+  })) {
+    assert.notEqual(buildWebRewriteReceipt({ ...input, [field]: value }).receiptHash, receipt.receiptHash, field);
+  }
 });
 test('runWebRewriteStream privately aggregates exact one-based attempts for every paid stage', async () => {
   const frames = [];
