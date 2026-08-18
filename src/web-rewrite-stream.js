@@ -6,6 +6,7 @@ import { formatRewriteBodyForBrowser } from './output.js';
 import { loadWebConfig, resolveBundleRoot } from './web-config.js';
 import { buildWebRewritePrompt, loadWebAssets } from './web-rewrite.js';
 import { evaluateFloors, redactSecrets, STREAM_FRAME_TYPES, WEB_TIERS } from './web-rewrite-contract.js';
+import { buildWebRewriteReceipt } from './web-rewrite-receipt.js';
 
 /**
  * Extract a score field RAW (no coercion) so evaluateFloors can strictly reject
@@ -365,6 +366,18 @@ export async function runWebRewriteStream({
   }
 
   closeAttempts();
-  emit({ type: STREAM_FRAME_TYPES.DONE, rewrite, mps, fidelity, signals, diff });
-  return { ok: true, rewrite, mps, fidelity, signals, diff, attempts, observed: observeTerminal('completed', 200) };
+  const receipt = buildWebRewriteReceipt({
+    request,
+    documentType,
+    original,
+    latest: String(request.text ?? ''),
+    prompt,
+    output: rewrite,
+    mps,
+    fidelity,
+    signals,
+    diff,
+  });
+  emit({ type: STREAM_FRAME_TYPES.DONE, rewrite, mps, fidelity, signals, diff, receipt });
+  return { ok: true, rewrite, mps, fidelity, signals, diff, receipt, attempts, observed: observeTerminal('completed', 200) };
 }
