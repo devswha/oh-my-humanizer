@@ -94,9 +94,10 @@ function renderHistory(history = []) {
  * @param {object} options.request Validated web rewrite request.
  * @param {object} options.config Web-safe config.
  * @param {{ patterns: object[], documentType: object, core: object|null, persona: object|null }} options.assets Loaded web assets.
+ * @param {'strict'|'minimal'} [options.promptMode='strict'] Prompt catalog detail level.
  * @returns {string} Prompt text.
  */
-export function buildWebRewritePrompt({ request, config, assets }) {
+export function buildWebRewritePrompt({ request, config, assets, promptMode = 'strict' }) {
   const baseOptions = {
     config,
     patterns: assets.patterns,
@@ -109,6 +110,10 @@ export function buildWebRewritePrompt({ request, config, assets }) {
     register: request.register
       ? resolveRegister({ cliRegister: request.register })
       : null,
+    promptMode,
+    minimalStructureGuidance: /** @type {'baseline'|'short-safe-v1'} */ (
+      promptMode === 'minimal' ? 'short-safe-v1' : 'baseline'
+    ),
     documentSignals: null,
   };
 
@@ -139,7 +144,7 @@ export function buildWebRewritePrompt({ request, config, assets }) {
       fenceReferenceText(history || '(none)', { lang, label: '## Conversation history (edit preference)' });
     // buildPrompt fences request.text as the rewrite target (Input Text); we
     // prepend the trusted directive + fenced reference sections above it.
-    return refineContext + buildPrompt({ ...baseOptions, text: request.text });
+    return refineContext + buildPrompt({ ...baseOptions, text: request.text, promptMode: 'strict' });
   }
 
   return buildPrompt(baseOptions);
