@@ -83,7 +83,10 @@ test('streaming output remains unapproved until an accepted DONE, then becomes a
   assert.match(rejected, /textEl\.classList\.add\('msg__text--flagged'\)/);
   assert.match(rejected, /markOutputUnapproved\(textEl, statusEl\)/);
   assert.match(rejected, /return/);
-  assert.match(done, /approveOutput\(textEl, statusEl\);\s*body\.appendChild\(buildOutputActions\(rewrite\)\);\s*convo\.messages\.push\([\s\S]*?convo\.thread\.commit\(/);
+  assert.match(done, /approveOutput\(textEl, statusEl\);\s*trackCompleted\(mps, fidelity\);\s*body\.appendChild\(buildOutputActions\(rewrite, frame\.receipt\)\);\s*convo\.messages\.push\([\s\S]*?convo\.thread\.commit\(/);
+  assert.match(controller, /function buildOutputActions\(text, receipt = null\)[\s\S]*?'Audit JSON'/);
+  assert.match(controller, /patina-audit-receipt\.json/);
+  assert.match(controller, /application\/json;charset=utf-8/);
   assert.match(attempt, /if \(!ok\) \{[\s\S]*?textEl\.classList\.add\('msg__text--flagged'\);[\s\S]*?markOutputUnapproved\(textEl, statusEl\)/);
   assert.match(stylesheet, /\.msg__text--unapproved/);
   assert.match(controller, /dataset\.outputStatus = 'unapproved'/);

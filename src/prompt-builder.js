@@ -205,6 +205,10 @@ function buildRegisterDirective(value, lang) {
  * @param {boolean} [options.rewriteHeadings=false] When false (default),
  *   instruct the model to preserve Markdown ATX heading lines verbatim as
  *   structure (#473); true opts back into rewording/adding/removing them.
+ * @param {'baseline'|'ko-contextual-v1'} [options.structureGuidance=baseline]
+ *   Research-only strict rewrite structure treatment.
+ * @param {'baseline'|'short-safe-v1'} [options.minimalStructureGuidance=baseline]
+ *   Research/hosted short-request treatment for the minimal prompt.
  * @returns {string} Complete prompt text.
  * @throws {TypeError} When register evidence cannot be JSON-serialized.
  * @example
@@ -229,18 +233,29 @@ export function buildPrompt(options) {
     jargon = 'keep',
     // #473: preserve Markdown ATX headings by default; --rewrite-headings opts in.
     rewriteHeadings = false,
+    structureGuidance = 'baseline',
+    minimalStructureGuidance = 'baseline',
   } = options;
+  if (!['baseline', 'ko-contextual-v1'].includes(structureGuidance)) {
+    throw new Error(`unknown structureGuidance: ${structureGuidance}`);
+  }
+  const lang = config.language || 'ko';
+  if (structureGuidance === 'ko-contextual-v1' && lang !== 'ko') {
+    throw new Error('structureGuidance ko-contextual-v1 requires Korean language');
+  }
+  if (!['baseline', 'short-safe-v1'].includes(minimalStructureGuidance)) {
+    throw new Error(`unknown minimalStructureGuidance: ${minimalStructureGuidance}`);
+  }
   const promptMode = /** @type {any} */ (options).promptMode || 'strict';
   // Compact prompt mode keeps the same document/persona/register contract;
   // only the pattern catalog representation differs.
   if (promptMode === 'minimal' && mode === 'rewrite') {
     return buildMinimalPrompt({
       config, patterns, documentType, persona, text, register,
-      documentSignals, jargon, rewriteHeadings,
+      documentSignals, jargon, rewriteHeadings, minimalStructureGuidance,
     });
   }
 
-  const lang = config.language || 'ko';
   const documentTypeName = config.documentType || 'default';
   const isRewriteLike = mode === 'rewrite' || mode === 'diff';
 
@@ -322,6 +337,7 @@ export function buildPrompt(options) {
       lang,
       includeSelfAudit,
       rewriteHeadings,
+      structureGuidance,
       personaActive: Boolean(persona),
       registerActive: Boolean(register),
     });
@@ -393,7 +409,7 @@ function buildHeadingPreservationRule(lang, rewriteHeadings = false) {
 function buildRewriteInstructions(
   structurePacks,
   lexicalPacks,
-  { includeSelfAudit = true, lang = 'ko', includeKoreanAdvisory = true, rewriteHeadings = false, personaActive = false, registerActive = false } = {}
+  { includeSelfAudit = true, lang = 'ko', includeKoreanAdvisory = true, rewriteHeadings = false, structureGuidance = 'baseline', personaActive = false, registerActive = false } = {}
 ) {
   const phaseCount = includeSelfAudit ? 3 : 2;
   let inst = `Follow the ${phaseCount}-Phase pipeline:\n\n`;
@@ -423,7 +439,9 @@ function buildRewriteInstructions(
     inst += `\n1. Scan paragraph layout, repetition, translationese, passive patterns\n`;
     inst += `2. Correct structural issues — diversify paragraph structure\n`;
     inst += `3. Verify core claims and logical flow survive structural changes\n`;
-    inst += `4. Burstiness — vary sentence LENGTH inside each paragraph, not just paragraph length and sentence count. A paragraph flagged low-burstiness means its sentences are near-identical in token count (CV < 0.30); swapping vocabulary alone never fixes it. In every flagged paragraph mix at least one short sentence (5–8 tokens) with at least one long one (20+ tokens), targeting CV ≥ 0.35: split one long sentence into a blunt declaration plus a longer elaboration, merge two same-length sentences, or drop in a clipped two-word follow-up. After rewriting, eyeball the sentence lengths — a row of 12±2-token sentences means this step was NOT done.\n\n`;
+    inst += structureGuidance === 'ko-contextual-v1'
+      ? `4. Korean structure — preserve the genre, purpose, and existing organization unless a detected structural issue requires change. Do not make coverage exhaustive, add a generic introduction, summary, or lesson, or manufacture a problem→crisis→lesson arc. Do not force sentence-length quotas, clipped fragments, or a reusable short-declaration/long-elaboration formula. For each flagged paragraph, fix only the 1–2 highest-impact detected structural issues; make minimal or no edits when it is already natural. Preserve claims, numbers, polarity, and causation.\n\n`
+      : `4. Burstiness — vary sentence LENGTH inside each paragraph, not just paragraph length and sentence count. A paragraph flagged low-burstiness means its sentences are near-identical in token count (CV < 0.30); swapping vocabulary alone never fixes it. In every flagged paragraph mix at least one short sentence (5–8 tokens) with at least one long one (20+ tokens), targeting CV ≥ 0.35: split one long sentence into a blunt declaration plus a longer elaboration, merge two same-length sentences, or drop in a clipped two-word follow-up. After rewriting, eyeball the sentence lengths — a row of 12±2-token sentences means this step was NOT done.\n\n`;
     inst += `**Skip if**: text is ≤2 paragraphs OR no structure packs loaded.\n\n`;
   }
 
@@ -706,7 +724,7 @@ export function isShortText(text) {
 // model's natural voice prior isn't overridden by analytical framing. Only
 // invoked for rewrite mode; score/audit/diff stay on the strict
 // path because they need precise pattern references.
-function buildMinimalPrompt({ config, patterns, documentType, persona = null, text, register, documentSignals = null, jargon = 'keep', rewriteHeadings = false }) {
+function buildMinimalPrompt({ config, patterns, documentType, persona = null, text, register, documentSignals = null, jargon = 'keep', rewriteHeadings = false, minimalStructureGuidance = 'baseline' }) {
   const lang = config.language || 'ko';
   const activePatterns = patterns.filter((p) => !p.isScoreOnly);
 
@@ -748,9 +766,13 @@ function buildMinimalPrompt({ config, patterns, documentType, persona = null, te
   // uniform sentence length (low burstiness CV). Vocabulary swaps alone never
   // move it, so minimal mode must carry the instruction too — the strict
   // prompt's Phase 1 step 4 equivalent (inspection 2026-07).
-  const rhythm = lang === 'ko'
-    ? `문장 리듬도 반드시 다듬어. AI 글은 문장 길이가 자로 잰 듯 비슷한데, 균질한 문장 길이는 어휘를 아무리 바꿔도 사라지지 않는 가장 강한 AI 신호야. 문단마다 짧은 문장(5~8어절)과 긴 문장(20어절 이상)을 최소 하나씩 섞어서 길이 편차를 크게 벌려 — 긴 문장 하나를 "짧은 선언 + 긴 부연"으로 쪼개거나, 비슷한 길이 문장 두 개를 하나로 합치거나, 핵심 주장 뒤에 두어 어절짜리 토막 문장을 붙이는 식으로. 다 쓰고 나서 문장 길이를 훑어봤을 때 여전히 고만고만하면 그 문단은 다시 손봐.`
-    : `Also fix the sentence rhythm. AI text keeps every sentence nearly the same length, and uniform sentence length is the strongest AI signal there is — no amount of vocabulary swapping removes it. In each paragraph mix at least one short sentence (5–8 words) with at least one long one (20+ words): split a long sentence into a blunt statement plus a longer follow-up, merge two same-length sentences, or tack a clipped two-word fragment after a key claim. When you finish, scan the sentence lengths — if they still look uniform, rework that paragraph.`;
+  const rhythm = minimalStructureGuidance === 'short-safe-v1'
+    ? (lang === 'ko'
+      ? `짧은 글의 구조와 분량을 억지로 늘리지 마. 문장 길이 할당량, 토막 문장, 정형화된 "짧은 선언 + 긴 부연"을 만들지 말고, 실제로 어색한 AI 표현만 최소한으로 고쳐. 이미 자연스러우면 거의 손대지 않아도 돼.`
+      : `Do not force a short input to expand or adopt a sentence-length quota, clipped fragments, or a reusable short-declaration/long-elaboration formula. Fix only clearly awkward AI phrasing, and make minimal or no edits when the input already reads naturally.`)
+    : (lang === 'ko'
+      ? `문장 리듬도 반드시 다듬어. AI 글은 문장 길이가 자로 잰 듯 비슷한데, 균질한 문장 길이는 어휘를 아무리 바꿔도 사라지지 않는 가장 강한 AI 신호야. 문단마다 짧은 문장(5~8어절)과 긴 문장(20어절 이상)을 최소 하나씩 섞어서 길이 편차를 크게 벌려 — 긴 문장 하나를 "짧은 선언 + 긴 부연"으로 쪼개거나, 비슷한 길이 문장 두 개를 하나로 합치거나, 핵심 주장 뒤에 두어 어절짜리 토막 문장을 붙이는 식으로. 다 쓰고 나서 문장 길이를 훑어봤을 때 여전히 고만고만하면 그 문단은 다시 손봐.`
+      : `Also fix the sentence rhythm. AI text keeps every sentence nearly the same length, and uniform sentence length is the strongest AI signal there is — no amount of vocabulary swapping removes it. In each paragraph mix at least one short sentence (5–8 words) with at least one long one (20+ words): split a long sentence into a blunt statement plus a longer follow-up, merge two same-length sentences, or tack a clipped two-word fragment after a key claim. When you finish, scan the sentence lengths — if they still look uniform, rework that paragraph.`);
 
 
   let prompt = `${instruction}\n\n${brief}\n\n${rhythm}\n\n`;
