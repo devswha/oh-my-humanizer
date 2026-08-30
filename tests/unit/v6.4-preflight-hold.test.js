@@ -42,7 +42,7 @@ test('checked-in v6.4 preflight state is a Polar-bound non-receipt hold', () => 
     { id: 'SOURCE_BINDING_PRODUCTION_INTEGRATION', status: 'COMPLETED', evidence: 'PAY-B-20260729-POLAR-ea8385dc-4c9c3f17' },
     { id: 'PAY_LIVE_RUNTIME_ZERO_AMOUNT_SMOKE', status: 'COMPLETED', evidence: 'PAY-LIVE-20260729-POLAR-ea8385dc-4c9c3f17' },
   ]);
-  assert.ok(!state.blockers.some((blocker) => /^RETIRED_/i.test(blocker.id)));
+  assert.ok(!state.blockers.some((blocker) => /^LS_|LEMON/i.test(blocker.id)));
 });
 
 test('validator rejects every held env-name, blocker, decision, deferred action, and freeze hash mutation', () => {
@@ -58,7 +58,7 @@ test('validator rejects every held env-name, blocker, decision, deferred action,
   for (const name of ['KV_REST_API_URL', 'KV_REST_API_TOKEN', 'PATINA_LICENSE_PROVIDER', 'POLAR_ORGANIZATION_ID', 'POLAR_PRO_BENEFIT_ID', 'PATINA_PRO_API_KEY', 'PATINA_LICENSE_HMAC_SECRET', 'PATINA_QUOTA_HMAC_SECRET', 'PATINA_FREE_API_KEY', 'PATINA_PRO_PROVIDER', 'PATINA_PRO_MODEL', 'PATINA_PRO_CHECKOUT_ENABLED', 'PATINA_PRO_CHECKOUT_URL', 'PATINA_PRO_GATE_EVIDENCE_ID', 'PATINA_DEPLOYMENT_CHANNEL', 'PATINA_OBSERVABILITY_REST_API_URL', 'PATINA_OBSERVABILITY_REST_API_TOKEN', 'CRON_SECRET', 'PATINA_PUBLIC_BASE_URL', 'PATINA_PUBLIC_BASE_URL_SHA256', 'PATINA_SYNTHETIC_PRO_LICENSE', 'PATINA_SYNTHETIC_OBSERVER_SECRET', 'PATINA_VERCEL_LOG_QUERY_URL', 'PATINA_VERCEL_LOG_QUERY_URL_SHA256', 'PATINA_VERCEL_LOG_QUERY_TOKEN', 'PATINA_ALERT_DISCORD_WEBHOOK', 'VERCEL_GIT_COMMIT_SHA', 'PATINA_PRO_ALLOW_FREE_KEY']) {
     assert.ok(secretRecord.includes(name), `secret record must name ${name}`);
   }
-  assert.ok(!/RETIRED_PROVIDER_/.test(secretRecord), 'secret record must not require retired provider names');
+  assert.ok(!/LS_STORE_ID|LS_PRO_PRODUCT_ID|LS_PRO_VARIANT_ID/.test(secretRecord), 'secret record must not require retired Lemon Squeezy names');
 });
 
 test('validator rejects every held source default, provider semantic field, launch field, and binding mutation', () => {
