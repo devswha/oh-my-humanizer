@@ -150,7 +150,7 @@
       }
     },
     "sourceHashes": {
-      ".env.example": "9bd63e3d6caeb2fb9e94639145ab876ac3b79c63c6e8e7509cdb7fb07ef30132",
+      ".env.example": "34e727e1628d402ee04a7ca7f525d1215ee9f96b96f077f2658436d934bed266",
       "src/model-defaults.js": "c568977fcac8ea44d5387a8a8745b062675ec94d73d39ce528c492ad35f87176",
       "src/providers.js": "04c3c38f9a3a867eb632670cd5cf28f1d7b45d910eb6993a807dfdc6a4866d36",
       "src/web-rewrite-contract.js": "be433e8260e452028eb53b5c1aed0935a4150cd669ec2d5e826302219df22b9a",

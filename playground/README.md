@@ -106,7 +106,7 @@ Pro env (see `.env.example` for the full annotated list):
   `PATINA_POLAR_TIMEOUT_MS` (2500) / `PATINA_POLAR_VALIDATE_RPM` (10).
 
 Validate-only means revocation propagates within the positive-cache TTL (default
-min); a hard kill can shorten it by lowering `PATINA_POLAR_CACHE_TTL_MS`.
+5 min); a hard kill can shorten it by lowering `PATINA_POLAR_CACHE_TTL_MS`.
 
 ## Provider-confirmed purchase conversions
 

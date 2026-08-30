@@ -63,7 +63,7 @@ remote API.
 
 The hosted playground sends rewrite and scoring requests to patina's server.
 Free requests use the server provider; BYOK credentials are forwarded for that
-request and are not stored or logged; Pro uses a Lemon Squeezy license key
+request and are not stored or logged; Pro uses a Polar license key
 validated server-side. The browser never calls an LLM provider directly.
 
 ## Does it only work in Claude Code?

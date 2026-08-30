@@ -58,7 +58,7 @@ and two guard-rail violations (docs/research/2026-rewrite-efficacy-study2.md)
   to serve a mismatch, so publish file + manifest in the same commit.
 - Pack ids are `[a-z0-9-]`, and pattern-pack ids must start with their `lang`
   (`ko-structure`), because the id doubles as the discoverable filename.
-- The endpoint (`api/packs.js`) authenticates with the same Lemon Squeezy
+- The endpoint (`api/packs.js`) authenticates with the same Polar
   validate-only flow as the rewrite API (`Authorization: Bearer <license>`),
   meters downloads per license per UTC day, and caches upstream reads in KV.
   Env: see the "Pro pack delivery" block in `.env.example`.
