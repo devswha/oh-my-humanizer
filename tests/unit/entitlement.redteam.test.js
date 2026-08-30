@@ -154,8 +154,8 @@ function makeValidator({ kv, env, fetchImpl, logger, hmacSecret = SECRET, now = 
 }
 
 // A KV whose get() always misses and whose incr() returns a poisoned value.
-// The 1st incr in validate() is the RPM bucket, the 2nd is the single-flight
-// lock, so `rpm`/`lock` let a case target a specific admission guard.
+// The 1st incr in validate() is the single-flight lock, the 2nd is the RPM
+// bucket, so `lock`/`rpm` let a case target a specific admission guard.
 // { value } => incr returns that value; { throw:true } => incr throws.
 function degradedKv({ rpm, lock } = {}) {
   let n = 0;
@@ -164,7 +164,7 @@ function degradedKv({ rpm, lock } = {}) {
     async set() { /* noop */ },
     async incr() {
       n += 1;
-      const spec = n === 1 ? rpm : lock;
+      const spec = n === 1 ? lock : rpm;
       if (spec && spec.throw) throw new Error('kv incr exploded');
       return spec ? spec.value : 1; // default: a healthy first increment
     },

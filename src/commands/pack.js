@@ -81,7 +81,7 @@ async function apiGet(url, license, { fetchImpl = globalThis.fetch } = {}) {
     throw inputError('a pro license is required', 'The pack server did not receive a license.', 'Set PATINA_LICENSE_KEY (or `license-key:` in .patina.yaml) to your patina Pro license key.');
   }
   if (response.status === 403) {
-    throw inputError('license rejected', `The pack server rejected this license (${reason}).`, 'Check the key, or its status in your Polar receipt email.');
+    throw inputError('license rejected', `The pack server rejected this license (${reason}).`, 'Check the key, or manage it in your Polar customer portal (polar.sh → purchases → license keys).');
   }
   if (response.status === 429) {
     throw runtimeError('pack download limit reached', `Daily cap hit (${reason}).`, 'Try again tomorrow (UTC) or raise the cap server-side.');
