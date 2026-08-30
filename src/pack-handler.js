@@ -8,7 +8,7 @@
 //
 // Trust model, mirroring src/rewrite-handler.js:
 //   - the caller presents `Authorization: Bearer <license_key>`;
-//   - the same fail-closed Lemon Squeezy validator used by the rewrite API
+//   - the same fail-closed Polar validator used by the rewrite API
 //     turns it into an HMAC subject (the raw key never leaves entitlement.js);
 //   - downloads are metered per subject per UTC day;
 //   - pack ids come from the server-side manifest only — the client never

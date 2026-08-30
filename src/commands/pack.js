@@ -1,6 +1,6 @@
 // `patina pack` — install licensed pro packs into custom/.
 //
-// The client half of src/pack-handler.js. A pro license (Lemon Squeezy key,
+// The client half of src/pack-handler.js. A pro license (Polar license key,
 // the same one the hosted rewrite API takes) is presented as a Bearer token;
 // the server resolves it and streams pack content that is not part of the
 // public repo or the npm tarball. Installed packs land in custom/, which every
@@ -81,7 +81,7 @@ async function apiGet(url, license, { fetchImpl = globalThis.fetch } = {}) {
     throw inputError('a pro license is required', 'The pack server did not receive a license.', 'Set PATINA_LICENSE_KEY (or `license-key:` in .patina.yaml) to your patina Pro license key.');
   }
   if (response.status === 403) {
-    throw inputError('license rejected', `The pack server rejected this license (${reason}).`, 'Check the key, or its status in your Lemon Squeezy receipt email.');
+    throw inputError('license rejected', `The pack server rejected this license (${reason}).`, 'Check the key, or its status in your Polar receipt email.');
   }
   if (response.status === 429) {
     throw runtimeError('pack download limit reached', `Daily cap hit (${reason}).`, 'Try again tomorrow (UTC) or raise the cap server-side.');

@@ -13,7 +13,7 @@ import {
   polarValidateUrl,
   createPolarLicenseValidator,
 } from '../../src/entitlement-polar.js';
-import { createLemonSqueezyLicenseValidator } from '../../src/entitlement.js';
+import { createLicenseValidator } from '../../src/entitlement.js';
 import { QUOTA_REASONS } from '../../src/web-rewrite-contract.js';
 
 const ORG = 'fda84e25-7b55-4d67-916d-60ead04ff61f';
@@ -192,7 +192,7 @@ test('the validate admission ceiling stays well under the observed 429 threshold
   // ceiling is deliberately conservative rather than a documented maximum.
   assert.equal(POLAR_DEFAULT_VALIDATE_RPM, 10);
   assert.ok(POLAR_DEFAULT_VALIDATE_RPM > 0 && Number.isSafeInteger(POLAR_DEFAULT_VALIDATE_RPM));
-  assert.ok(POLAR_DEFAULT_VALIDATE_RPM < 50, 'must stay below the Lemon Squeezy-era default, which this endpoint will not tolerate');
+  assert.ok(POLAR_DEFAULT_VALIDATE_RPM < 50, 'must stay below the endpoint threshold');
 });
 
 // --- validator integration (mocked transport) -------------------------------
@@ -240,8 +240,7 @@ test('a granted license is allowed once and served from cache afterwards', async
 });
 
 test('an unknown key is a 403 denial, not a 503 outage', async () => {
-  // The distinction this pins: Polar answers an unknown key with 404, unlike
-  // Lemon Squeezy's 4xx-with-valid:false. Reading it as an outage would report
+  // Polar answers an unknown key with 404. Reading it as an outage would report
   // invalid licenses as service failures and re-hit the rate budget forever.
   let calls = 0;
   const validator = createPolarLicenseValidator({
@@ -314,7 +313,7 @@ test('the validator leaks neither the license nor the PII Polar returns', async 
   assert.equal(everything.includes('Buyer'), false, 'the purchaser name must never surface');
 });
 
-test('provider namespacing keeps a Polar decision from being served to Lemon Squeezy', async () => {
+test('provider namespacing keeps a Polar decision from being served to another provider', async () => {
   // Cache and lock keys are derived from the provider id, so a vendor switch
   // cannot reuse a decision cached under the previous one.
   const kv = memoryKv();
@@ -326,13 +325,23 @@ test('provider namespacing keeps a Polar decision from being served to Lemon Squ
   });
   await polar.validate({ licenseKey: 'SHARED-KEY' });
 
-  let lsCalls = 0;
-  const ls = createLemonSqueezyLicenseValidator({
+  let testCalls = 0;
+  const testProvider = {
+    id: 'test',
+    url: () => 'https://license.test/validate',
+    configured: () => true,
+    request: () => ({ headers: {}, body: '' }),
+    isDefinitiveDenial: () => false,
+    evaluate: () => /** @type {const} */ ({ ok: false, status: 403, reason: QUOTA_REASONS.LICENSE_INVALID, detail: 'denied' }),
+    defaultRpm: 1,
+  };
+  const other = createLicenseValidator({
+    provider: testProvider,
     kv,
-    env: { LS_STORE_ID: '1', LS_PRO_VARIANT_ID: '2', PATINA_LICENSE_HMAC_SECRET: 'unit-secret' },
+    env: { PATINA_LICENSE_HMAC_SECRET: 'unit-secret' },
     logger: { warn() {} },
-    fetchImpl: (async () => { lsCalls += 1; return jsonResponse(200, { valid: false }); }),
+    fetchImpl: (async () => { testCalls += 1; return jsonResponse(200, {}); }),
   });
-  await ls.validate({ licenseKey: 'SHARED-KEY' });
-  assert.equal(lsCalls, 1, 'the LS validator must not read a decision cached by Polar');
+  await other.validate({ licenseKey: 'SHARED-KEY' });
+  assert.equal(testCalls, 1, 'the other provider must not read a decision cached by Polar');
 });
