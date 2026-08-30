@@ -4,7 +4,6 @@ import { createRewriteHandler } from '../src/rewrite-handler.js';
 import { encodeStreamFrame, QUOTA_REASONS, resolveTierLimits, WEB_TIERS } from '../src/web-rewrite-contract.js';
 import { createWebObserver } from '../src/web-observability.js';
 import { runWebRewriteStream } from '../src/web-rewrite-stream.js';
-import { createLemonSqueezyLicenseValidator } from '../src/entitlement.js';
 import { createPolarLicenseValidator } from '../src/entitlement-polar.js';
 
 /**
@@ -256,15 +255,8 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
   // license into an HMAC subject; the raw license never leaves the entitlement
   // module (never a return value, log line, or KV key).
   //
-  // Vendor selection is explicit and defaults to Lemon Squeezy so an existing
-  // deployment cannot change gate behavior by upgrading. Set
-  // PATINA_LICENSE_PROVIDER=polar to serve the Polar gate; both share the same
-  // security core, and cache/lock keys are provider-namespaced so switching
-  // never serves a decision cached under the other vendor.
-  const licenseProvider = env.PATINA_LICENSE_PROVIDER === 'polar'
-    ? createPolarLicenseValidator
-    : createLemonSqueezyLicenseValidator;
-  const licenseValidator = licenseProvider({
+  // Polar is the only license provider.
+  const licenseValidator = createPolarLicenseValidator({
     kv,
     hmacSecret: env.PATINA_LICENSE_HMAC_SECRET || env.PATINA_QUOTA_HMAC_SECRET,
     env,

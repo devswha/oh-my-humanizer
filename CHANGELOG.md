@@ -14,6 +14,15 @@ Semver rationale: patch | minor | major — explain whether this changes pattern
 
 ## Unreleased
 
+**Removes the retired Lemon Squeezy payment line; Polar is the only license provider.**
+
+Semver rationale: major — removes packaged exports and changes the `createLicenseValidator` construction contract; the CLI surface and all hosted behavior for valid Polar licenses are unchanged.
+
+- `src/entitlement.js` no longer exports `LS_LICENSE_VALIDATE_URL`, `evaluateLicenseResponse`, `LEMON_SQUEEZY_PROVIDER`, or `createLemonSqueezyLicenseValidator`. Deep-import users must switch to `createPolarLicenseValidator` (`src/entitlement-polar.js`).
+- `createLicenseValidator({ provider })` now requires an explicit `provider` (fail-closed `TypeError` at construction; previously defaulted to Lemon Squeezy).
+- `PATINA_LICENSE_PROVIDER` no longer selects a vendor: `api/rewrite.js` and `api/packs.js` validate unconditionally against Polar (`POLAR_ORGANIZATION_ID`, `POLAR_PRO_BENEFIT_ID`). LS identity env names (`LS_STORE_ID`, `LS_PRO_VARIANT_ID`, `LS_PRO_PRODUCT_ID`) and `PATINA_LS_*` tunables are inert and removed from `.env.example`.
+- The pack CLI (`patina pack`) command syntax and config keys are unchanged; only the server-side license authority changed. License recovery guidance now points to the Polar customer portal.
+
 ## 7.1.0 — 2026-08-18
 
 **Adds auditable hosted rewrites, privacy-safe conversion evidence, and measured controls for Korean structure and prompt cost.**

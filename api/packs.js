@@ -5,13 +5,13 @@
 
 import { createRestKv } from './rewrite.js';
 import { createMemoryKv, isProductionPosture } from '../src/rate-limit.js';
-import { createLemonSqueezyLicenseValidator } from '../src/entitlement.js';
+import { createPolarLicenseValidator } from '../src/entitlement-polar.js';
 import { createPackHandler } from '../src/pack-handler.js';
 
 export function createPacksApiHandler({ env = /** @type {Record<string,string|undefined>} */ (process.env), logger = console } = {}) {
   const restKv = createRestKv(env);
   const kv = isProductionPosture(env) ? restKv : (restKv ?? createMemoryKv());
-  const licenseValidator = createLemonSqueezyLicenseValidator({
+  const licenseValidator = createPolarLicenseValidator({
     kv,
     hmacSecret: env.PATINA_LICENSE_HMAC_SECRET || env.PATINA_QUOTA_HMAC_SECRET,
     env,

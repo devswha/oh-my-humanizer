@@ -635,26 +635,26 @@ test('REST KV incrBy with a TTL adds N and applies the expiry in ONE atomic EVAL
   }
 });
 
-/** A globalThis.fetch stub returning a valid Lemon Squeezy validate-only response. */
-function validLsFetch() {
+/** A globalThis.fetch stub returning a valid Polar customer-portal response. */
+function validPolarFetch() {
   return /** @type {any} */ (async () => ({
     ok: true,
     status: 200,
     async json() {
-      return { valid: true, license_key: { status: 'active' }, meta: { store_id: '42', variant_id: '99' } };
+      return { organization_id: 'org-uuid', benefit_id: 'benefit-uuid', status: 'granted', expires_at: null };
     },
   }));
 }
 
 test('pro tier: a valid license streams with the server pro key and no legacy metric or license leak', async () => {
-  const RAW = 'LS-LICENSE-RAW-777';
+  const RAW = 'POLAR-LICENSE-RAW-777';
   const env = {
     NODE_ENV: 'test',
     PATINA_FREE_PROVIDER: 'openai', PATINA_FREE_MODEL: 'gpt-5.5',
     PATINA_FREE_API_KEY: 'sk-server-free-key',
     PATINA_PRO_API_KEY: 'sk-server-pro-key',
     PATINA_LICENSE_HMAC_SECRET: 'license-secret',
-    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
+    POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
   };
   const logs = [];
   const logger = { info: (event) => logs.push(event), error() {}, warn() {}, debug() {} };
@@ -666,7 +666,7 @@ test('pro tier: a valid license streams with the server pro key and no legacy me
     emit({ type: 'done', rewrite: 'ok' });
   };
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = validLsFetch();
+  globalThis.fetch = validPolarFetch();
   try {
     // Validator captures globalThis.fetch at construction, so replace it first.
     const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: injected, logger });
@@ -693,9 +693,7 @@ test('pro tier: a valid license streams with the server pro key and no legacy me
   }
 });
 
-test('the license provider is selected by env and defaults to Lemon Squeezy', async () => {
-  // Selecting the gate vendor must be explicit: an existing deployment that
-  // upgrades without setting PATINA_LICENSE_PROVIDER keeps the LS gate.
+test('the license provider is always Polar', async () => {
   const RAW = 'PROVIDER-SELECT-RAW';
   const baseEnv = {
     NODE_ENV: 'test',
@@ -703,25 +701,18 @@ test('the license provider is selected by env and defaults to Lemon Squeezy', as
     PATINA_FREE_API_KEY: 'sk-server-free-key',
     PATINA_PRO_API_KEY: 'sk-server-pro-key',
     PATINA_LICENSE_HMAC_SECRET: 'license-secret',
-    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
     POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
   };
   const injected = async ({ emit }) => emit({ type: 'done', rewrite: 'ok' });
   const originalFetch = globalThis.fetch;
   try {
     for (const [label, envOverride, expectedHost] of /** @type {Array<[string, Record<string,string>, string]>} */ ([
-      ['default (unset)', {}, 'api.lemonsqueezy.com'],
-      ['explicit lemonsqueezy', { PATINA_LICENSE_PROVIDER: 'lemonsqueezy' }, 'api.lemonsqueezy.com'],
-      ['polar', { PATINA_LICENSE_PROVIDER: 'polar' }, 'api.polar.sh'],
-      // An unrecognized value must not silently pick the newer vendor.
-      ['unknown value', { PATINA_LICENSE_PROVIDER: 'paddle' }, 'api.lemonsqueezy.com'],
+      ['unset', {}, 'api.polar.sh'],
     ])) {
       let calledUrl = '';
       globalThis.fetch = /** @type {any} */ (async (url) => {
         calledUrl = String(url);
-        // Shape both vendors' "definitively invalid" answer so the request
-        // completes as a denial rather than hanging on a retry path.
-        return { ok: false, status: 404, json: async () => ({ valid: false, error: 'ResourceNotFound' }) };
+        return { ok: false, status: 404, json: async () => ({ error: 'ResourceNotFound' }) };
       });
       const api = createRewriteApiHandler({ env: { ...baseEnv, ...envOverride }, runWebRewriteStreamImpl: injected });
       const res = makeRes();
@@ -744,12 +735,12 @@ test('pro tier: fails closed with 503 when no pro key and no free-key fallback a
     PATINA_FREE_PROVIDER: 'openai', PATINA_FREE_MODEL: 'gpt-5.5',
     // no PATINA_PRO_API_KEY, no PATINA_FREE_API_KEY -> nothing to fall back to.
     PATINA_LICENSE_HMAC_SECRET: 'license-secret',
-    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
+    POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
   };
   let runnerCalled = false;
   const injected = async () => { runnerCalled = true; };
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = validLsFetch();
+  globalThis.fetch = validPolarFetch();
   try {
     const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: injected });
     const res = makeRes();
@@ -775,12 +766,12 @@ test('pro tier: outside production a valid license falls back to the free key wh
     PATINA_FREE_API_KEY: 'sk-server-free-key',
     // no PATINA_PRO_API_KEY -> non-production allows the free key as a dev fallback.
     PATINA_LICENSE_HMAC_SECRET: 'license-secret',
-    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
+    POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
   };
   let seenKey;
   const injected = async ({ request, emit }) => { seenKey = request.apiKey; emit({ type: 'done', rewrite: 'ok' }); };
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = validLsFetch();
+  globalThis.fetch = validPolarFetch();
   try {
     const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: injected });
     const res = makeRes();
@@ -811,18 +802,18 @@ test('pro tier: in production, no pro key + present free key + no allow-flag ret
     PATINA_PRO_PROVIDER: 'claude', PATINA_PRO_MODEL: 'claude-sonnet-5',
     // No PATINA_PRO_API_KEY and no PATINA_PRO_ALLOW_FREE_KEY: paid traffic MUST NOT
     // silently spend the free key in production.
-    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
+    POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
   };
   let runnerCalled = false;
   const injected = async () => { runnerCalled = true; };
   const originalFetch = globalThis.fetch;
-  // One mock serves both the LS validate call and the Upstash KV REST adapter so
+  // One mock serves both the Polar validate call and the Upstash KV REST adapter so
   // entitlement + rate limiting pass in production and the flow reaches the
   // server-key resolution (where the policy denial happens).
   globalThis.fetch = /** @type {any} */ (async (url, init) => {
     const u = String(url);
-    if (u.includes('api.lemonsqueezy.com')) {
-      return { ok: true, status: 200, async json() { return { valid: true, license_key: { status: 'active' }, meta: { store_id: '42', variant_id: '99' } }; } };
+    if (u.includes('api.polar.sh')) {
+      return { ok: true, status: 200, async json() { return { organization_id: 'org-uuid', benefit_id: 'benefit-uuid', status: 'granted', expires_at: null }; } };
     }
     if (init && init.method === 'POST') {
       // Root-POST commands: atomic EVAL(INCRBY+PEXPIRE) counters return 1; SET returns OK.
