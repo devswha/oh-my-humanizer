@@ -59,7 +59,7 @@ CLI의 deterministic analysis는 로컬에서 실행됩니다. LLM 기반 CLI �
 
 hosted playground의 rewrite와 score 요청은 patina 서버로 전송됩니다. free는
 서버 provider를 사용하고, BYOK key는 요청 단위로 전달되며 저장·로그되지
-않습니다. Pro license는 서버에서 Lemon Squeezy로 검증합니다. 브라우저가
+않습니다. Pro license는 서버에서 Polar로 검증합니다. 브라우저가
 LLM provider를 직접 호출하지는 않습니다.
 
 ## Claude Code에서만 동작하나요?

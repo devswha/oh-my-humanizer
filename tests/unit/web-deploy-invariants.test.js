@@ -125,8 +125,8 @@ const PRODUCTION_CHECKOUT_BINDING = Object.freeze({
   origin: 'https://buy.polar.sh',
   path: '/polar_cl_qKqtaZKLhUNJetr1h7XHY6wn8lRJEtG5DAPr02tG1pW',
 });
-// No staging binding is source-controlled since the Lemon Squeezy staging
-// chain was retired; staging semantics are exercised through the injected
+// No staging binding is source-controlled because the retired staging
+// chain is exercised through the injected
 // test-only binding below.
 const TEST_STAGING_BINDING = Object.freeze({
   channel: 'staging',

@@ -89,13 +89,13 @@ test('validator cryptographically and semantically validates the Polar productio
   };
   mutateProductionEvidence((evidence) => { evidence.factsSha256 = '0'.repeat(64); }, /factsSha256/);
   mutateProductionEvidence((evidence) => { evidence.product.extra = true; }, /must contain exactly/);
-  mutateProductionEvidence((evidence) => { evidence.provider = 'lemonsqueezy'; }, /provider must be polar/);
+  mutateProductionEvidence((evidence) => { evidence.provider = 'other'; }, /provider must be polar/);
   mutateProductionEvidence((evidence) => { evidence.organization.id = '00000000-0000-0000-0000-000000000000'; }, /organization identity/);
   mutateProductionEvidence((evidence) => { evidence.product.recurringInterval = 'year'; }, /monthly/);
   mutateProductionEvidence((evidence) => { evidence.product.priceCents = 1000; }, /\$9\.99/);
   mutateProductionEvidence((evidence) => { evidence.benefit.type = 'downloadables'; }, /license-keys benefit/);
   mutateProductionEvidence((evidence) => { evidence.benefit.limitUsage = true; }, /license-keys benefit/);
-  mutateProductionEvidence((evidence) => { evidence.licenseGateEnv.PATINA_LICENSE_PROVIDER = 'lemonsqueezy'; }, /licenseGateEnv/);
+  mutateProductionEvidence((evidence) => { evidence.licenseGateEnv.PATINA_LICENSE_PROVIDER = 'other'; }, /licenseGateEnv/);
   mutateProductionEvidence((evidence) => { evidence.checkout.url = 'https://other.example.test/polar_cl_qKqtaZKLhUNJetr1h7XHY6wn8lRJEtG5DAPr02tG1pW'; }, /checkout URL/);
   mutateProductionEvidence((evidence) => { evidence.checkout.url = 'https://buy.polar.sh/checkout/buy/8ab3a49b'; }, /checkout URL/);
   mutateProductionEvidence((evidence) => { evidence.gateB = 'passed'; }, /must contain exactly/);
