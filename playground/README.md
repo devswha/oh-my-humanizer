@@ -76,17 +76,17 @@ provider call).
 | `byok` | caller's own provider key (per request) | unmetered shared quota | caller key |
 | `pro` | `Authorization: Bearer <license_key>` | per-license quota (HMAC subject) | `PATINA_PRO_API_KEY` |
 
-**Pro tier ($9.99/mo USD)** is gated by a Lemon Squeezy license key. The server
-validates the key against Lemon Squeezy's validate-only endpoint
-(`POST /v1/licenses/validate`), caches the decision (default 5 min), and meters
+**Pro tier ($9.99/mo USD)** is gated by a Polar license key. The server
+validates the key against Polar's customer-portal validate endpoint
+(`POST /v1/customer-portal/license-keys/validate`), caches the decision (default 5 min), and meters
 per license by an HMAC subject — the **raw license key is never stored, logged,
 put in a KV key, or forwarded to the runner**. Defaults: 20000 chars / 200 req
 per day / 3 concurrent / 50,000 chars per month, each env-overridable.
 
 Pro env (see `.env.example` for the full annotated list):
 
-- `LS_STORE_ID`, `LS_PRO_VARIANT_ID` — required; the validate response `meta`
-  must match. `LS_PRO_PRODUCT_ID` is an optional extra pin.
+- `POLAR_ORGANIZATION_ID`, `POLAR_PRO_BENEFIT_ID` — required; the validate
+  response must match both.
 - `PATINA_PRO_API_KEY` — required in production; when unset, production fails
   closed (503) and never spends the free key on paid traffic. `PATINA_PRO_ALLOW_FREE_KEY=true`
   is an explicit escape hatch that permits the `PATINA_FREE_API_KEY` fallback in
@@ -102,11 +102,11 @@ Pro env (see `.env.example` for the full annotated list):
   primary margin control) / `PATINA_PRO_CHARS_PER_MONTH` (50000, a secondary
   per-license monthly total-character cap — over it returns 429
   `monthly character limit reached` with `remainingMonthlyChars`/`limitMonthlyChars`).
-- `PATINA_LS_CACHE_TTL_MS` (300000) / `PATINA_LS_NEGATIVE_CACHE_TTL_MS` (60000) /
-  `PATINA_LS_TIMEOUT_MS` (2500) / `PATINA_LS_VALIDATE_RPM` (50, under LS's 60/min).
+- `PATINA_POLAR_CACHE_TTL_MS` (300000) / `PATINA_POLAR_NEGATIVE_CACHE_TTL_MS` (60000) /
+  `PATINA_POLAR_TIMEOUT_MS` (2500) / `PATINA_POLAR_VALIDATE_RPM` (10).
 
 Validate-only means revocation propagates within the positive-cache TTL (default
-5 min); a hard kill can shorten it by lowering `PATINA_LS_CACHE_TTL_MS`.
+min); a hard kill can shorten it by lowering `PATINA_POLAR_CACHE_TTL_MS`.
 
 ## Provider-confirmed purchase conversions
 

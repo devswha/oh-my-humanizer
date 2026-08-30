@@ -9,16 +9,16 @@
 //                               correct HMAC key by an omniscient attacker.
 //   (2) admission bypass      -> a degraded KV whose incr() returns
 //                               NaN/negative/0/object/string/Infinity/float, or
-//                               throws, must fail closed (503, LS never called).
-//   (3) single-flight race    -> N concurrent misses call LS exactly once; a
+//                               throws, must fail closed (503, test provider never called).
+//   (3) single-flight race    -> N concurrent misses call test provider exactly once; a
 //                               failed winner releases the lock so a retry can
 //                               re-validate; a successful winner is served from
-//                               cache (no LS re-call).
+//                               cache (no test provider re-call).
 //   (4) key leakage           -> the raw license never lands in a return value,
 //                               a KV key, a cached value, or a (redacted) log,
-//                               even when LS echoes it in objects/strings/nested
+//                               even when test provider echoes it in objects/strings/nested
 //                               structures/error messages.
-//   (5) evaluateLicenseResponse robustness against hostile response shapes.
+//   (5) evaluateTestLicenseResponse robustness against hostile response shapes.
 //   (6) extractBearerLicense robustness against hostile header shapes.
 //
 // Injected dependencies only: fetchImpl (with a call counter), a fixed clock,
@@ -36,12 +36,47 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 import {
-  createLemonSqueezyLicenseValidator,
-  evaluateLicenseResponse,
+  createLicenseValidator,
   extractBearerLicense,
 } from '../../src/entitlement.js';
 import { createMemoryKv, quotaKeyHmac } from '../../src/rate-limit.js';
 import { QUOTA_REASONS } from '../../src/web-rewrite-contract.js';
+
+const TEST_LICENSE_VALIDATE_URL = 'https://license.test/validate';
+
+function evaluateTestLicenseResponse(data, env = {}, now = Date.now()) {
+  const deny = (detail) => ({ ok: false, status: 403, reason: QUOTA_REASONS.LICENSE_INVALID, detail });
+  if (!data || typeof data !== 'object' || data.valid !== true) return deny('not-valid');
+  const licenseKey = data.license_key;
+  if (!licenseKey || typeof licenseKey !== 'object' || typeof licenseKey.status !== 'string') return deny('missing-license');
+  if (!['active', 'inactive'].includes(licenseKey.status)) return deny('status-not-usable');
+  let expiresAt = null;
+  if (licenseKey.expires_at !== null && licenseKey.expires_at !== undefined) {
+    const parsed = Date.parse(licenseKey.expires_at);
+    if (!Number.isFinite(parsed) || parsed <= now) return deny('expired');
+    expiresAt = parsed;
+  }
+  const meta = data.meta;
+  if (!meta || typeof meta !== 'object') return deny('missing-meta');
+  if (String(meta.store_id) !== String(env.TEST_STORE_ID)) return deny('store-mismatch');
+  if (String(meta.variant_id) !== String(env.TEST_PRO_VARIANT_ID)) return deny('variant-mismatch');
+  if (env.TEST_PRO_PRODUCT_ID && String(meta.product_id) !== String(env.TEST_PRO_PRODUCT_ID)) return deny('product-mismatch');
+  return { ok: true, status: licenseKey.status, expiresAt };
+}
+
+const TEST_PROVIDER = {
+  id: 'test',
+  url: () => TEST_LICENSE_VALIDATE_URL,
+  configured: (env) => Boolean(env.TEST_STORE_ID && env.TEST_PRO_VARIANT_ID),
+  request: (license) => ({
+    headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new globalThis.URLSearchParams({ license_key: license }).toString(),
+  }),
+  isDefinitiveDenial: (status, body) => status >= 400 && status < 500 && status !== 429 && Boolean(body) && typeof body === 'object' && body.valid === false,
+  evaluate: evaluateTestLicenseResponse,
+  defaultRpm: 50,
+  errorText: (data) => (data && typeof data.error === 'string' ? data.error : undefined),
+};
 
 // ---------------------------------------------------------------------------
 // Fixtures (mirrors entitlement.test.js so the two suites stay isomorphic)
@@ -53,7 +88,7 @@ const HEX64 = /^[a-f0-9]{64}$/;
 const GOOD_META = Object.freeze({ store_id: 55555, variant_id: 98765, product_id: 4242 });
 
 function baseEnv(overrides = {}) {
-  return { LS_STORE_ID: '55555', LS_PRO_VARIANT_ID: '98765', ...overrides };
+  return { TEST_STORE_ID: '55555', TEST_PRO_VARIANT_ID: '98765', ...overrides };
 }
 function pastIso(offsetMs = 3_600_000) {
   return new Date(FIXED_NOW - offsetMs).toISOString();
@@ -66,7 +101,7 @@ function okBody(over = {}) {
     meta: { ...GOOD_META, ...(over.meta || {}) },
   };
 }
-function lsResponse(body, { status = 200, ok, throwJson = false } = {}) {
+function testResponse(body, { status = 200, ok, throwJson = false } = {}) {
   return {
     ok: ok === undefined ? status >= 200 && status < 300 : ok,
     status,
@@ -108,7 +143,7 @@ function spyLogger() {
   };
 }
 function makeValidator({ kv, env, fetchImpl, logger, hmacSecret = SECRET, now = () => FIXED_NOW } = {}) {
-  return createLemonSqueezyLicenseValidator({
+  return createLicenseValidator({ provider: TEST_PROVIDER,
     kv: kv === undefined ? createMemoryKv() : kv,
     hmacSecret,
     env: env || baseEnv(),
@@ -186,13 +221,13 @@ process.on('exit', () => {
 // miss (readCacheEntry -> null): no wrong allow, no throw, always re-validate.
 
 function cacheKeyFor(license) {
-  return quotaKeyHmac(SECRET, 'ls-license-cache', license);
+  return quotaKeyHmac(SECRET, 'test-license-cache', license);
 }
 
 // Control A: a WELL-FORMED positive entry MUST be served from cache. This proves
 // the HMAC key derivation used by the poison cases below is correct, so their
 // "miss" outcomes are meaningful (not a false pass from a wrong key).
-check('C1-ctrl-allow', 'cache: a well-formed allow entry is served as a hit', 'cache HIT, ok:true, LS never called', async () => {
+check('C1-ctrl-allow', 'cache: a well-formed allow entry is served as a hit', 'cache HIT, ok:true, test provider never called', async () => {
   const kv = createMemoryKv();
   const license = 'LK-c1-ctrl-allow';
   await kv.set(cacheKeyFor(license), { decision: 'allow', tier: 'pro', status: 'active', expiresAt: FIXED_NOW + 60_000 }, { ttlMs: 600_000 });
@@ -205,7 +240,7 @@ check('C1-ctrl-allow', 'cache: a well-formed allow entry is served as a hit', 'c
 });
 
 // Control B: a WELL-FORMED negative entry MUST be served from cache (403).
-check('C1-ctrl-deny', 'cache: a well-formed deny entry is served as a hit', 'cache HIT, 403, LS never called', async () => {
+check('C1-ctrl-deny', 'cache: a well-formed deny entry is served as a hit', 'cache HIT, 403, test provider never called', async () => {
   const kv = createMemoryKv();
   const license = 'LK-c1-ctrl-deny';
   await kv.set(cacheKeyFor(license), { decision: 'deny', tier: 'pro', status: 403, reason: QUOTA_REASONS.LICENSE_INVALID, expiresAt: FIXED_NOW + 60_000 }, { ttlMs: 600_000 });
@@ -216,7 +251,7 @@ check('C1-ctrl-deny', 'cache: a well-formed deny entry is served as a hit', 'cac
   assert.equal(fetchImpl.calls.length, 0);
 });
 
-// Poisoned ALLOW entries: each must be ignored (miss). We make LS DENY, so if
+// Poisoned ALLOW entries: each must be ignored (miss). We make test provider DENY, so if
 // the poison were honored the result would wrongly be ok:true. A 403 + exactly
 // one fetch proves: (a) no wrong allow, (b) the cache missed and we re-validated.
 const POISON_ALLOWS = {
@@ -236,19 +271,19 @@ const POISON_ALLOWS = {
 };
 for (const [label, poison] of Object.entries(POISON_ALLOWS)) {
   const id = label.split(':')[0];
-  check(id, `cache poison ignored: ${label.split(': ')[1]}`, 'treated as miss -> re-validates -> LS denial honored (403), no throw', async () => {
+  check(id, `cache poison ignored: ${label.split(': ')[1]}`, 'treated as miss -> re-validates -> test provider denial honored (403), no throw', async () => {
     const kv = createMemoryKv();
     const license = `LK-${id}`;
     await kv.set(cacheKeyFor(license), poison, { ttlMs: 600_000 });
-    const fetchImpl = spyFetch(() => lsResponse(okBody({ valid: false }))); // LS denies
+    const fetchImpl = spyFetch(() => testResponse(okBody({ valid: false }))); // test provider denies
     const res = await makeValidator({ kv, fetchImpl }).validate({ licenseKey: license });
     assert.equal(res.ok, false, 'poisoned allow must NOT grant');
     assert.equal(res.status, 403);
-    assert.equal(fetchImpl.calls.length, 1, 'malformed cache must miss and re-validate against LS');
+    assert.equal(fetchImpl.calls.length, 1, 'malformed cache must miss and re-validate against the provider');
   });
 }
 
-// Poisoned DENY entries also miss -> re-validate. LS entitles, so a well-formed
+// Poisoned DENY entries also miss -> re-validate. test provider entitles, so a well-formed
 // re-validation returns ok:true (proves the garbage deny was not honored either).
 const POISON_DENIES = {
   'C1-n: deny non-number status': { decision: 'deny', status: '403', reason: QUOTA_REASONS.LICENSE_INVALID, expiresAt: FIXED_NOW + 60_000 },
@@ -256,11 +291,11 @@ const POISON_DENIES = {
 };
 for (const [label, poison] of Object.entries(POISON_DENIES)) {
   const id = label.split(':')[0];
-  check(id, `cache poison ignored: ${label.split(': ')[1]}`, 'treated as miss -> re-validates -> LS entitlement honored (ok, miss)', async () => {
+  check(id, `cache poison ignored: ${label.split(': ')[1]}`, 'treated as miss -> re-validates -> test provider entitlement honored (ok, miss)', async () => {
     const kv = createMemoryKv();
     const license = `LK-${id}`;
     await kv.set(cacheKeyFor(license), poison, { ttlMs: 600_000 });
-    const fetchImpl = spyFetch(() => lsResponse(okBody()));
+    const fetchImpl = spyFetch(() => testResponse(okBody()));
     const res = await makeValidator({ kv, fetchImpl }).validate({ licenseKey: license });
     assert.equal(res.ok, true);
     assert.equal(res.cache, 'miss');
@@ -272,11 +307,11 @@ for (const [label, poison] of Object.entries(POISON_DENIES)) {
 // Scenario 2 - admission bypass: a degraded KV must fail closed (503)
 // ===========================================================================
 
-// Control: a healthy KV under the SAME env reaches LS. This proves config is
+// Control: a healthy KV under the SAME env reaches the provider. This proves config is
 // valid, so every 503 below is attributable to the admission guard, not config.
-check('C2-ctrl', 'admission: a healthy KV reaches LS', 'ok:true, LS called once (config is valid)', async () => {
+check('C2-ctrl', 'admission: a healthy KV reaches the provider', 'ok:true, test provider called once (config is valid)', async () => {
   const healthy = { async get() { return undefined; }, async set() {}, async incr() { return 1; } };
-  const fetchImpl = spyFetch(() => lsResponse(okBody()));
+  const fetchImpl = spyFetch(() => testResponse(okBody()));
   const res = await makeValidator({ kv: healthy, fetchImpl }).validate({ licenseKey: 'LK-c2-ctrl' });
   assert.equal(res.ok, true);
   assert.equal(fetchImpl.calls.length, 1);
@@ -294,8 +329,8 @@ const DEGRADED_RPM = {
 };
 for (const [label, rpm] of Object.entries(DEGRADED_RPM)) {
   const id = label.split(':')[0];
-  check(id, `admission bypass blocked: ${label.split(': ')[1]}`, 'fail closed 503 LICENSE_UNAVAILABLE, LS never called', async () => {
-    const fetchImpl = spyFetch(() => { throw new Error('must not reach LS under a degraded RPM bucket'); });
+  check(id, `admission bypass blocked: ${label.split(': ')[1]}`, 'fail closed 503 LICENSE_UNAVAILABLE, test provider never called', async () => {
+    const fetchImpl = spyFetch(() => { throw new Error('must not reach test provider under a degraded RPM bucket'); });
     const res = await makeValidator({ kv: degradedKv({ rpm }), fetchImpl }).validate({ licenseKey: `LK-${id}` });
     assert.equal(res.ok, false);
     assert.equal(res.status, 503);
@@ -313,8 +348,8 @@ const DEGRADED_LOCK = {
 };
 for (const [label, lock] of Object.entries(DEGRADED_LOCK)) {
   const id = label.split(':')[0];
-  check(id, `admission bypass blocked: ${label.split(': ')[1]} (RPM healthy)`, 'fail closed 503 LICENSE_UNAVAILABLE, LS never called', async () => {
-    const fetchImpl = spyFetch(() => { throw new Error('must not reach LS under a degraded lock'); });
+  check(id, `admission bypass blocked: ${label.split(': ')[1]} (RPM healthy)`, 'fail closed 503 LICENSE_UNAVAILABLE, test provider never called', async () => {
+    const fetchImpl = spyFetch(() => { throw new Error('must not reach test provider under a degraded lock'); });
     // rpm healthy (1) so the case isolates the single-flight lock guard.
     const res = await makeValidator({ kv: degradedKv({ rpm: { value: 1 }, lock }), fetchImpl }).validate({ licenseKey: `LK-${id}` });
     assert.equal(res.ok, false);
@@ -329,31 +364,31 @@ for (const [label, lock] of Object.entries(DEGRADED_LOCK)) {
 // ===========================================================================
 
 function lockKeyFor(license) {
-  return quotaKeyHmac(SECRET, 'ls-lock', license);
+  return quotaKeyHmac(SECRET, 'test-lock', license);
 }
 
-check('C3-a', 'single-flight: N concurrent misses call LS exactly once', 'LS called once; 1 winner (miss); N-1 followers poll into the cache (hit)', async () => {
+check('C3-a', 'single-flight: N concurrent misses call test provider exactly once', 'test provider called once; 1 winner (miss); N-1 followers poll into the cache (hit)', async () => {
   const N = 8;
   // The winner's fetch resolves on a macrotask, so every follower enters the
   // bounded cache poll (#606) before the winner writes the cache.
-  const fetchImpl = spyFetch(async () => { await new Promise((r) => setTimeout(r, 15)); return lsResponse(okBody()); });
-  const validator = makeValidator({ fetchImpl, env: baseEnv({ PATINA_LS_LOCK_POLL_INTERVAL_MS: '5' }) });
+  const fetchImpl = spyFetch(async () => { await new Promise((r) => setTimeout(r, 15)); return testResponse(okBody()); });
+  const validator = makeValidator({ fetchImpl, env: baseEnv({ PATINA_TEST_LOCK_POLL_INTERVAL_MS: '5' }) });
   const license = 'LK-c3-concurrent';
   const results = await Promise.all(Array.from({ length: N }, () => validator.validate({ licenseKey: license })));
   assert.equal(fetchImpl.calls.length, 1, 'exactly one instance may call LS');
   assert.equal(results.filter((r) => r.ok).length, N, 'the whole first burst succeeds — no follower 503s (#606)');
-  assert.equal(results.filter((r) => r.ok && r.cache === 'miss').length, 1, 'exactly one winner validated against LS');
+  assert.equal(results.filter((r) => r.ok && r.cache === 'miss').length, 1, 'exactly one winner validated against the provider');
   assert.equal(results.filter((r) => r.ok && r.cache === 'hit').length, N - 1, 'followers are served from the winner-written cache');
 });
 
-check('C3-a2', 'single-flight: a follower with a crashed winner exhausts its bounded poll', 'no cache ever appears -> follower stays fail-closed 503 without calling LS', async () => {
+check('C3-a2', 'single-flight: a follower with a crashed winner exhausts its bounded poll', 'no cache ever appears -> follower stays fail-closed 503 without calling the provider', async () => {
   const kv = createMemoryKv();
   const license = 'LK-c3-crashed-winner';
   const fetchImpl = spyFetch(() => { throw new Error('a follower must never reach LS'); });
   const validator = makeValidator({
     kv,
     fetchImpl,
-    env: baseEnv({ PATINA_LS_LOCK_POLL_INTERVAL_MS: '2', PATINA_LS_LOCK_WAIT_MS: '10' }),
+    env: baseEnv({ PATINA_TEST_LOCK_POLL_INTERVAL_MS: '2', PATINA_TEST_LOCK_WAIT_MS: '10' }),
   });
   // A "winner" that took the lock and died: the lock is held, no cache is ever
   // written, and only the lock TTL will eventually self-heal it.
@@ -365,12 +400,12 @@ check('C3-a2', 'single-flight: a follower with a crashed winner exhausts its bou
   assert.equal(fetchImpl.calls.length, 0);
 });
 
-check('C3-b', 'single-flight: a failed winner (non-2xx) releases the lock for retry', 'lock reset to 0; retry re-validates against LS and succeeds', async () => {
+check('C3-b', 'single-flight: a failed winner (non-2xx) releases the lock for retry', 'lock reset to 0; retry re-validates against test provider and succeeds', async () => {
   const kv = createMemoryKv();
   let attempt = 0;
   const fetchImpl = spyFetch(() => {
     attempt += 1;
-    return attempt === 1 ? lsResponse({ error: 'upstream 500' }, { status: 500 }) : lsResponse(okBody());
+    return attempt === 1 ? testResponse({ error: 'upstream 500' }, { status: 500 }) : testResponse(okBody());
   });
   const validator = makeValidator({ kv, fetchImpl });
   const license = 'LK-c3-fail-retry';
@@ -390,9 +425,9 @@ check('C3-c', 'single-flight: a timed-out winner releases the lock for retry', '
   const fetchImpl = spyFetch((_url, opts) => {
     attempt += 1;
     if (attempt === 1) return new Promise((_res, rej) => opts.signal.addEventListener('abort', () => rej(new Error('The operation was aborted'))));
-    return lsResponse(okBody());
+    return testResponse(okBody());
   });
-  const validator = makeValidator({ kv, fetchImpl, env: baseEnv({ PATINA_LS_TIMEOUT_MS: '15' }) });
+  const validator = makeValidator({ kv, fetchImpl, env: baseEnv({ PATINA_TEST_TIMEOUT_MS: '15' }) });
   const license = 'LK-c3-timeout-retry';
 
   const first = await validator.validate({ licenseKey: license });
@@ -404,8 +439,8 @@ check('C3-c', 'single-flight: a timed-out winner releases the lock for retry', '
   assert.equal(fetchImpl.calls.length, 2);
 });
 
-check('C3-d', 'single-flight: a successful winner serves late arrivals from cache', 'winner writes positive cache; late caller is a HIT (no LS re-call)', async () => {
-  const fetchImpl = spyFetch(() => lsResponse(okBody()));
+check('C3-d', 'single-flight: a successful winner serves late arrivals from cache', 'winner writes positive cache; late caller is a HIT (no test provider re-call)', async () => {
+  const fetchImpl = spyFetch(() => testResponse(okBody()));
   const validator = makeValidator({ fetchImpl });
   const license = 'LK-c3-late-hit';
   const winner = await validator.validate({ licenseKey: license });
@@ -417,8 +452,8 @@ check('C3-d', 'single-flight: a successful winner serves late arrivals from cach
   assert.equal(fetchImpl.calls.length, 1, 'a late arrival must hit cache, not re-call LS');
 });
 
-check('C3-e', 'single-flight: a denying winner serves late arrivals from negative cache', 'winner writes negative cache; late caller is a 403 HIT (no LS re-call)', async () => {
-  const fetchImpl = spyFetch(() => lsResponse(okBody({ valid: false })));
+check('C3-e', 'single-flight: a denying winner serves late arrivals from negative cache', 'winner writes negative cache; late caller is a 403 HIT (no test provider re-call)', async () => {
+  const fetchImpl = spyFetch(() => testResponse(okBody({ valid: false })));
   const validator = makeValidator({ fetchImpl });
   const license = 'LK-c3-late-deny';
   const winner = await validator.validate({ licenseKey: license });
@@ -440,7 +475,7 @@ const LEAK_LICENSE = 'LKX-9f8e7d6c-DEAD-BEEF-CAFE-000000000001';
 check('C4-a', 'key leakage: allow path never exposes the license (return/keys/values/logs)', 'subject-only return, all KV keys HMAC hex, no raw license anywhere', async () => {
   const kv = spyKv();
   const logger = spyLogger();
-  const fetchImpl = spyFetch(() => lsResponse(okBody({ license_key: { status: 'active', expires_at: null, key: LEAK_LICENSE } })));
+  const fetchImpl = spyFetch(() => testResponse(okBody({ license_key: { status: 'active', expires_at: null, key: LEAK_LICENSE } })));
   const res = await makeValidator({ kv, logger, fetchImpl }).validate({ licenseKey: LEAK_LICENSE });
   assert.equal(res.ok, true);
   assert.equal(res.cache, 'miss');
@@ -461,7 +496,7 @@ check('C4-b', 'key leakage: deny path redacts echoes in objects, nested meta, an
   // status 'expired' -> denial is reached and the FULL body is logged (redacted).
   // The license is echoed in: the license_key object, a nested license-named
   // block inside meta, and a free-form error string (both label= and Bearer forms).
-  const fetchImpl = spyFetch(() => lsResponse({
+  const fetchImpl = spyFetch(() => testResponse({
     valid: true,
     error: `rejected: license_key=${LEAK_LICENSE}; auth Bearer ${LEAK_LICENSE}`,
     license_key: { status: 'expired', key: LEAK_LICENSE, key_short: LEAK_LICENSE },
@@ -483,7 +518,7 @@ check('C4-b', 'key leakage: deny path redacts echoes in objects, nested meta, an
 
 check('C4-c', 'key leakage: denial whose ONLY echo is a labelled free-form error string', 'string-shape redaction alone scrubs the license from logs', async () => {
   const logger = spyLogger();
-  const fetchImpl = spyFetch(() => lsResponse({
+  const fetchImpl = spyFetch(() => testResponse({
     valid: false,
     error: `License validation failed for license_key=${LEAK_LICENSE} (not found)`,
     license_key: null,
@@ -498,7 +533,7 @@ check('C4-c', 'key leakage: denial whose ONLY echo is a labelled free-form error
 });
 
 // ===========================================================================
-// Scenario 5 - evaluateLicenseResponse: hostile response shapes -> 403, no throw
+// Scenario 5 - evaluateTestLicenseResponse: hostile response shapes -> 403, no throw
 // (the type-coercion cases below MUST still entitle: number vs string ids match
 // via String() comparison)
 // ===========================================================================
@@ -511,15 +546,15 @@ function assertDeny(res, label) {
 
 check('C5-a', 'evaluate: valid must be strictly true (no truthy coercion)', 'every non-true `valid` -> 403 not-valid, no throw', () => {
   for (const valid of [1, 'true', {}, [], 0, 'active', 'yes']) {
-    assertDeny(evaluateLicenseResponse(okBody({ valid }), baseEnv(), FIXED_NOW), `valid=${JSON.stringify(valid)}`);
+    assertDeny(evaluateTestLicenseResponse(okBody({ valid }), baseEnv(), FIXED_NOW), `valid=${JSON.stringify(valid)}`);
   }
 });
 
 check('C5-b', 'evaluate: non-string status -> 403', 'number/null/absent/object status -> 403, no throw', () => {
-  assertDeny(evaluateLicenseResponse(okBody({ license_key: { status: 200 } }), baseEnv(), FIXED_NOW), 'status number');
-  assertDeny(evaluateLicenseResponse(okBody({ license_key: { status: null } }), baseEnv(), FIXED_NOW), 'status null');
-  assertDeny(evaluateLicenseResponse(evaluateBodyNoStatus(), baseEnv(), FIXED_NOW), 'status absent');
-  assertDeny(evaluateLicenseResponse(okBody({ license_key: { status: {} } }), baseEnv(), FIXED_NOW), 'status object');
+  assertDeny(evaluateTestLicenseResponse(okBody({ license_key: { status: 200 } }), baseEnv(), FIXED_NOW), 'status number');
+  assertDeny(evaluateTestLicenseResponse(okBody({ license_key: { status: null } }), baseEnv(), FIXED_NOW), 'status null');
+  assertDeny(evaluateTestLicenseResponse(evaluateBodyNoStatus(), baseEnv(), FIXED_NOW), 'status absent');
+  assertDeny(evaluateTestLicenseResponse(okBody({ license_key: { status: {} } }), baseEnv(), FIXED_NOW), 'status object');
 });
 function evaluateBodyNoStatus() {
   return { valid: true, error: null, license_key: { expires_at: null }, meta: { ...GOOD_META } };
@@ -527,49 +562,49 @@ function evaluateBodyNoStatus() {
 
 check('C5-c', 'evaluate: status is case- and whitespace-sensitive', 'ACTIVE/Active/ active/active /empty/unknown -> 403 (only exact active|inactive entitle)', () => {
   for (const status of ['ACTIVE', 'Active', ' active', 'active ', '', 'pending', 'ACTIVE ', 'inactive ']) {
-    assertDeny(evaluateLicenseResponse(okBody({ license_key: { status } }), baseEnv(), FIXED_NOW), `status=${JSON.stringify(status)}`);
+    assertDeny(evaluateTestLicenseResponse(okBody({ license_key: { status } }), baseEnv(), FIXED_NOW), `status=${JSON.stringify(status)}`);
   }
 });
 
 check('C5-d', 'evaluate: hostile expires_at shapes fail closed', 'past/garbage/empty/0/numeric-epoch/bool/exact-now -> 403 expired', () => {
   const shapes = [pastIso(), 'not-a-date', '', 0, FIXED_NOW + 3_600_000, true, new Date(FIXED_NOW).toISOString()];
   for (const expires_at of shapes) {
-    assertDeny(evaluateLicenseResponse(okBody({ license_key: { status: 'active', expires_at } }), baseEnv(), FIXED_NOW), `expires_at=${JSON.stringify(expires_at)}`);
+    assertDeny(evaluateTestLicenseResponse(okBody({ license_key: { status: 'active', expires_at } }), baseEnv(), FIXED_NOW), `expires_at=${JSON.stringify(expires_at)}`);
   }
 });
 
 check('C5-e', 'evaluate: numeric vs string store/variant ids MUST match via String()', 'number ids equal string env ids -> ok:true (no false deny)', () => {
-  const numeric = evaluateLicenseResponse(okBody({ meta: { store_id: 55555, variant_id: 98765 } }), baseEnv(), FIXED_NOW);
+  const numeric = evaluateTestLicenseResponse(okBody({ meta: { store_id: 55555, variant_id: 98765 } }), baseEnv(), FIXED_NOW);
   assert.equal(numeric.ok, true, 'numeric ids must coerce-match the string env');
-  const stringed = evaluateLicenseResponse(okBody({ meta: { store_id: '55555', variant_id: '98765' } }), baseEnv(), FIXED_NOW);
+  const stringed = evaluateTestLicenseResponse(okBody({ meta: { store_id: '55555', variant_id: '98765' } }), baseEnv(), FIXED_NOW);
   assert.equal(stringed.ok, true, 'string ids must match');
   // and product id coercion when configured
-  const prod = evaluateLicenseResponse(okBody({ meta: { store_id: 55555, variant_id: 98765, product_id: 4242 } }), baseEnv({ LS_PRO_PRODUCT_ID: '4242' }), FIXED_NOW);
+  const prod = evaluateTestLicenseResponse(okBody({ meta: { store_id: 55555, variant_id: 98765, product_id: 4242 } }), baseEnv({ TEST_PRO_PRODUCT_ID: '4242' }), FIXED_NOW);
   assert.equal(prod.ok, true, 'numeric product id must coerce-match');
 });
 
 check('C5-f', 'evaluate: mismatched store/variant ids -> 403', 'store/variant mismatch -> 403, no throw', () => {
-  assertDeny(evaluateLicenseResponse(okBody({ meta: { store_id: 55556 } }), baseEnv(), FIXED_NOW), 'store mismatch');
-  assertDeny(evaluateLicenseResponse(okBody({ meta: { variant_id: 99999 } }), baseEnv(), FIXED_NOW), 'variant mismatch');
+  assertDeny(evaluateTestLicenseResponse(okBody({ meta: { store_id: 55556 } }), baseEnv(), FIXED_NOW), 'store mismatch');
+  assertDeny(evaluateTestLicenseResponse(okBody({ meta: { variant_id: 99999 } }), baseEnv(), FIXED_NOW), 'variant mismatch');
 });
 
 check('C5-g', 'evaluate: hostile license_key shapes -> 403', 'string/number/array license_key -> 403, no throw', () => {
-  assertDeny(evaluateLicenseResponse({ valid: true, license_key: 'raw-string', meta: GOOD_META }, baseEnv(), FIXED_NOW), 'license_key string');
-  assertDeny(evaluateLicenseResponse({ valid: true, license_key: 12345, meta: GOOD_META }, baseEnv(), FIXED_NOW), 'license_key number');
-  assertDeny(evaluateLicenseResponse({ valid: true, license_key: ['active'], meta: GOOD_META }, baseEnv(), FIXED_NOW), 'license_key array');
+  assertDeny(evaluateTestLicenseResponse({ valid: true, license_key: 'raw-string', meta: GOOD_META }, baseEnv(), FIXED_NOW), 'license_key string');
+  assertDeny(evaluateTestLicenseResponse({ valid: true, license_key: 12345, meta: GOOD_META }, baseEnv(), FIXED_NOW), 'license_key number');
+  assertDeny(evaluateTestLicenseResponse({ valid: true, license_key: ['active'], meta: GOOD_META }, baseEnv(), FIXED_NOW), 'license_key array');
 });
 
 check('C5-h', 'evaluate: hostile meta shapes -> 403', 'null/string/array/number/absent meta -> 403, no throw', () => {
-  assertDeny(evaluateLicenseResponse({ valid: true, license_key: { status: 'active' }, meta: null }, baseEnv(), FIXED_NOW), 'meta null');
-  assertDeny(evaluateLicenseResponse({ valid: true, license_key: { status: 'active' }, meta: 'x' }, baseEnv(), FIXED_NOW), 'meta string');
-  assertDeny(evaluateLicenseResponse({ valid: true, license_key: { status: 'active' }, meta: [] }, baseEnv(), FIXED_NOW), 'meta array');
-  assertDeny(evaluateLicenseResponse({ valid: true, license_key: { status: 'active' }, meta: 7 }, baseEnv(), FIXED_NOW), 'meta number');
-  assertDeny(evaluateLicenseResponse({ valid: true, license_key: { status: 'active' } }, baseEnv(), FIXED_NOW), 'meta absent');
+  assertDeny(evaluateTestLicenseResponse({ valid: true, license_key: { status: 'active' }, meta: null }, baseEnv(), FIXED_NOW), 'meta null');
+  assertDeny(evaluateTestLicenseResponse({ valid: true, license_key: { status: 'active' }, meta: 'x' }, baseEnv(), FIXED_NOW), 'meta string');
+  assertDeny(evaluateTestLicenseResponse({ valid: true, license_key: { status: 'active' }, meta: [] }, baseEnv(), FIXED_NOW), 'meta array');
+  assertDeny(evaluateTestLicenseResponse({ valid: true, license_key: { status: 'active' }, meta: 7 }, baseEnv(), FIXED_NOW), 'meta number');
+  assertDeny(evaluateTestLicenseResponse({ valid: true, license_key: { status: 'active' } }, baseEnv(), FIXED_NOW), 'meta absent');
 });
 
 check('C5-i', 'evaluate: non-object top-level data -> 403, no throw', 'null/undefined/string/number/array/bool -> 403 malformed', () => {
   for (const data of [null, undefined, 'nope', 42, [], true]) {
-    const res = evaluateLicenseResponse(data, baseEnv(), FIXED_NOW);
+    const res = evaluateTestLicenseResponse(data, baseEnv(), FIXED_NOW);
     assert.equal(res.ok, false, `data=${JSON.stringify(data)}`);
     assert.equal(res.status, 403, `data=${JSON.stringify(data)}`);
   }
