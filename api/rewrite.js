@@ -241,7 +241,9 @@ const WEB_REWRITE_TIMEOUT_MS = 180_000;
 
 /**
  * The playground's default is NDJSON. JSON is an explicit opt-in for API
- * clients that prefer one completed response.
+ * clients that prefer one completed response. Parses the Accept header as
+ * exact comma-separated media types (parameters such as q are honored; a
+ * q=0 entry excludes), so lookalikes like application/json-seq never match.
  * @param {Record<string, string|string[]|undefined>} headers
  */
 function wantsJsonResponse(headers = {}) {
@@ -249,9 +251,20 @@ function wantsJsonResponse(headers = {}) {
     .filter(([name]) => name.toLowerCase() === 'accept')
     .flatMap(([, value]) => Array.isArray(value) ? value : [value])
     .filter((value) => typeof value === 'string')
-    .join(',')
-    .toLowerCase();
-  return accept.includes('application/json') && !accept.includes('application/x-ndjson');
+    .join(',');
+  /** @type {Set<string>} */
+  const accepted = new Set();
+  /** @type {Set<string>} */
+  const refused = new Set();
+  for (const entry of accept.split(',')) {
+    const [rawType, ...params] = entry.split(';').map((part) => part.trim());
+    const type = rawType.toLowerCase();
+    if (type === '') continue;
+    const qParam = params.find((param) => param.toLowerCase().startsWith('q='));
+    const refusedByQ = qParam !== undefined && Number(qParam.slice(2)) === 0;
+    (refusedByQ ? refused : accepted).add(type);
+  }
+  return accepted.has('application/json') && !accepted.has('application/x-ndjson') && !refused.has('application/json');
 }
 
 /**
@@ -380,9 +393,10 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
       res.statusCode = 200;
       res.setHeader?.('Content-Type', jsonResponse ? 'application/json' : 'application/x-ndjson');
       const controller = new AbortController();
-      const onClose = () => { if (!res.writableEnded) controller.abort(); };
+      const onClose = () => { clientClosed = true; if (!res.writableEnded) controller.abort(); };
       res.on?.('close', onClose);
       req.on?.('aborted', onClose);
+      let clientClosed = false;
       let streamCompleted = false;
       try {
         const result = await runWebRewriteStreamImpl({
@@ -405,13 +419,21 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
         }
         if (jsonResponse) {
           const done = [...bufferedFrames].reverse().find((frame) => frame.type === 'done');
-          if (done) {
+          if (result?.ok !== false && done) {
             const { type: _type, ...body } = done;
-            bufferedBody = JSON.stringify({ ok: true, ...body, usage: {} });
+            bufferedBody = JSON.stringify({ ok: true, ...body });
           } else {
-            const error = [...bufferedFrames].reverse().find((frame) => frame.type === 'error');
-            res.statusCode = 500;
-            bufferedBody = JSON.stringify({ error: error?.error ?? error?.code ?? 'rewrite failed' });
+            // Preserve the runner's terminal semantics: safety-gate refusals
+            // (floor_failed, number_safety_failed) are 422 — the request was
+            // processed and deliberately rejected — while stream/scoring
+            // failures are 500. The stable machine-readable `code` lets API
+            // clients branch without parsing prose.
+            const code = result?.ok === false && typeof result.code === 'string'
+              ? result.code
+              : ([...bufferedFrames].reverse().find((frame) => frame.type === 'error')?.code ?? 'rewrite_failed');
+            const errorFrame = bufferedFrames.find((frame) => frame.type === 'error' && typeof frame.error === 'string');
+            res.statusCode = code === 'floor_failed' || code === 'number_safety_failed' ? 422 : 500;
+            bufferedBody = JSON.stringify({ ok: false, code, error: errorFrame?.error ?? code });
           }
         }
         streamCompleted = true;
@@ -424,7 +446,11 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
         req.off?.('aborted', onClose);
         if (streamCompleted) {
           await beforeResponseEnd?.();
-          res.end?.(bufferedBody);
+          // The lease is released above regardless; after a premature client
+          // close the response may already be destroyed — never write to it.
+          if (!clientClosed && !res.writableEnded && !res.destroyed) {
+            res.end?.(bufferedBody);
+          }
         }
       }
     },

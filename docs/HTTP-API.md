@@ -87,12 +87,11 @@ Send `Accept: application/json` to buffer the same pipeline result and receive o
   "fidelity": { "fidelity": 94 },
   "signals": { "before": { "overall": 72 }, "after": { "overall": 18 } },
   "diff": { "beforeChars": 39, "afterChars": 48 },
-  "receipt": { "schemaVersion": "patina-rewrite-receipt-v2", "receiptHash": "sha256:..." },
-  "usage": {}
+  "receipt": { "schemaVersion": "patina-rewrite-receipt-v2", "receiptHash": "sha256:..." }
 }
 ```
 
-`usage` is currently an empty object; provider token data is not exposed. Upstream terminal failures use the normal JSON error body rather than an NDJSON error frame.
+Terminal failures in JSON mode return `{ "ok": false, "code": "...", "error": "..." }` with the runner's semantics: safety-gate refusals (`floor_failed`, `number_safety_failed`) use `422` — the text was processed and deliberately rejected to protect meaning and exact numbers — while upstream stream/scoring failures use `500`.
 
 ### Errors
 
@@ -102,7 +101,7 @@ Errors are JSON objects, including for JSON-mode callers:
 { "error": "hourly burst exceeded" }
 ```
 
-Validation errors use `400`; an over-limit `text` or refine `original` uses `413`. Missing or invalid Pro authorization uses `401`. Quota and concurrency denials use `429`; quota infrastructure or service/entitlement unavailability uses `503`. A JSON-mode upstream failure uses `500`.
+Validation errors use `400`; an over-limit `text` or refine `original` uses `413`. A missing, malformed, or duplicated Pro `Authorization` header uses `401` (`pro license required`); a well-formed license key that does not entitle uses `403` (`license not entitled`). Quota and concurrency denials use `429`; quota/entitlement infrastructure or service unavailability uses `503`. JSON-mode terminal failures use `422` (safety-gate refusal) or `500` (upstream failure) as described above.
 
 Possible quota error strings include `daily quota exceeded`, `hourly burst exceeded`, `concurrent limit exceeded`, `monthly rewrite limit reached`, and `monthly character limit reached`. A Pro monthly-character denial additionally includes `remainingMonthlyChars` and `limitMonthlyChars`.
 
