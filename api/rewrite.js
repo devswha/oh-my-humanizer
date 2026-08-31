@@ -240,6 +240,21 @@ export function createRestKv(env = {}) {
 const WEB_REWRITE_TIMEOUT_MS = 180_000;
 
 /**
+ * The playground's default is NDJSON. JSON is an explicit opt-in for API
+ * clients that prefer one completed response.
+ * @param {Record<string, string|string[]|undefined>} headers
+ */
+function wantsJsonResponse(headers = {}) {
+  const accept = Object.entries(headers)
+    .filter(([name]) => name.toLowerCase() === 'accept')
+    .flatMap(([, value]) => Array.isArray(value) ? value : [value])
+    .filter((value) => typeof value === 'string')
+    .join(',')
+    .toLowerCase();
+  return accept.includes('application/json') && !accept.includes('application/x-ndjson');
+}
+
+/**
  * @param {{env?: Record<string,string|undefined>, runWebRewriteStreamImpl?: typeof runWebRewriteStream, logger?: {info?: Function, warn?: Function, error?: Function, debug?: Function}, now?: () => number, observabilityKv?: {increment: (key: string, options: {ttlSeconds: number}) => unknown}}} [options]
  */
 export function createRewriteApiHandler({ env = /** @type {Record<string,string|undefined>} */ (process.env), runWebRewriteStreamImpl = runWebRewriteStream, logger = console, now = () => Date.now(), observabilityKv } = {}) {
@@ -286,6 +301,11 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
     }),
     licenseValidator,
     runRewrite: async ({ req, res, request, observe, beforeResponseEnd }) => {
+      const jsonResponse = wantsJsonResponse(req.headers);
+      /** @type {Record<string, unknown>[]} */
+      const bufferedFrames = [];
+      /** @type {string|undefined} */
+      let bufferedBody;
       let terminalObserved = false;
       let legacyStartedAt;
       if (typeof observe === 'function') {
@@ -358,7 +378,7 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
         return;
       }
       res.statusCode = 200;
-      res.setHeader?.('Content-Type', 'application/x-ndjson');
+      res.setHeader?.('Content-Type', jsonResponse ? 'application/json' : 'application/x-ndjson');
       const controller = new AbortController();
       const onClose = () => { if (!res.writableEnded) controller.abort(); };
       res.on?.('close', onClose);
@@ -367,7 +387,10 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
       try {
         const result = await runWebRewriteStreamImpl({
           request: { ...request, apiKey },
-          emit: (frame) => res.write?.(encodeStreamFrame(frame)),
+          emit: (frame) => {
+            if (jsonResponse) bufferedFrames.push(frame);
+            else res.write?.(encodeStreamFrame(frame));
+          },
           signal: controller.signal,
           timeout: streamTimeoutMs,
           observe: observeGuarded,
@@ -380,6 +403,17 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
             res.statusCode,
           );
         }
+        if (jsonResponse) {
+          const done = [...bufferedFrames].reverse().find((frame) => frame.type === 'done');
+          if (done) {
+            const { type: _type, ...body } = done;
+            bufferedBody = JSON.stringify({ ok: true, ...body, usage: {} });
+          } else {
+            const error = [...bufferedFrames].reverse().find((frame) => frame.type === 'error');
+            res.statusCode = 500;
+            bufferedBody = JSON.stringify({ error: error?.error ?? error?.code ?? 'rewrite failed' });
+          }
+        }
         streamCompleted = true;
         return result;
       } catch (err) {
@@ -390,7 +424,7 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
         req.off?.('aborted', onClose);
         if (streamCompleted) {
           await beforeResponseEnd?.();
-          res.end?.();
+          res.end?.(bufferedBody);
         }
       }
     },

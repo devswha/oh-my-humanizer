@@ -73,6 +73,11 @@ export function createRewriteHandler({ rateLimiter, runRewrite, env = {}, now = 
     }
     setSecurityHeaders(res);
     try {
+      if (req.method === 'OPTIONS') {
+        res.statusCode = 204;
+        res.end?.();
+        return undefined;
+      }
       if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' });
 
       const rawBody = await readRawBody(req, maxBodyBytes);
@@ -276,6 +281,14 @@ function setSecurityHeaders(res) {
   res.setHeader?.('Cache-Control', 'no-store');
   res.setHeader?.('X-Content-Type-Options', 'nosniff');
   res.setHeader?.('Content-Type', 'application/json');
+  setCorsHeaders(res);
+}
+
+/** @param {RewriteRes} res */
+function setCorsHeaders(res) {
+  res.setHeader?.('Access-Control-Allow-Origin', '*');
+  res.setHeader?.('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.setHeader?.('Access-Control-Allow-Methods', 'POST, OPTIONS');
 }
 
 /**
@@ -298,6 +311,7 @@ export function send(res, status, obj) {
   res.setHeader?.('Cache-Control', 'no-store');
   res.setHeader?.('X-Content-Type-Options', 'nosniff');
   res.setHeader?.('Content-Type', 'application/json');
+  setCorsHeaders(res);
   res.end?.(JSON.stringify(obj));
   return undefined;
 }
