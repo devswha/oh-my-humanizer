@@ -38,6 +38,8 @@ AI 티가 나는 글을 **[playground](https://patina.vibetip.help/)** 에 붙�
 
 **브라우저 — 설치 없음.** **[patina.vibetip.help](https://patina.vibetip.help/)** 를 열고 붙여넣으면 끝. 재작성과 채점은 서버에서 실행되고, API 모드는 개인 키를 요청 단위로만 전달합니다(저장·로깅 없음).
 
+[Hosted API (Pro)](docs/HTTP-API.md)
+
 **에이전트 스킬 — Claude Code, Codex CLI, Cursor 등 아무 에이전트에나 붙여넣으세요:**
 
 ```text

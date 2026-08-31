@@ -137,7 +137,7 @@ const I18N = {
     numberSafetyNote: 'The rewrite didn’t keep the numbers/times exactly as written, so patina discarded it for safety. Try again.',
     quotaDaily: 'You’ve used today’s free quota. Try again tomorrow, or switch to BYOK mode with your own API key for unlimited use.',
     quotaHourly: 'Free quota is full for now. Try again shortly, or use BYOK mode with your own API key.',
-    proUpsell: 'Upgrade to Pro — $9.99/mo',
+    proUpsell: 'Get API access — $9.99/mo',
     quotaConcurrent: 'A rewrite is already running for your connection. Wait for it to finish, then try again.',
     serviceDown: 'The rewrite service is temporarily unavailable. Please try again later.',
     tooLong: 'Text is over the {tier} limit of {cap} characters. Shorten it and try again.',
@@ -180,7 +180,7 @@ const I18N = {
     numberSafetyNote: '리라이트가 숫자·시간 표기를 원문 그대로 보존하지 못해 안전을 위해 결과를 폐기했어요. 다시 시도해 주세요.',
     quotaDaily: '오늘 무료 사용량을 다 쓰셨어요. 내일 다시 시도하거나, 본인 API 키로 BYOK 모드를 쓰면 제한 없이 이용할 수 있어요.',
     quotaHourly: '무료 사용량이 잠시 가득 찼어요. 잠시 후 다시 시도하거나, 본인 API 키로 BYOK 모드를 쓰면 바로 이용할 수 있어요.',
-    proUpsell: 'Pro로 업그레이드 — $9.99/월',
+    proUpsell: 'API 액세스 받기 — $9.99/월',
     quotaConcurrent: '이미 진행 중인 리라이트가 있어요. 끝난 뒤 다시 시도해 주세요.',
     serviceDown: '리라이트 서비스를 잠시 사용할 수 없어요. 나중에 다시 시도해 주세요.',
     tooLong: '{tier} 모드 한도({cap}자)를 넘었어요. 줄여서 다시 시도해 주세요.',
@@ -223,7 +223,7 @@ const I18N = {
     numberSafetyNote: '改写未能原样保留数字 / 时间，为安全起见已丢弃结果。请重试。',
     quotaDaily: '今天的免费额度已用完。请明天再试，或切换到 BYOK 模式使用自己的 API 密钥，即可无限制使用。',
     quotaHourly: '免费额度暂时已满。请稍后再试，或使用 BYOK 模式和自己的 API 密钥。',
-    proUpsell: '升级到 Pro — 每月 $9.99',
+    proUpsell: '获取 API 访问权限 — 每月 $9.99',
     quotaConcurrent: '已有一个改写正在进行。请等它完成后再试。',
     serviceDown: '改写服务暂时不可用，请稍后再试。',
     tooLong: '文字超过 {tier} 模式的 {cap} 字上限。请缩短后重试。',
@@ -266,7 +266,7 @@ const I18N = {
     numberSafetyNote: '書き換えが数値・時刻を原文どおりに保持できなかったため、安全のため結果を破棄しました。もう一度お試しください。',
     quotaDaily: '本日の無料利用枠を使い切りました。明日また試すか、ご自身のAPIキーでBYOKモードに切り替えると無制限で使えます。',
     quotaHourly: '無料利用枠が一時的にいっぱいです。しばらくして再試行するか、ご自身のAPIキーでBYOKモードをお使いください。',
-    proUpsell: 'Proにアップグレード — 月額$9.99',
+    proUpsell: 'APIアクセスを取得 — 月額$9.99',
     quotaConcurrent: 'すでに実行中の書き換えがあります。完了後にもう一度お試しください。',
     serviceDown: '書き換えサービスは一時的に利用できません。しばらくしてからお試しください。',
     tooLong: '{tier}モードの上限（{cap}文字）を超えています。短くしてからお試しください。',
@@ -412,7 +412,7 @@ function wireProCta() {
     btn.setAttribute('target', '_blank');
     btn.removeAttribute('aria-disabled');
     btn.classList.remove('is-soon');
-    btn.textContent = `Upgrade to Pro — ${PRO_PRICE}`;
+    btn.textContent = `Get API access — ${PRO_PRICE}`;
     btn.addEventListener('click', () => {
       track('Tier Selected', { tier: 'pro', surface: 'pricing' });
       track('Checkout Started', { surface: 'pricing', lang: els.lang.value });

@@ -3,10 +3,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler, { createObservabilityRestKv, createRestKv, createRewriteApiHandler } from '../../api/rewrite.js';
 
-function makeReq({ body = undefined, method = 'POST' } = {}) {
+function makeReq({ body = undefined, method = 'POST', headers = {} } = {}) {
   return {
     method,
-    headers: { 'x-real-ip': '203.0.113.10' },
+    headers: { 'x-real-ip': '203.0.113.10', ...headers },
     body: JSON.stringify(body ?? {
       mode: 'first',
       lang: 'en',
@@ -92,7 +92,7 @@ test('factory handler streams injected NDJSON frames in non-production memory po
   const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: injected });
   const res = makeRes();
 
-  await api(makeReq(), res);
+  await api(makeReq({ headers: { accept: '*/*' } }), res);
 
   assert.equal(res.statusCode, 200);
   assert.equal(res.getHeader('cache-control'), 'no-store');
@@ -102,6 +102,89 @@ test('factory handler streams injected NDJSON frames in non-production memory po
   assert.equal(res.ended, true);
   // Boundary lock: the server free key must never appear in the NDJSON stream.
   assert.doesNotMatch(res.chunks.join(''), /sk-server-free-key/);
+});
+
+test('JSON accept buffers a completed rewrite into one JSON response', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit }) => {
+      emit({ type: 'start' });
+      emit({ type: 'delta', text: 'natural' });
+      emit({
+        type: 'done', rewrite: 'natural prose', mps: { score: 100 }, fidelity: { score: 95 },
+        signals: { before: 80, after: 10 }, diff: { changedWords: 2 }, receipt: { receiptHash: 'sha256:test' },
+      });
+    },
+  });
+  const res = makeRes();
+
+  await api(makeReq({ headers: { accept: 'application/json' } }), res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.getHeader('content-type'), 'application/json');
+  assert.equal(res.chunks.length, 1);
+  const body = JSON.parse(res.chunks[0]);
+  assert.deepEqual(body, {
+    ok: true,
+    rewrite: 'natural prose',
+    mps: { score: 100 },
+    fidelity: { score: 95 },
+    signals: { before: 80, after: 10 },
+    diff: { changedWords: 2 },
+    receipt: { receiptHash: 'sha256:test' },
+    usage: {},
+  });
+});
+
+test('JSON accept returns quota errors as plain JSON', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  let calls = 0;
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit }) => {
+      calls += 1;
+      emit({ type: 'done', rewrite: 'ok' });
+    },
+  });
+  const request = () => makeReq({ headers: { accept: 'application/json' } });
+  for (let index = 0; index < 10; index += 1) await api(request(), makeRes());
+  const res = makeRes();
+
+  await api(request(), res);
+
+  assert.equal(calls, 10);
+  assert.equal(res.statusCode, 429);
+  assert.equal(res.getHeader('content-type'), 'application/json');
+  assert.deepEqual(JSON.parse(res.chunks[0]), { error: 'hourly burst exceeded' });
+  assert.doesNotMatch(res.chunks[0], /"type"/);
+});
+
+test('CORS preflight is accepted without consuming quota and POST responses allow any origin', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  let calls = 0;
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit }) => {
+      calls += 1;
+      emit({ type: 'done', rewrite: 'ok' });
+    },
+  });
+  const preflight = makeRes();
+
+  await api(makeReq({ method: 'OPTIONS' }), preflight);
+
+  assert.equal(preflight.statusCode, 204);
+  assert.equal(preflight.getHeader('access-control-allow-origin'), '*');
+  assert.equal(preflight.getHeader('access-control-allow-methods'), 'POST, OPTIONS');
+  assert.equal(preflight.getHeader('access-control-allow-headers'), 'Authorization, Content-Type');
+  assert.equal(calls, 0);
+
+  const post = makeRes();
+  await api(makeReq(), post);
+  assert.equal(calls, 1);
+  assert.equal(post.getHeader('access-control-allow-origin'), '*');
+  assert.equal(post.getHeader('content-type'), 'application/x-ndjson');
 });
 
 test('the entrypoint emits no legacy raw rewrite metric', async () => {

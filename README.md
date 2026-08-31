@@ -46,6 +46,8 @@ patina is a deterministic, pattern-based humanizer for Korean, English, Chinese,
 
 **Browser — nothing to install.** Open **[patina.vibetip.help](https://patina.vibetip.help/)** and paste text. Rewrites run server-side with the MPS/fidelity gates; API mode forwards your own key per request (never stored or logged).
 
+[Hosted API (Pro)](docs/HTTP-API.md)
+
 **Agent skill — paste this into Claude Code, Codex CLI, Cursor, or any agent:**
 
 ```text
