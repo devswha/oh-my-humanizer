@@ -1,7 +1,8 @@
 // @ts-check
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import yaml from 'js-yaml';
 import { loadWebConfig, resolveBundleRoot } from '../../src/web-config.js';
@@ -22,9 +23,9 @@ test('loadWebConfig returns the baseline config mapping', () => {
 });
 
 test('loadWebConfig ignores ambient project .patina.yaml overrides', () => {
-  const root = resolveBundleRoot();
+  const root = mkdtempSync(resolve(tmpdir(), 'patina-web-config-'));
+  copyFileSync(resolve(resolveBundleRoot(), '.patina.default.yaml'), resolve(root, '.patina.default.yaml'));
   const ambientPath = resolve(root, '.patina.yaml');
-  const previous = existsSync(ambientPath) ? readFileSync(ambientPath, 'utf8') : null;
 
   try {
     writeFileSync(ambientPath, 'language: en\ndocument-type: poisoned\nlexicon:\n  enabled: false\n', 'utf8');
@@ -34,8 +35,7 @@ test('loadWebConfig ignores ambient project .patina.yaml overrides', () => {
     assert.equal(config.documentType, 'default');
     assert.equal(config.lexicon.enabled, true);
   } finally {
-    if (previous === null) rmSync(ambientPath, { force: true });
-    else writeFileSync(ambientPath, previous, 'utf8');
+    rmSync(root, { recursive: true, force: true });
   }
 });
 
