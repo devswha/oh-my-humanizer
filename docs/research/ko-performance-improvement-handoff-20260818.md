@@ -1,6 +1,28 @@
 # Korean performance improvement handoff — 2026-08-18
 
-**Status:** research complete; implementation not started.
+**Status:** research implementation complete; promotion blocked by live safety evidence.
+Production remains baseline.
+
+## Implementation status
+
+The implementation branch adds paragraph-scoped diagnosis, a versioned Korean
+structure fingerprint, detector-neutral candidate selection, native-Korean
+multi-axis blind ratings, and preregistered retention fixtures. The treatment is
+research-only: shipping behavior stays on the existing baseline unless
+`PATINA_KO_DIAGNOSIS_RESEARCH=1` is set.
+
+Exact number safety remains fail-closed. Polarity, causation, and entity-role
+proxies are advisory until calibration demonstrates acceptable false-positive
+and false-negative rates. A confirmatory promotion decision still requires the
+locked 120-item corpus, complete outcome accounting, lower-tail safety,
+cross-document cohesion, latency, token, and cost evidence.
+
+The confirmatory command is cryptographically bound to the exact 120-row corpus,
+its SHA-256, Korean language, and the fixed
+`iterative-baseline,ko-diagnosis-v1` order. Local-agent producer/judge runs accept
+only repository-owned `redistribution: repo-ok` fixtures, scorer inputs are
+data-fenced, and reports expose hashed fixture references rather than source or
+rewrite text.
 
 ## Decision
 
@@ -8,8 +30,10 @@ The next Korean improvement should not add another global rewrite instruction or
 more unconditional lexical substitutions. The strongest path is:
 
 1. run Patina's existing deterministic Korean analysis **before** rewriting;
-2. pass a compact, paragraph-bound diagnosis into the rewrite prompt;
-3. apply structural treatment only where a structural signal fired;
+2. use the compact diagnosis to select bounded prompt guidance without placing
+   the diagnosis payload in the model prompt;
+3. apply contextual structural treatment only where a structure/rhythm signal
+   fired;
 4. preserve unflagged prose and bound edit churn;
 5. experimentally generate two candidates, discard every safety failure, then
    rank only the survivors.
@@ -18,6 +42,65 @@ This targets the current failure mode: the contextual prompt is preferred by the
 judge and preserves meaning better, but changes too much of the document and
 moves the deterministic Korean AI-likeness score in the wrong direction.
 Detector or provenance scores remain diagnostics, never the rewrite objective.
+
+### Fresh research-only live reruns
+
+Two one-item `ko-blog-01` paired reruns used Kimi CLI as producer and Gemini CLI
+as the independent judge. They are debugging evidence, not confirmatory
+evidence:
+
+- diagnosis payload + contextual guidance: treatment MPS was 80 points below
+  baseline and fidelity was 33.3 points below baseline;
+- contextual guidance without the diagnosis payload: treatment MPS was 5 points
+  below baseline and fidelity was 33.3 points below baseline; both candidates
+  missed the MPS floor in that stochastic run.
+
+The full 11-fixture rerun
+also failed to complete after a 120-second Gemini scorer timeout. Therefore
+there is no current promotion evidence and the treatment must remain
+research-only. The locked 120-item confirmatory run was intentionally not
+started after these safety failures.
+
+### 2026-08-19 completion pass
+
+The repository apparatus now rejects model-graded rows whose scorer returned
+`status: error` even when the scorer also supplied numeric fallback values.
+Those rows no longer enter safety eligibility, blind preference, candidate
+candidate selection, or paired-success aggregates. Promotion cost accounting now measures
+candidate-serving usage only; independent judge usage is experiment overhead,
+not product COGS. Candidate calls spent before a grading or production error
+remain in token, latency, and cost aggregates; known exact-number violations on
+error rows still count against non-regression. A judge price is no longer
+required for candidate-cost evidence, and zero-dollar evidence cannot satisfy
+the cost gate. Candidate input and output rates are supplied separately, and
+provider-reported reasoning/cache subsets are not double-counted on top of the
+prompt/completion totals. Both totals must be present and non-negative; partial
+grader telemetry is merged with the tracked candidate calls instead of
+discarding paid production usage. Streamed floor failures also retain the
+already-computed private Korean invariant diagnostics without exposing them in
+customer frames.
+
+The locked corpus was rechecked at 120 unique Korean `repo-ok` rows with SHA-256
+`23c546abd02fdf34b3df11f0427c116cd184f39ab2e23319f4b4dd2c2ce5fee3`.
+Focused tests, the full 1,728-test suite, lint, the deterministic benchmark, and
+dogfood pass.
+
+Fresh one-item debugging runs could not produce new quality evidence:
+
+- Kimi CLI returned HTTP 402 while validating subscription benefits;
+- Kimi HTTP returned insufficient balance;
+- OpenAI HTTP returned `insufficient_quota`;
+- xAI's calibrated `grok-4.5` judge returned a monthly spending-limit 403;
+- Claude CLI's OAuth session had expired and could not refresh;
+- Gemini CLI timed out during scoring;
+- a local 32k-context Gemma judge exceeded the 180-second scoring deadline and
+  is not a scalable confirmatory substitute.
+
+Each provider-failed run was fully accounted as `error`; none was eligible for
+preference. One local 4k-context debugging run that completed produced two safe candidates
+but an order-inconsistent preference; it is not valid confirmatory evidence
+because the judge context was too short. The confirmatory run remains
+intentionally unstarted. Production remains baseline.
 
 ## Current evidence
 
@@ -41,7 +124,7 @@ problem→crisis→lesson arcs, repeated opener/closer shapes, and excessive
 cross-document cohesion. See
 [`2026-rewrite-efficacy-study1.md`](2026-rewrite-efficacy-study1.md).
 
-## Repository gap
+## Closed repository gap
 
 Patina already owns most of the necessary Korean measurements:
 
@@ -50,11 +133,12 @@ Patina already owns most of the necessary Korean measurements:
 - burstiness, MATTR, lexicon, discourse and structural signals;
 - exact number checks plus MPS and fidelity gates.
 
-The agent-skill path documents suspect-zone targeting. The hosted rewrite path
-does not yet exploit it: `src/web-rewrite.js` builds its prompt with
-`documentSignals: null`, while `src/web-rewrite-stream.js` computes deterministic
-before/after evidence only after the rewrite. The model therefore receives a
-large general rulebook but no authoritative answer to:
+The agent-skill path already documented suspect-zone targeting. This branch
+closes the hosted measurement gap by diagnosing the source before prompt
+construction and selecting contextual structure guidance only for diagnosed
+structure/rhythm routes. The diagnosis payload itself is not sent to the model
+after live safety evidence showed that the added payload increased semantic
+drift.
 
 - which paragraph is actually suspect;
 - whether its dominant defect is structure, rhythm, punctuation, translationese
@@ -62,7 +146,8 @@ large general rulebook but no authoritative answer to:
 - which spans should be preserved;
 - which natural paragraphs should be left alone.
 
-That missing feedback loop is the first implementation target.
+The resulting feedback loop remains research-flagged until confirmatory evidence
+passes every promotion gate.
 
 ## External evidence
 
@@ -205,9 +290,10 @@ receipt contract.
 For Korean experimental runs only:
 
 1. create baseline-targeted and contextual-targeted candidates;
-2. run exact meaning/number/polarity/causation checks on both;
+2. run exact number safety on both and record polarity/causation/entity-role
+   proxies as advisory diagnostics;
 3. run MPS and fidelity on both;
-4. discard failures before ranking;
+4. discard exact-number, MPS or fidelity failures before ranking;
 5. rank survivors on blind-naturalness evidence, structure-fingerprint distance,
    register/persona match and edit churn;
 6. keep deterministic AI-likeness as a separately reported diagnostic;
@@ -261,7 +347,8 @@ short-form StyleKQC-like items as a separate slice, not to the long-form mean.
 
 - treatment preference win-rate confidence interval excludes 50% under the
   locked confirmatory estimator;
-- no regression in exact number, polarity, causation or entity-role checks;
+- no regression in exact number safety; polarity, causation and entity-role
+  proxies remain advisory until separately calibrated;
 - the shipping MPS/fidelity floors are copied into the preregistration and
   cannot be lowered; their locked lower-tail summaries do not regress;
 - no increase in cross-document house-style cohesion;

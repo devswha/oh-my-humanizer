@@ -5,6 +5,7 @@ import { loadWebConfig, resolveBundleRoot } from '../../src/web-config.js';
 import { buildWebRewritePrompt, loadWebAssets, runWebRewrite } from '../../src/web-rewrite.js';
 import { WEB_PERSONAS } from '../../src/web-rewrite-contract.js';
 import { classifyWebPromptBudget, resolveWebPromptBudget } from '../../src/web-prompt-budget.js';
+import { buildKoreanDiagnosis, serializeKoreanDiagnosis } from '../../src/features/korean-diagnosis.js';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -262,4 +263,46 @@ test('runWebRewrite forwards BYOK provider options to callLLM', async () => {
   assert.equal(calls[0].model, 'gpt-4.1-mini');
   assert.equal(calls[0].timeout, 1234);
   assert.ok(calls[0].signal);
+});
+
+test('Korean web prompt carries the bounded deterministic diagnosis', () => {
+  // Given: a Korean paragraph with a paragraph-attributed translationese signal.
+  const text = '결과는 담당자에 의해 검토된다. 일정은 운영팀에 의해 다시 조정된다.';
+  const request = baseRequest('ko', { text, original: text });
+  const config = configFor('ko');
+  const assets = loadWebAssets({ repoRoot, lang: 'ko', documentType: 'default', config });
+  const diagnosis = buildKoreanDiagnosis(text, { repoRoot });
+
+  // When: the hosted prompt is built with the diagnosis.
+  const prompt = buildWebRewritePrompt({
+    request,
+    config,
+    assets,
+    documentSignals: [serializeKoreanDiagnosis(diagnosis)],
+  });
+
+  // Then: the machine-consumed diagnosis is present without source text.
+  assert.ok(prompt.includes(serializeKoreanDiagnosis(diagnosis)));
+  assert.equal(serializeKoreanDiagnosis(diagnosis).includes('담당자'), false);
+});
+
+test('runWebRewrite does not bypass the model for detector-clean Korean prose', async () => {
+  // Given: Korean prose outside the deterministic detector's known signals.
+  const text = '창문을 열자 빗소리가 가까워졌다. 잠시 뒤 골목이 조용해졌다.';
+  let calls = 0;
+
+  // When: the shipping hosted rewrite runs without the research flag.
+  const result = await runWebRewrite({
+    request: baseRequest('ko', { text, original: text }),
+    config: configFor('ko'),
+    repoRoot,
+    callLLM: async () => {
+      calls += 1;
+      return '창문을 여니 빗소리가 한층 가까워졌다. 이내 골목은 다시 조용해졌다.';
+    },
+  });
+
+  // Then: detector silence never certifies a no-op.
+  assert.equal(result.rewrite, '창문을 여니 빗소리가 한층 가까워졌다. 이내 골목은 다시 조용해졌다.');
+  assert.equal(calls, 1);
 });
