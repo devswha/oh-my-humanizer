@@ -20,7 +20,7 @@
   <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <a href="#quick-start"><img alt="Skill: Claude Code | Codex | Cursor | OpenCode" src="https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet"></a>
   <a href="https://github.com/devswha/patina"><img alt="Languages: KO | EN | ZH | JA" src="https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green"></a>
-  <a href="CHANGELOG.md"><img alt="Version 7.1.0" src="https://img.shields.io/badge/version-7.1.0-blue"></a>
+  <a href="CHANGELOG.md"><img alt="Version 8.0.0" src="https://img.shields.io/badge/version-8.0.0-blue"></a>
 </p>
 
 <p align="center">
@@ -45,6 +45,8 @@ patina is a deterministic, pattern-based humanizer for Korean, English, Chinese,
 ## Quick Start
 
 **Browser — nothing to install.** Open **[patina.vibetip.help](https://patina.vibetip.help/)** and paste text. Rewrites run server-side with the MPS/fidelity gates; API mode forwards your own key per request (never stored or logged).
+
+[Hosted API (Pro)](docs/HTTP-API.md)
 
 **Agent skill — paste this into Claude Code, Codex CLI, Cursor, or any agent:**
 
@@ -100,7 +102,7 @@ patina --batch docs/*.md --outdir cleaned/
 Project config lives in `.patina.yaml`:
 
 ```yaml
-version: "7.1.0"
+version: "8.0.0"
 language: ko              # ko | en | zh | ja
 document-type: default    # genre/purpose + pattern policy
 persona:                  # optional reusable voice; omit to preserve source

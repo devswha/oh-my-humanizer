@@ -22,7 +22,7 @@ function flush() { return new Promise((resolve) => setTimeout(resolve, 0)); }
 test('real rewrite aggregates flow through protected cron, pending Discord alerts, and atomic healthy-recovery OBS receipts', async () => {
   const clock = { ms: BASE }; const aggregate = new Map(); const controls = new Map(); const observerEvents = []; const commands = []; const discord = []; let directAggregateSeed = 0; let latencyIndex = -1; let discordFailures = 9;
   const env = {
-    NODE_ENV: 'test', PATINA_DEPLOYMENT_CHANNEL: 'production', PATINA_PRO_API_KEY: 'pro-key', PATINA_LICENSE_HMAC_SECRET: 'hmac-secret', LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
+    NODE_ENV: 'test', PATINA_DEPLOYMENT_CHANNEL: 'production', PATINA_PRO_API_KEY: 'pro-key', PATINA_LICENSE_HMAC_SECRET: 'hmac-secret', POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
     CRON_SECRET: 'cron-secret', VERCEL_GIT_COMMIT_SHA: '0123456789abcdef0123456789abcdef01234567',
     PATINA_OBSERVABILITY_REST_API_URL: 'https://telemetry.upstash.io', PATINA_OBSERVABILITY_REST_API_TOKEN: 'observability-token',
     PATINA_PUBLIC_BASE_URL: 'https://patina.example.com', PATINA_SYNTHETIC_PRO_LICENSE: 'synthetic-license', PATINA_SYNTHETIC_OBSERVER_SECRET: 'synthetic-observer',
@@ -38,12 +38,12 @@ test('real rewrite aggregates flow through protected cron, pending Discord alert
   const logger = { info(value) { if (value?.schema === 'patina.web.v1') observerEvents.push({ at: clock.ms, event: value }); }, warn() {}, error() {}, debug() {} };
   const runner = async ({ request, emit, signal, timeout, observe }) => runWebRewriteStream({ request, emit, signal, timeout, observe, now: () => clock.ms, callLLMStream: async ({ onDelta }) => { clock.ms += request.text === 'Patina monitor health check.' ? 0 : latencyIndex < 0 ? 10_000 : [10_000, 40_000, 90_000, 130_000, 130_000, 130_000, 130_000, 130_000, 130_000, 130_000][latencyIndex]; const value = request.text === 'Patina monitor health check.' ? request.text : request.text.includes('mismatch') ? 'Order 8 units.' : 'Order 7 units.'; onDelta(value); return { text: value }; }, scoreFns: { scoreMPS: async () => ({ mps: 95 }), scoreFidelity: async () => ({ fidelity: 95 }), scoreDeterministicSignals: () => ({}) } });
   const originalFetch = globalThis.fetch; const RealDate = Date;
-  globalThis.fetch = /** @type {any} */ (async () => ({ ok: true, status: 200, json: async () => ({ valid: true, license_key: { status: 'active' }, meta: { store_id: '42', variant_id: '99' } }) }));
+  globalThis.fetch = /** @type {any} */ (async () => ({ ok: true, status: 200, json: async () => ({ organization_id: 'org-uuid', benefit_id: 'benefit-uuid', status: 'granted', expires_at: null }) }));
   try {
     const rewrite = createRewriteApiHandler({ env, now: () => clock.ms, logger, observabilityKv, runWebRewriteStreamImpl: runner });
-    let output = response(); await rewrite(rewriteRequest('Bearer LS-RAW-PRO-CANARY', 'Order 7 units mismatch.'), output); await flush(); assert.match(output.body, /number_safety_failed/);
+    let output = response(); await rewrite(rewriteRequest('Bearer POLAR-RAW-PRO-CANARY', 'Order 7 units mismatch.'), output); await flush(); assert.match(output.body, /number_safety_failed/);
     output = response(); await rewrite(rewriteRequest(), output); await flush(); assert.equal(output.statusCode, 401);
-    for (let i = 0; i < 10; i += 1) { latencyIndex = i; clock.ms = BASE; output = response(); await rewrite(rewriteRequest('Bearer LS-RAW-PRO-CANARY'), output); await flush(); assert.equal(output.statusCode, 200); }
+    for (let i = 0; i < 10; i += 1) { latencyIndex = i; clock.ms = BASE; output = response(); await rewrite(rewriteRequest('Bearer POLAR-RAW-PRO-CANARY'), output); await flush(); assert.equal(output.statusCode, 200); }
     assert.equal(directAggregateSeed, 0); assert.ok([...aggregate.keys()].every((key) => key.startsWith(`${MONITOR_KEY_PREFIX}:production:pro:`)));
     assert.ok(observerEvents.some(({ event }) => event.outcome === 'number_safety_failed'));
 

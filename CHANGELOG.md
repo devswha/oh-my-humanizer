@@ -12,7 +12,25 @@ All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 Semver rationale: patch | minor | major — explain whether this changes patterns, schemas, CLI behavior, or docs only.
 ```
 
-## Unreleased
+## 8.0.0 — 2026-08-31
+
+**Polar-only payments, and the hosted API as a product: JSON mode, CORS, public API docs.**
+
+Semver rationale: major — removes packaged exports and changes the `createLicenseValidator` construction contract; the CLI surface and all hosted behavior for valid Polar licenses are unchanged.
+
+### Removed
+
+- The retired Lemon Squeezy payment line: `src/entitlement.js` no longer exports `LS_LICENSE_VALIDATE_URL`, `evaluateLicenseResponse`, `LEMON_SQUEEZY_PROVIDER`, or `createLemonSqueezyLicenseValidator` (deep-import users must switch to `createPolarLicenseValidator` in `src/entitlement-polar.js`).
+- `createLicenseValidator({ provider })` now requires an explicit `provider` (fail-closed `TypeError` at construction; previously defaulted to Lemon Squeezy).
+- `PATINA_LICENSE_PROVIDER` no longer selects a vendor: `api/rewrite.js` and `api/packs.js` validate unconditionally against Polar (`POLAR_ORGANIZATION_ID`, `POLAR_PRO_BENEFIT_ID`). LS identity env names (`LS_STORE_ID`, `LS_PRO_VARIANT_ID`, `LS_PRO_PRODUCT_ID`) and `PATINA_LS_*` tunables are inert and removed from `.env.example`.
+
+### Added
+
+- Hosted API product surface (`docs/HTTP-API.md`): `Accept: application/json` returns one buffered JSON response with runner terminal semantics preserved (safety-gate refusals → `422` with a stable machine-readable `code`; upstream failures → `500`); exact media-type Accept negotiation (explicit NDJSON wins, `q=0` excludes, lookalikes never match); CORS for cross-origin API use (wildcard origin, Bearer-only, quota-exempt preflight); premature client close never writes to a destroyed response. The playground CTA now frames Pro as API access, localized in ko/en/zh/ja.
+
+### Unchanged
+
+- The pack CLI (`patina pack`) command syntax and config keys; only the server-side license authority changed. License recovery guidance now points to the Polar customer portal.
 
 ## 7.1.0 — 2026-08-18
 

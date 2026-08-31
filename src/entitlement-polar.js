@@ -26,7 +26,7 @@
 //     boundary (PATINA_PRO_REQ_PER_MONTH) and Polar's counter never resets, so
 //     mixing them would silently shorten a paying month.
 //
-// Fail-closed posture matches the LS module: every failed check returns a
+// The fail-closed posture returns every failed check as a
 // generic 403 LICENSE_INVALID to the caller, and the specific reason is
 // carried only in `detail` for server-side logging. `detail` never contains
 // the license key.
@@ -79,7 +79,7 @@ export function buildPolarValidateRequest(license, env = {}) {
  * Pure allow/deny evaluation of a Polar validate response against the
  * configured organization and benefit.
  *
- * Mirrors `evaluateLicenseResponse` in src/entitlement.js: on any failed check
+ * Like the shared entitlement core, on any failed check
  * the PUBLIC result is a generic 403 LICENSE_INVALID, and the failing check is
  * exposed only through the non-authoritative `detail` field for server-side
  * logging — never returned to the client and never containing the license.
@@ -135,8 +135,7 @@ export function evaluatePolarLicenseResponse(data, env = {}, now = Date.now()) {
  * This distinction is the difference between a correct 403 and a misleading
  * 503. Measured against the live endpoint on 2026-07-29: an unknown key
  * answers **HTTP 404 `{"error":"ResourceNotFound","detail":"Not found"}`** —
- * unlike Lemon Squeezy, which answers 4xx carrying `valid: false`. Treating
- * that 404 as "unavailable" would report every invalid license as a service
+ * Treating that 404 as "unavailable" would report every invalid license as a service
  * outage, and would re-charge the admission bucket on every retry of a key
  * that will never validate.
  *
@@ -166,8 +165,7 @@ export function isPolarDefinitiveDenial(status, body) {
  * Measured against a live sandbox validate response (2026-07-29): alongside
  * the entitlement fields, Polar returns `user` and `customer` objects with the
  * purchaser's email, display name, and avatar URL, plus their IDs. This
- * mirrors the Lemon Squeezy hazard already documented in src/entitlement.js
- * ("the FULL LS body is never logged — its meta carries customer PII"), and it
+ * mirrors the provider PII hazard documented in src/entitlement.js, and it
  * is why `evaluatePolarLicenseResponse` reads named fields instead of passing
  * the body through.
  */
@@ -221,9 +219,8 @@ export const POLAR_PROVIDER = {
 
 /**
  * Build the Polar license validator. Shares the entire security machinery with
- * the Lemon Squeezy path (HMAC subjects, two-layer cache, cross-instance
- * single-flight lock, RPM admission, redaction, fail-closed defaults) and only
- * swaps the vendor surface.
+ * the shared entitlement core (HMAC subjects, two-layer cache, cross-instance
+ * single-flight lock, RPM admission, redaction, fail-closed defaults).
  *
  * Cache and lock keys are namespaced by the provider id, so switching vendors
  * cannot serve a decision cached under the previous one.

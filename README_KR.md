@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skill](https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet)](#빠른-시작)
 [![Multi-language](https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green)](https://github.com/devswha/patina)
-[![Version](https://img.shields.io/badge/version-7.1.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-8.0.0-blue)](CHANGELOG.md)
 
 <p align="center">
   <a href="https://patina.vibetip.help/"><b>브라우저에서 바로 써보기 — 설치 없음</b></a>
@@ -37,6 +37,8 @@ AI 티가 나는 글을 **[playground](https://patina.vibetip.help/)** 에 붙�
 ## 빠른 시작
 
 **브라우저 — 설치 없음.** **[patina.vibetip.help](https://patina.vibetip.help/)** 를 열고 붙여넣으면 끝. 재작성과 채점은 서버에서 실행되고, API 모드는 개인 키를 요청 단위로만 전달합니다(저장·로깅 없음).
+
+[Hosted API (Pro)](docs/HTTP-API.md)
 
 **에이전트 스킬 — Claude Code, Codex CLI, Cursor 등 아무 에이전트에나 붙여넣으세요:**
 
@@ -98,7 +100,7 @@ patina --batch docs/*.md --outdir cleaned/
 
 ```yaml
 # .patina.default.yaml
-version: "7.1.0"
+version: "8.0.0"
 language: ko              # ko | en | zh | ja
 document-type: default    # 장르·용도 + 패턴 정책
 persona:                  # 선택 사항; 생략하면 원문 보이스 보존

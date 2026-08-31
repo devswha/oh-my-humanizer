@@ -3,10 +3,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler, { createObservabilityRestKv, createRestKv, createRewriteApiHandler } from '../../api/rewrite.js';
 
-function makeReq({ body = undefined, method = 'POST' } = {}) {
+function makeReq({ body = undefined, method = 'POST', headers = {} } = {}) {
   return {
     method,
-    headers: { 'x-real-ip': '203.0.113.10' },
+    headers: { 'x-real-ip': '203.0.113.10', ...headers },
     body: JSON.stringify(body ?? {
       mode: 'first',
       lang: 'en',
@@ -92,7 +92,7 @@ test('factory handler streams injected NDJSON frames in non-production memory po
   const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: injected });
   const res = makeRes();
 
-  await api(makeReq(), res);
+  await api(makeReq({ headers: { accept: '*/*' } }), res);
 
   assert.equal(res.statusCode, 200);
   assert.equal(res.getHeader('cache-control'), 'no-store');
@@ -102,6 +102,198 @@ test('factory handler streams injected NDJSON frames in non-production memory po
   assert.equal(res.ended, true);
   // Boundary lock: the server free key must never appear in the NDJSON stream.
   assert.doesNotMatch(res.chunks.join(''), /sk-server-free-key/);
+});
+
+test('JSON accept buffers a completed rewrite into one JSON response', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit }) => {
+      emit({ type: 'start' });
+      emit({ type: 'delta', text: 'natural' });
+      emit({
+        type: 'done', rewrite: 'natural prose', mps: { score: 100 }, fidelity: { score: 95 },
+        signals: { before: 80, after: 10 }, diff: { changedWords: 2 }, receipt: { receiptHash: 'sha256:test' },
+      });
+    },
+  });
+  const res = makeRes();
+
+  await api(makeReq({ headers: { accept: 'application/json' } }), res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.getHeader('content-type'), 'application/json');
+  assert.equal(res.chunks.length, 1);
+  const body = JSON.parse(res.chunks[0]);
+  assert.deepEqual(body, {
+    ok: true,
+    rewrite: 'natural prose',
+    mps: { score: 100 },
+    fidelity: { score: 95 },
+    signals: { before: 80, after: 10 },
+    diff: { changedWords: 2 },
+    receipt: { receiptHash: 'sha256:test' },
+  });
+});
+
+test('JSON mode maps safety-gate refusals to 422 and upstream failures to 500', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const cases = [
+    {
+      code: 'floor_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'floor_failed', failed: 'mps' });
+        return { ok: false, code: 'floor_failed', failed: 'mps' };
+      },
+      expectedStatus: 422,
+    },
+    {
+      code: 'number_safety_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'number_safety_failed' });
+        return { ok: false, code: 'number_safety_failed' };
+      },
+      expectedStatus: 422,
+    },
+    {
+      code: 'stream_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'stream_failed', error: 'upstream died' });
+        return { ok: false, code: 'stream_failed', error: 'upstream died' };
+      },
+      expectedStatus: 500,
+    },
+    {
+      code: 'scoring_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'scoring_failed', error: 'scorer timeout' });
+        return { ok: false, code: 'scoring_failed', error: 'scorer timeout' };
+      },
+      expectedStatus: 500,
+    },
+  ];
+  for (const { code, runner, expectedStatus } of cases) {
+    const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: runner });
+    const res = makeRes();
+    await api(makeReq({ headers: { accept: 'application/json' } }), res);
+    assert.equal(res.statusCode, expectedStatus, `${code} must map to ${expectedStatus}`);
+    assert.equal(res.getHeader('content-type'), 'application/json');
+    const body = JSON.parse(res.chunks[0]);
+    assert.equal(body.ok, false);
+    assert.equal(body.code, code, `${code} must carry a stable machine-readable code`);
+    assert.equal(typeof body.error, 'string');
+  }
+});
+
+test('JSON opt-in requires an exact media type: q=0, json-seq, and NDJSON precedence stay NDJSON', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const ndjsonCases = [
+    'application/json;q=0',
+    'application/json-seq',
+    'application/json, application/x-ndjson',
+    '*/*',
+    'text/html',
+  ];
+  for (const accept of ndjsonCases) {
+    const api = createRewriteApiHandler({
+      env,
+      runWebRewriteStreamImpl: async ({ emit }) => { emit({ type: 'done', rewrite: 'ok' }); },
+    });
+    const res = makeRes();
+    await api(makeReq({ headers: { accept } }), res);
+    assert.equal(res.getHeader('content-type'), 'application/x-ndjson', `${accept} must stay NDJSON`);
+  }
+  const jsonCases = [
+    'application/json',
+    'application/json;q=0.8',
+    'text/html, application/json',
+  ];
+  for (const accept of jsonCases) {
+    const api = createRewriteApiHandler({
+      env,
+      runWebRewriteStreamImpl: async ({ emit }) => { emit({ type: 'done', rewrite: 'ok' }); },
+    });
+    const res = makeRes();
+    await api(makeReq({ headers: { accept } }), res);
+    assert.equal(res.getHeader('content-type'), 'application/json', `${accept} must opt into JSON`);
+  }
+});
+
+test('JSON mode never writes to a response destroyed by a premature client close', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit, signal }) => {
+      emit({ type: 'start' });
+      await new Promise((resolve) => signal.addEventListener('abort', resolve, { once: true }));
+      emit({ type: 'done', rewrite: 'late' });
+      return { ok: true };
+    },
+  });
+  const res = makeRes();
+  const request = makeReq({ headers: { accept: 'application/json' } });
+  const pending = api(request, res);
+  // Client disconnects mid-rewrite: the close listener fires while the
+  // rewrite is still running, so the abort signal cancels upstream work.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  res.emitClose();
+  await pending;
+  assert.equal(res.chunks.length, 0, 'no body may be written after the client is gone');
+  assert.equal(res.ended, false, 'res.end must not run after a premature close');
+});
+
+test('JSON accept returns quota errors as plain JSON', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  let calls = 0;
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit }) => {
+      calls += 1;
+      emit({ type: 'done', rewrite: 'ok' });
+    },
+  });
+  const request = () => makeReq({ headers: { accept: 'application/json' } });
+  for (let index = 0; index < 10; index += 1) await api(request(), makeRes());
+  const res = makeRes();
+
+  await api(request(), res);
+
+  assert.equal(calls, 10);
+  assert.equal(res.statusCode, 429);
+  assert.equal(res.getHeader('content-type'), 'application/json');
+  assert.deepEqual(JSON.parse(res.chunks[0]), { error: 'hourly burst exceeded' });
+  assert.doesNotMatch(res.chunks[0], /"type"/);
+});
+
+test('CORS preflight is accepted without consuming quota and POST responses allow any origin', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  let calls = 0;
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit }) => {
+      calls += 1;
+      emit({ type: 'done', rewrite: 'ok' });
+    },
+  });
+  const preflight = makeRes();
+
+  await api(makeReq({ method: 'OPTIONS' }), preflight);
+
+  assert.equal(preflight.statusCode, 204);
+  assert.equal(preflight.getHeader('access-control-allow-origin'), '*');
+  assert.equal(preflight.getHeader('access-control-allow-methods'), 'POST, OPTIONS');
+  assert.equal(preflight.getHeader('access-control-allow-headers'), 'Authorization, Content-Type');
+  assert.equal(calls, 0);
+
+  const post = makeRes();
+  await api(makeReq(), post);
+  assert.equal(calls, 1);
+  assert.equal(post.getHeader('access-control-allow-origin'), '*');
+  assert.equal(post.getHeader('content-type'), 'application/x-ndjson');
 });
 
 test('the entrypoint emits no legacy raw rewrite metric', async () => {
@@ -635,26 +827,26 @@ test('REST KV incrBy with a TTL adds N and applies the expiry in ONE atomic EVAL
   }
 });
 
-/** A globalThis.fetch stub returning a valid Lemon Squeezy validate-only response. */
-function validLsFetch() {
+/** A globalThis.fetch stub returning a valid Polar customer-portal response. */
+function validPolarFetch() {
   return /** @type {any} */ (async () => ({
     ok: true,
     status: 200,
     async json() {
-      return { valid: true, license_key: { status: 'active' }, meta: { store_id: '42', variant_id: '99' } };
+      return { organization_id: 'org-uuid', benefit_id: 'benefit-uuid', status: 'granted', expires_at: null };
     },
   }));
 }
 
 test('pro tier: a valid license streams with the server pro key and no legacy metric or license leak', async () => {
-  const RAW = 'LS-LICENSE-RAW-777';
+  const RAW = 'POLAR-LICENSE-RAW-777';
   const env = {
     NODE_ENV: 'test',
     PATINA_FREE_PROVIDER: 'openai', PATINA_FREE_MODEL: 'gpt-5.5',
     PATINA_FREE_API_KEY: 'sk-server-free-key',
     PATINA_PRO_API_KEY: 'sk-server-pro-key',
     PATINA_LICENSE_HMAC_SECRET: 'license-secret',
-    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
+    POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
   };
   const logs = [];
   const logger = { info: (event) => logs.push(event), error() {}, warn() {}, debug() {} };
@@ -666,7 +858,7 @@ test('pro tier: a valid license streams with the server pro key and no legacy me
     emit({ type: 'done', rewrite: 'ok' });
   };
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = validLsFetch();
+  globalThis.fetch = validPolarFetch();
   try {
     // Validator captures globalThis.fetch at construction, so replace it first.
     const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: injected, logger });
@@ -693,9 +885,7 @@ test('pro tier: a valid license streams with the server pro key and no legacy me
   }
 });
 
-test('the license provider is selected by env and defaults to Lemon Squeezy', async () => {
-  // Selecting the gate vendor must be explicit: an existing deployment that
-  // upgrades without setting PATINA_LICENSE_PROVIDER keeps the LS gate.
+test('the license provider is always Polar', async () => {
   const RAW = 'PROVIDER-SELECT-RAW';
   const baseEnv = {
     NODE_ENV: 'test',
@@ -703,25 +893,18 @@ test('the license provider is selected by env and defaults to Lemon Squeezy', as
     PATINA_FREE_API_KEY: 'sk-server-free-key',
     PATINA_PRO_API_KEY: 'sk-server-pro-key',
     PATINA_LICENSE_HMAC_SECRET: 'license-secret',
-    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
     POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
   };
   const injected = async ({ emit }) => emit({ type: 'done', rewrite: 'ok' });
   const originalFetch = globalThis.fetch;
   try {
     for (const [label, envOverride, expectedHost] of /** @type {Array<[string, Record<string,string>, string]>} */ ([
-      ['default (unset)', {}, 'api.lemonsqueezy.com'],
-      ['explicit lemonsqueezy', { PATINA_LICENSE_PROVIDER: 'lemonsqueezy' }, 'api.lemonsqueezy.com'],
-      ['polar', { PATINA_LICENSE_PROVIDER: 'polar' }, 'api.polar.sh'],
-      // An unrecognized value must not silently pick the newer vendor.
-      ['unknown value', { PATINA_LICENSE_PROVIDER: 'paddle' }, 'api.lemonsqueezy.com'],
+      ['unset', {}, 'api.polar.sh'],
     ])) {
       let calledUrl = '';
       globalThis.fetch = /** @type {any} */ (async (url) => {
         calledUrl = String(url);
-        // Shape both vendors' "definitively invalid" answer so the request
-        // completes as a denial rather than hanging on a retry path.
-        return { ok: false, status: 404, json: async () => ({ valid: false, error: 'ResourceNotFound' }) };
+        return { ok: false, status: 404, json: async () => ({ error: 'ResourceNotFound' }) };
       });
       const api = createRewriteApiHandler({ env: { ...baseEnv, ...envOverride }, runWebRewriteStreamImpl: injected });
       const res = makeRes();
@@ -744,12 +927,12 @@ test('pro tier: fails closed with 503 when no pro key and no free-key fallback a
     PATINA_FREE_PROVIDER: 'openai', PATINA_FREE_MODEL: 'gpt-5.5',
     // no PATINA_PRO_API_KEY, no PATINA_FREE_API_KEY -> nothing to fall back to.
     PATINA_LICENSE_HMAC_SECRET: 'license-secret',
-    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
+    POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
   };
   let runnerCalled = false;
   const injected = async () => { runnerCalled = true; };
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = validLsFetch();
+  globalThis.fetch = validPolarFetch();
   try {
     const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: injected });
     const res = makeRes();
@@ -775,12 +958,12 @@ test('pro tier: outside production a valid license falls back to the free key wh
     PATINA_FREE_API_KEY: 'sk-server-free-key',
     // no PATINA_PRO_API_KEY -> non-production allows the free key as a dev fallback.
     PATINA_LICENSE_HMAC_SECRET: 'license-secret',
-    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
+    POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
   };
   let seenKey;
   const injected = async ({ request, emit }) => { seenKey = request.apiKey; emit({ type: 'done', rewrite: 'ok' }); };
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = validLsFetch();
+  globalThis.fetch = validPolarFetch();
   try {
     const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: injected });
     const res = makeRes();
@@ -811,18 +994,18 @@ test('pro tier: in production, no pro key + present free key + no allow-flag ret
     PATINA_PRO_PROVIDER: 'claude', PATINA_PRO_MODEL: 'claude-sonnet-5',
     // No PATINA_PRO_API_KEY and no PATINA_PRO_ALLOW_FREE_KEY: paid traffic MUST NOT
     // silently spend the free key in production.
-    LS_STORE_ID: '42', LS_PRO_VARIANT_ID: '99',
+    POLAR_ORGANIZATION_ID: 'org-uuid', POLAR_PRO_BENEFIT_ID: 'benefit-uuid',
   };
   let runnerCalled = false;
   const injected = async () => { runnerCalled = true; };
   const originalFetch = globalThis.fetch;
-  // One mock serves both the LS validate call and the Upstash KV REST adapter so
+  // One mock serves both the Polar validate call and the Upstash KV REST adapter so
   // entitlement + rate limiting pass in production and the flow reaches the
   // server-key resolution (where the policy denial happens).
   globalThis.fetch = /** @type {any} */ (async (url, init) => {
     const u = String(url);
-    if (u.includes('api.lemonsqueezy.com')) {
-      return { ok: true, status: 200, async json() { return { valid: true, license_key: { status: 'active' }, meta: { store_id: '42', variant_id: '99' } }; } };
+    if (u.includes('api.polar.sh')) {
+      return { ok: true, status: 200, async json() { return { organization_id: 'org-uuid', benefit_id: 'benefit-uuid', status: 'granted', expires_at: null }; } };
     }
     if (init && init.method === 'POST') {
       // Root-POST commands: atomic EVAL(INCRBY+PEXPIRE) counters return 1; SET returns OK.

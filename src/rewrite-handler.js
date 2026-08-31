@@ -12,7 +12,7 @@ import { extractBearerLicense } from './entitlement.js';
  * optional so bare serverless/test mocks keep working.
  *
  * @typedef {{method?: string, headers?: Record<string, string|string[]|undefined>, rawHeaders?: string[], body?: unknown, on?: (event: string, listener: (...args: unknown[]) => void) => unknown, off?: (event: string, listener: (...args: unknown[]) => void) => unknown, [Symbol.asyncIterator]?: () => AsyncIterator<Buffer|string|Uint8Array>}} RewriteReq
- * @typedef {{statusCode?: number, setHeader?: (name: string, value: string) => void, write?: (chunk: string) => void, end?: (body?: string) => void, on?: (event: string, listener: (...args: unknown[]) => void) => unknown, off?: (event: string, listener: (...args: unknown[]) => void) => unknown, writableEnded?: boolean, headersSent?: boolean, destroy?: () => void}} RewriteRes
+ * @typedef {{statusCode?: number, setHeader?: (name: string, value: string) => void, write?: (chunk: string) => void, end?: (body?: string) => void, on?: (event: string, listener: (...args: unknown[]) => void) => unknown, off?: (event: string, listener: (...args: unknown[]) => void) => unknown, writableEnded?: boolean, headersSent?: boolean, destroyed?: boolean, destroy?: () => void}} RewriteRes
  * @typedef {{check(input: {tier: string, ip: string|null, subject?: string, chars?: number}): Promise<{allowed: true, tier: string}|{allowed: false, status: number, reason: string, remainingMonthlyChars?: number, limitMonthlyChars?: number}>, acquireConcurrency?(input: {tier: string, ip: string|null, subject?: string}): Promise<{allowed: true, tier: string, lease: string}|{allowed: false, status: number, reason: string}>, releaseConcurrency?(input: {tier: string, ip: string|null, subject?: string, lease: string}): Promise<void>}} RateLimiter
  * @typedef {{req: RewriteReq, res: RewriteRes, request: Record<string, unknown>, now: () => number, observe?: Function, beforeResponseEnd?: () => Promise<void>}} RewriteRunnerInput
  * @typedef {{validate(input: {licenseKey: string}): Promise<{ok: true, subject: string, tier: string, status: string, cache: string}|{ok: false, status: number, reason: string}>}} LicenseValidator
@@ -73,6 +73,11 @@ export function createRewriteHandler({ rateLimiter, runRewrite, env = {}, now = 
     }
     setSecurityHeaders(res);
     try {
+      if (req.method === 'OPTIONS') {
+        res.statusCode = 204;
+        res.end?.();
+        return undefined;
+      }
       if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' });
 
       const rawBody = await readRawBody(req, maxBodyBytes);
@@ -276,6 +281,14 @@ function setSecurityHeaders(res) {
   res.setHeader?.('Cache-Control', 'no-store');
   res.setHeader?.('X-Content-Type-Options', 'nosniff');
   res.setHeader?.('Content-Type', 'application/json');
+  setCorsHeaders(res);
+}
+
+/** @param {RewriteRes} res */
+function setCorsHeaders(res) {
+  res.setHeader?.('Access-Control-Allow-Origin', '*');
+  res.setHeader?.('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.setHeader?.('Access-Control-Allow-Methods', 'POST, OPTIONS');
 }
 
 /**
@@ -298,6 +311,7 @@ export function send(res, status, obj) {
   res.setHeader?.('Cache-Control', 'no-store');
   res.setHeader?.('X-Content-Type-Options', 'nosniff');
   res.setHeader?.('Content-Type', 'application/json');
+  setCorsHeaders(res);
   res.end?.(JSON.stringify(obj));
   return undefined;
 }
