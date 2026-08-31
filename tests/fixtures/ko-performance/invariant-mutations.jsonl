@@ -1,0 +1,20 @@
+{"fixture_id":"ko-mut-num-01","original":"운영팀은 서버 3대를 점검했다.","mutation":"운영팀은 서버 4대를 점검했다.","expected_failure":"number"}
+{"fixture_id":"ko-mut-num-02","original":"신청서는 12건 접수됐다.","mutation":"신청서는 13건 접수됐다.","expected_failure":"number"}
+{"fixture_id":"ko-mut-num-03","original":"처리 시간이 20% 줄었다.","mutation":"처리 시간이 25% 줄었다.","expected_failure":"number"}
+{"fixture_id":"ko-mut-num-04","original":"점검일은 2026년 9월 1일이다.","mutation":"점검일은 2026년 9월 2일이다.","expected_failure":"number"}
+{"fixture_id":"ko-mut-num-05","original":"예산은 1억 원으로 확정됐다.","mutation":"예산은 2억 원으로 확정됐다.","expected_failure":"number"}
+{"fixture_id":"ko-mut-pol-01","original":"운영팀은 배포를 승인하지 않았다.","mutation":"운영팀은 배포를 승인했다.","expected_failure":"polarity"}
+{"fixture_id":"ko-mut-pol-02","original":"사용자는 현재 서비스에 접속할 수 없다.","mutation":"사용자는 현재 서비스에 접속할 수 있다.","expected_failure":"polarity"}
+{"fixture_id":"ko-mut-pol-03","original":"관리자는 외부 반출을 금지한다.","mutation":"관리자는 외부 반출을 허용한다.","expected_failure":"polarity"}
+{"fixture_id":"ko-mut-pol-04","original":"이번 실험은 실패하지 않았다.","mutation":"이번 실험은 실패했다.","expected_failure":"polarity"}
+{"fixture_id":"ko-mut-pol-05","original":"추가 승인은 필요하지 않다.","mutation":"추가 승인은 필요하다.","expected_failure":"polarity"}
+{"fixture_id":"ko-mut-cause-01","original":"폭우 때문에 행사가 취소됐다.","mutation":"행사 때문에 폭우가 발생했다.","expected_failure":"causation"}
+{"fixture_id":"ko-mut-cause-02","original":"정전 때문에 서버가 중단됐다.","mutation":"서버 때문에 정전이 발생했다.","expected_failure":"causation"}
+{"fixture_id":"ko-mut-cause-03","original":"부품 결함으로 인해 생산이 멈췄다.","mutation":"생산으로 인해 부품 결함이 생겼다.","expected_failure":"causation"}
+{"fixture_id":"ko-mut-cause-04","original":"교통 체증 때문에 배송이 늦었다.","mutation":"배송 때문에 교통 체증이 심해졌다.","expected_failure":"causation"}
+{"fixture_id":"ko-mut-cause-05","original":"설정 오류로 인해 로그인이 실패했다.","mutation":"로그인으로 인해 설정 오류가 발생했다.","expected_failure":"causation"}
+{"fixture_id":"ko-mut-role-01","original":"운영팀이 보안팀을 지원했다.","mutation":"보안팀이 운영팀을 지원했다.","expected_failure":"entityRole"}
+{"fixture_id":"ko-mut-role-02","original":"개발팀이 기획팀을 설득했다.","mutation":"기획팀이 개발팀을 설득했다.","expected_failure":"entityRole"}
+{"fixture_id":"ko-mut-role-03","original":"감사팀이 재무팀을 조사했다.","mutation":"재무팀이 감사팀을 조사했다.","expected_failure":"entityRole"}
+{"fixture_id":"ko-mut-role-04","original":"본사가 지사를 지원했다.","mutation":"지사가 본사를 지원했다.","expected_failure":"entityRole"}
+{"fixture_id":"ko-mut-role-05","original":"판매자가 구매자를 고소했다.","mutation":"구매자가 판매자를 고소했다.","expected_failure":"entityRole"}

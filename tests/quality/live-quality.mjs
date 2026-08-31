@@ -28,7 +28,6 @@ import { scoreText as scoreProseText } from '../../scripts/prose-score.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
 const DEFAULT_FIXTURE_DIR = resolve(REPO_ROOT, 'tests/fixtures/live-quality');
-const LEGACY_FIXTURE_PATH = resolve(REPO_ROOT, 'tests/quality/live-fixtures.jsonl');
 
 export const LIVE_QUALITY_SCHEMA_VERSION = 1;
 export const DEFAULT_POLICY = Object.freeze({
@@ -39,25 +38,35 @@ export const DEFAULT_POLICY = Object.freeze({
 });
 
 const REQUIRED_FIXTURE_FIELDS = ['fixture_id', 'language', 'redistribution', 'text'];
+const MAX_JSONL_BYTES = 5 * 1024 * 1024;
+const MAX_JSONL_ROWS = 500;
+const MAX_FIXTURE_TEXT_CHARS = 50_000;
 
-export function loadLiveFixtures(source = DEFAULT_FIXTURE_DIR) {
-  const resolved = resolve(source);
+export function loadLiveFixtures(source = null) {
+  const selected = source ?? DEFAULT_FIXTURE_DIR;
+  const resolved = resolve(selected);
   if (existsSync(resolved) && statSync(resolved).isDirectory()) {
     return loadMarkdownFixtureDir(resolved);
   }
   if (existsSync(resolved)) {
     return loadJsonlFixtures(resolved);
   }
-  return loadJsonlFixtures(LEGACY_FIXTURE_PATH);
+  throw new Error(`live-quality fixture source not found: ${resolved}`);
 }
 
 function loadJsonlFixtures(fixturePath) {
+  if (statSync(fixturePath).size > MAX_JSONL_BYTES) {
+    throw new Error(`live-quality fixture file exceeds ${MAX_JSONL_BYTES} bytes: ${fixturePath}`);
+  }
   const body = readFileSync(fixturePath, 'utf8');
-  return body
+  const lines = body
     .split('\n')
     .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line, index) => validateFixture(JSON.parse(line), `${fixturePath}:${index + 1}`));
+    .filter(Boolean);
+  if (lines.length > MAX_JSONL_ROWS) {
+    throw new Error(`live-quality fixture file exceeds ${MAX_JSONL_ROWS} rows: ${fixturePath}`);
+  }
+  return lines.map((line, index) => validateFixture(JSON.parse(line), `${fixturePath}:${index + 1}`));
 }
 
 function loadMarkdownFixtureDir(root) {
@@ -92,6 +101,15 @@ function validateFixture(fixture, source) {
   if (!['en', 'ko', 'zh', 'ja'].includes(fixture.language)) {
     throw new Error(`unsupported language ${fixture.language} in ${source}`);
   }
+  if (fixture.redistribution !== 'repo-ok') {
+    throw new Error(`redistribution must equal repo-ok in ${source}`);
+  }
+  if (typeof fixture.fixture_id !== 'string' || !fixture.fixture_id.trim()) {
+    throw new Error(`fixture_id must be a non-empty string in ${source}`);
+  }
+  if (typeof fixture.text !== 'string' || !fixture.text.trim() || fixture.text.length > MAX_FIXTURE_TEXT_CHARS) {
+    throw new Error(`text must be 1-${MAX_FIXTURE_TEXT_CHARS} characters in ${source}`);
+  }
   const anchors = normalizeStringArray(fixture.anchors ?? fixture.facts, `${source}: anchors`);
   if (anchors.length === 0) throw new Error(`anchors/facts must be a non-empty array in ${source}`);
   return {
@@ -115,7 +133,13 @@ function normalizeStringArray(value, source, { required = true } = {}) {
   return value.map((item) => String(item).trim()).filter(Boolean);
 }
 
-export async function buildPatinaRewritePrompt(fixture, { repoRoot = getRepoRoot(), structureGuidance, promptMode, minimalStructureGuidance } = {}) {
+export async function buildPatinaRewritePrompt(fixture, {
+  repoRoot = getRepoRoot(),
+  structureGuidance,
+  promptMode,
+  minimalStructureGuidance,
+  documentSignals,
+} = {}) {
   const config = loadConfig();
   config.language = fixture.language;
   if (fixture.documentType) config.documentType = fixture.documentType;
@@ -139,6 +163,7 @@ export async function buildPatinaRewritePrompt(fixture, { repoRoot = getRepoRoot
     ...(structureGuidance === undefined ? {} : { structureGuidance }),
     ...(promptMode === undefined ? {} : { promptMode }),
     ...(minimalStructureGuidance === undefined ? {} : { minimalStructureGuidance }),
+    ...(documentSignals === undefined ? {} : { documentSignals }),
   });
 }
 
@@ -336,7 +361,7 @@ function modelGradedResult({ fixture, beforeScore, afterScore, mpsResult, fideli
   };
 }
 
-function createLiveCallLLM(callLLM, settings, record) {
+export function createLiveCallLLM(callLLM, settings, record) {
   return async (args) => {
     const startedAt = Date.now();
     // Per-attempt usages include tokens burnt on failed paid retries; the
@@ -523,7 +548,13 @@ function shouldRunLive(options = {}) {
   if (options.live !== undefined) return Boolean(options.live);
   const env = options.env || process.env;
   return env.PATINA_LIVE === '1' ||
-    Boolean(env.PATINA_LIVE_PROVIDER || env.PATINA_LIVE_API_KEY || env.PATINA_LIVE_MODEL || env.PATINA_LIVE_API_BASE);
+    Boolean(
+      env.PATINA_LIVE_PROVIDER
+      || env.PATINA_LIVE_API_KEY
+      || env.PATINA_LIVE_MODEL
+      || env.PATINA_LIVE_API_BASE
+      || env.PATINA_LIVE_BACKEND
+    );
 }
 
 export function resolveLiveSettings(options = {}) {

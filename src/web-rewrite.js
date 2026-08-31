@@ -9,6 +9,10 @@ import { buildPrompt, fenceReferenceText } from './prompt-builder.js';
 import { resolvePersonaForRun } from './personas/resolve.js';
 import { loadWebConfig, resolveBundleRoot } from './web-config.js';
 import { resolveRegister } from './config.js';
+import {
+  buildKoreanDiagnosis,
+  diagnosisStructureGuidance,
+} from './features/korean-diagnosis.js';
 
 /** @type {Map<string, { config: object, patterns: object[], documentType: object, core: object|null, persona: object|null }>} */
 const ASSET_CACHE = new Map();
@@ -95,9 +99,18 @@ function renderHistory(history = []) {
  * @param {object} options.config Web-safe config.
  * @param {{ patterns: object[], documentType: object, core: object|null, persona: object|null }} options.assets Loaded web assets.
  * @param {'strict'|'minimal'} [options.promptMode='strict'] Prompt catalog detail level.
+ * @param {string[]|null} [options.documentSignals=null] Trusted deterministic signals.
+ * @param {'baseline'|'ko-contextual-v1'} [options.structureGuidance='baseline'] Structure treatment.
  * @returns {string} Prompt text.
  */
-export function buildWebRewritePrompt({ request, config, assets, promptMode = 'strict' }) {
+export function buildWebRewritePrompt({
+  request,
+  config,
+  assets,
+  promptMode = 'strict',
+  documentSignals = null,
+  structureGuidance = 'baseline',
+}) {
   const baseOptions = {
     config,
     patterns: assets.patterns,
@@ -114,7 +127,8 @@ export function buildWebRewritePrompt({ request, config, assets, promptMode = 's
     minimalStructureGuidance: /** @type {'baseline'|'short-safe-v1'} */ (
       promptMode === 'minimal' ? 'short-safe-v1' : 'baseline'
     ),
-    documentSignals: null,
+    documentSignals,
+    structureGuidance,
   };
 
   if (request.mode === 'refine') {
@@ -158,6 +172,7 @@ export function buildWebRewritePrompt({ request, config, assets, promptMode = 's
  * @param {object} [options.config] Web-safe config; loaded from baseline when omitted.
  * @param {string} [options.repoRoot] Bundle root.
  * @param {Function} [options.callLLM] Injected LLM client.
+ * @param {NodeJS.ProcessEnv|object} [options.env] Environment for research flags.
  * @param {AbortSignal} [options.signal] Abort signal.
  * @param {number} [options.timeout] Timeout in milliseconds.
  * @returns {Promise<{ rewrite: string, prompt: string, provider: string, model: string }>} Rewrite result.
@@ -167,6 +182,7 @@ export async function runWebRewrite({
   repoRoot = resolveBundleRoot(),
   config = loadWebConfig({ repoRoot }),
   callLLM = defaultCallLLM,
+  env = process.env,
   signal,
   timeout,
 }) {
@@ -175,7 +191,16 @@ export async function runWebRewrite({
   effectiveConfig.documentType = request.documentType || effectiveConfig.documentType || 'default';
   const documentType = effectiveConfig.documentType;
   const assets = loadWebAssets({ repoRoot, lang: request.lang, documentType, config: effectiveConfig, personaId: request.persona });
-  const prompt = buildWebRewritePrompt({ request, config: effectiveConfig, assets });
+  const diagnosis = request.lang === 'ko' && env.PATINA_KO_DIAGNOSIS_RESEARCH === '1'
+    ? buildKoreanDiagnosis(request.text, { repoRoot })
+    : null;
+  const structureGuidance = diagnosis ? diagnosisStructureGuidance(diagnosis) : 'baseline';
+  const prompt = buildWebRewritePrompt({
+    request,
+    config: effectiveConfig,
+    assets,
+    structureGuidance,
+  });
   const raw = await callLLM({
     prompt,
     apiKey: request.apiKey,
