@@ -3,10 +3,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler, { createObservabilityRestKv, createRestKv, createRewriteApiHandler } from '../../api/rewrite.js';
 
-function makeReq({ body = undefined, method = 'POST' } = {}) {
+function makeReq({ body = undefined, method = 'POST', headers = {} } = {}) {
   return {
     method,
-    headers: { 'x-real-ip': '203.0.113.10' },
+    headers: { 'x-real-ip': '203.0.113.10', ...headers },
     body: JSON.stringify(body ?? {
       mode: 'first',
       lang: 'en',
@@ -92,7 +92,7 @@ test('factory handler streams injected NDJSON frames in non-production memory po
   const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: injected });
   const res = makeRes();
 
-  await api(makeReq(), res);
+  await api(makeReq({ headers: { accept: '*/*' } }), res);
 
   assert.equal(res.statusCode, 200);
   assert.equal(res.getHeader('cache-control'), 'no-store');
@@ -102,6 +102,198 @@ test('factory handler streams injected NDJSON frames in non-production memory po
   assert.equal(res.ended, true);
   // Boundary lock: the server free key must never appear in the NDJSON stream.
   assert.doesNotMatch(res.chunks.join(''), /sk-server-free-key/);
+});
+
+test('JSON accept buffers a completed rewrite into one JSON response', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit }) => {
+      emit({ type: 'start' });
+      emit({ type: 'delta', text: 'natural' });
+      emit({
+        type: 'done', rewrite: 'natural prose', mps: { score: 100 }, fidelity: { score: 95 },
+        signals: { before: 80, after: 10 }, diff: { changedWords: 2 }, receipt: { receiptHash: 'sha256:test' },
+      });
+    },
+  });
+  const res = makeRes();
+
+  await api(makeReq({ headers: { accept: 'application/json' } }), res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.getHeader('content-type'), 'application/json');
+  assert.equal(res.chunks.length, 1);
+  const body = JSON.parse(res.chunks[0]);
+  assert.deepEqual(body, {
+    ok: true,
+    rewrite: 'natural prose',
+    mps: { score: 100 },
+    fidelity: { score: 95 },
+    signals: { before: 80, after: 10 },
+    diff: { changedWords: 2 },
+    receipt: { receiptHash: 'sha256:test' },
+  });
+});
+
+test('JSON mode maps safety-gate refusals to 422 and upstream failures to 500', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const cases = [
+    {
+      code: 'floor_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'floor_failed', failed: 'mps' });
+        return { ok: false, code: 'floor_failed', failed: 'mps' };
+      },
+      expectedStatus: 422,
+    },
+    {
+      code: 'number_safety_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'number_safety_failed' });
+        return { ok: false, code: 'number_safety_failed' };
+      },
+      expectedStatus: 422,
+    },
+    {
+      code: 'stream_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'stream_failed', error: 'upstream died' });
+        return { ok: false, code: 'stream_failed', error: 'upstream died' };
+      },
+      expectedStatus: 500,
+    },
+    {
+      code: 'scoring_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'scoring_failed', error: 'scorer timeout' });
+        return { ok: false, code: 'scoring_failed', error: 'scorer timeout' };
+      },
+      expectedStatus: 500,
+    },
+  ];
+  for (const { code, runner, expectedStatus } of cases) {
+    const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: runner });
+    const res = makeRes();
+    await api(makeReq({ headers: { accept: 'application/json' } }), res);
+    assert.equal(res.statusCode, expectedStatus, `${code} must map to ${expectedStatus}`);
+    assert.equal(res.getHeader('content-type'), 'application/json');
+    const body = JSON.parse(res.chunks[0]);
+    assert.equal(body.ok, false);
+    assert.equal(body.code, code, `${code} must carry a stable machine-readable code`);
+    assert.equal(typeof body.error, 'string');
+  }
+});
+
+test('JSON opt-in requires an exact media type: q=0, json-seq, and NDJSON precedence stay NDJSON', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const ndjsonCases = [
+    'application/json;q=0',
+    'application/json-seq',
+    'application/json, application/x-ndjson',
+    '*/*',
+    'text/html',
+  ];
+  for (const accept of ndjsonCases) {
+    const api = createRewriteApiHandler({
+      env,
+      runWebRewriteStreamImpl: async ({ emit }) => { emit({ type: 'done', rewrite: 'ok' }); },
+    });
+    const res = makeRes();
+    await api(makeReq({ headers: { accept } }), res);
+    assert.equal(res.getHeader('content-type'), 'application/x-ndjson', `${accept} must stay NDJSON`);
+  }
+  const jsonCases = [
+    'application/json',
+    'application/json;q=0.8',
+    'text/html, application/json',
+  ];
+  for (const accept of jsonCases) {
+    const api = createRewriteApiHandler({
+      env,
+      runWebRewriteStreamImpl: async ({ emit }) => { emit({ type: 'done', rewrite: 'ok' }); },
+    });
+    const res = makeRes();
+    await api(makeReq({ headers: { accept } }), res);
+    assert.equal(res.getHeader('content-type'), 'application/json', `${accept} must opt into JSON`);
+  }
+});
+
+test('JSON mode never writes to a response destroyed by a premature client close', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit, signal }) => {
+      emit({ type: 'start' });
+      await new Promise((resolve) => signal.addEventListener('abort', resolve, { once: true }));
+      emit({ type: 'done', rewrite: 'late' });
+      return { ok: true };
+    },
+  });
+  const res = makeRes();
+  const request = makeReq({ headers: { accept: 'application/json' } });
+  const pending = api(request, res);
+  // Client disconnects mid-rewrite: the close listener fires while the
+  // rewrite is still running, so the abort signal cancels upstream work.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  res.emitClose();
+  await pending;
+  assert.equal(res.chunks.length, 0, 'no body may be written after the client is gone');
+  assert.equal(res.ended, false, 'res.end must not run after a premature close');
+});
+
+test('JSON accept returns quota errors as plain JSON', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  let calls = 0;
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit }) => {
+      calls += 1;
+      emit({ type: 'done', rewrite: 'ok' });
+    },
+  });
+  const request = () => makeReq({ headers: { accept: 'application/json' } });
+  for (let index = 0; index < 10; index += 1) await api(request(), makeRes());
+  const res = makeRes();
+
+  await api(request(), res);
+
+  assert.equal(calls, 10);
+  assert.equal(res.statusCode, 429);
+  assert.equal(res.getHeader('content-type'), 'application/json');
+  assert.deepEqual(JSON.parse(res.chunks[0]), { error: 'hourly burst exceeded' });
+  assert.doesNotMatch(res.chunks[0], /"type"/);
+});
+
+test('CORS preflight is accepted without consuming quota and POST responses allow any origin', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  let calls = 0;
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit }) => {
+      calls += 1;
+      emit({ type: 'done', rewrite: 'ok' });
+    },
+  });
+  const preflight = makeRes();
+
+  await api(makeReq({ method: 'OPTIONS' }), preflight);
+
+  assert.equal(preflight.statusCode, 204);
+  assert.equal(preflight.getHeader('access-control-allow-origin'), '*');
+  assert.equal(preflight.getHeader('access-control-allow-methods'), 'POST, OPTIONS');
+  assert.equal(preflight.getHeader('access-control-allow-headers'), 'Authorization, Content-Type');
+  assert.equal(calls, 0);
+
+  const post = makeRes();
+  await api(makeReq(), post);
+  assert.equal(calls, 1);
+  assert.equal(post.getHeader('access-control-allow-origin'), '*');
+  assert.equal(post.getHeader('content-type'), 'application/x-ndjson');
 });
 
 test('the entrypoint emits no legacy raw rewrite metric', async () => {
