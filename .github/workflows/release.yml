@@ -105,6 +105,41 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: cd packages/patina-humanizer && npm publish --access public --provenance
 
+  github-release:
+    needs: [verify, npm]
+    runs-on: ubuntu-latest
+    # Tag pushes only: workflow_dispatch dry-runs must not create releases,
+    # and a release is only recorded after npm publish actually succeeded.
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract changelog notes for this version
+        run: |
+          node <<'EOF' > release-notes.md
+          const { readFileSync } = require("node:fs");
+          const changelog = readFileSync("CHANGELOG.md", "utf8");
+          const version = process.env.GITHUB_REF_NAME.replace(/^v/, "");
+          const start = changelog.indexOf("## " + version + " — ");
+          if (start === -1) { console.error("no CHANGELOG section for " + version); process.exit(1); }
+          let end = changelog.indexOf("\n## ", start + 1);
+          if (end === -1) end = changelog.length;
+          console.log(changelog.slice(start, end).trim());
+          EOF
+          cat release-notes.md | head -3
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            --title "v${VERSION}" \
+            --notes-file release-notes.md \
+            --latest
+
   ghcr:
     needs: verify
     runs-on: ubuntu-latest

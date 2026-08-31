@@ -83,7 +83,12 @@ git switch dev && git pull
 # 2) run the full test + lint + release gate locally
 gh pr create --base main --head dev        # release PR: full CI matrix runs
 # 3) on green: MERGE (not squash) so the release keeps per-feature history
-# 4) tag the release on main; publish/deploy
+# 4) tag the release on main; publish/deploy — the tag push triggers
+#    .github/workflows/release.yml, which runs the verify gates, publishes
+#    npm, and creates the GitHub Release (notes auto-extracted from the
+#    CHANGELOG section for that version) as the `github-release` job.
+#    GitHub Releases must never be created manually; a missing CHANGELOG
+#    section for the tagged version fails the release job on purpose.
 git switch dev && git merge main           # keep dev in sync after the release
 ```
 

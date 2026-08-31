@@ -176,7 +176,7 @@
       "tests/unit/v6.4-release-ready.test.js": "8d88aab35ce75bc40b4782932329c0402001afabc380ac349ccc1b82d01c12d7",
       "package.json": "6712053362194ab947aa10de4f7772bfa23ae6db97dc5a912e05763c4e3a2dc3",
       "package-lock.json": "3d4b2573cd3a273d766a01a6ea2245b2528a9149ae75fdda9bb977bfd5af69a1",
-      ".github/workflows/release.yml": "43900a0966a52c500d54b1971d4141fe2d380a893364b4cb7b9976e9e3795f8f",
+      ".github/workflows/release.yml": "bb2d5c7b58c76a1411278077d8b869e249e9e7013c32eed1f5774d948794888c",
       "README.md": "78829adef9bc233a2dc0003ea022281ce483cb958daeef01a073361e31ce8f11",
       "README_KR.md": "ebac4f175b399a081d4c4a2b92fcc0708f1e85976d8da869f0f9b608046cfd59",
       "README_ZH.md": "66076f5870bf806310b4516db0c260037f7b2684c3234b291660593f744a8ec0",
