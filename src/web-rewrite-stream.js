@@ -8,6 +8,11 @@ import { buildWebRewritePrompt, loadWebAssets } from './web-rewrite.js';
 import { evaluateFloors, redactSecrets, STREAM_FRAME_TYPES, WEB_TIERS } from './web-rewrite-contract.js';
 import { buildWebRewriteReceipt } from './web-rewrite-receipt.js';
 import { resolveWebPromptBudget } from './web-prompt-budget.js';
+import {
+  buildKoreanDiagnosis,
+  diagnosisStructureGuidance,
+} from './features/korean-diagnosis.js';
+import { evaluateKoreanInvariants } from './features/korean-invariants.js';
 
 /**
  * Extract a score field RAW (no coercion) so evaluateFloors can strictly reject
@@ -245,7 +250,19 @@ export async function runWebRewriteStream({
   const documentType = effectiveConfig.documentType;
   const assets = loadWebAssets({ repoRoot, lang: request.lang, documentType, config: effectiveConfig, personaId: request.persona });
   const budget = resolveWebPromptBudget(request, env);
-  const prompt = buildWebRewritePrompt({ request, config: effectiveConfig, assets, promptMode: budget.applied });
+  const koreanResearch = request.lang === 'ko' && env.PATINA_KO_DIAGNOSIS_RESEARCH === '1';
+  const diagnosis = koreanResearch
+    ? buildKoreanDiagnosis(request.text, { repoRoot })
+    : null;
+  const structureGuidance = diagnosis ? diagnosisStructureGuidance(diagnosis) : 'baseline';
+  const prompt = buildWebRewritePrompt({
+    request,
+    config: effectiveConfig,
+    assets,
+    promptMode: budget.applied,
+    structureGuidance,
+  });
+  const original = String(request.original ?? request.text ?? '');
 
   emit({ type: STREAM_FRAME_TYPES.START });
 
@@ -272,8 +289,8 @@ export async function runWebRewriteStream({
   };
   let attemptsClosed = false;
   let rewrite = '';
-  const original = String(request.original ?? request.text ?? '');
   let numberSafety = null;
+  let koreanInvariants = null;
   const rewriteExtra = rewriteExtraBody(request.provider, request.tier, env);
   // Attempt 1 streams deltas live for UX. If the rewrite fails the
   // deterministic number-safety gate, retry the LLM call up to
@@ -315,13 +332,23 @@ export async function runWebRewriteStream({
       emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'stream_failed', error });
       return { ok: false, code: 'stream_failed', error, attempts, observed: observeTerminal('terminal_failed', 500) };
     }
+    koreanInvariants = koreanResearch
+      ? evaluateKoreanInvariants(original, rewrite)
+      : null;
     numberSafety = evaluateNumberSafety(original, rewrite, request.lang);
     if (numberSafety.ok) break;
     // An externally aborted signal must not spend another paid attempt.
     if (run === maxRuns || signal?.aborted) {
       closeAttempts();
       emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'number_safety_failed' });
-      return { ok: false, code: 'number_safety_failed', numberSafety, attempts, observed: observeTerminal('number_safety_failed', 422) };
+      return {
+        ok: false,
+        code: 'number_safety_failed',
+        numberSafety,
+        ...(koreanInvariants ? { koreanInvariants } : {}),
+        attempts,
+        observed: observeTerminal('number_safety_failed', 422),
+      };
     }
   }
 
@@ -364,7 +391,18 @@ export async function runWebRewriteStream({
     // diff) on floor failures so a flagged attempt stays auditable in the UI.
     closeAttempts();
     emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'floor_failed', failed: floors.failed, rewrite, mps, fidelity, signals, diff });
-    return { ok: false, code: 'floor_failed', failed: floors.failed, mps, fidelity, signals, diff, attempts, observed: observeTerminal('terminal_failed', 422) };
+    return {
+      ok: false,
+      code: 'floor_failed',
+      failed: floors.failed,
+      mps,
+      fidelity,
+      signals,
+      diff,
+      attempts,
+      ...(koreanInvariants ? { koreanInvariants } : {}),
+      observed: observeTerminal('terminal_failed', 422),
+    };
   }
 
   closeAttempts();
@@ -382,5 +420,17 @@ export async function runWebRewriteStream({
     budget,
   });
   emit({ type: STREAM_FRAME_TYPES.DONE, rewrite, mps, fidelity, signals, diff, receipt });
-  return { ok: true, rewrite, mps, fidelity, signals, diff, receipt, budget, attempts, observed: observeTerminal('completed', 200) };
+  return {
+    ok: true,
+    rewrite,
+    mps,
+    fidelity,
+    signals,
+    diff,
+    receipt,
+    budget,
+    attempts,
+    ...(koreanInvariants ? { koreanInvariants } : {}),
+    observed: observeTerminal('completed', 200),
+  };
 }
