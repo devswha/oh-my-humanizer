@@ -451,6 +451,106 @@ test('runWebRewriteStream exhausts number-safety retries and fails closed', asyn
   assertFramesDoNotLeakPrivateMetadata(frames);
 });
 
+test('runWebRewriteStream keeps heuristic Korean invariants advisory', async () => {
+  // Given: a Korean rewrite that the heuristic flags for polarity.
+  const frames = [];
+  let scorerCalls = 0;
+  const original = '운영팀은 배포를 승인하지 않았다. 결과는 담당자에 의해 검토된다. 일정은 운영팀에 의해 조정된다.';
+
+  // When: the streamed candidate inverts polarity.
+  const result = await runWebRewriteStream({
+    request: {
+      ...request,
+      mode: 'first',
+      lang: 'ko',
+      text: original,
+      original,
+    },
+    env: { PATINA_KO_DIAGNOSIS_RESEARCH: '1' },
+    callLLMStream: async () => ({ text: '운영팀은 배포를 승인했다. 결과는 담당자에 의해 검토된다. 일정은 운영팀에 의해 조정된다.' }),
+    scoreFns: {
+      scoreMPS: async () => { scorerCalls += 1; return { mps: 95 }; },
+      scoreFidelity: async () => { scorerCalls += 1; return { fidelity: 95 }; },
+      scoreDeterministicSignals: () => ({}),
+    },
+    emit: (frame) => frames.push(frame),
+    numberSafetyRetries: 0,
+  });
+
+  // Then: the heuristic is returned privately but cannot create a new terminal error.
+  assert.equal(result.ok, true);
+  assert.equal(result.koreanInvariants.checks.polarity.ok, false);
+  assert.equal(scorerCalls, 2);
+  assert.deepEqual(frames.map((frame) => frame.type), ['start', 'done']);
+});
+
+test('runWebRewriteStream does not bypass detector-clean Korean prose', async () => {
+  // Given: a detector-clean first-turn Korean request.
+  const text = '창문을 열자 빗소리가 가까워졌다. 잠시 뒤 골목이 조용해졌다.';
+  const frames = [];
+  let calls = 0;
+  let seenPrompt = '';
+
+  // When: the hosted stream runs.
+  const result = await runWebRewriteStream({
+    request: {
+      ...request,
+      mode: 'first',
+      lang: 'ko',
+      text,
+      original: text,
+    },
+    callLLMStream: async ({ prompt }) => {
+      calls += 1;
+      seenPrompt = prompt;
+      return { text: '창문을 여니 빗소리가 한층 가까워졌다. 이내 골목은 다시 조용해졌다.' };
+    },
+    scoreFns: {
+      scoreMPS: async () => ({ mps: 95 }),
+      scoreFidelity: async () => ({ fidelity: 95 }),
+      scoreDeterministicSignals: () => ({}),
+    },
+    emit: (frame) => frames.push(frame),
+  });
+
+  // Then: the model still runs and start/done is preserved.
+  assert.equal(result.ok, true);
+  assert.equal(result.rewrite, '창문을 여니 빗소리가 한층 가까워졌다. 이내 골목은 다시 조용해졌다.');
+  assert.equal(calls, 1);
+  assert.doesNotMatch(seenPrompt, /koDiagnosis\.v1/);
+  assert.deepEqual(frames.map((frame) => frame.type), ['start', 'done']);
+});
+
+test('runWebRewriteStream enables diagnosed structure guidance only behind the research flag', async () => {
+  const text = '당신은 커맨드 기둥을 설정한다. 이것은 담당자에 의해 검토된다. 그것은 운영팀에 의해 다시 조정된다.';
+  let seenPrompt = '';
+
+  const result = await runWebRewriteStream({
+    request: {
+      ...request,
+      mode: 'first',
+      lang: 'ko',
+      text,
+      original: text,
+    },
+    env: { PATINA_KO_DIAGNOSIS_RESEARCH: '1' },
+    callLLMStream: async ({ prompt }) => {
+      seenPrompt = prompt;
+      return { text };
+    },
+    scoreFns: {
+      scoreMPS: async () => ({ mps: 100 }),
+      scoreFidelity: async () => ({ fidelity: 100 }),
+      scoreDeterministicSignals: () => ({}),
+    },
+    emit() {},
+  });
+
+  assert.equal(result.ok, true);
+  assert.match(seenPrompt, /fix only the 1–2 highest-impact detected structural issues/);
+  assert.doesNotMatch(seenPrompt, /koDiagnosis\.v1/);
+});
+
 test('scoringExtraBody sends reasoning control only to the providers it was measured on', () => {
   // gemini (2026-07-29) and deepseek (2026-08-03) are the providers the
   // setting was measured against; sending an unrecognized field blind to a
@@ -563,6 +663,28 @@ test('runWebRewriteStream fail-closes floor failures with error and no done', as
     fidelity: [privateAttempt()],
   });
   assertFramesDoNotLeakPrivateMetadata(frames);
+});
+
+test('runWebRewriteStream retains private Korean invariant evidence on floor failure', async () => {
+  const original = '운영팀은 배포를 승인하지 않았다. 결과는 담당자에 의해 검토된다.';
+  const result = await runWebRewriteStream({
+    request: {
+      ...request,
+      lang: 'ko',
+      text: original,
+      original,
+    },
+    env: { PATINA_KO_DIAGNOSIS_RESEARCH: '1' },
+    callLLMStream: async () => ({
+      text: '운영팀은 배포를 승인했다. 결과는 담당자에 의해 검토된다.',
+    }),
+    scoreFns: scoring({ mps: 50, fidelity: 95 }),
+    emit() {},
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'floor_failed');
+  assert.equal(result.koreanInvariants.checks.polarity.ok, false);
 });
 
 test('runWebRewriteStream forwards the abort signal and timeout to the LLM stream and scorers', async () => {

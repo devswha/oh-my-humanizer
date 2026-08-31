@@ -1,5 +1,8 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import {
   classifyQuality,
@@ -11,6 +14,7 @@ import {
   renderMarkdownReport,
   aggregateCalls,
   createBackendJudgeCallLLM,
+  createLiveCallLLM,
   normalizeUsage,
   mergeRepeats,
   resolveJudgeSettings,
@@ -54,6 +58,27 @@ test('live fixtures load YAML frontmatter metadata for the deliberate runner', (
     assert.ok(Array.isArray(item.anchors));
     assert.ok(item.anchors.length > 0);
     assert.ok(item.text.length > 0);
+  }
+});
+
+test('fixture loading fails closed for missing paths and invalid redistribution', () => {
+  assert.throws(
+    () => loadLiveFixtures('/definitely/missing/patina-fixtures.jsonl'),
+    /source not found/,
+  );
+  const dir = mkdtempSync(join(tmpdir(), 'patina-fixtures-'));
+  const path = join(dir, 'bad.jsonl');
+  try {
+    writeFileSync(path, JSON.stringify({
+      fixture_id: 'bad-1',
+      language: 'ko',
+      redistribution: true,
+      text: '본문',
+      anchors: ['본문'],
+    }));
+    assert.throws(() => loadLiveFixtures(path), /redistribution must equal repo-ok/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
 
@@ -312,7 +337,6 @@ test('candidate backend env resolves a keyless CLI seat and passes the key gate'
 
   const report = await runLiveQualityReport({
     fixtures: [fixture],
-    live: true,
     env: { PATINA_LIVE_BACKEND: 'gemini-cli' },
     callLLM: fakeQualityModel,
   });
@@ -376,6 +400,26 @@ test('createBackendJudgeCallLLM adapts invokeBackendChain to the scoring callLLM
   assert.equal(seen[0].modelSource, 'option:judgeModel');
   assert.equal(seen[0].timeout, 5000);
   assert.equal(seen[0].prompt, 'score this');
+});
+
+test('createLiveCallLLM records candidate usage independently', async () => {
+  const calls = [];
+  const wrapped = createLiveCallLLM(
+    async (args) => {
+      args.onResponse?.({
+        model: 'candidate-model',
+        usage: { prompt_tokens: 12, completion_tokens: 4 },
+      });
+      return 'candidate';
+    },
+    { model: 'candidate-model' },
+    (call) => calls.push(call),
+  );
+
+  assert.equal(await wrapped({ prompt: 'rewrite' }), 'candidate');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].model, 'candidate-model');
+  assert.deepEqual(calls[0].usages, [{ prompt_tokens: 12, completion_tokens: 4 }]);
 });
 
 test('extra body resolves from env JSON, reaches judge calls, and rejects junk', async () => {

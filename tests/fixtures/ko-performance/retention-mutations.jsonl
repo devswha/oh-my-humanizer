@@ -1,0 +1,16 @@
+{"fixture_id":"ko-ret-approx-01","property":"approximation","original":"참석자는 열 명가량이었다.","mutation":"참석자는 정확히 열 명이었다.","anchor":"열 명가량"}
+{"fixture_id":"ko-ret-approx-02","property":"approximation","original":"복구에는 두 시간쯤 걸릴 전망이다.","mutation":"복구에는 정확히 두 시간이 걸린다.","anchor":"두 시간쯤"}
+{"fixture_id":"ko-ret-modality-01","property":"modality","original":"담당자는 금요일까지 보고서를 제출해야 한다.","mutation":"담당자는 금요일까지 보고서를 제출할 수 있다.","anchor":"제출해야 한다"}
+{"fixture_id":"ko-ret-modality-02","property":"modality","original":"이 계획은 다음 회의에서 검토할 예정이다.","mutation":"이 계획은 다음 회의에서 확정된다.","anchor":"검토할 예정이다"}
+{"fixture_id":"ko-ret-contrast-01","property":"contrast","original":"속도는 빨라졌지만 정확도는 낮아졌다.","mutation":"속도는 빨라졌고 정확도도 높아졌다.","anchor":"빨라졌지만 정확도는 낮아졌다"}
+{"fixture_id":"ko-ret-contrast-02","property":"contrast","original":"비용은 줄었으나 처리 시간은 늘었다.","mutation":"비용이 줄어서 처리 시간도 줄었다.","anchor":"줄었으나 처리 시간은 늘었다"}
+{"fixture_id":"ko-ret-emphasis-01","property":"emphasis","original":"신청서는 반드시 원본으로 제출해야 한다.","mutation":"신청서는 가능하면 원본으로 제출한다.","anchor":"반드시"}
+{"fixture_id":"ko-ret-emphasis-02","property":"emphasis","original":"이 단계만큼은 꼭 두 사람이 확인한다.","mutation":"이 단계는 한 사람이 확인해도 된다.","anchor":"꼭 두 사람이"}
+{"fixture_id":"ko-ret-possibility-01","property":"possibility","original":"기상 상황에 따라 행사가 취소될 수 있다.","mutation":"기상 상황과 관계없이 행사는 열린다.","anchor":"취소될 수 있다"}
+{"fixture_id":"ko-ret-possibility-02","property":"possibility","original":"업데이트 뒤 일부 설정이 초기화될 가능성이 있다.","mutation":"업데이트 뒤 모든 설정이 그대로 유지된다.","anchor":"초기화될 가능성이 있다"}
+{"fixture_id":"ko-ret-honorific-01","property":"honorific","original":"교수님께서 내일 연구실에 오십니다.","mutation":"교수가 내일 연구실에 온다.","anchor":"교수님께서 오십니다"}
+{"fixture_id":"ko-ret-honorific-02","property":"honorific","original":"고객님께서 요청하신 자료를 보내 드렸습니다.","mutation":"고객이 요구한 자료를 보냈다.","anchor":"고객님께서 요청하신"}
+{"fixture_id":"ko-ret-addressee-01","property":"addressee_relation","original":"신규 고객님께 안내 메일을 보내 주세요.","mutation":"내부 동료에게 안내 메일을 보내 주세요.","anchor":"신규 고객님께"}
+{"fixture_id":"ko-ret-addressee-02","property":"addressee_relation","original":"부장님께 먼저 결과를 보고드리겠습니다.","mutation":"친구에게 먼저 결과를 알려 주겠다.","anchor":"부장님께 보고드리겠습니다"}
+{"fixture_id":"ko-ret-speech-01","property":"speech_level","original":"검토 결과를 내일까지 공유해 주십시오.","mutation":"검토 결과를 내일까지 공유해 줘.","anchor":"공유해 주십시오"}
+{"fixture_id":"ko-ret-speech-02","property":"speech_level","original":"문의하신 내용은 아래와 같이 안내드립니다.","mutation":"물어본 건 아래처럼 알려 줄게.","anchor":"안내드립니다"}
