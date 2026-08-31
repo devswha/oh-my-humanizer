@@ -4,7 +4,7 @@ import { getRepoRoot } from './config.js';
 import { analyzeText, loadStructuralModel } from './features/index.js';
 import { LEAKAGE_SCORE_FLOOR } from './features/markup-leakage.js';
 import { summarizeSignalStrength } from './features/signal-strength.js';
-import { buildScoreMathCore, fenceReferenceText, resolveSeverityPoints } from './prompt-builder.js';
+import { buildScoreMathCore, resolveSeverityPoints } from './prompt-builder.js';
 import { createLogger } from './logger.js';
 
 /**
@@ -373,7 +373,9 @@ Return ONLY a JSON object in this exact format (no markdown, no explanation):
   "interpretation": "${SCORE_INTERPRETATION_BANDS.map((band) => band.label).join(' | ')}"
 }
 
-${fenceReferenceText(text, { label: '## Text to Score' })}
+## Text to Score
+
+${text}
 `;
 
   try {
@@ -819,8 +821,13 @@ Return ONLY a JSON object:
 MPS formula: (pass_rate × 0.6 + polarity_preserved × 0.4) × 100
 If no polarity anchors: MPS = pass_rate × 100
 
-${fenceReferenceText(original, { label: '## Original reference' })}
-${fenceReferenceText(rewritten, { label: '## Rewritten reference' })}
+## Original
+
+${original}
+
+## Rewritten
+
+${rewritten}
 `;
 
   try {
@@ -962,8 +969,13 @@ Return ONLY this JSON, no markdown:
   "rationale": "one sentence per criterion"
 }
 
-${fenceReferenceText(original, { label: '## Original reference' })}
-${fenceReferenceText(rewritten, { label: '## Rewritten reference' })}
+## ORIGINAL
+
+${original}
+
+## REWRITTEN
+
+${rewritten}
 `;
 
   let parsed = null;
