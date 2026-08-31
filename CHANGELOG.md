@@ -12,6 +12,20 @@ All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 Semver rationale: patch | minor | major — explain whether this changes patterns, schemas, CLI behavior, or docs only.
 ```
 
+## 8.1.0 — 2026-09-01
+
+**Scorer prompt-injection hardening and the completed Korean performance research program.**
+
+Semver rationale: minor — a shipped-security fix plus new research modules; no CLI or API contract changes.
+
+### Fixed
+
+- Meaning-scorer prompts (AI-likeness, MPS, fidelity) now fence untrusted source/rewrite text with the `fenceReferenceText` data-fence contract instead of plain header interpolation, closing a prompt-injection surface on every language and request (#709). Validated live: fenced MPS calls return unchanged-shape JSON.
+- `assertIndependentJudge` in the rewrite A/B harness rejects same-provider-family pairs regardless of transport shape (HTTP+HTTP same-family pairs were previously skipped).
+
+### Added
+
+- Deterministic Korean research infrastructure landed from the completed preregistered program (#708): `src/features/korean-diagnosis.js`, `korean-invariants.js`, `korean-structure-fingerprint.js`, the 120-row confirmatory corpus and mutation fixtures, and their unit suites. The recorded verdict is **NOT PROMOTED** — production stays `iterative-baseline`; the treatment remains behind `PATINA_KO_DIAGNOSIS_RESEARCH`.
 ## 8.0.0 — 2026-08-31
 
 **Polar-only payments, and the hosted API as a product: JSON mode, CORS, public API docs.**
