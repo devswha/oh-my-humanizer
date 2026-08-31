@@ -138,6 +138,8 @@ const I18N = {
     quotaDaily: 'You’ve used today’s free quota. Try again tomorrow, or switch to BYOK mode with your own API key for unlimited use.',
     quotaHourly: 'Free quota is full for now. Try again shortly, or use BYOK mode with your own API key.',
     proUpsell: 'Get API access — $9.99/mo',
+    proBuy: 'Get API access — $9.99/mo',
+    proSoon: 'Pro — coming soon',
     quotaConcurrent: 'A rewrite is already running for your connection. Wait for it to finish, then try again.',
     serviceDown: 'The rewrite service is temporarily unavailable. Please try again later.',
     tooLong: 'Text is over the {tier} limit of {cap} characters. Shorten it and try again.',
@@ -181,6 +183,8 @@ const I18N = {
     quotaDaily: '오늘 무료 사용량을 다 쓰셨어요. 내일 다시 시도하거나, 본인 API 키로 BYOK 모드를 쓰면 제한 없이 이용할 수 있어요.',
     quotaHourly: '무료 사용량이 잠시 가득 찼어요. 잠시 후 다시 시도하거나, 본인 API 키로 BYOK 모드를 쓰면 바로 이용할 수 있어요.',
     proUpsell: 'API 액세스 받기 — $9.99/월',
+    proBuy: 'API 액세스 받기 — $9.99/월',
+    proSoon: 'Pro — 곧 공개',
     quotaConcurrent: '이미 진행 중인 리라이트가 있어요. 끝난 뒤 다시 시도해 주세요.',
     serviceDown: '리라이트 서비스를 잠시 사용할 수 없어요. 나중에 다시 시도해 주세요.',
     tooLong: '{tier} 모드 한도({cap}자)를 넘었어요. 줄여서 다시 시도해 주세요.',
@@ -224,6 +228,8 @@ const I18N = {
     quotaDaily: '今天的免费额度已用完。请明天再试，或切换到 BYOK 模式使用自己的 API 密钥，即可无限制使用。',
     quotaHourly: '免费额度暂时已满。请稍后再试，或使用 BYOK 模式和自己的 API 密钥。',
     proUpsell: '获取 API 访问权限 — 每月 $9.99',
+    proBuy: '获取 API 访问权限 — 每月 $9.99',
+    proSoon: 'Pro — 即将推出',
     quotaConcurrent: '已有一个改写正在进行。请等它完成后再试。',
     serviceDown: '改写服务暂时不可用，请稍后再试。',
     tooLong: '文字超过 {tier} 模式的 {cap} 字上限。请缩短后重试。',
@@ -267,6 +273,8 @@ const I18N = {
     quotaDaily: '本日の無料利用枠を使い切りました。明日また試すか、ご自身のAPIキーでBYOKモードに切り替えると無制限で使えます。',
     quotaHourly: '無料利用枠が一時的にいっぱいです。しばらくして再試行するか、ご自身のAPIキーでBYOKモードをお使いください。',
     proUpsell: 'APIアクセスを取得 — 月額$9.99',
+    proBuy: 'APIアクセスを取得 — 月額$9.99',
+    proSoon: 'Pro — 近日公開',
     quotaConcurrent: 'すでに実行中の書き換えがあります。完了後にもう一度お試しください。',
     serviceDown: '書き換えサービスは一時的に利用できません。しばらくしてからお試しください。',
     tooLong: '{tier}モードの上限（{cap}文字）を超えています。短くしてからお試しください。',
@@ -352,7 +360,6 @@ function el(tag, cls, text) {
 }
 
 // ---------- launch: pricing CTAs, Pro checkout, UTM attribution ----------
-const PRO_PRICE = '$9.99/mo';
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'ref'];
 const UTM_VALUE = /^[A-Za-z0-9._~-]{1,64}$/;
 let capturedUtm = {};
@@ -412,7 +419,7 @@ function wireProCta() {
     btn.setAttribute('target', '_blank');
     btn.removeAttribute('aria-disabled');
     btn.classList.remove('is-soon');
-    btn.textContent = `Get API access — ${PRO_PRICE}`;
+    btn.textContent = i18n().proBuy;
     btn.addEventListener('click', () => {
       track('Tier Selected', { tier: 'pro', surface: 'pricing' });
       track('Checkout Started', { surface: 'pricing', lang: els.lang.value });
@@ -422,7 +429,7 @@ function wireProCta() {
     btn.removeAttribute('target');
     btn.setAttribute('aria-disabled', 'true');
     btn.classList.add('is-soon');
-    btn.textContent = 'Pro — coming soon';
+    btn.textContent = i18n().proSoon;
   }
 }
 
@@ -1293,6 +1300,8 @@ function applyI18n(lang) {
     lines.forEach((line, i) => { if (i) n.appendChild(document.createElement('br')); n.appendChild(document.createTextNode(line)); });
   };
   document.documentElement.lang = lang;
+  const proBuyBtn = document.querySelector('#pro-buy');
+  if (proBuyBtn) proBuyBtn.textContent = proBuyBtn.classList.contains('is-soon') ? t.proSoon : t.proBuy;
   setTitle('.hero__title', t.title);
   set('.hero__sub', t.sub);
   els.heroInput.setAttribute('placeholder', t.promptPh);

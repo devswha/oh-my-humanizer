@@ -19,6 +19,23 @@ function sourceBetween(source, start, end) {
   return source.slice(first, last + end.length);
 }
 
+test('the pricing CTA is localized in every supported language, never hardcoded English', () => {
+  // Every language dict must carry both CTA states, and the wiring must use
+  // them — a hardcoded English string in wireProCta once shipped ko/zh/ja
+  // users an untranslated button (review finding, 2026-08-31).
+  for (const lang of ['en', 'ko', 'zh', 'ja']) {
+    const dictStart = controller.indexOf(`  ${lang}: {`);
+    assert.ok(dictStart >= 0, `missing ${lang} dictionary`);
+    const dict = sourceBetween(controller, `  ${lang}: {`, '  },');
+    assert.match(dict, /proBuy:\s*'[^']+\$9\.99/, `${lang} must localize proBuy with the price`);
+    assert.match(dict, /proSoon:\s*'[^']+'/, `${lang} must localize proSoon`);
+  }
+  assert.match(controller, /btn\.textContent = i18n\(\)\.proBuy;/, 'active CTA must use the localized string');
+  assert.match(controller, /btn\.textContent = i18n\(\)\.proSoon;/, 'disabled CTA must use the localized string');
+  assert.doesNotMatch(controller, /textContent = `Get API access/, 'no hardcoded English template may remain');
+  assert.match(controller, /classList\.contains\('is-soon'\) \? t\.proSoon : t\.proBuy/, 'applyI18n must refresh the CTA with the current state');
+});
+
 test('launch configuration is imported from the deployment root path exactly', () => {
   assert.match(controller, /^import launchConfig from '\/launch-config\.js';$/m);
 });

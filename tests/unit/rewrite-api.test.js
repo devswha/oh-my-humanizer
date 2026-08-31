@@ -133,8 +133,117 @@ test('JSON accept buffers a completed rewrite into one JSON response', async () 
     signals: { before: 80, after: 10 },
     diff: { changedWords: 2 },
     receipt: { receiptHash: 'sha256:test' },
-    usage: {},
   });
+});
+
+test('JSON mode maps safety-gate refusals to 422 and upstream failures to 500', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const cases = [
+    {
+      code: 'floor_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'floor_failed', failed: 'mps' });
+        return { ok: false, code: 'floor_failed', failed: 'mps' };
+      },
+      expectedStatus: 422,
+    },
+    {
+      code: 'number_safety_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'number_safety_failed' });
+        return { ok: false, code: 'number_safety_failed' };
+      },
+      expectedStatus: 422,
+    },
+    {
+      code: 'stream_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'stream_failed', error: 'upstream died' });
+        return { ok: false, code: 'stream_failed', error: 'upstream died' };
+      },
+      expectedStatus: 500,
+    },
+    {
+      code: 'scoring_failed',
+      runner: async ({ emit }) => {
+        emit({ type: 'start' });
+        emit({ type: 'error', code: 'scoring_failed', error: 'scorer timeout' });
+        return { ok: false, code: 'scoring_failed', error: 'scorer timeout' };
+      },
+      expectedStatus: 500,
+    },
+  ];
+  for (const { code, runner, expectedStatus } of cases) {
+    const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: runner });
+    const res = makeRes();
+    await api(makeReq({ headers: { accept: 'application/json' } }), res);
+    assert.equal(res.statusCode, expectedStatus, `${code} must map to ${expectedStatus}`);
+    assert.equal(res.getHeader('content-type'), 'application/json');
+    const body = JSON.parse(res.chunks[0]);
+    assert.equal(body.ok, false);
+    assert.equal(body.code, code, `${code} must carry a stable machine-readable code`);
+    assert.equal(typeof body.error, 'string');
+  }
+});
+
+test('JSON opt-in requires an exact media type: q=0, json-seq, and NDJSON precedence stay NDJSON', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const ndjsonCases = [
+    'application/json;q=0',
+    'application/json-seq',
+    'application/json, application/x-ndjson',
+    '*/*',
+    'text/html',
+  ];
+  for (const accept of ndjsonCases) {
+    const api = createRewriteApiHandler({
+      env,
+      runWebRewriteStreamImpl: async ({ emit }) => { emit({ type: 'done', rewrite: 'ok' }); },
+    });
+    const res = makeRes();
+    await api(makeReq({ headers: { accept } }), res);
+    assert.equal(res.getHeader('content-type'), 'application/x-ndjson', `${accept} must stay NDJSON`);
+  }
+  const jsonCases = [
+    'application/json',
+    'application/json;q=0.8',
+    'text/html, application/json',
+  ];
+  for (const accept of jsonCases) {
+    const api = createRewriteApiHandler({
+      env,
+      runWebRewriteStreamImpl: async ({ emit }) => { emit({ type: 'done', rewrite: 'ok' }); },
+    });
+    const res = makeRes();
+    await api(makeReq({ headers: { accept } }), res);
+    assert.equal(res.getHeader('content-type'), 'application/json', `${accept} must opt into JSON`);
+  }
+});
+
+test('JSON mode never writes to a response destroyed by a premature client close', async () => {
+  const env = { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key' };
+  const api = createRewriteApiHandler({
+    env,
+    runWebRewriteStreamImpl: async ({ emit, signal }) => {
+      emit({ type: 'start' });
+      await new Promise((resolve) => signal.addEventListener('abort', resolve, { once: true }));
+      emit({ type: 'done', rewrite: 'late' });
+      return { ok: true };
+    },
+  });
+  const res = makeRes();
+  const request = makeReq({ headers: { accept: 'application/json' } });
+  const pending = api(request, res);
+  // Client disconnects mid-rewrite: the close listener fires while the
+  // rewrite is still running, so the abort signal cancels upstream work.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  res.emitClose();
+  await pending;
+  assert.equal(res.chunks.length, 0, 'no body may be written after the client is gone');
+  assert.equal(res.ended, false, 'res.end must not run after a premature close');
 });
 
 test('JSON accept returns quota errors as plain JSON', async () => {
