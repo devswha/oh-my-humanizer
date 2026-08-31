@@ -356,6 +356,43 @@ test('assertIndependentJudge rejects the producer backend as judge', () => {
   );
 });
 
+test('assertIndependentJudge rejects same-family HTTP pairs and keeps cross-family pairs valid', () => {
+  // HTTP+HTTP same family must be rejected regardless of transport shape —
+  // two OpenAI-compatible endpoints with different model strings are still
+  // one provider family (review finding 2026-09-01).
+  assert.throws(
+    () => assertIndependentJudge(
+      { provider: 'openai', model: 'gpt-5.5' },
+      { provider: 'openai', model: 'gpt-4.1' },
+    ),
+    /independently identifiable provider/,
+  );
+  assert.throws(
+    () => assertIndependentJudge(
+      { provider: 'gemini', model: 'gemini-3.6-flash' },
+      { provider: 'google', model: 'gemini-2.5-pro' },
+    ),
+    /independently identifiable provider/,
+  );
+  assert.throws(
+    () => assertIndependentJudge(
+      { provider: null, baseURL: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash' },
+      { provider: 'deepseek', model: 'deepseek-chat' },
+    ),
+    /independently identifiable provider/,
+  );
+  // Genuinely cross-family pairs stay accepted: the recorded confirmatory
+  // pairing and mixed transport with identifiable families.
+  assert.doesNotThrow(() => assertIndependentJudge(
+    { provider: null, baseURL: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash' },
+    { backend: 'codex-cli', model: 'gpt-5.5' },
+  ));
+  assert.doesNotThrow(() => assertIndependentJudge(
+    { provider: 'openai', model: 'gpt-5.5' },
+    { provider: 'deepseek', model: 'deepseek-v4-flash' },
+  ));
+});
+
 test('confirmatory mode binds the exact corpus and configs', () => {
   const repoRoot = resolve('.');
   const fixturePath = resolve('tests/fixtures/ko-performance/confirmatory.jsonl');

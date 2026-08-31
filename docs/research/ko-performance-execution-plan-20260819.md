@@ -1,6 +1,6 @@
 # Korean diagnosis performance completion plan — 2026-08-19
 
-Branch: `bot/ko-diagnosis-performance`  
+Branch: `bot/ko-diagnosis-performance`
 Base: `dev` (`f0457e3`)
 
 ## Objective

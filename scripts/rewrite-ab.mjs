@@ -874,43 +874,50 @@ export function assertIndependentJudge(candidate, judge) {
   if (candidate.backend && judge.backend && candidate.backend === judge.backend) {
     throw new Error('producer and judge must use independent backend settings');
   }
-  if (Boolean(candidate.backend) !== Boolean(judge.backend)) {
-    const family = (settings) => {
-      const backendFamilies = {
-        'codex-cli': 'openai',
-        'claude-cli': 'anthropic',
-        'gemini-cli': 'google',
-        'kimi-cli': 'moonshot',
-        'glm-cli': 'zhipu',
-      };
-      if (settings.backend) return backendFamilies[settings.backend] ?? null;
-      const providerFamilies = {
-        openai: 'openai',
-        claude: 'anthropic',
-        anthropic: 'anthropic',
-        gemini: 'google',
-        google: 'google',
-        kimi: 'moonshot',
-        moonshot: 'moonshot',
-        glm: 'zhipu',
-        zhipu: 'zhipu',
-        deepseek: 'deepseek',
-      };
-      if (providerFamilies[settings.provider]) return providerFamilies[settings.provider];
-      const hint = `${settings.model ?? ''} ${settings.baseURL ?? ''}`.toLowerCase();
-      if (/\b(gemini|googleapis)\b/.test(hint)) return 'google';
-      if (/\b(claude|anthropic)\b/.test(hint)) return 'anthropic';
-      if (/\b(gpt|openai|codex|o[1-9])\b/.test(hint)) return 'openai';
-      if (/\b(kimi|moonshot)\b/.test(hint)) return 'moonshot';
-      if (/\b(glm|bigmodel|zhipu)\b/.test(hint)) return 'zhipu';
-      if (/\b(deepseek)\b/.test(hint)) return 'deepseek';
-      return null;
+  const family = (settings) => {
+    const backendFamilies = {
+      'codex-cli': 'openai',
+      'claude-cli': 'anthropic',
+      'gemini-cli': 'google',
+      'kimi-cli': 'moonshot',
+      'glm-cli': 'zhipu',
     };
-    const candidateFamily = family(candidate);
-    const judgeFamily = family(judge);
-    if (!candidateFamily || !judgeFamily || candidateFamily === judgeFamily) {
-      throw new Error('producer and judge must use independently identifiable provider settings');
-    }
+    if (settings.backend) return backendFamilies[settings.backend] ?? null;
+    const providerFamilies = {
+      openai: 'openai',
+      claude: 'anthropic',
+      anthropic: 'anthropic',
+      gemini: 'google',
+      google: 'google',
+      kimi: 'moonshot',
+      moonshot: 'moonshot',
+      glm: 'zhipu',
+      zhipu: 'zhipu',
+      deepseek: 'deepseek',
+    };
+    if (providerFamilies[settings.provider]) return providerFamilies[settings.provider];
+    const hint = `${settings.model ?? ''} ${settings.baseURL ?? ''}`.toLowerCase();
+    if (/\b(gemini|googleapis)\b/.test(hint)) return 'google';
+    if (/\b(claude|anthropic)\b/.test(hint)) return 'anthropic';
+    if (/\b(gpt|openai|codex|o[1-9])\b/.test(hint)) return 'openai';
+    if (/\b(kimi|moonshot)\b/.test(hint)) return 'moonshot';
+    if (/\b(glm|bigmodel|zhipu)\b/.test(hint)) return 'zhipu';
+    if (/\b(deepseek)\b/.test(hint)) return 'deepseek';
+    return null;
+  };
+  const mixedTransport = Boolean(candidate.backend) !== Boolean(judge.backend);
+  const candidateFamily = family(candidate);
+  const judgeFamily = family(judge);
+  // Any pair whose provider families are both known and equal is not
+  // independent, regardless of transport shape: HTTP+HTTP same-family pairs
+  // (e.g. two OpenAI-compatible endpoints with different model strings) are
+  // rejected exactly like mixed CLI/HTTP same-family pairs. Mixed-transport
+  // pairs with an unidentifiable side stay fail-closed as before.
+  if (candidateFamily && judgeFamily && candidateFamily === judgeFamily) {
+    throw new Error('producer and judge must use independently identifiable provider settings');
+  }
+  if (mixedTransport && (!candidateFamily || !judgeFamily)) {
+    throw new Error('producer and judge must use independently identifiable provider settings');
   }
   if (candidate.model && judge.model && candidate.model === judge.model) {
     throw new Error('producer and judge must use independent model settings');
