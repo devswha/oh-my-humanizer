@@ -6,6 +6,7 @@ import { isProductionPosture, QUOTA_REASONS, TIER_LIMITS, WEB_TIERS } from './we
 const DAY_MS = 86_400_000;
 const HOUR_MS = 3_600_000;
 const DEFAULT_CONCURRENCY_TTL_MS = 5 * 60 * 1000;
+const isPositiveSafeInteger = (value) => Number.isSafeInteger(value) && value > 0;
 
 /**
  * Return a hex sha256 HMAC quota key for NUL-separated parts.
@@ -181,26 +182,32 @@ export function createRateLimiter({ kv, hmacSecret, env = {}, now = () => Date.n
     return null;
   };
 
-  // Resolve the concurrency-slot key per tier: BYOK is unmetered (allow, no-op),
-  // FREE keys on the client IP, PRO keys on the license subject (never the IP).
+  // Resolve the concurrency-slot key per tier: BYOK and FREE key on the client
+  // IP, PRO keys on the license subject (never the IP).
   // An unknown tier is a stable 400 (defense-in-depth). The production/KV/secret
   // guards are shared with `check` via productionGuard.
   const getConcurrencyKey = (tier, ip, subject) => {
     switch (tier) {
       case WEB_TIERS.BYOK:
-        return { ok: false, result: /** @type {RateLimitResult} */ ({ allowed: true, tier }) };
       case WEB_TIERS.FREE: {
         const guard = productionGuard();
         if (guard) return { ok: false, result: guard };
         if (!ip) return { ok: false, result: /** @type {RateLimitResult} */ ({ allowed: false, status: 400, reason: QUOTA_REASONS.IP_UNAVAILABLE }) };
         const secret = hmacSecret || 'patina-local-quota-secret';
-        return { ok: true, key: quotaKeyHmac(secret, 'free', 'concurrent', ip), maxConcurrent: limits.free.maxConcurrent };
+        const tierLimits = tier === WEB_TIERS.BYOK ? limits.byok : limits.free;
+        if (!tierLimits || !isPositiveSafeInteger(tierLimits.maxConcurrent)) {
+          return { ok: false, result: /** @type {RateLimitResult} */ ({ allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE }) };
+        }
+        return { ok: true, key: quotaKeyHmac(secret, tier, 'concurrent', ip), maxConcurrent: tierLimits.maxConcurrent };
       }
       case WEB_TIERS.PRO: {
         const guard = productionGuard();
         if (guard) return { ok: false, result: guard };
         if (typeof subject !== 'string' || subject === '') return { ok: false, result: /** @type {RateLimitResult} */ ({ allowed: false, status: 401, reason: QUOTA_REASONS.LICENSE_REQUIRED }) };
         const secret = hmacSecret || 'patina-local-quota-secret';
+        if (!limits.pro || !isPositiveSafeInteger(limits.pro.maxConcurrent)) {
+          return { ok: false, result: /** @type {RateLimitResult} */ ({ allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE }) };
+        }
         return { ok: true, key: quotaKeyHmac(secret, 'pro', 'concurrent', subject), maxConcurrent: limits.pro.maxConcurrent };
       }
       default:
@@ -221,7 +228,6 @@ export function createRateLimiter({ kv, hmacSecret, env = {}, now = () => Date.n
     async check({ tier, ip, subject, chars }) {
       switch (tier) {
         case WEB_TIERS.BYOK:
-          return { allowed: true, tier };
         case WEB_TIERS.FREE: {
           const guard = productionGuard();
           if (guard) return guard;
@@ -231,9 +237,14 @@ export function createRateLimiter({ kv, hmacSecret, env = {}, now = () => Date.n
           const timestamp = now();
           const dayBucket = Math.floor(timestamp / DAY_MS);
           const hourBucket = Math.floor(timestamp / HOUR_MS);
-          const freeLimits = limits.free;
-          const dayKey = quotaKeyHmac(secret, 'free', 'day', ip, dayBucket);
-          const hourKey = quotaKeyHmac(secret, 'free', 'hour', ip, hourBucket);
+          const tierLimits = tier === WEB_TIERS.BYOK ? limits.byok : limits.free;
+          if (!tierLimits
+            || !isPositiveSafeInteger(tierLimits.reqPerDay)
+            || !isPositiveSafeInteger(tierLimits.burstPerHour)) {
+            return { allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE };
+          }
+          const dayKey = quotaKeyHmac(secret, tier, 'day', ip, dayBucket);
+          const hourKey = quotaKeyHmac(secret, tier, 'hour', ip, hourBucket);
           const dayTtlMs = (dayBucket + 1) * DAY_MS - timestamp;
           const hourTtlMs = (hourBucket + 1) * HOUR_MS - timestamp;
 
@@ -246,17 +257,17 @@ export function createRateLimiter({ kv, hmacSecret, env = {}, now = () => Date.n
             if (!Number.isSafeInteger(dayCount) || dayCount < 1) {
               return { allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE };
             }
-            if (dayCount > freeLimits.reqPerDay) {
+            if (dayCount > tierLimits.reqPerDay) {
               return { allowed: false, status: 429, reason: QUOTA_REASONS.DAILY };
             }
             const hourCount = await kv.incr(hourKey, { ttlMs: hourTtlMs });
             if (!Number.isSafeInteger(hourCount) || hourCount < 1) {
               return { allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE };
             }
-            if (hourCount > freeLimits.burstPerHour) {
+            if (hourCount > tierLimits.burstPerHour) {
               return { allowed: false, status: 429, reason: QUOTA_REASONS.HOURLY };
             }
-            return { allowed: true, tier, remainingDay: Math.max(0, freeLimits.reqPerDay - dayCount) };
+            return { allowed: true, tier, remainingDay: Math.max(0, tierLimits.reqPerDay - dayCount) };
           } catch {
             return { allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE };
           }
@@ -273,6 +284,9 @@ export function createRateLimiter({ kv, hmacSecret, env = {}, now = () => Date.n
           const timestamp = now();
           const dayBucket = Math.floor(timestamp / DAY_MS);
           const proLimits = limits.pro;
+          if (!proLimits || !isPositiveSafeInteger(proLimits.reqPerDay)) {
+            return { allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE };
+          }
           // Pro meters a daily cap only (no hourly burst), keyed on the license
           // subject — never the IP — so usage is counted per license seat.
           const dayKey = quotaKeyHmac(secret, 'pro', 'day', subject, dayBucket);

@@ -51,6 +51,7 @@ function privateAttempt(overrides = {}) {
     effectiveModel: 'private-effective-model',
     usage: {
       prompt_tokens: 4,
+      completion_tokens: 0,
       cache_marker: 'private-cache-token',
     },
     retryReason: 'initial',
@@ -718,14 +719,21 @@ test('runWebRewriteStream forwards the abort signal and timeout to the LLM strea
     emit: (frame) => frames.push(frame),
     signal: controller.signal,
     timeout: 4321,
+    now: () => 1000,
+    deadlineNow: () => 0, // fixed monotonic clock: the full budget remains at every stage
   });
 
   assert.equal(result.ok, true);
-  assert.equal(seen.stream.signal, controller.signal);
+  // With a total budget, stages receive the deadline-combined signal (fires on
+  // caller abort OR exhaustion) — not the raw caller signal — and each stage's
+  // timeout is its REMAINING share of the budget (here, all of it: clock fixed).
+  assert.notEqual(seen.stream.signal, controller.signal);
+  assert.equal(seen.stream.signal.aborted, false);
   assert.equal(seen.stream.timeout, 4321);
   assert.equal(seen.scorers.length, 2);
   for (const scorer of seen.scorers) {
-    assert.equal(scorer.signal, controller.signal);
+    assert.notEqual(scorer.signal, controller.signal);
+    assert.equal(scorer.signal.aborted, false);
     assert.equal(scorer.timeout, 4321);
   }
   assert.deepEqual(result.attempts, {
@@ -867,23 +875,36 @@ test('terminal observer maps every terminal outcome once without frame leakage',
     {
       name: 'completed',
       request: { ...request, original: 'We shipped 3 units.' },
-      callLLMStream: async () => ({ text: 'We shipped 3 units.' }),
+      callLLMStream: async ({ onAttempt }) => {
+        onAttempt(privateAttempt());
+        return { text: 'We shipped 3 units.' };
+      },
       scoreFns: scoring(),
-      expected: { outcome: 'completed', status: 200 },
+      expected: { outcome: 'completed', status: 200, totalTokens: 12, llmCalls: 3 },
+    },
+    {
+      name: 'completed with malformed token usage',
+      request: { ...request, original: 'We shipped 3 units.' },
+      callLLMStream: async ({ onAttempt }) => {
+        onAttempt(privateAttempt({ usage: { prompt_tokens: '4', completion_tokens: 0 } }));
+        return { text: 'We shipped 3 units.' };
+      },
+      scoreFns: scoring(),
+      expected: { outcome: 'completed', status: 200, totalTokens: undefined, llmCalls: 3 },
     },
     {
       name: 'number safety',
       request: { ...request, original: 'Report date: 01/02/2024.' },
       callLLMStream: async () => ({ text: 'Report date: 01/02/2024.' }),
       scoreFns: scoring(),
-      expected: { outcome: 'number_safety_failed', status: 422 },
+      expected: { outcome: 'number_safety_failed', status: 422, totalTokens: undefined, llmCalls: undefined },
     },
     {
       name: 'stream failure',
       request,
       callLLMStream: async () => { throw new Error(canary); },
       scoreFns: scoring(),
-      expected: { outcome: 'terminal_failed', status: 500 },
+      expected: { outcome: 'terminal_failed', status: 500, totalTokens: undefined, llmCalls: undefined },
     },
     {
       name: 'scoring failure',
@@ -893,14 +914,14 @@ test('terminal observer maps every terminal outcome once without frame leakage',
         ...scoring(),
         scoreMPS: async () => { throw new Error(canary); },
       },
-      expected: { outcome: 'terminal_failed', status: 500 },
+      expected: { outcome: 'terminal_failed', status: 500, totalTokens: undefined, llmCalls: undefined },
     },
     {
       name: 'floor failure',
       request: { ...request, original: 'We shipped three units.' },
       callLLMStream: async () => ({ text: 'We shipped three units.' }),
       scoreFns: scoring({ mps: 1, fidelity: 1 }),
-      expected: { outcome: 'terminal_failed', status: 422 },
+      expected: { outcome: 'terminal_failed', status: 422, totalTokens: undefined, llmCalls: undefined },
     },
   ];
   for (const scenario of scenarios) {
@@ -945,4 +966,175 @@ test('terminal observer is optional and cannot change frames when it throws', as
     emit() {},
   });
   assert.equal(unobserved.observed, false);
+});
+
+test('runWebRewriteStream treats timeout as ONE total budget shared by every stage', async () => {
+  const frames = [];
+  let llmCalls = 0;
+  // Injectable clock: advance past the deadline after the first paid attempt,
+  // so a number-safety retry must NOT start — the total budget is spent.
+  let t = 0;
+  const deadlineNow = () => t;
+  const callLLMStream = async ({ onAttempt, signal, timeout }) => {
+    llmCalls += 1;
+    assert.notEqual(signal, undefined);
+    if (llmCalls === 1) {
+      assert.equal(timeout, 5_000);
+      onAttempt(privateAttempt());
+      t = 10_000; // clock jumps past the 5s deadline before the retry is considered
+      return { text: 'We shipped 4 units.' }; // trips number safety → retry
+    }
+    throw new Error('retry must not run: budget already exhausted');
+  };
+  const result = await runWebRewriteStream({
+    request: { ...request, original: 'We shipped 3 units.' },
+    callLLMStream,
+    scoreFns: {
+      scoreMPS: async () => { throw new Error('scoring must not run'); },
+      scoreFidelity: async () => { throw new Error('scoring must not run'); },
+      scoreDeterministicSignals: () => { throw new Error('scoring must not run'); },
+    },
+    emit: (frame) => frames.push(frame),
+    timeout: 5_000,
+    deadlineNow,
+  });
+
+  assert.equal(llmCalls, 1);
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'stream_failed');
+  assert.equal(result.error, 'stream budget exhausted');
+  assert.deepEqual(frames.at(-1), { type: 'error', code: 'stream_failed', error: 'stream budget exhausted' });
+});
+
+test('runWebRewriteStream fails scoring closed when the shared budget is exhausted after rewrite', async () => {
+  const frames = [];
+  let scorerCalls = 0;
+  // Clock: rewrite stage runs at t=0 (budget 5s); before the rewrite returns,
+  // jump past the deadline so the scorer stage must fail closed, scorers uncalled.
+  let t = 0;
+  const deadlineNow = () => t;
+  const result = await runWebRewriteStream({
+    request: { ...request, original: 'We shipped 3 units.' },
+    callLLMStream: async ({ onAttempt }) => {
+      onAttempt(privateAttempt());
+      t = 10_000; // budget exhausted once the rewrite text is in hand
+      return { text: 'We shipped 3 units.' };
+    },
+    scoreFns: {
+      scoreMPS: async () => { scorerCalls += 1; throw new Error('must not run'); },
+      scoreFidelity: async () => { scorerCalls += 1; throw new Error('must not run'); },
+      scoreDeterministicSignals: () => ({ overall: 0, text: '' }),
+    },
+    emit: (frame) => frames.push(frame),
+    timeout: 5_000,
+    deadlineNow,
+  });
+
+  assert.equal(scorerCalls, 0);
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'scoring_failed');
+  assert.equal(result.error, 'stream budget exhausted');
+  assert.deepEqual(frames.at(-1), { type: 'error', code: 'scoring_failed', error: 'stream budget exhausted' });
+});
+
+test('runWebRewriteStream combines the caller signal with the deadline signal', async () => {
+  const frames = [];
+  const caller = new AbortController();
+  /** @type {AbortSignal|undefined} */
+  let seenSignal;
+  const result = await runWebRewriteStream({
+    request: { ...request, original: 'We shipped 3 units.' },
+    callLLMStream: ({ signal }) => {
+      seenSignal = signal;
+      caller.abort(new Error('client disconnected')); // abort after the rewrite is active
+      return new Promise(() => {}); // ignores abort; orchestration must still finish
+    },
+    scoreFns: scoring(),
+    emit: (frame) => frames.push(frame),
+    signal: caller.signal,
+    timeout: 60_000,
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'stream_failed');
+  assert.notEqual(seenSignal, caller.signal); // the deadline-combined signal, not the raw caller signal
+  assert.ok(seenSignal);
+  assert.equal(seenSignal.aborted, true);
+});
+
+test('runWebRewriteStream deadline completes an in-flight non-settling rewrite and suppresses late deltas', async () => {
+  const frames = [];
+  const startedAt = Date.now();
+  const result = await runWebRewriteStream({
+    request: { ...request, original: 'We shipped 3 units.' },
+    callLLMStream: ({ onDelta }) => new Promise((resolve) => {
+      setTimeout(() => {
+        onDelta('late private delta');
+        resolve({ text: 'We shipped 3 units.' });
+      }, 50);
+    }),
+    scoreFns: scoring(),
+    emit: (frame) => frames.push(frame),
+    timeout: 5,
+  });
+  assert.ok(Date.now() - startedAt < 500, 'orchestration must not await the uncooperative provider');
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'stream_failed');
+  assert.deepEqual(frames.at(-1), { type: 'error', code: 'stream_failed', error: 'stream budget exhausted' });
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assert.equal(frames.some((frame) => frame.type === 'delta'), false, 'late provider callbacks are closed');
+});
+
+test('runWebRewriteStream deadline completes non-settling scorers', async () => {
+  const frames = [];
+  const result = await runWebRewriteStream({
+    request: { ...request, original: 'We shipped 3 units.' },
+    callLLMStream: async ({ onAttempt }) => {
+      onAttempt(privateAttempt());
+      return { text: 'We shipped 3 units.' };
+    },
+    scoreFns: {
+      scoreMPS: () => new Promise(() => {}),
+      scoreFidelity: () => new Promise(() => {}),
+      scoreDeterministicSignals: () => ({}),
+    },
+    emit: (frame) => frames.push(frame),
+    timeout: 5,
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'scoring_failed');
+  assert.deepEqual(frames.at(-1), { type: 'error', code: 'scoring_failed', error: 'stream budget exhausted' });
+});
+
+test('runWebRewriteStream fails closed with a frame when the deadline clock is invalid', async () => {
+  const frames = [];
+  let called = false;
+  const result = await runWebRewriteStream({
+    request: { ...request, original: 'We shipped 3 units.' },
+    callLLMStream: async () => { called = true; return { text: 'must not run' }; },
+    scoreFns: scoring(),
+    emit: (frame) => frames.push(frame),
+    timeout: 5_000,
+    deadlineNow: () => Number.NaN,
+  });
+  assert.equal(called, false);
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'stream_failed');
+  assert.deepEqual(frames.at(-1), { type: 'error', code: 'stream_failed', error: 'stream budget exhausted' });
+});
+
+test('runWebRewriteStream without a timeout keeps legacy per-stage behavior', async () => {
+  const frames = [];
+  let seenTimeout;
+  const result = await runWebRewriteStream({
+    request: { ...request, original: 'We shipped 3 units.' },
+    callLLMStream: async ({ onAttempt, timeout }) => {
+      seenTimeout = timeout;
+      onAttempt(privateAttempt());
+      return { text: 'We shipped 3 units.' };
+    },
+    scoreFns: scoring(),
+    emit: (frame) => frames.push(frame),
+  });
+  assert.equal(result.ok, true);
+  assert.equal(seenTimeout, undefined);
 });

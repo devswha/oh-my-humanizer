@@ -5,6 +5,6 @@
   "description": "External aggregate-only Vercel log-query service for the private patina Pro monitor. Returns exact closed integer counts; never raw logs.",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": "24.x"
   }
 }

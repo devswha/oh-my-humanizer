@@ -19,6 +19,7 @@
 // parallel convention. No new runtime dependency: HMAC comes from rate-limit.js,
 // fetch from globalThis.fetch (injectable), timeouts from AbortController.
 
+import { randomBytes } from 'node:crypto';
 import { createMemoryKv, isProductionPosture, quotaKeyHmac } from './rate-limit.js';
 import { QUOTA_REASONS, redactSecrets } from './web-rewrite-contract.js';
 
@@ -35,7 +36,7 @@ const DEV_FALLBACK_SECRET = 'patina-local-license-secret';
  * @typedef {{ok: true, subject: string, tier: 'pro', status: string, cache: 'hit'|'miss'}} EntitlementAllow
  * @typedef {{ok: false, status: 401|403|503, reason: string}} EntitlementDeny
  * @typedef {EntitlementAllow|EntitlementDeny} EntitlementResult
- * @typedef {{get(key: string): Promise<unknown>, set(key: string, val: unknown, options?: {ttlMs?: number}): Promise<void>, incr(key: string, options?: {ttlMs?: number}): Promise<number>, __memory?: boolean}} EntitlementKv
+ * @typedef {{get(key: string): Promise<unknown>, set(key: string, val: unknown, options?: {ttlMs?: number}): Promise<void>, incr(key: string, options?: {ttlMs?: number}): Promise<number>, acquireLease?(registryKey: string, lease: string, maxConcurrent: number, options: {ttlMs: number}): Promise<boolean>, releaseLease?(registryKey: string, lease: string): Promise<boolean>, __memory?: boolean}} EntitlementKv
  */
 
 /**
@@ -248,15 +249,28 @@ export function createLicenseValidator({
     // and let a second instance call the provider. Floor at LOCK_TTL_MS; extend past the
     // fetch deadline when a longer timeout is configured.
     const lockTtlMs = Math.max(LOCK_TTL_MS, timeoutMs + 5_000);
-    const lockKey = quotaKeyHmac(secret, `${provider.id}-lock`, licenseKey);
-    let lockCount;
+    // Owner-token single-flight lease (2026-09-01, Pro review P0). The previous
+    // counter lock incr'd on EVERY follower, and each incr re-armed PEXPIRE, so
+    // sustained retries kept a crashed winner's lock alive forever — the TTL
+    // self-heal was broken and the license wedged at 503 until traffic stopped.
+    // A 1-slot ZSET lease restores the promise with existing KV primitives: the
+    // lease token IS the owner, only the owner's member can be released, and a
+    // follower NEVER touches the registry — per-member expiry heals after
+    // lockTtlMs no matter how many followers pile up. New key suffix (-sflight)
+    // because the old (-lock) key holds a plain counter (WRONGTYPE on ZADD).
+    const lockRegistry = quotaKeyHmac(secret, `${provider.id}-sflight`, licenseKey);
+    const lockOwner = randomBytes(32).toString('base64url');
+    if (typeof store.acquireLease !== 'function' || typeof store.releaseLease !== 'function') return unavailable();
+    let lockAcquired;
     try {
-      lockCount = await store.incr(lockKey, { ttlMs: lockTtlMs });
+      lockAcquired = await store.acquireLease(lockRegistry, lockOwner, 1, { ttlMs: lockTtlMs });
     } catch {
       return unavailable();
     }
-    if (!Number.isSafeInteger(lockCount) || lockCount < 1) return unavailable();
-    if (lockCount > 1) {
+    // A degraded adapter must fail closed here, exactly like the counter lock:
+    // anything but a clean boolean is storage failure, never a follower signal.
+    if (lockAcquired !== true && lockAcquired !== false) return unavailable();
+    if (lockAcquired === false) {
       // Follower path: the winner is validating this SAME license right now and
       // writes the cache when it finishes (typically well under timeoutMs). An
       // instant 503 here would break the advertised concurrency for a license's
@@ -264,7 +278,8 @@ export function createLicenseValidator({
       // lapses — so followers briefly poll the cache instead (#606). The loop
       // is bounded by ITERATION COUNT, never the wall clock, so an injected or
       // frozen `now` cannot spin it forever; when the winner crashed or the provider is
-      // down, nothing gets cached and this stays fail-closed 503.
+      // down, nothing gets cached and this stays fail-closed 503. The follower
+      // does NOT touch the lock registry (see the owner-token note above).
       const pollIntervalMs = readPositiveInt(tunable('LOCK_POLL_INTERVAL_MS'), DEFAULT_LOCK_POLL_INTERVAL_MS);
       const lockWaitMs = readPositiveInt(tunable('LOCK_WAIT_MS'), Math.min(lockTtlMs, timeoutMs + 1_000));
       const attempts = Math.max(1, Math.ceil(lockWaitMs / pollIntervalMs));
@@ -282,24 +297,24 @@ export function createLicenseValidator({
           /* a broken cache read never fails open; keep polling */
         }
       }
-      warnSafe('entitlement: provider validate single-flight lock held', { subject, lockCount });
+      warnSafe('entitlement: provider validate single-flight lock held', { subject });
       return unavailable();
     }
 
-    // Winner path: hold the lock; release it on EVERY completion path (cache
+    // Winner path: hold the lease; release it on EVERY completion path (cache
     // re-hit, RPM saturation, fetch success/denial/transient failure) so an
     // immediate retry re-validates or hits the freshly written cache. Release
-    // resets the counter to 0 via set() (a guaranteed KV op): losers that
-    // incremented past 1 never decrement, so a decr-based release would leak the
-    // counter upward and wedge the lock. lockTtlMs is only the crash self-heal.
+    // removes THIS owner's member only (compare-by-member): a follower that
+    // acquired after our TTL lapse is never evicted. lockTtlMs is the crash
+    // self-heal and, unlike the old counter, cannot be re-armed by followers.
     let lockReleased = false;
     const releaseLock = async () => {
       if (lockReleased) return;
       lockReleased = true;
       try {
-        await store.set(lockKey, 0, { ttlMs: lockTtlMs });
+        await store.releaseLease(lockRegistry, lockOwner);
       } catch {
-        /* best-effort; the TTL self-heals the lock regardless */
+        /* best-effort; the per-member TTL self-heals the lock regardless */
       }
     };
 

@@ -15,6 +15,10 @@ import {
 import { evaluateKoreanInvariants } from './features/korean-invariants.js';
 
 /**
+ * @typedef {{signal: AbortSignal|null, remainingMs: () => number|undefined, race: (promise: Promise<any>|any) => Promise<any>, dispose: () => void}} DeadlineScope
+ */
+
+/**
  * Extract a score field RAW (no coercion) so evaluateFloors can strictly reject
  * non-numbers. evaluateFloors requires a finite number >= floor, so a string,
  * object, array, or missing value fails closed — "95" must NOT become 95.
@@ -112,6 +116,77 @@ function summarizeDiff(before, after) {
 }
 
 /**
+ * Sum every paid attempt's token usage into one coarse total for the cost
+ * observability buckets. Accepts normalized/OpenAI `total_tokens`, OpenAI
+ * prompt+completion, Anthropic input+output+cache, or Gemini token-count
+ * fields. Evidence is all-or-unknown: every started stage must have at least
+ * one valid attempt and every attempt must contain one complete known usage
+ * shape. This prevents plausible undercounts from incomplete provider data.
+ * @param {{valid: boolean, rewrite: object[], mps: object[], fidelity: object[]}} attempts
+ * @param {Set<'rewrite'|'mps'|'fidelity'>} startedStages
+ * @returns {number|undefined}
+ */
+function attemptsTotalTokens(attempts, startedStages) {
+  if (attempts?.valid !== true || startedStages.size === 0) return undefined;
+  let total = 0;
+  for (const stage of startedStages) {
+    const records = attempts?.[stage];
+    if (!Array.isArray(records) || records.length === 0) return undefined;
+    for (const record of records) {
+      const usage = /** @type {any} */ (record)?.usage;
+      if (!usage || typeof usage !== 'object' || Array.isArray(usage)) return undefined;
+      const validTokenCount = (/** @type {unknown} */ value) =>
+        typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+      if (Object.hasOwn(usage, 'total_tokens') || Object.hasOwn(usage, 'totalTokenCount')) {
+        const value = Object.hasOwn(usage, 'total_tokens') ? usage.total_tokens : usage.totalTokenCount;
+        if (!validTokenCount(value)) return undefined;
+        total += value;
+        continue;
+      }
+      const shapes = [
+        { required: ['prompt_tokens', 'completion_tokens'], optional: [] },
+        { required: ['input_tokens', 'output_tokens'], optional: ['cache_read_input_tokens', 'cache_creation_input_tokens'] },
+        { required: ['promptTokenCount', 'candidatesTokenCount'], optional: ['thoughtsTokenCount'] },
+      ];
+      let matched = false;
+      for (const { required, optional } of shapes) {
+        if (!required.every((field) => Object.hasOwn(usage, field))) continue;
+        let shapeTotal = 0;
+        for (const field of [...required, ...optional]) {
+          if (!Object.hasOwn(usage, field)) continue;
+          const value = usage[field];
+          if (!validTokenCount(value)) return undefined;
+          shapeTotal += value;
+        }
+        total += shapeTotal;
+        matched = true;
+        break;
+      }
+      if (!matched || !Number.isSafeInteger(total)) return undefined;
+    }
+  }
+  return total;
+}
+
+/**
+ * Count the paid LLM transport calls a request actually spent (all stages, all
+ * attempts). The margin model assumes 3; 4+ means a retry fired.
+ * @param {{valid: boolean, rewrite: object[], mps: object[], fidelity: object[]}} attempts
+ * @param {Set<'rewrite'|'mps'|'fidelity'>} startedStages
+ * @returns {number|undefined}
+ */
+function attemptsLlmCalls(attempts, startedStages) {
+  if (attempts?.valid !== true || startedStages.size === 0) return undefined;
+  let count = 0;
+  for (const stage of startedStages) {
+    const records = attempts?.[stage];
+    if (!Array.isArray(records) || records.length === 0) return undefined;
+    count += records.length;
+  }
+  return Number.isSafeInteger(count) && count >= 1 ? count : undefined;
+}
+
+/**
  * Provider-specific request fields for the two scoring calls.
  *
  * The MPS and fidelity judges are rubric-application tasks, and on
@@ -192,15 +267,17 @@ export function rewriteExtraBody(provider, tier, env = {}) {
  * @param {Function} [options.callLLMStream] Streaming LLM client.
  * @param {{scoreMPS?: Function, scoreFidelity?: Function, scoreDeterministicSignals?: Function}} [options.scoreFns] Injectable scorers.
  * @param {(frame: object) => void} options.emit Frame sink.
- * @param {AbortSignal} [options.signal] Abort signal.
- * @param {number} [options.timeout] Timeout in milliseconds.
- * @param {(input: {tier: string, outcome: string, status: number, latencyMs: number}) => unknown} [options.observe] Closed telemetry sink.
+ * @param {AbortSignal} [options.signal] Abort signal (client disconnect); combined with the deadline signal.
+ * @param {number} [options.timeout] TOTAL budget in milliseconds for the WHOLE pipeline — every rewrite attempt plus both scorers share it; one abort fires at exhaustion. (Previously each stage received the full timeout, so the worst case ran ~3x over budget.)
+ * @param {DeadlineScope} [options.deadline] Internal deadline scope injected by the public wrapper; exported callers never pass it.
+ * @param {() => number} [options.deadlineNow] Internal/test seam for the monotonic deadline clock.
+ * @param {(input: {tier: string, outcome: string, status: number, latencyMs: number, totalTokens?: number, llmCalls?: number}) => unknown} [options.observe] Closed aggregate telemetry sink.
  * @param {() => number} [options.now] Injectable clock.
  * @param {number} [options.numberSafetyRetries] Buffered LLM retries after a number-safety failure (default 1).
  * @param {Record<string,string|undefined>} [options.env] Server env, read only for explicit prompt-budget and reasoning controls.
  * @returns {Promise<object>} Small result summary.
  */
-export async function runWebRewriteStream({
+async function runWebRewriteStreamUnscoped({
   request,
   repoRoot = resolveBundleRoot(),
   config = loadWebConfig({ repoRoot }),
@@ -213,6 +290,7 @@ export async function runWebRewriteStream({
   now = () => Date.now(),
   numberSafetyRetries = 1,
   env = typeof process === 'undefined' ? {} : process.env,
+  deadline,
 }) {
   if (typeof emit !== 'function') throw new TypeError('emit must be a function');
   let startedAt;
@@ -237,8 +315,18 @@ export async function runWebRewriteStream({
     }
     if (!Number.isFinite(endedAt)) return false;
     try {
-      const result = observe({ tier: request.tier, outcome, status, latencyMs: Math.max(0, endedAt - startedAt) });
-      if (result && typeof /** @type {any} */ (result).catch === 'function') /** @type {Promise<unknown>} */ (result).catch(() => {});
+      const result = observe({
+        tier: request.tier,
+        outcome,
+        status,
+        latencyMs: Math.max(0, endedAt - startedAt),
+        // Cost observability: coarse aggregates over the private attempt ledger
+        // (never per-attempt values). `attempts` is initialized below; this
+        // closure only reads it at call time, after initialization.
+        totalTokens: attemptsTotalTokens(attempts, startedStages),
+        llmCalls: attemptsLlmCalls(attempts, startedStages),
+      });
+      if (result && typeof /** @type {any} */ (result).catch === 'function') /** @type {any} */ (result).catch(() => {});
     } catch {
       // Observability is strictly nonblocking and exception-isolated.
     }
@@ -269,6 +357,8 @@ export async function runWebRewriteStream({
   // This metadata is intentionally return-only: NDJSON frames are customer-safe.
   /** @type {{valid: boolean, rewrite: object[], mps: object[], fidelity: object[]}} */
   const attempts = { valid: true, rewrite: [], mps: [], fidelity: [] };
+  /** @type {Set<'rewrite'|'mps'|'fidelity'>} */
+  const startedStages = new Set();
   /** @type {{rewrite: number, mps: number, fidelity: number}} */
   const attemptCounts = { rewrite: 0, mps: 0, fidelity: 0 };
   /**
@@ -302,29 +392,60 @@ export async function runWebRewriteStream({
   // first attempt trips (docs/operations/pro-margin-decision-20260729.md).
   // Every paid attempt is still recorded in the private attempts metadata.
   const maxRuns = 1 + Math.max(0, Number.isSafeInteger(numberSafetyRetries) ? numberSafetyRetries : 1);
+  // Deadline plumbing: the public wrapper turns `timeout` into one absolute
+  // deadline shared by EVERY stage, so sequential rewrite retries and the two
+  // scorers all draw from the same remaining budget instead of each receiving
+  // the full window (worst case was rewrite + rewrite-retry + scorers = 3x).
+  // Without a deadline scope, fall back to the legacy per-stage `timeout`.
+  const stageSignal = deadline?.signal ?? signal;
+  /**
+   * Remaining budget for the next stage, or the legacy timeout when no deadline
+   * scope was injected. `0` means the budget is exhausted.
+   * @returns {number|undefined}
+   */
+  const stageTimeout = () => (deadline ? deadline.remainingMs() : timeout);
   for (let run = 1; run <= maxRuns; run += 1) {
+    const stageRemaining = stageTimeout();
+    if (stageRemaining === 0) {
+      closeAttempts();
+      emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'stream_failed', error: 'stream budget exhausted' });
+      return { ok: false, code: 'stream_failed', error: 'stream budget exhausted', attempts, observed: observeTerminal('terminal_failed', 500) };
+    }
     // Each callLLMStream invocation numbers its own attempts from 1; offset
     // retry-run indices so the stage's private attempt ledger stays one-based
     // and contiguous across runs (the fields and values are otherwise
     // untouched — every paid attempt is recorded).
     const indexBase = attemptCounts.rewrite;
     try {
-      const streamResult = await callLLMStream({
-        extraBody: rewriteExtra,
-        prompt,
-        apiKey: request.apiKey,
-        baseURL: request.baseURL,
-        model: request.model,
-        signal,
-        timeout,
-        onDelta: (text) => {
-          if (run === 1) emit({ type: STREAM_FRAME_TYPES.DELTA, text });
-        },
-        onAttempt: (record) => recordAttempt('rewrite', Number.isInteger(/** @type {any} */ (record)?.attemptIndex)
-          ? { .../** @type {any} */ (record), attemptIndex: /** @type {any} */ (record).attemptIndex + indexBase }
-          : record),
-        onAttemptInvalid: recordInvalidAttempt,
-      });
+      startedStages.add('rewrite');
+      let stageOpen = true;
+      let streamResult;
+      try {
+        const pending = callLLMStream({
+          extraBody: rewriteExtra,
+          prompt,
+          apiKey: request.apiKey,
+          baseURL: request.baseURL,
+          model: request.model,
+          signal: stageSignal,
+          timeout: stageRemaining,
+          onDelta: (text) => {
+            if (stageOpen && run === 1) emit({ type: STREAM_FRAME_TYPES.DELTA, text });
+          },
+          onAttempt: (record) => {
+            if (!stageOpen) return;
+            recordAttempt('rewrite', Number.isInteger(/** @type {any} */ (record)?.attemptIndex)
+              ? { .../** @type {any} */ (record), attemptIndex: /** @type {any} */ (record).attemptIndex + indexBase }
+              : record);
+          },
+          onAttemptInvalid: () => {
+            if (stageOpen) recordInvalidAttempt();
+          },
+        });
+        streamResult = await (deadline ? deadline.race(pending) : pending);
+      } finally {
+        stageOpen = false;
+      }
       rewrite = formatRewriteBodyForBrowser(streamResult.text);
     } catch (err) {
       const error = safeError(err, request.apiKey);
@@ -338,7 +459,7 @@ export async function runWebRewriteStream({
     numberSafety = evaluateNumberSafety(original, rewrite, request.lang);
     if (numberSafety.ok) break;
     // An externally aborted signal must not spend another paid attempt.
-    if (run === maxRuns || signal?.aborted) {
+    if (run === maxRuns || stageSignal?.aborted) {
       closeAttempts();
       emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'number_safety_failed' });
       return {
@@ -359,10 +480,27 @@ export async function runWebRewriteStream({
 
   let mps, fidelity, signals, diff;
   try {
-    const scoreResults = await Promise.allSettled([
-      Promise.resolve().then(() => mpsScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, extraBody: scoringExtra, signal, timeout, onAttempt: (record) => recordAttempt('mps', record), onAttemptInvalid: recordInvalidAttempt })),
-      Promise.resolve().then(() => fidelityScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, extraBody: scoringExtra, signal, timeout, onAttempt: (record) => recordAttempt('fidelity', record), onAttemptInvalid: recordInvalidAttempt })),
-    ]);
+    // Scorers draw from the SAME shared budget: compute the remaining time once
+    // at stage start (both run in parallel) and fail fast when it is exhausted.
+    const scoringRemaining = stageTimeout();
+    if (scoringRemaining === 0) {
+      closeAttempts();
+      emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'scoring_failed', error: 'stream budget exhausted' });
+      return { ok: false, code: 'scoring_failed', error: 'stream budget exhausted', attempts, observed: observeTerminal('terminal_failed', 500) };
+    }
+    startedStages.add('mps');
+    startedStages.add('fidelity');
+    let scoringOpen = true;
+    let scoreResults;
+    try {
+      const pending = Promise.allSettled([
+        Promise.resolve().then(() => mpsScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, extraBody: scoringExtra, signal: stageSignal, timeout: scoringRemaining, onAttempt: (record) => { if (scoringOpen) recordAttempt('mps', record); }, onAttemptInvalid: () => { if (scoringOpen) recordInvalidAttempt(); } })),
+        Promise.resolve().then(() => fidelityScore({ original, rewritten: rewrite, apiKey: request.apiKey, baseURL: request.baseURL, model: request.model, extraBody: scoringExtra, signal: stageSignal, timeout: scoringRemaining, onAttempt: (record) => { if (scoringOpen) recordAttempt('fidelity', record); }, onAttemptInvalid: () => { if (scoringOpen) recordInvalidAttempt(); } })),
+      ]);
+      scoreResults = await (deadline ? deadline.race(pending) : pending);
+    } finally {
+      scoringOpen = false;
+    }
     const [mpsResult, fidelityResult] = scoreResults;
     if (mpsResult.status === 'rejected') throw mpsResult.reason;
     if (fidelityResult.status === 'rejected') throw fidelityResult.reason;
@@ -433,4 +571,112 @@ export async function runWebRewriteStream({
     ...(koreanInvariants ? { koreanInvariants } : {}),
     observed: observeTerminal('completed', 200),
   };
+}
+
+/**
+ * Turn the caller's total `timeout` budget into an absolute deadline shared by
+ * every pipeline stage, exposed as (a) one abort signal that fires either when
+ * the budget is exhausted OR when the caller's signal aborts (client
+ * disconnect), and (b) a remaining-time helper each stage uses as its own
+ * timeout. `dispose()` clears the timer and listener so no handles leak.
+ *
+ * @param {number|undefined} timeout Total budget in ms; falsy/invalid disables the deadline (legacy behavior).
+ * @param {AbortSignal|undefined} signal Caller abort signal (client disconnect).
+ * @param {() => number} clock Monotonic injectable deadline clock.
+ * @returns {DeadlineScope}
+ */
+function createDeadlineScope(timeout, signal, clock) {
+  const hasDeadline = Number.isFinite(timeout) && timeout > 0;
+  if (!hasDeadline && !signal) {
+    return {
+      signal: null,
+      remainingMs: () => undefined,
+      race: (promise) => Promise.resolve(promise),
+      dispose: () => {},
+    };
+  }
+  const controller = new AbortController();
+  let deadlineAt;
+  const readClock = () => {
+    try {
+      const value = clock();
+      return Number.isFinite(value) ? value : null;
+    } catch {
+      return null;
+    }
+  };
+  let resolveAbort;
+  const aborted = new Promise((resolve) => {
+    resolveAbort = resolve;
+  });
+  const rejectOnAbort = () => {
+    const reason = controller.signal.reason;
+    resolveAbort(reason instanceof Error ? reason : new Error('stream aborted'));
+  };
+  controller.signal.addEventListener('abort', rejectOnAbort, { once: true });
+  let timer;
+  if (hasDeadline) {
+    const initial = readClock();
+    if (initial === null) {
+      controller.abort(new Error('stream deadline clock unavailable'));
+    } else {
+      deadlineAt = initial + timeout;
+      // Node clamps overflowing delays to 1ms; cap explicitly so direct callers
+      // fail closed predictably even outside the API's stricter deployment cap.
+      timer = setTimeout(() => {
+        controller.abort(new Error('stream budget exhausted'));
+      }, Math.min(timeout, 2_147_483_647));
+    }
+  }
+  const forward = () => {
+    if (!controller.signal.aborted) controller.abort(signal?.reason);
+  };
+  if (signal) {
+    if (signal.aborted) controller.abort(signal.reason);
+    else signal.addEventListener('abort', forward, { once: true });
+  }
+  return {
+    signal: controller.signal,
+    remainingMs: () => {
+      if (!hasDeadline) return undefined;
+      if (controller.signal.aborted || !Number.isFinite(deadlineAt)) return 0;
+      const current = readClock();
+      if (current === null) {
+        controller.abort(new Error('stream deadline clock unavailable'));
+        return 0;
+      }
+      return Math.max(0, deadlineAt - current);
+    },
+    race: (promise) => Promise.race([
+      Promise.resolve(promise),
+      aborted.then((reason) => { throw reason; }),
+    ]),
+    dispose: () => {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', forward);
+      controller.signal.removeEventListener('abort', rejectOnAbort);
+    },
+  };
+}
+
+/**
+ * Public entry: wraps the pipeline in one deadline scope so `timeout` is a
+ * TOTAL budget across rewrite attempts and scoring (not per-stage), and every
+ * stage aborts together when it runs out. See createDeadlineScope.
+ *
+ * @param {object} options See runWebRewriteStreamUnscoped.
+ * @returns {Promise<object>}
+ */
+export async function runWebRewriteStream(options) {
+  const deadlineNow = options.deadlineNow ?? (() => globalThis.performance.now());
+  const deadline = createDeadlineScope(options.timeout, options.signal, deadlineNow);
+  try {
+    return await runWebRewriteStreamUnscoped({
+      ...options,
+      signal: deadline.signal ?? undefined,
+      deadline,
+    });
+  } finally {
+    deadline.dispose();
+  }
 }

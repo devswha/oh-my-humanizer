@@ -132,6 +132,8 @@ function spyKv() {
     async set(key, val, opts) { keys.push(key); values.push(val); return inner.set(key, val, opts); },
     async incr(key, opts) { keys.push(key); return inner.incr(key, opts); },
     async decr(key) { keys.push(key); return inner.decr(key); },
+    async acquireLease(registryKey, lease, maxConcurrent, opts) { keys.push(registryKey); return inner.acquireLease(registryKey, lease, maxConcurrent, opts); },
+    async releaseLease(registryKey, lease) { keys.push(registryKey); return inner.releaseLease(registryKey, lease); },
   };
 }
 function spyLogger() {
@@ -154,20 +156,24 @@ function makeValidator({ kv, env, fetchImpl, logger, hmacSecret = SECRET, now = 
 }
 
 // A KV whose get() always misses and whose incr() returns a poisoned value.
-// The 1st incr in validate() is the single-flight lock, the 2nd is the RPM
-// bucket, so `lock`/`rpm` let a case target a specific admission guard.
-// { value } => incr returns that value; { throw:true } => incr throws.
+// The lock guard is the single-flight lease acquire, the RPM bucket is an incr,
+// so `lock`/`rpm` let a case target a specific admission guard.
+// lock: { throw:true } => acquireLease throws; { value } => acquireLease returns
+// that value (anything !== true marks the caller a follower); absent => acquire wins.
+// rpm: { value } => incr returns that value; { throw:true } => incr throws.
 function degradedKv({ rpm, lock } = {}) {
-  let n = 0;
   return {
     async get() { return undefined; },
     async set() { /* noop */ },
     async incr() {
-      n += 1;
-      const spec = n === 1 ? lock : rpm;
-      if (spec && spec.throw) throw new Error('kv incr exploded');
-      return spec ? spec.value : 1; // default: a healthy first increment
+      if (rpm && rpm.throw) throw new Error('kv incr exploded');
+      return rpm ? rpm.value : 1;
     },
+    async acquireLease() {
+      if (lock && lock.throw) throw new Error('kv lease exploded');
+      return lock ? lock.value : true;
+    },
+    async releaseLease() { return true; },
   };
 }
 
@@ -310,7 +316,7 @@ for (const [label, poison] of Object.entries(POISON_DENIES)) {
 // Control: a healthy KV under the SAME env reaches the provider. This proves config is
 // valid, so every 503 below is attributable to the admission guard, not config.
 check('C2-ctrl', 'admission: a healthy KV reaches the provider', 'ok:true, test provider called once (config is valid)', async () => {
-  const healthy = { async get() { return undefined; }, async set() {}, async incr() { return 1; } };
+  const healthy = { async get() { return undefined; }, async set() {}, async incr() { return 1; }, async acquireLease() { return true; }, async releaseLease() { return true; } };
   const fetchImpl = spyFetch(() => testResponse(okBody()));
   const res = await makeValidator({ kv: healthy, fetchImpl }).validate({ licenseKey: 'LK-c2-ctrl' });
   assert.equal(res.ok, true);
@@ -340,11 +346,11 @@ for (const [label, rpm] of Object.entries(DEGRADED_RPM)) {
 }
 
 const DEGRADED_LOCK = {
-  'C2-i: lock incr -> NaN': { value: NaN },
-  'C2-j: lock incr -> zero': { value: 0 },
-  'C2-k: lock incr -> object': { value: {} },
-  'C2-l: lock incr -> string': { value: '1' },
-  'C2-m: lock incr -> throws': { throw: true },
+  'C2-i: lease acquire -> NaN': { value: NaN },
+  'C2-j: lease acquire -> zero': { value: 0 },
+  'C2-k: lease acquire -> object': { value: {} },
+  'C2-l: lease acquire -> string': { value: '1' },
+  'C2-m: lease acquire -> throws': { throw: true },
 };
 for (const [label, lock] of Object.entries(DEGRADED_LOCK)) {
   const id = label.split(':')[0];
@@ -364,7 +370,7 @@ for (const [label, lock] of Object.entries(DEGRADED_LOCK)) {
 // ===========================================================================
 
 function lockKeyFor(license) {
-  return quotaKeyHmac(SECRET, 'test-lock', license);
+  return quotaKeyHmac(SECRET, 'test-sflight', license);
 }
 
 check('C3-a', 'single-flight: N concurrent misses call test provider exactly once', 'test provider called once; 1 winner (miss); N-1 followers poll into the cache (hit)', async () => {
@@ -390,9 +396,9 @@ check('C3-a2', 'single-flight: a follower with a crashed winner exhausts its bou
     fetchImpl,
     env: baseEnv({ PATINA_TEST_LOCK_POLL_INTERVAL_MS: '2', PATINA_TEST_LOCK_WAIT_MS: '10' }),
   });
-  // A "winner" that took the lock and died: the lock is held, no cache is ever
-  // written, and only the lock TTL will eventually self-heal it.
-  await kv.incr(lockKeyFor(license), { ttlMs: 10_000 });
+  // A "winner" that took the lock and died: the lease is held by a foreign
+  // owner, no cache is ever written, and only the per-member TTL self-heals it.
+  await kv.acquireLease(lockKeyFor(license), 'crashed-winner', 1, { ttlMs: 10_000 });
   const res = await validator.validate({ licenseKey: license });
   assert.equal(res.ok, false);
   assert.equal(res.status, 503, 'poll exhaustion stays fail-closed');
@@ -412,7 +418,11 @@ check('C3-b', 'single-flight: a failed winner (non-2xx) releases the lock for re
 
   const first = await validator.validate({ licenseKey: license });
   assert.equal(first.status, 503, 'a failed winner denies transiently (never cached)');
-  assert.equal(await kv.get(lockKeyFor(license)), 0, 'the lock must be released (reset to 0) after a failure');
+  // Owner-token release: the winner's member is gone, so a probe acquire wins.
+  // (Probe immediately releases so the retry below starts from a free lease.)
+  const freeAfterFailure = await kv.acquireLease(lockKeyFor(license), 'probe', 1, { ttlMs: 10_000 });
+  await kv.releaseLease(lockKeyFor(license), 'probe');
+  assert.equal(freeAfterFailure, true, 'the lock must be released after a failure');
 
   const retry = await validator.validate({ licenseKey: license });
   assert.equal(retry.ok, true, 'a subsequent caller becomes the winner and re-validates');
@@ -432,7 +442,9 @@ check('C3-c', 'single-flight: a timed-out winner releases the lock for retry', '
 
   const first = await validator.validate({ licenseKey: license });
   assert.equal(first.status, 503);
-  assert.equal(await kv.get(lockKeyFor(license)), 0, 'lock released even after a timeout in the winner path');
+  const freeAfterTimeout = await kv.acquireLease(lockKeyFor(license), 'probe', 1, { ttlMs: 10_000 });
+  await kv.releaseLease(lockKeyFor(license), 'probe');
+  assert.equal(freeAfterTimeout, true, 'lock released even after a timeout in the winner path');
 
   const retry = await validator.validate({ licenseKey: license });
   assert.equal(retry.ok, true);

@@ -233,11 +233,17 @@ export function createRestKv(env = {}) {
 }
 
 /**
- * Default server-side budget for one rewrite stream (provider call + scoring).
- * Bounds upstream work even when the client stays connected; override with
- * env.PATINA_WEB_REWRITE_TIMEOUT_MS.
+ * Default server-side budget for one rewrite stream — the TOTAL across the
+ * rewrite attempt(s) AND both scorers, enforced as one absolute deadline inside
+ * runWebRewriteStream (each stage draws from the same remaining budget and a
+ * single abort fires at exhaustion; previously every stage received the full
+ * window, so the worst case ran ~3x over). Bounds upstream work even when the
+ * client stays connected; override with env.PATINA_WEB_REWRITE_TIMEOUT_MS up
+ * to 240s, retaining at least 60s for response finalization and lease cleanup
+ * beneath Vercel's 300s function ceiling.
  */
 const WEB_REWRITE_TIMEOUT_MS = 180_000;
+const WEB_REWRITE_MAX_TIMEOUT_MS = 240_000;
 
 /**
  * The playground's default is NDJSON. JSON is an explicit opt-in for API
@@ -275,8 +281,14 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
   const kv = isProductionPosture(env) ? restKv : (restKv ?? createMemoryKv());
   // One stream budget, computed once: bounds upstream work (provider + scoring)
   // and keeps a free-tier lease live for at least a full stream. Floor at 5m.
-  const envTimeout = Number(env.PATINA_WEB_REWRITE_TIMEOUT_MS);
-  const streamTimeoutMs = Number.isFinite(envTimeout) && envTimeout > 0 ? envTimeout : WEB_REWRITE_TIMEOUT_MS;
+  let streamTimeoutMs = WEB_REWRITE_TIMEOUT_MS;
+  if (env.PATINA_WEB_REWRITE_TIMEOUT_MS !== undefined) {
+    const envTimeout = Number(env.PATINA_WEB_REWRITE_TIMEOUT_MS);
+    if (!Number.isSafeInteger(envTimeout) || envTimeout <= 0 || envTimeout > WEB_REWRITE_MAX_TIMEOUT_MS) {
+      throw new TypeError(`PATINA_WEB_REWRITE_TIMEOUT_MS must be an integer from 1 to ${WEB_REWRITE_MAX_TIMEOUT_MS}`);
+    }
+    streamTimeoutMs = envTimeout;
+  }
   const concurrencyTtlMs = Math.max(5 * 60 * 1000, streamTimeoutMs + 30_000);
   // The pro tier's revenue gate: a fail-closed validate-only license validator
   // sharing the rate limiter's KV. It turns the caller's Authorization: Bearer

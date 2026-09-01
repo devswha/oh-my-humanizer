@@ -156,7 +156,7 @@ the Discord receipt ID.
 `schemaVersion` is `OBS-ALERT-v1`; `issuer` is `patina.pro-monitor`;
 `deploymentId` is the exact Vercel-provided 40-lowercase-hex commit SHA;
 `tier` is `pro`; `realPath` is `true`; `namespace` is `patina:mon:v1`;
-`eventSchema` is `patina.web.v1`; `eventSchemaVersion` is `v1`; and
+`eventSchema` is `patina.web.v2`; `eventSchemaVersion` is `v2`; and
 receipt/histogram `ruleVersion` is `pro-monitor.histogram.v1`.
 
 `eventSchemaHash` is SHA-256 over the canonical closed event schema;

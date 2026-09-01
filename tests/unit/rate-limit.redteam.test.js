@@ -171,9 +171,11 @@ test('category 3 quota exhaustion + reset: daily/hourly caps reset by bucket and
   assert.equal((await burstLimiter.check({ tier: WEB_TIERS.FREE, ip: '203.0.113.31' })).allowed, true);
 });
 
-test('category 4 BYOK bypasses shared quota degradation but handler still enforces BYOK contract validation', async () => {
+test('category 4 BYOK fails closed on shared quota degradation while handler still validates contract first', async () => {
   const limiter = createRateLimiter({ kv: null, hmacSecret: undefined, env: { NODE_ENV: 'production' } });
-  assert.deepEqual(await limiter.check({ tier: WEB_TIERS.BYOK, ip: null }), { allowed: true, tier: WEB_TIERS.BYOK });
+  assert.deepEqual(await limiter.check({ tier: WEB_TIERS.BYOK, ip: '203.0.113.32' }), {
+    allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE,
+  });
 
   let checks = 0;
   let runs = 0;
@@ -189,7 +191,7 @@ test('category 4 BYOK bypasses shared quota degradation but handler still enforc
   });
   assert.equal(res.statusCode, 400);
   assert.match(res.json().error, /requires an apiKey/);
-  assert.equal(checks, 0, 'invalid BYOK contract must be rejected before quota bypass');
+  assert.equal(checks, 0, 'invalid BYOK contract must be rejected before quota admission');
   assert.equal(runs, 0);
   assertNoStore(res);
 });
@@ -530,26 +532,47 @@ test('category 13 free tier no-regression: IP-keyed metering ignores subject, fa
   }
 });
 
-test('category 14 byok tier no-regression: unmetered allow/no-op that never touches the KV, regardless of ip/subject', async () => {
+test('category 14 BYOK is IP-admitted: missing identity and hostile storage fail closed; concurrency is capped at 2', async () => {
   const boom = {
-    async get() { throw new Error('byok must not read kv'); },
-    async set() { throw new Error('byok must not write kv'); },
-    async incr() { throw new Error('byok must not meter'); },
-    async decr() { throw new Error('byok must not release'); },
-    async acquireLease() { throw new Error('byok must not acquire a lease'); },
-    async releaseLease() { throw new Error('byok must not release a lease'); },
+    async get() { throw new Error('storage unavailable'); },
+    async set() { throw new Error('storage unavailable'); },
+    async incr() { throw new Error('storage unavailable'); },
+    async decr() { throw new Error('storage unavailable'); },
+    async acquireLease() { throw new Error('storage unavailable'); },
+    async releaseLease() { throw new Error('storage unavailable'); },
   };
-  const limiter = createRateLimiter({ kv: boom, hmacSecret: 'secret', env: { NODE_ENV: 'production' }, now: () => 0 });
+  const broken = createRateLimiter({ kv: boom, hmacSecret: 'secret', env: { NODE_ENV: 'production' }, now: () => 0 });
 
-  // Unmetered allow on check even in production with a hostile kv and any identity.
-  assert.deepEqual(await limiter.check({ tier: BYOK, ip: null, subject: null }), { allowed: true, tier: BYOK });
-  assert.deepEqual(await limiter.check({ tier: BYOK, ip: '203.0.113.9', subject: /** @type {any} */ ('ignored') }), { allowed: true, tier: BYOK });
-  // Concurrency acquire is an unmetered no-op allow carrying an internal lease;
-  // both release forms are no-ops and neither may touch storage.
-  const acquired = await limiter.acquireConcurrency({ tier: BYOK, ip: '203.0.113.9', subject: /** @type {any} */ ('ignored') });
-  assertOpaqueLease(acquired, BYOK, ['203.0.113.9', 'ignored', 'secret', 'sk-user-owned-key']);
-  await limiter.releaseConcurrency({ tier: BYOK, ip: '203.0.113.9', subject: /** @type {any} */ ('ignored'), lease: acquired.lease });
-  await limiter.releaseConcurrency({ tier: BYOK, ip: '203.0.113.9', subject: /** @type {any} */ ('ignored') });
+  assert.deepEqual(await broken.check({ tier: BYOK, ip: null, subject: null }), {
+    allowed: false, status: 400, reason: QUOTA_REASONS.IP_UNAVAILABLE,
+  });
+  assert.deepEqual(await broken.acquireConcurrency({ tier: BYOK, ip: null, subject: null }), {
+    allowed: false, status: 400, reason: QUOTA_REASONS.IP_UNAVAILABLE,
+  });
+  assert.deepEqual(await broken.check({ tier: BYOK, ip: '203.0.113.9' }), {
+    allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE,
+  });
+  assert.deepEqual(await broken.acquireConcurrency({ tier: BYOK, ip: '203.0.113.9' }), {
+    allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE,
+  });
+
+  const limiter = createRateLimiter({ kv: createMemoryKv(), hmacSecret: 'secret', now: () => 0 });
+  assert.deepEqual(await limiter.check({ tier: BYOK, ip: '203.0.113.9' }), {
+    allowed: true, tier: BYOK, remainingDay: 479,
+  });
+  const first = await limiter.acquireConcurrency({ tier: BYOK, ip: '203.0.113.9' });
+  const second = await limiter.acquireConcurrency({ tier: BYOK, ip: '203.0.113.9' });
+  assertOpaqueLease(first, BYOK, ['203.0.113.9', 'secret']);
+  assertOpaqueLease(second, BYOK, ['203.0.113.9', 'secret']);
+  assert.deepEqual(await limiter.acquireConcurrency({ tier: BYOK, ip: '203.0.113.9' }), {
+    allowed: false, status: 429, reason: QUOTA_REASONS.CONCURRENT,
+  });
+  await limiter.releaseConcurrency({ tier: BYOK, ip: '203.0.113.9', lease: first.lease });
+  assertOpaqueLease(
+    await limiter.acquireConcurrency({ tier: BYOK, ip: '203.0.113.9' }),
+    BYOK,
+    ['203.0.113.9', 'secret'],
+  );
 });
 
 test('category 15 createRestKv set/get: atomic single-command SET(+PX) round-trips objects/arrays/nested/special chars; get coerces; !ok throws', async () => {
