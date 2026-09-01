@@ -53,8 +53,8 @@ export const MPS_FLOOR = 70;
 export const FIDELITY_FLOOR = 70;
 
 /**
- * Per-tier request caps. `free` is abuse-bounded; `byok` reflects the user's own
- * provider quota. These are recommended defaults; the server is the enforcer.
+ * Per-tier request caps. These are recommended defaults; the server is the
+ * enforcer.
  */
 export const TIER_LIMITS = Object.freeze({
   // Launch-window free caps (2026-07-23): 5/day + 2/hour choked a first visit
@@ -63,7 +63,9 @@ export const TIER_LIMITS = Object.freeze({
   // can actually explore. Still abuse-bounded — never unlimited: the free tier
   // spends the server key.
   free: Object.freeze({ maxChars: 4000, maxConcurrent: 1, reqPerDay: 20, burstPerHour: 10 }),
-  byok: Object.freeze({ maxChars: 20000, maxConcurrent: 2 }),
+  // BYOK spends the caller's own key, so caps only bound patina's
+  // function/connection/egress usage, not user cost.
+  byok: Object.freeze({ maxChars: 20000, maxConcurrent: 2, burstPerHour: 120, reqPerDay: 480 }),
   // Pro caps rest on a measured fact: pipeline cost is driven by REQUEST COUNT,
   // not text length. Every paid rewrite spends three LLM calls (rewrite + MPS +
   // fidelity) behind a ~20k-token prompt, so a 100-char request costs nearly as
@@ -73,9 +75,10 @@ export const TIER_LIMITS = Object.freeze({
   // reqPerMonth 100 (owner-approved 2026-07-29) is the PRIMARY cost bound, set
   // against net revenue of $8.49/mo ($9.99 less fee and refund reserve): ~$4.5
   // COGS, ~47% margin at the measured blended cost. That is below the 60% floor
-  // the PAY-B-COST spec pins, which is a deliberate pricing choice — the free
-  // BYOK tier already serves heavy users without limit, so Pro sells key
-  // management and needs a credible allowance more than a maximal margin.
+  // the PAY-B-COST spec pins, which is a deliberate pricing choice — BYOK lets
+  // heavy users spend their own provider quota behind modest Patina admission
+  // caps, so Pro sells key management and needs a credible allowance more than
+  // a maximal margin.
   //
   // charsPerMonth 50,000 is retained as a SECONDARY bound only: on its own it is
   // not a cost control (500 x 100-char requests satisfy it while costing ~$17.5).

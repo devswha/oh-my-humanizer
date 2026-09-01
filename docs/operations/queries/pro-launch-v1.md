@@ -1,14 +1,15 @@
 # Pro launch monitor queries v1
 
 Use these read-only, aggregate-only recipes for the private Pro monitor. They describe the
-implemented `patina.web.v1` contract; they do not create dashboards, alerts, or external
+implemented `patina.web.v2` contract; they do not create dashboards, alerts, or external
 resources.
 
 ## Event and counter contract
 
 Accepted event fields are exactly `schemaVersion`, `schema`, `channel`, `evidenceClass`,
-`tier`, `outcome`, `latencyBucket`, `statusClass`, and `sampling`. Required constants are
-`schemaVersion: "v1"`, `schema: "patina.web.v1"`, and
+`tier`, `outcome`, `latencyBucket`, `statusClass`, `sampling`, `tokenBucket`, and
+`llmCalls`. Required constants are
+`schemaVersion: "v2"`, `schema: "patina.web.v2"`, and
 `evidenceClass: "aggregate_only"`.
 
 - Channels: `production`, `staging` (invalid input is emitted as `unknown`, but never
@@ -20,6 +21,8 @@ Accepted event fields are exactly `schemaVersion`, `schema`, `channel`, `evidenc
 - Latency buckets: `<=30s`, `30-60s`, `60-120s`, `>120s`, or `unknown`; only the first
   four are aggregate keys. `statusClass` is `1xx` through `5xx` or `unknown`.
   `sampling` is `full` or `sampled_1_of_20`.
+- Token buckets: `0`, `1-2k`, `2k-10k`, `10k-30k`, `30k-60k`, `>60k`, or
+  `unknown`. LLM-call buckets: `1`, `2`, `3`, `4`, `5+`, or `unknown`.
 
 Never query or record request text, prompts, outputs, raw licenses, Authorization headers,
 payment data, customer identifiers, user-data checkout URLs, provider/KV/HMAC credentials,

@@ -1,11 +1,13 @@
 import { randomBytes } from 'node:crypto';
-import { renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CHECKOUT_EVIDENCE_BINDINGS, checkoutEvidenceBindingKey } from './checkout-evidence-bindings.mjs';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_PATH = resolve(SCRIPT_DIR, '../playground/launch-config.js');
+const CONTRACT_SOURCE_PATH = resolve(SCRIPT_DIR, '../src/web-rewrite-contract.js');
+const CONTRACT_OUTPUT_PATH = resolve(SCRIPT_DIR, '../playground/src/web-rewrite-contract.js');
 const DISABLED_CONFIG = Object.freeze({
   schemaVersion: 1,
   channel: 'disabled',
@@ -140,11 +142,37 @@ export function writeLaunchConfig(config, outputPath = OUTPUT_PATH) {
   if (cleanupError) throw cleanupError;
 }
 
+function syncWebRewriteContract() {
+  const temporaryPath = resolve(
+    dirname(CONTRACT_OUTPUT_PATH),
+    `.web-rewrite-contract.${process.pid}.${randomBytes(8).toString('hex')}.tmp`,
+  );
+  let writeError;
+  try {
+    writeFileSync(temporaryPath, readFileSync(CONTRACT_SOURCE_PATH, 'utf8'), { encoding: 'utf8', mode: 0o644 });
+    renameSync(temporaryPath, CONTRACT_OUTPUT_PATH);
+  } catch (error) {
+    writeError = error;
+  }
+  let cleanupError;
+  try {
+    unlinkSync(temporaryPath);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') cleanupError = error;
+  }
+  if (writeError) throw writeError;
+  if (cleanupError) throw cleanupError;
+}
+
 function isEntrypoint() {
   return process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 }
 
 if (isEntrypoint()) {
-  // Validation completes before writeLaunchConfig creates a replacement file.
-  writeLaunchConfig(createLaunchConfig());
+  // Validate first, then synchronize the canonical contract before replacing
+  // the checkout-sensitive launch config. A failed contract sync therefore
+  // cannot leave a newly enabled checkout artifact behind.
+  const config = createLaunchConfig();
+  syncWebRewriteContract();
+  writeLaunchConfig(config);
 }
