@@ -31,7 +31,7 @@ patina 是一个面向韩文、英文、中文和日文的确定性、基于模�
 更多例子：[Before/After Gallery](docs/EXAMPLES.md)（[한국어](docs/EXAMPLES_KR.md)） · [CLI transcript](docs/DEMO.md)。
 
 - **可审计，不是黑箱** — 184 条有名字的模式驱动每一次修改；`--diff` 展示改了什么、为什么改。
-- **含义经过验证地保留** — 每次改写都要通过含义保留（MPS）与忠实度下限；漂移的改写会重试或回滚。
+- **含义在网页端经过验证地保留** — playground 用 MPS 和忠实度下限校验每次改写，并拒绝漂移的结果。Node CLI 用 `--verify`、代理技能用 `/patina --strict` 启用同样的检查。
 - **三个相互独立的轴** — Document Type 管体裁，Persona 管声音，Register 管语域；省略的轴保持原文。
 - **全渠道可用** — 代理技能（Claude Code · Codex · Cursor · OpenCode）、Node CLI，以及[浏览器 playground](https://patina.vibetip.help/)。
 - **对局限诚实** — 分数是编辑信号而非作者判定；我们的[预注册研究](docs/research/2026-rewrite-efficacy-study1.md)把失败之处与成功一并公开。

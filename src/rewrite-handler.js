@@ -18,13 +18,16 @@ import { extractBearerLicense } from './entitlement.js';
  * @typedef {{validate(input: {licenseKey: string}): Promise<{ok: true, subject: string, tier: string, status: string, cache: string}|{ok: false, status: number, reason: string}>}} LicenseValidator
  */
 
+// Must exceed the worst valid contract payload: 2 × 20K CJK characters
+// (~120 KiB), 12 KiB history, and JSON overhead. Field caps remain enforced
+// by validateRewriteRequest; this envelope only bounds abusive requests.
 /**
  * Create the /api/rewrite handler shell. The LLM runner is injected by later phases.
  *
- * @param {{rateLimiter: RateLimiter, runRewrite: (input: RewriteRunnerInput) => unknown, env?: Record<string, string|undefined>, now?: () => number, logger?: {error?: (...args: unknown[]) => void}, maxBodyBytes?: number, licenseValidator?: LicenseValidator, observe?: (input: {tier: string, outcome: string, status: number, latencyMs: number}) => unknown}} options
+ * @param {{rateLimiter: RateLimiter, runRewrite: (input: RewriteRunnerInput) => unknown, env?: Record<string, string|undefined>, now?: () => number, logger?: {error?: (...args: unknown[]) => void}, maxBodyBytes?: number, licenseValidator?: LicenseValidator, observe?: (input: {tier: string, outcome: string, status: number, latencyMs: number, totalTokens?: number, llmCalls?: number}) => unknown}} options
  * @returns {(req: RewriteReq, res: RewriteRes) => Promise<unknown>}
  */
-export function createRewriteHandler({ rateLimiter, runRewrite, env = {}, now = () => Date.now(), logger = console, maxBodyBytes = 65_536, licenseValidator, observe }) {
+export function createRewriteHandler({ rateLimiter, runRewrite, env = {}, now = () => Date.now(), logger = console, maxBodyBytes = 256 * 1024, licenseValidator, observe }) {
   if (typeof runRewrite !== 'function') throw new TypeError('runRewrite must be a function');
   if (!rateLimiter || typeof rateLimiter.check !== 'function') throw new TypeError('rateLimiter.check must be a function');
   /**
@@ -161,7 +164,7 @@ export function createRewriteHandler({ rateLimiter, runRewrite, env = {}, now = 
       const runnerReq = withoutSensitiveHeaders(req);
       // Pro meters a per-license monthly total-character cap in addition to the
       // daily/concurrency caps; pass the request's input length so the limiter
-      // can accumulate it. free/byok ignore chars (metered by IP/unmetered).
+      // can accumulate it. Free/BYOK ignore chars; both meter requests by IP.
       const chars = tier === WEB_TIERS.PRO && typeof request.text === 'string' ? request.text.length : 0;
 
       /** @param {{status: number, reason: string, remainingMonthlyChars?: number, limitMonthlyChars?: number}} denied */
@@ -331,11 +334,20 @@ async function readRawBody(req, maxBodyBytes) {
   }
 
   let raw = '';
+  let rawBytes = 0;
   if (typeof req[Symbol.asyncIterator] !== 'function') return '';
+  const encoder = new globalThis.TextEncoder();
+  const decoder = new globalThis.TextDecoder();
   const stream = /** @type {AsyncIterable<Buffer|string|Uint8Array>} */ (/** @type {unknown} */ (req));
   for await (const chunk of stream) {
-    raw += Buffer.from(chunk).toString('utf8');
-    if (byteLength(raw) > maxBodyBytes) return null;
+    const bytes = typeof chunk === 'string' ? encoder.encode(chunk) : chunk;
+    rawBytes += bytes.byteLength;
+    if (rawBytes > maxBodyBytes) return null;
+    // HTTP chunks may split a multi-byte CJK code point. Streaming decode keeps
+    // incomplete UTF-8 bytes until the next chunk instead of inserting U+FFFD
+    // and corrupting otherwise-valid JSON.
+    raw += decoder.decode(bytes, { stream: true });
   }
+  raw += decoder.decode();
   return raw;
 }

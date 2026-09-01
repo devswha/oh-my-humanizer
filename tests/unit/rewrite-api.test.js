@@ -615,7 +615,7 @@ test('observability REST adapter rejects malformed EVAL acknowledgements with on
 
       assert.equal(res.statusCode, 200, `acknowledgement ${String(result)} must not alter the response`);
       assert.equal(res.ended, true);
-      const events = logs.map(([event]) => event).filter((event) => event?.schema === 'patina.web.v1');
+      const events = logs.map(([event]) => event).filter((event) => event?.schema === 'patina.web.v2');
       assert.equal(events.filter((event) => event.outcome === 'monitor_drop').length, 1);
       assert.doesNotMatch(JSON.stringify(events), /private-observability-canary|sk-server-free-key|telemetry-token-canary/);
     }
@@ -681,6 +681,23 @@ test('PATINA_WEB_REWRITE_TIMEOUT_MS overrides the default stream budget', async 
   const api = createRewriteApiHandler({ env, runWebRewriteStreamImpl: injected });
   await api(makeReq(), makeRes());
   assert.equal(seenTimeout, 5000);
+});
+
+test('PATINA_WEB_REWRITE_TIMEOUT_MS rejects invalid or platform-unsafe overrides', () => {
+  for (const value of ['0', '-1', '1.5', '240001', 'Infinity', 'not-a-number']) {
+    assert.throws(
+      () => createRewriteApiHandler({
+        env: { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key', PATINA_WEB_REWRITE_TIMEOUT_MS: value },
+        runWebRewriteStreamImpl: async () => {},
+      }),
+      /must be an integer from 1 to 240000/,
+      value,
+    );
+  }
+  assert.doesNotThrow(() => createRewriteApiHandler({
+    env: { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'sk-server-free-key', PATINA_WEB_REWRITE_TIMEOUT_MS: '240000' },
+    runWebRewriteStreamImpl: async () => {},
+  }));
 });
 
 test('client disconnect aborts the runner signal and never yields a false done frame', async () => {
@@ -1071,15 +1088,16 @@ test('handler emits a closed completed aggregate from the real rewrite path', as
     assert.equal(res.ended, true);
     if (requestCount === 1) {
       assert.equal(increments.length, 0, 'the first free completion is not sampled');
-      assert.equal(logs.map(([value]) => value).find((value) => value?.schema === 'patina.web.v1'), undefined);
+      assert.equal(logs.map(([value]) => value).find((value) => value?.schema === 'patina.web.v2'), undefined);
     }
   }
   await Promise.resolve();
 
-  const events = logs.map(([value]) => value).filter((value) => value?.schema === 'patina.web.v1');
+  const events = logs.map(([value]) => value).filter((value) => value?.schema === 'patina.web.v2');
   assert.deepEqual(events, [{
-    schemaVersion: 'v1', schema: 'patina.web.v1', channel: 'staging', evidenceClass: 'aggregate_only',
+    schemaVersion: 'v2', schema: 'patina.web.v2', channel: 'staging', evidenceClass: 'aggregate_only',
     tier: 'free', outcome: 'completed', latencyBucket: '<=30s', statusClass: '2xx', sampling: 'sampled_1_of_20',
+    tokenBucket: 'unknown', llmCalls: 'unknown',
   }]);
   assert.deepEqual(increments, [{
     key: 'patina:mon:v1:staging:free:20260715T1200Z:completed:<=30s',

@@ -34,23 +34,26 @@ function parseAggregate(payload, window) {
 function inspectEvent({ channel = 'production', tier = 'pro', outcome = 'completed', evidenceClass = 'aggregate_only' } = {}) {
   return [
     '{',
-    "  schemaVersion: 'v1',",
-    "  schema: 'patina.web.v1',",
+    "  schemaVersion: 'v2',",
+    "  schema: 'patina.web.v2',",
     `  channel: '${channel}',`,
     `  evidenceClass: '${evidenceClass}',`,
     `  tier: '${tier}',`,
     `  outcome: '${outcome}',`,
     "  latencyBucket: '<=30s',",
     "  statusClass: '2xx',",
-    "  sampling: 'full'",
+    "  sampling: 'full',",
+    "  tokenBucket: '10k-30k',",
+    "  llmCalls: '3'",
     '}',
   ].join('\n');
 }
 
 function jsonEvent(overrides = {}) {
   return JSON.stringify({
-    schemaVersion: 'v1', schema: 'patina.web.v1', channel: 'production', evidenceClass: 'aggregate_only',
-    tier: 'pro', outcome: 'completed', latencyBucket: '<=30s', statusClass: '2xx', sampling: 'full', ...overrides,
+    schemaVersion: 'v2', schema: 'patina.web.v2', channel: 'production', evidenceClass: 'aggregate_only',
+    tier: 'pro', outcome: 'completed', latencyBucket: '<=30s', statusClass: '2xx', sampling: 'full',
+    tokenBucket: '10k-30k', llmCalls: '3', ...overrides,
   });
 }
 
@@ -114,24 +117,26 @@ test('extractWebEvents drops non-aggregate, unknown-dimension, oversized, and un
   assert.deepEqual(extractWebEvents(inspectEvent({ outcome: 'exfiltrate' })), []);
   assert.deepEqual(extractWebEvents('plain provider error text'), []);
   assert.deepEqual(extractWebEvents(null), []);
-  assert.deepEqual(extractWebEvents(`x${'a'.repeat(70000)}patina.web.v1`), []);
+  assert.deepEqual(extractWebEvents(`x${'a'.repeat(70000)}patina.web.v2`), []);
 });
 
 test('extractWebEvents rejects forged fragments: missing fields, reordering, glued identifiers', () => {
   // Missing schemaVersion — an event-like fragment without the full envelope.
   const noVersion = jsonEvent();
-  assert.deepEqual(extractWebEvents(noVersion.replace('"schemaVersion":"v1",', '')), []);
+  assert.deepEqual(extractWebEvents(noVersion.replace('"schemaVersion":"v2",', '')), []);
   // Missing sampling terminator field.
   assert.deepEqual(extractWebEvents(noVersion.replace(',"sampling":"full"', '')), []);
+  assert.deepEqual(extractWebEvents(noVersion.replace(',"tokenBucket":"10k-30k"', '')), []);
+  assert.deepEqual(extractWebEvents(noVersion.replace('"llmCalls":"3"', '"llmCalls":"99"')), []);
   // Reordered fields break the canonical envelope.
   assert.deepEqual(extractWebEvents(
-    '{"schema":"patina.web.v1","schemaVersion":"v1","channel":"production","evidenceClass":"aggregate_only","tier":"pro","outcome":"completed","latencyBucket":"<=30s","statusClass":"2xx","sampling":"full"}',
+    '{"schema":"patina.web.v2","schemaVersion":"v2","channel":"production","evidenceClass":"aggregate_only","tier":"pro","outcome":"completed","latencyBucket":"<=30s","statusClass":"2xx","sampling":"full","tokenBucket":"10k-30k","llmCalls":"3"}',
   ), []);
   // Field name glued onto another identifier must not match (boundary guard).
   assert.deepEqual(extractWebEvents(noVersion.replace('"schemaVersion"', '"XschemaVersion"')), []);
   // A field smuggled as a VALUE inside another log line must not count: the
   // envelope requires the exact quoted field sequence.
-  assert.deepEqual(extractWebEvents('user text mentioning patina.web.v1 and outcome: completed'), []);
+  assert.deepEqual(extractWebEvents('user text mentioning patina.web.v2 and outcome: completed'), []);
 });
 
 test('parseDrainDelivery handles JSON arrays and NDJSON, merges counts, drops expired entries', () => {

@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 jobs:
@@ -14,10 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Node 18.0.0
+      - name: Set up Node 18
         uses: actions/setup-node@v6
         with:
-          node-version: "18.0.0"
+          node-version: "18"
           cache: npm
 
       - name: Install dependencies
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: ["18.0.0", 20, 22, "lts/*"]
+        node-version: ["18.1.0", 20, 22, 24, "lts/*"]
       fail-fast: false
 
     steps:
@@ -46,11 +46,11 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        if: matrix.node-version != '18.0.0'
+        if: matrix.node-version != '18.1.0'
         run: npm test
 
       - name: Run minimum Node smoke
-        if: matrix.node-version == '18.0.0'
+        if: matrix.node-version == '18.1.0'
         run: |
           npm run lint:syntax
           npm run benchmark
@@ -62,10 +62,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Node 20
+      - name: Set up Node 24
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -92,7 +92,7 @@ jobs:
       - name: Benchmark report drift check
         # The regen is deterministic except for the generatedAt /
         # benchmarkGeneratedAt timestamps and the node version of the
-        # regenerating environment (CI pins Node 20, contributors run Node
+        # regenerating environment (CI pins Node 24, contributors run Node
         # 22), so ignore those metadata lines and fail only on real
         # fixture/metric drift.
         run: |

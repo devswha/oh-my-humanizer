@@ -91,6 +91,9 @@ test('vercel.json preserves API functions, cron, and security headers', () => {
   assert.deepEqual(config.functions, {
     'api/rewrite.js': {
       includeFiles: '{patterns/**,document-types/**,personas/**,core/**,lexicon/**,.patina.default.yaml}',
+      // The stream budget (180s default) is a TOTAL across rewrite + scoring;
+      // the function must be allowed to outlive it plus retry margin.
+      maxDuration: 300,
     },
     'api/pro-monitor.js': {
       maxDuration: 60,

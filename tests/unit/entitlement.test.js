@@ -5,6 +5,7 @@ import {
   createLicenseValidator,
   extractBearerLicense,
 } from '../../src/entitlement.js';
+import { createRestKv } from '../../api/rewrite.js';
 import { createMemoryKv, quotaKeyHmac } from '../../src/rate-limit.js';
 import { QUOTA_REASONS } from '../../src/web-rewrite-contract.js';
 
@@ -112,6 +113,8 @@ function spyKv() {
     async set(key, val, opts) { keys.push(key); values.push(val); return inner.set(key, val, opts); },
     async incr(key, opts) { keys.push(key); return inner.incr(key, opts); },
     async decr(key) { keys.push(key); return inner.decr(key); },
+    async acquireLease(registryKey, lease, maxConcurrent, opts) { keys.push(registryKey); return inner.acquireLease(registryKey, lease, maxConcurrent, opts); },
+    async releaseLease(registryKey, lease) { keys.push(registryKey); return inner.releaseLease(registryKey, lease); },
   };
 }
 
@@ -506,11 +509,11 @@ test('admission: a held single-flight lock polls the cache, then denies without 
     env: baseEnv({ PATINA_TEST_LOCK_POLL_INTERVAL_MS: '2', PATINA_TEST_LOCK_WAIT_MS: '10' }),
   });
 
-  // Simulate another instance mid-validation by pre-incrementing the shared lock
-  // key — and never writing the cache (a crashed/stuck winner). The follower
-  // polls its bounded budget, then still fails CLOSED without touching LS.
-  const lockKey = quotaKeyHmac(SECRET, 'test-lock', license);
-  await kv.incr(lockKey, { ttlMs: 10_000 }); // -> 1; the validator's incr then returns 2 (>1)
+  // Simulate another instance mid-validation by holding the 1-slot lease with a
+  // foreign owner token — and never writing the cache (a crashed/stuck winner).
+  // The follower polls its bounded budget, then still fails CLOSED without LS.
+  const lockRegistry = quotaKeyHmac(SECRET, 'test-sflight', license);
+  await kv.acquireLease(lockRegistry, 'other-owner', 1, { ttlMs: 10_000 });
 
   const res = await validator.validate({ licenseKey: license });
   assert.equal(res.ok, false);
@@ -530,8 +533,8 @@ test('admission: a follower is served from the cache the winner writes mid-poll 
   });
 
   // Another instance holds the lock…
-  const lockKey = quotaKeyHmac(SECRET, 'test-lock', license);
-  await kv.incr(lockKey, { ttlMs: 10_000 });
+  const lockRegistry = quotaKeyHmac(SECRET, 'test-sflight', license);
+  await kv.acquireLease(lockRegistry, 'other-owner', 1, { ttlMs: 10_000 });
   // …and finishes validating while the follower is polling.
   const cacheKey = quotaKeyHmac(SECRET, 'test-license-cache', license);
   setTimeout(() => {
@@ -659,6 +662,8 @@ test('regression(B1): re-read after acquiring the single-flight lock serves a wi
     async set(key, val, opts) { return inner.set(key, val, opts); },
     async incr(key, opts) { return inner.incr(key, opts); },
     async decr(key) { return inner.decr(key); },
+    async acquireLease(registryKey, lease, maxConcurrent, opts) { return inner.acquireLease(registryKey, lease, maxConcurrent, opts); },
+    async releaseLease(registryKey, lease) { return inner.releaseLease(registryKey, lease); },
   };
   const fetchImpl = spyFetch(() => testResponse(okBody()));
   const res = await makeValidator({ kv, fetchImpl }).validate({ licenseKey });
@@ -685,17 +690,175 @@ test('regression(B2): a denied test provider body that echoes the raw license un
 
 test('regression(B3): a same-license single-flight loser fails closed WITHOUT charging the global RPM bucket', async () => {
   const licenseKey = 'LIC-LOSER-0001';
-  const lockKey = quotaKeyHmac(SECRET, 'test-lock', licenseKey);
+  const lockRegistry = quotaKeyHmac(SECRET, 'test-sflight', licenseKey);
   const rpmKey = quotaKeyHmac(SECRET, 'test-rpm', Math.floor(FIXED_NOW / 60_000));
   const kv = spyKv();
-  await kv.incr(lockKey); // a prior winner already holds the lock (counter = 1)
+  await kv.acquireLease(lockRegistry, 'prior-winner', 1, { ttlMs: 10_000 }); // a prior winner already holds the lease
   const rpmBefore = kv._keys.filter((k) => k === rpmKey).length;
   const fetchImpl = spyFetch(() => testResponse(okBody()));
-  const res = await makeValidator({ kv, fetchImpl }).validate({ licenseKey }); // our incr -> 2 => loser
+  const res = await makeValidator({ kv, fetchImpl }).validate({ licenseKey }); // our acquire fails => loser
   assert.equal(res.ok, false);
   assert.equal(res.status, 503);
   assert.equal(res.reason, QUOTA_REASONS.LICENSE_UNAVAILABLE);
   assert.equal(fetchImpl.calls.length, 0, 'a single-flight loser must not call LS');
   const rpmTouches = kv._keys.filter((k) => k === rpmKey).length - rpmBefore;
   assert.equal(rpmTouches, 0, 'a single-flight loser must not consume the global RPM bucket');
+});
+
+test('regression(P0 2026-09-01): followers cannot re-arm a crashed winner\'s lock TTL — the lease self-heals', async () => {
+  // Pro review: the old counter lock incr'd on every follower and each incr
+  // re-armed PEXPIRE, so sustained retries kept a crashed winner's lock alive
+  // forever. The 1-slot lease must expire at its ORIGINAL deadline no matter
+  // how many followers keep arriving.
+  let t = 1_000_000;
+  const kv = createMemoryKv({ now: () => t });
+  const license = 'LK-sflight-heal';
+  const registry = quotaKeyHmac(SECRET, 'test-sflight', license);
+  // A crashed winner holds the lease for 10s and never releases.
+  assert.equal(await kv.acquireLease(registry, 'crashed-winner', 1, { ttlMs: 10_000 }), true);
+  // Followers keep arriving every 2.5s — inside the old counter's re-arm
+  // window, so the legacy implementation would have extended the TTL forever.
+  for (const [i, offset] of [2_500, 5_000, 7_500].entries()) {
+    t = 1_000_000 + offset;
+    assert.equal(
+      await kv.acquireLease(registry, `follower-${i}`, 1, { ttlMs: 10_000 }),
+      false,
+      `follower at +${offset}ms must not acquire while the crashed lease lives`,
+    );
+  }
+  // At +10s the crashed winner's ORIGINAL per-member expiry lapses (no re-arm
+  // ever happened) and the next follower acquires: the lock self-heals.
+  t = 1_000_000 + 10_000;
+  assert.equal(
+    await kv.acquireLease(registry, 'healed-follower', 1, { ttlMs: 10_000 }),
+    true,
+    'the lease must self-heal once the original TTL lapses',
+  );
+});
+
+test('regression(P0): REST-KV owner leases self-heal under sustained validator followers and reject stale release', async () => {
+  const originalFetch = globalThis.fetch;
+  let serverNow = FIXED_NOW;
+  const values = new Map();
+  const sortedSets = new Map();
+  const commands = [];
+  const response = (result) => ({ ok: true, async json() { return { result }; } });
+
+  globalThis.fetch = async (url, init = {}) => {
+    const href = String(url);
+    if (init.method === 'POST') {
+      const args = JSON.parse(String(init.body));
+      commands.push(args);
+      const [command, script, , key] = args;
+      if (command === 'SET') {
+        values.set(args[1], {
+          value: args[2],
+          expiresAt: args[3] === 'PX' ? serverNow + Number(args[4]) : Number.POSITIVE_INFINITY,
+        });
+        return response('OK');
+      }
+      if (command !== 'EVAL') throw new Error(`unexpected command: ${command}`);
+      if (script.includes("redis.call('ZADD'")) {
+        const ttl = Number(args[4]);
+        const maxConcurrent = Number(args[5]);
+        const lease = args[6];
+        const live = sortedSets.get(key) ?? new Map();
+        for (const [member, expiry] of live) if (expiry <= serverNow) live.delete(member);
+        if (live.size >= maxConcurrent) {
+          sortedSets.set(key, live);
+          return response(0);
+        }
+        live.set(lease, serverNow + ttl);
+        sortedSets.set(key, live);
+        return response(1);
+      }
+      if (script.includes("redis.call('ZSCORE'")) {
+        const lease = args[4];
+        const live = sortedSets.get(key);
+        const expiry = live?.get(lease);
+        if (typeof expiry !== 'number' || expiry <= serverNow) return response(0);
+        live.delete(lease);
+        return response(1);
+      }
+      if (script.includes("redis.call('INCRBY'")) {
+        const amount = Number(args[4]);
+        const current = Number(values.get(key)?.value ?? 0);
+        const next = current + amount;
+        values.set(key, { value: next, expiresAt: serverNow + Number(args[5]) });
+        return response(next);
+      }
+      throw new Error('unexpected EVAL script');
+    }
+
+    const parsed = new URL(href);
+    if (parsed.pathname.startsWith('/get/')) {
+      const key = decodeURIComponent(parsed.pathname.slice('/get/'.length));
+      const entry = values.get(key);
+      if (entry && entry.expiresAt <= serverNow) values.delete(key);
+      return response(values.get(key)?.value ?? null);
+    }
+    throw new Error(`unexpected REST-KV path: ${parsed.pathname}`);
+  };
+
+  try {
+    const kv = createRestKv({
+      KV_REST_API_URL: 'https://patina-test.upstash.io',
+      KV_REST_API_TOKEN: 'test-rest-token',
+      NODE_ENV: 'production',
+    });
+    assert.ok(kv);
+
+    // The old scalar namespace can coexist without a Redis WRONGTYPE collision.
+    const license = 'LK-rest-sflight-heal';
+    const oldLockKey = quotaKeyHmac(SECRET, 'test-lock', license);
+    const registry = quotaKeyHmac(SECRET, 'test-sflight', license);
+    await kv.set(oldLockKey, 7, { ttlMs: 60_000 });
+    assert.equal(await kv.acquireLease(registry, 'crashed-owner', 1, { ttlMs: 10_000 }), true);
+
+    const providerFetch = spyFetch(() => testResponse(okBody()));
+    const validator = makeValidator({
+      kv,
+      fetchImpl: providerFetch,
+      now: () => serverNow,
+      env: baseEnv({
+        PATINA_TEST_LOCK_POLL_INTERVAL_MS: '1',
+        PATINA_TEST_LOCK_WAIT_MS: '1',
+      }),
+    });
+
+    // Sustained followers before the ORIGINAL lease deadline stay closed and
+    // cannot re-arm the crashed owner's server-time ZSET score.
+    for (const offset of [2_500, 5_000, 7_500]) {
+      serverNow = FIXED_NOW + offset;
+      const follower = await validator.validate({ licenseKey: license });
+      assert.equal(follower.ok, false);
+      assert.equal(follower.status, 503);
+    }
+    assert.equal(providerFetch.calls.length, 0);
+
+    // No idle period: the caller arriving exactly at the original expiry
+    // prunes owner A, becomes owner B, validates, caches, and releases.
+    serverNow = FIXED_NOW + 10_000;
+    const healed = await validator.validate({ licenseKey: license });
+    assert.equal(healed.ok, true);
+    assert.equal(providerFetch.calls.length, 1);
+    assert.ok(commands.some((args) => args[3] === registry && String(args[1]).includes("redis.call('ZADD'")));
+    assert.equal(commands.some((args) => String(args).includes(license)), false, 'REST commands must never contain the raw license');
+
+    // Production-adapter atomicity and ownership: one simultaneous winner;
+    // after A expires, stale A release cannot remove replacement owner B.
+    const raceRegistry = quotaKeyHmac(SECRET, 'test-sflight-race', license);
+    serverNow = FIXED_NOW + 20_000;
+    const races = await Promise.all(
+      ['race-a', 'race-b', 'race-c'].map((owner) => kv.acquireLease(raceRegistry, owner, 1, { ttlMs: 10_000 })),
+    );
+    assert.equal(races.filter(Boolean).length, 1);
+    const winner = ['race-a', 'race-b', 'race-c'][races.findIndex(Boolean)];
+    serverNow += 10_000;
+    assert.equal(await kv.acquireLease(raceRegistry, 'replacement-owner', 1, { ttlMs: 10_000 }), true);
+    assert.equal(await kv.releaseLease(raceRegistry, winner), false, 'expired owner cannot release a replacement');
+    assert.equal(await kv.acquireLease(raceRegistry, 'third-owner', 1, { ttlMs: 10_000 }), false, 'replacement remains held');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

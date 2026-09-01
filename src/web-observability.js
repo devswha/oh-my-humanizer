@@ -11,12 +11,13 @@ export const METRIC_FIELDS = Object.freeze([
 /** Closed set of legacy stream outcomes. */
 const OUTCOME_VALUES = Object.freeze(new Set(['ok', 'stream_failed', 'scoring_failed', 'floor_failed']));
 
-/** Canonical closed descriptor for every patina.web.v1 event. */
+/** Canonical closed descriptor for every patina.web.v2 event. */
 export const WEB_OBSERVABILITY_SCHEMA = Object.freeze({
-  schemaVersion: 'v1',
-  schema: 'patina.web.v1',
+  schemaVersion: 'v2',
+  schema: 'patina.web.v2',
   fields: Object.freeze([
     'schemaVersion', 'schema', 'channel', 'evidenceClass', 'tier', 'outcome', 'latencyBucket', 'statusClass', 'sampling',
+    'tokenBucket', 'llmCalls',
   ]),
   values: Object.freeze({
     channel: Object.freeze(['production', 'staging', 'unknown']),
@@ -29,10 +30,17 @@ export const WEB_OBSERVABILITY_SCHEMA = Object.freeze({
     latencyBucket: Object.freeze(['<=30s', '30-60s', '60-120s', '>120s', 'unknown']),
     statusClass: Object.freeze(['1xx', '2xx', '3xx', '4xx', '5xx', 'unknown']),
     sampling: Object.freeze(['full', 'sampled_1_of_20']),
+    // Cost observability (2026-09-01, Pro review P1): the margin model assumes
+    // 3 LLM calls per paid request ($0.035-0.075, ~47% margin) but number-safety
+    // retries can push a request to 4 stage calls and transport/schema retries
+    // can go higher; token totals identify when that happens and at what prompt
+    // weight. Coarse buckets only — never raw tokens per call.
+    tokenBucket: Object.freeze(['0', '1-2k', '2k-10k', '10k-30k', '30k-60k', '>60k', 'unknown']),
+    llmCalls: Object.freeze(['1', '2', '3', '4', '5+', 'unknown']),
   }),
 });
 
-/** Ordered fields used by patina.web.v1. */
+/** Ordered fields used by patina.web.v2. */
 export const WEB_OBSERVABILITY_FIELDS = WEB_OBSERVABILITY_SCHEMA.fields;
 export const WEB_OUTCOMES = WEB_OBSERVABILITY_SCHEMA.values.outcome;
 export const WEB_CHANNELS = Object.freeze(WEB_OBSERVABILITY_SCHEMA.values.channel.filter((channel) => channel !== 'unknown'));
@@ -115,6 +123,35 @@ export function statusClass(status) {
   return `${Math.floor(n / 100)}xx`;
 }
 
+/**
+ * Bucket a request's TOTAL LLM token usage (all attempts, all stages) into a
+ * coarse band for cost observability. Aggregates only — the bucket never
+ * carries per-call tokens or any content.
+ * @param {unknown} totalTokens
+ */
+export function tokenBucket(totalTokens) {
+  if (typeof totalTokens !== 'number' || !Number.isSafeInteger(totalTokens) || totalTokens < 0) return 'unknown';
+  const n = totalTokens;
+  if (n === 0) return '0';
+  if (n < 2_000) return '1-2k';
+  if (n < 10_000) return '2k-10k';
+  if (n < 30_000) return '10k-30k';
+  if (n < 60_000) return '30k-60k';
+  return '>60k';
+}
+
+/**
+ * Bucket the number of paid LLM transport calls a request spent (all attempts
+ * in rewrite and scoring). The margin model assumes 3; anything above says a
+ * number-safety, schema, or transport retry fired.
+ * @param {unknown} calls
+ */
+export function llmCallsBucket(calls) {
+  if (typeof calls !== 'number' || !Number.isSafeInteger(calls) || calls < 1) return 'unknown';
+  const n = calls;
+  return n >= 5 ? '5+' : String(n);
+}
+
 /** @param {Date|number|string} value */
 export function utcQuarterStart(value) {
   const date = value instanceof Date ? value : new Date(value);
@@ -125,12 +162,20 @@ export function utcQuarterStart(value) {
     .replace(/[-:]/g, '') + 'Z';
 }
 
-/** @param {{channel?:unknown, tier?:unknown, outcome?:unknown, latencyMs?:unknown, status?:unknown, sampling?:unknown}} [input] */
+/** @param {{channel?:unknown, tier?:unknown, outcome?:unknown, latencyMs?:unknown, latencyBucket?:unknown, status?:unknown, statusClass?:unknown, sampling?:unknown, totalTokens?:unknown, tokenBucket?:unknown, llmCalls?:unknown}} [input] */
 export function buildWebObservabilityEvent(input = {}) {
   const channel = typeof input.channel === 'string' && WEB_CHANNEL_SET.has(input.channel) ? input.channel : 'unknown';
   const tier = typeof input.tier === 'string' && WEB_TIER_SET.has(input.tier) ? input.tier : 'unknown';
   const outcome = typeof input.outcome === 'string' && WEB_OUTCOME_SET.has(input.outcome) ? input.outcome : 'unknown';
   const sampling = input.sampling === WEB_SAMPLING_VALUES[1] ? WEB_SAMPLING_VALUES[1] : WEB_SAMPLING_VALUES[0];
+  const inputTokenBucket = typeof input.tokenBucket === 'string'
+    && WEB_OBSERVABILITY_SCHEMA.values.tokenBucket.includes(input.tokenBucket)
+    ? input.tokenBucket
+    : null;
+  const inputLlmCalls = typeof input.llmCalls === 'string'
+    && WEB_OBSERVABILITY_SCHEMA.values.llmCalls.includes(input.llmCalls)
+    ? input.llmCalls
+    : null;
   return {
     schemaVersion: WEB_OBSERVABILITY_SCHEMA.schemaVersion,
     schema: WEB_OBSERVABILITY_SCHEMA.schema,
@@ -138,9 +183,17 @@ export function buildWebObservabilityEvent(input = {}) {
     evidenceClass: WEB_OBSERVABILITY_SCHEMA.values.evidenceClass[0],
     tier,
     outcome,
-    latencyBucket: monitorLatencyBucket(input.latencyMs),
-    statusClass: statusClass(input.status),
+    latencyBucket: typeof input.latencyBucket === 'string'
+      && WEB_OBSERVABILITY_SCHEMA.values.latencyBucket.includes(input.latencyBucket)
+      ? input.latencyBucket
+      : monitorLatencyBucket(input.latencyMs),
+    statusClass: typeof input.statusClass === 'string'
+      && WEB_OBSERVABILITY_SCHEMA.values.statusClass.includes(input.statusClass)
+      ? input.statusClass
+      : statusClass(input.status),
     sampling,
+    tokenBucket: inputTokenBucket ?? tokenBucket(input.totalTokens),
+    llmCalls: inputLlmCalls ?? llmCallsBucket(input.llmCalls),
   };
 }
 

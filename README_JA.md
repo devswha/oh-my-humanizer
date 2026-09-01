@@ -29,7 +29,7 @@ AI っぽいテキストを **[playground](https://patina.vibetip.help/)** に�
 ほかの例：[Before/After Gallery](docs/EXAMPLES.md)（[한국어](docs/EXAMPLES_KR.md)）· [CLI transcript](docs/DEMO.md)。
 
 - **ブラックボックスではなく、監査可能** — 名前付きの 184 パターンがすべての編集を決め、`--diff` が何をなぜ変えたかをそのまま示します。
-- **意味は検証されて残る** — すべての書き換えは意味保全（MPS）と忠実度フロアを通過する必要があり、逸脱すれば再試行かロールバックされます。
+- **意味はWebで検証されて残る** — playground はすべての書き換えを MPS と忠実度フロアで検証し、逸脱した結果は拒否します。Node CLI は `--verify`、エージェントスキルは `/patina --strict` で同じ検査を有効にします。
 - **互いに独立した3つの軸** — Document Type はジャンル、Persona はボイス、Register は伝え方を担当。省略した軸は原文が保たれます。
 - **あらゆるサーフェスで** — エージェントスキル（Claude Code · Codex · Cursor · OpenCode）、Node CLI、[ブラウザ playground](https://patina.vibetip.help/)。
 - **限界に正直** — スコアは編集シグナルであり著者判定ではありません。[事前登録研究](docs/research/2026-rewrite-efficacy-study1.md)では失敗点も併せて公開しています。

@@ -37,7 +37,7 @@
 patina is a deterministic, pattern-based humanizer for Korean, English, Chinese, and Japanese. It finds AI-sounding phrasing and rewrites it **without changing the claim, numbers, polarity, or causation** — built for allowed AI-assisted drafting, not for evading detectors.
 
 - **Auditable, not a black box** — 184 named patterns drive every edit; `--diff` shows exactly what changed and why.
-- **Meaning survives, verified** — every rewrite is gated by meaning-preservation (MPS) and fidelity floors; drifted rewrites are retried or rolled back.
+- **Meaning verified on the web** — web gates each rewrite with MPS/fidelity floors, rejecting drift; CLI `--verify` and `/patina --strict` add checks.
 - **Three independent axes** — Document Type owns genre, Persona owns voice, Register owns delivery. Omit any axis to preserve the source.
 - **Every surface** — agent skill (Claude Code · Codex · Cursor · OpenCode), Node CLI, and a [browser playground](https://patina.vibetip.help/).
 - **Honest about limits** — scores are editing signals, not authorship proof; our own [pre-registered study](docs/research/2026-rewrite-efficacy-study1.md) publishes where rewriting fails alongside where it works.
