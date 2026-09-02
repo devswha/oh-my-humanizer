@@ -366,6 +366,9 @@ test('kit merge records two labels, blocks unresolved disagreement, and accepts 
     assert.equal(report.summary.review.initialAgreement.agreed, 2);
     assert.equal(report.summary.review.adjudicated, 1);
     assert.match(report.markdown, /## register x miss_reason/u);
+    assert.deepEqual(report.summary.sentenceCounts, { 2: 3 });
+    assert.equal(report.summary.burstinessGate.standard + report.summary.burstinessGate.ending_monotony + report.summary.burstinessGate.tie, 3);
+    assert.match(report.markdown, /\| 2 \| 3 \|/u);
     assert.match(report.markdown, /reviewer-a \(llm-agent\)/u);
     assert.match(report.markdown, /rhythm:ending-monotony \| 1/u);
     assert.match(report.markdown, /rhythm:burstiness-low \| 1/u);

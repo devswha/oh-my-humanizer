@@ -1,6 +1,6 @@
 # KO GPT-family miss review (step 1, measure-only)
 
-- Generated at: 2026-09-02T08:00:10Z
+- Generated at: 2026-09-02T08:03:22Z
 - Manifest: `artifacts/rebaseline-2025/ko-gpt-miss-review.v1.jsonl` (sha256:f2b8d0874e0ac1ea68e12b771598823c1623be78ac345726d0ad6da2c32c6621)
 - Exclusions: `artifacts/rebaseline-2025/ko-gpt-miss-review.v1.exclusions.jsonl`
 - Source manifest: `artifacts/rebaseline-2025/rebaseline-2026.scored.public.jsonl` (sha256:a8cf8565ba0968f8571d4ed00d94bad51c0c3a5ccd290f1ba106745bc5589e86)
@@ -31,6 +31,23 @@ Excluded rows are candidates the analyzer at the recorded commit now flags hot. 
 |---|---:|
 | blog | 1 |
 | academic-summary | 7 |
+
+## Population properties
+
+Sentence count per reviewed row (single-paragraph rows report one number). The standard burstiness gate needs the configured minimum sentence count, so rows below it can reach burstiness only through the ending-monotony gate.
+
+| sentences | rows |
+|---|---:|
+| 2 | 32 |
+| 3 | 16 |
+
+Closer burstiness gate per row (smaller deficit): standard cv gate vs KO ending-monotony gate.
+
+| closer gate | rows |
+|---|---:|
+| standard | 41 |
+| ending_monotony | 3 |
+| tie | 4 |
 
 ## miss_reason
 

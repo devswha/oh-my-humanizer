@@ -112,6 +112,22 @@ export function summarize({ rows, exclusions, validation, input, exclusionsPath,
       }
     }
   }
+  const sentenceCounts = {};
+  const burstinessGate = { standard: 0, ending_monotony: 0, tie: 0, absent: 0 };
+  for (const row of rows) {
+    const sentences = row.signals?.paragraphs?.map((p) => p.sentence_count) ?? [];
+    const key = sentences.length === 1 ? String(sentences[0]) : sentences.length ? `multi:${sentences.join('+')}` : 'n/a';
+    count(sentenceCounts, key);
+    const gates = row.margins?.families?.burstiness?.gates;
+    const standard = gates?.standard;
+    const monotony = gates?.ending_monotony;
+    if (!standard || !monotony || (standard.absent && monotony.absent)) burstinessGate.absent++;
+    else if (standard.absent) burstinessGate.ending_monotony++;
+    else if (monotony.absent) burstinessGate.standard++;
+    else if (standard.deficit < monotony.deficit) burstinessGate.standard++;
+    else if (monotony.deficit < standard.deficit) burstinessGate.ending_monotony++;
+    else burstinessGate.tie++;
+  }
   const excludedSignals = {};
   const excludedByRegister = {};
   for (const entry of exclusions) {
@@ -137,6 +153,8 @@ export function summarize({ rows, exclusions, validation, input, exclusionsPath,
     validation: { pass: validation.errors.length === 0, errors: validation.errors, warnings: validation.warnings, regeneration: validation.regeneration },
     population: validation.population ?? { candidates: rows.length + exclusions.length, selected: rows.length, excluded: exclusions.length },
     exclusions: { count: exclusions.length, hotSignals: excludedSignals, byRegister: excludedByRegister },
+    sentenceCounts,
+    burstinessGate,
     byReason,
     byRegister,
     byModel,
@@ -209,6 +227,10 @@ export function renderReport(summary) {
     lines.push('');
     lines.push(...table(['register', 'excluded'], REGISTERS.filter((r) => summary.exclusions.byRegister[r]).map((r) => [r, String(summary.exclusions.byRegister[r])])));
   }
+  lines.push('', '## Population properties', '', 'Sentence count per reviewed row (single-paragraph rows report one number). The standard burstiness gate needs the configured minimum sentence count, so rows below it can reach burstiness only through the ending-monotony gate.', '');
+  lines.push(...table(['sentences', 'rows'], Object.entries(summary.sentenceCounts).sort().map(([k, v]) => [k, String(v)])));
+  lines.push('', 'Closer burstiness gate per row (smaller deficit): standard cv gate vs KO ending-monotony gate.', '');
+  lines.push(...table(['closer gate', 'rows'], Object.entries(summary.burstinessGate).filter(([, v]) => v > 0).map(([k, v]) => [k, String(v)])));
   lines.push('', '## miss_reason', '', ...table(['miss_reason', 'n'], MISS_REASONS.filter((code) => summary.byReason[code]).map((code) => [code, String(summary.byReason[code])])));
   lines.push('', '## register x miss_reason', '', ...crossTable('register', summary.byRegister, REGISTERS));
   lines.push('', '## provider/model x miss_reason', '', ...crossTable('provider / model', summary.byModel, Object.keys(summary.byModel).sort()));

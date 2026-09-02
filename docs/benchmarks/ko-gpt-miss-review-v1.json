@@ -1,6 +1,6 @@
 {
   "schema": "ko-gpt-miss-review-report.v1",
-  "generatedAt": "2026-09-02T08:00:10Z",
+  "generatedAt": "2026-09-02T08:03:22Z",
   "input": "artifacts/rebaseline-2025/ko-gpt-miss-review.v1.jsonl",
   "exclusionsPath": "artifacts/rebaseline-2025/ko-gpt-miss-review.v1.exclusions.jsonl",
   "manifestHash": "sha256:f2b8d0874e0ac1ea68e12b771598823c1623be78ac345726d0ad6da2c32c6621",
@@ -79,6 +79,16 @@
       "blog": 1,
       "academic-summary": 7
     }
+  },
+  "sentenceCounts": {
+    "2": 32,
+    "3": 16
+  },
+  "burstinessGate": {
+    "standard": 41,
+    "ending_monotony": 3,
+    "tie": 4,
+    "absent": 0
   },
   "byReason": {
     "threshold-far": 44,
