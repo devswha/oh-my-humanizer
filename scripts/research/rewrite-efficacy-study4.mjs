@@ -47,7 +47,7 @@ const TEXTS_JSONL = join(OUT_DIR, `${PREFIX}-texts-${STAGE}.private.jsonl`);
 const LOG = join(OUT_DIR, `${PREFIX}-run-${STAGE}.log`);
 const VERDICT = join(OUT_DIR, 'bridge-verdict.json');
 
-const REWRITE_TIMEOUT_MS = 600_000; // S1 top-up precedent
+const REWRITE_TIMEOUT_MS = 900_000; // raised 600s -> 900s at doc 12 (S attempt 2 timeout), Study 3 precedent; execution note, no criterion change
 const FLOOR = 0.98;
 const MAX_ATTEMPTS = 3; // one first pass + two retries
 
