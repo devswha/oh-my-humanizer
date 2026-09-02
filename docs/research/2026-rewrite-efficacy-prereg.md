@@ -643,6 +643,10 @@ only.
 
 No Study 4 corpus row, rewrite, or judgment exists at registration time.
 
+### Study 4 — dated note 2026-09-02 (before the first row): gemini failed admission, running single-perceptual-judge
+
+The registered bridge ran on the 108 archived S1-D passages (`artifacts/rewrite-efficacy-study4/bridge-verdict.json`): gemini-2.5-pro AUC on the 54 originals **0.556** (gpt 0.995, grok 0.967); Spearman(gemini, gpt) **0.137** vs Spearman(grok, gpt) 0.857 on the same passages. Both admission conditions fail, so per the registered fallback stage 1 runs with **judge-gpt + judge-det only** and the results doc is labelled *single-perceptual-judge*. xAI credit was not restored before launch. If it is restored later, grok may score the stored P/S bodies as a post-hoc corroboration column, labelled as collected after the run; it cannot enter the primary metric.
+
 ## Sources
 - Self-Preference Bias in LLM-as-a-Judge — arXiv:2410.21819
 - TH-Bench (humanizing attacks vs detectors) — arXiv:2503.08708
