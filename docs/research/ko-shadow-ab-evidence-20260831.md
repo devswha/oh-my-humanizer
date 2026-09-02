@@ -1,5 +1,7 @@
 # KO shadow A/B evidence — 2026-08-31
 
+> **Status note (2026-09-02, index pass):** advisory-only shadow evidence; the confirmatory run found the shadow picture did not transfer (`ko-confirmatory-verdict-20260901.md`, §"Why the shadow picture did not transfer").
+
 Producer `deepseek-v4-flash` (HTTP, `reasoning_effort: low`, matching the
 production free-tier setting at flip time) · Judge `codex-cli` (gpt-5.5,
 independent family per amendment v2) · 11 KO live-quality fixtures ·

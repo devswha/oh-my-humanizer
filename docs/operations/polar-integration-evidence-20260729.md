@@ -79,7 +79,7 @@ an oversight.
   product, checkout link, and evidence binding are not created yet.
 - **A real payment**: sandbox purchases move no money. The first production
   payment is part of the owner's Gate sequence, and — per the correction in
-  `production-go-live-checklist.md` — must be recorded from an explicit
+  the (since retired) Lemon Squeezy go-live checklist — must be recorded from an explicit
   provider mode field, never inferred from a successful checkout.
 - **Refund and chargeback handling**: untested; Polar holds accounts to a 0.4%
   chargeback rate.

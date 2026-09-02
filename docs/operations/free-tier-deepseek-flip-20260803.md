@@ -1,10 +1,12 @@
 # Free tier flipped to deepseek-v4-flash (2026-08-03)
 
+> **Status note (2026-09-02, index pass):** the flip shipped in 7.0.0 (CHANGELOG) but is **superseded**: on 2026-09-02 the owner confirmed the production free tier serves on gemini again (`PATINA_FREE_MODEL`). No record in this directory documents the flip back.
+
 ## Why
 
 The free tier was hard down: the production Gemini key returns HTTP 429
 "monthly spending cap exceeded" (recorded in
-[`dep-prod-disabled-20260803.md`](dep-prod-disabled-20260803.md)). The
+`dep-prod-disabled-20260803.md` (maintainer-private, `docs/internal/`)). The
 deepseek-0731 remeasurement chain
 ([`serving-engine-deepseek-0731-correction-20260803.md`](serving-engine-deepseek-0731-correction-20260803.md))
 established gate parity at ~1/8 the cost, and the owner approved the

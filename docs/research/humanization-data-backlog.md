@@ -17,7 +17,7 @@ Scope: AI 문체 신호 완화와 자연스러운 글 품질 개선에 필요한
 - [AI Human Metrics](./ai-human-metrics.md): 의미 보존과 AI-like writing signal reduction을 함께 보는 평가 방향.
 - [Human Eval Panel](./human-eval-panel.md): 30쌍, 5명 평가자 기반의 자연스러움/의미 손실 평가 설계.
 - [Adversarial MPS](./adversarial-mps.md): MPS proxy 통과가 자연스러운 문체를 보장하지 않는다는 한계.
-- [Judge Agreement](./judge-agreement.md): 생성기 family와 judge family 간 합의도 측정 계획.
+- [Rewrite Efficacy Study 1](./2026-rewrite-efficacy-study1.md): 교차-family 판정단 합의도(Krippendorff α en 0.751 / ko 0.526)로 #158 cross-judge agreement 질문에 답한 연구(2026-07-12 종결). [Judge Calibration](./2026-judge-calibration.md)은 judge별 AUC·반복 SD·self-preference 보정 결과.
 - [Humanization Literature Survey (2026-09)](./humanization-literature-2026-09.md): 외부 humanization 벤치마크·edited-AI 데이터셋·인간 지각 큐·구조/의미 왜곡 문헌을 정리하고, step 2–4·6–7의 사전등록 가능한 가설을 기록한다 (활성화 아님).
 
 ## Current Evidence Snapshot

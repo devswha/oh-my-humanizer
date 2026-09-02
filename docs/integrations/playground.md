@@ -43,7 +43,7 @@ After a production deploy, verify the custom domain points at the latest
 deployment and not an older manual alias:
 
 ```bash
-vercel --prod --yes --scope team_66lsrwOyA36bLnIH2eoEXqry
-vercel alias set <latest-patina-*.vercel.app> patina.vibetip.help --scope team_66lsrwOyA36bLnIH2eoEXqry
-vercel inspect https://patina.vibetip.help --scope team_66lsrwOyA36bLnIH2eoEXqry
+vercel --prod --yes --scope <vercel-team>
+vercel alias set <latest-patina-*.vercel.app> patina.vibetip.help --scope <vercel-team>
+vercel inspect https://patina.vibetip.help --scope <vercel-team>
 ```

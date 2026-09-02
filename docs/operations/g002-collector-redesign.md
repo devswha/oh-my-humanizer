@@ -1,5 +1,7 @@
 # G002 probe collector — rebuild design (tracked)
 
+> **Status note (2026-09-02, index pass):** implemented as `scripts/g002-collect.mjs`. The sentence below saying the log-query service is gone predates `services/log-query/` (#642), which exists and is used by the monitor runbooks.
+
 > The original G002 collector left with the `ops/*` harness when the repo went
 > public. Per AGENTS.md, automation restarts only from a tracked design — this
 > is that design. Target: produce a content-valid PAY-B-COST-v1 receipt

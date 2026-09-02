@@ -28,7 +28,7 @@ Every fixture under `tests/fixtures/suspect-zones/{lang}/{ai|natural}/*.md`
 carries an `expected_hot` label in its frontmatter. The benchmark runs
 `analyzeText()` (defined in `src/features/index.js`) on the body and
 compares the predicted hot/cold decision against that label. The decision
-follows the 4-signal OR rule from `core/stylometry.md` §16:
+follows the OR rule from `core/stylometry.md` §6 (core signals shown below; `scripts/signal-impact.mjs` enumerates the current full set of 7 paragraph + 2 document signals, see `docs/HARNESS.md`):
 
 ```
 paragraph is SUSPECT iff
@@ -341,14 +341,10 @@ sample can become a public fixture.
   A separate live-mode benchmark is its own follow-up (#412).
 - Mandatory rewrite quality gates. Live rewrite quality lives in
   `tests/quality/live-quality.mjs` and remains opt-in because it can shell out
-  to OpenCode:
-
-  ```bash
-  OPENCODE_AVAILABLE=1 npm run quality:live -- --limit 1
-  ```
-
-  The scaffold uses `opencode/hy3-preview-free` by default. Override it with
-  `OPENCODE_MODEL=<provider/model>` when testing another OpenCode model.
+  to a model backend. It is configured through `PATINA_LIVE_*` variables
+  (`PATINA_LIVE_BACKEND`, `PATINA_LIVE_PROVIDER`, `PATINA_LIVE_MODEL`, the
+  `PATINA_LIVE_JUDGE_*` family); see the header of
+  `tests/quality/live-quality.mjs`.
 - Generalized model-era detector claims. The report now includes
   `signal_score` ranking diagnostics (ROC-AUC, PR-AUC, best-F1 threshold), but
   those numbers are still limited to the checked-in fixture corpus.

@@ -1,6 +1,6 @@
 # CLI / Skill Flag Parity
 
-Basis: local checkout plus `node bin/patina.js --help` and `SKILL.md` reviewed on 2026-07-31. This table separates the standalone CLI surface from the prompt-based `/patina` skill; a missing check is not always a bug when the flag is backend-, auth-, or CLI-automation-only.
+Basis: local checkout plus `node bin/patina.js --help` and `SKILL.md` reviewed on 2026-09-02 (patina 8.1.0). This table separates the standalone CLI surface from the prompt-based `/patina` skill; a missing check is not always a bug when the flag is backend-, auth-, or CLI-automation-only.
 
 | Flag / command | Standalone CLI | `/patina` (`SKILL.md`) | Notes |
 |---|:---:|:---:|---|
@@ -34,11 +34,24 @@ Basis: local checkout plus `node bin/patina.js --help` and `SKILL.md` reviewed o
 | `--config <path>` | ✓ | — | CLI config override. |
 | `--allow-insecure-base-url` | ✓ | — | CLI network safety override. |
 | `--allow-private-base-url` | ✓ | — | CLI SSRF/metadata-address safety override. |
+| `--no-color` | ✓ | — | Disable ANSI colors in `--diff` output. |
+| `--ocr` | ✓ | — | With `--preview`: extract text inside page images. |
+| `--serve` | ✓ | — | With `--preview`: serve the page at a token URL on 127.0.0.1. |
+| `--rewrite-headings` | ✓ | — | Allow rewording/adding/removing Markdown headings; the skill keeps headings fixed (SKILL.md #473 note). |
+| `--xliff` | ✓ | — | Humanize translated `<target>` segments in an XLIFF 1.2 file. |
+| `--dry-run` | ✓ | — | With `--xliff`: plan + cost estimate, no LLM calls or writes. |
+| `--max-segments <n>` | ✓ | — | With `--xliff`: cap unique segments per run (default 50). |
+| `--timeout-ms <n>` | ✓ | — | Per-request/backend timeout. |
+| `--max-concurrency <n>` | ✓ | — | Cross-process backend cap. |
+| `--max-retries <n>` | ✓ | — | Retry budget per backend. |
+| `--max-failures <n>`, `--max-failure-rate <r>` | ✓ | — | Batch stop conditions. |
+| `--stop-on-retryable-storm` / `--no-stop-on-retryable-storm` | ✓ | — | Batch retryable-storm handling (only the `--no-` form is printed by `--help`). |
 | `-h`, `--help` | ✓ | — | CLI help. |
 | `-v`, `--version` | ✓ | — | CLI version. |
 | `patina doctor` | ✓ | — | CLI environment diagnostic. |
 | `patina auth status/login` | ✓ | — | CLI authentication guidance. |
 | `patina persona new/list/show/edit/rm` | ✓ | — | CLI custom Persona lifecycle. |
+| `patina pack list/install` | ✓ | — | Licensed Pro pack delivery into `custom/` (`docs/PRO-PACKS.md`). |
 
 ## Audit notes
 

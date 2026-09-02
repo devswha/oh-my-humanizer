@@ -176,7 +176,7 @@ added or removed (a unit test pins the signal list).
 
 - **Packaging fix:** `personas/` is now in package `files`, so built-in personas
   (incl. `personas/ko/natural-ko.md`) ship in the npm artifact. `npm pack`
-  includes all six KO personas; `tests/unit/persona-packaging.test.js` guards it.
+  includes all five KO personas; `tests/unit/persona-packaging.test.js` guards it.
 - **Report-only scripts:** `npm run benchmark:ai-tells-baseline` and
   `npm run benchmark:detector-candidates` expose the Phase A/B harnesses. They
   are measurement-only and read the (unpublished, git-tracked) calibration

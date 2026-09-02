@@ -159,7 +159,7 @@
       "scripts/checkout-evidence-bindings.mjs": "767c832fe4b517824e06fa7e18d6dd777e6525831dcfaa2022e51a4c8f27c07c",
       "scripts/generate-launch-config.mjs": "3d29c2885ed1778288eb02be4113163954927f68f3f5921f2c99a3762530a136",
       "scripts/check-v6.4-release-ready.mjs": "fc4521db8f4677e03ac6a2199a86917b6332033030a9e8fe248cd166b0a59313",
-      "docs/AUTHENTICATION.md": "e8c335550c4a0f0b144b79f4286d467a968962821a1c88049f1e679810751cfe",
+      "docs/AUTHENTICATION.md": "b872208311f81ef1ba3504f5fac331a19d02b90ac8d61b76a1f2c65228347a8d",
       "docs/AUTHENTICATION_KR.md": "5e077cd3a13c2299a11fc831c8303a204880c91dd0d465148d34a435dbe00796",
       "docs/operations/pro-launch.md": "50448491ce0b745eb2bfe07983238a6e727466de0f71c72b7cbc4a9c447068ff",
       "docs/operations/pay-stg-binding-20260716.json": "2f523259de91f640f056fe7acfe00264e493d9891b7a61152fe5e91704c0ecdf",
