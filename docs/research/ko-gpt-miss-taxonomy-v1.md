@@ -106,3 +106,6 @@ First matching rule wins:
   that differs from the extractor's `computed_reason`, is unresolved until a third
   reviewer adjudicates from the same blinded view with a written rationale.
 - Notes are paraphrase only: no Hangul, no quotation, at most 1000 characters.
+  When the private corpus is present the validator also rejects any note or
+  rationale in which a 12-character span (whitespace collapsed, NFC) occurs
+  inside a source text.

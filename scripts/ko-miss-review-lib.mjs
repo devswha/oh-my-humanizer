@@ -75,7 +75,9 @@ const HANGUL_RE = /[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\
 // output. They must never appear in a committed row.
 export const BANNED_KEYS = Object.freeze(['text', 'hits', 'samples', 'example', 'evidence', 'matches_text', 'spans', 'classes']);
 // Free-text fields that are checked against the private corpus for leaks.
-const FREE_TEXT_PATHS = Object.freeze(['reviewer_notes', 'review', 'signals', 'margins']);
+// Signal and margin blocks hold enumerated labels only ("high", "clean", rule
+// ids) and are covered by the Hangul and banned-key checks instead.
+const FREE_TEXT_PATHS = Object.freeze(['reviewer_notes', 'review']);
 
 // ---------------------------------------------------------------------------
 // Analyzer options (production defaults, frozen here so the manifest records
@@ -831,16 +833,15 @@ export function validateMissReview(options) {
     }
     const regenExcluded = new Set(regen.exclusions.map((entry) => entry.sample_id));
     for (const entry of exclusions) if (!regenExcluded.has(entry?.sample_id)) errors.push(`${entry?.sample_id}: recorded as excluded but the current analyzer does not flag it hot`);
-    // Leak check: no free-text value may be a substring of any source text.
+    // Leak check: no LEAK_WINDOW-character span of a free-text value may occur
+    // inside any source text (whitespace collapsed, NFC). Quoted fragments
+    // shorter than the window are already caught by the Hangul ban.
     try {
       const corpus = readJsonl(options.privateCorpus, repoRoot);
-      const texts = corpus.rows.map((row) => String(row.text ?? '').normalize('NFC')).filter(Boolean);
+      const texts = corpus.rows.map((row) => collapse(String(row.text ?? ''))).filter(Boolean);
       for (const row of rows) {
-        for (const value of collectStrings(row, FREE_TEXT_PATHS)) {
-          if (value.length < 4) continue;
-          const needle = value.normalize('NFC');
-          if (texts.some((text) => text.includes(needle))) errors.push(`${row.sample_id}: a free-text value is a substring of a private source text`);
-        }
+        const leaked = collectStrings(row, FREE_TEXT_PATHS).some((value) => leaksInto(value, texts));
+        if (leaked) errors.push(`${row.sample_id}: a free-text value is a substring of a private source text`);
       }
     } catch (error) {
       errors.push(`leak check: ${error.message}`);
@@ -1060,6 +1061,22 @@ export function findHangul(value, path = '') {
     }
   }
   return null;
+}
+
+export const LEAK_WINDOW = 12;
+
+function collapse(value) {
+  return String(value ?? '').normalize('NFC').replace(/\s+/gu, ' ').trim();
+}
+
+export function leaksInto(value, texts) {
+  const needle = collapse(value);
+  if (needle.length < LEAK_WINDOW) return texts.some((text) => needle.length >= 4 && text.includes(needle));
+  for (let start = 0; start + LEAK_WINDOW <= needle.length; start++) {
+    const window = needle.slice(start, start + LEAK_WINDOW);
+    if (texts.some((text) => text.includes(window))) return true;
+  }
+  return false;
 }
 
 function collectStrings(row, topLevelKeys) {

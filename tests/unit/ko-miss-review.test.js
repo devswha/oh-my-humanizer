@@ -258,8 +258,12 @@ test('validateMissReview passes fresh output and catches tampering, leaks and po
     assert.ok(hangul.some((e) => /at least two independent labels/u.test(e)));
 
     rows = clone();
-    rows[2].reviewer_notes = MISS_TEXTS['fx-ko-gpt-003'].slice(0, 12).replace(/[ᄀ-ᇿ㄰-㆏가-힯]/gu, 'x');
+    rows[2].review = { labels: [], disagreement: false, final_reason: rows[2].computed_reason, adjudication: { rationale: MISS_TEXTS['fx-ko-gpt-003'].slice(0, 12).replace(/[ᄀ-ᇿ㄰-㆏가-힯]/gu, 'x') } };
     assert.ok(!validateMissReview({ rows, ...base }).errors.some((e) => /substring of a private source text/u.test(e)));
+    rows[2].review.adjudication.rationale = 'see: 로그인 화면의 글자 크기';
+    const leak = validateMissReview({ rows, ...base }).errors;
+    assert.ok(leak.some((e) => /substring of a private source text/u.test(e)));
+    assert.ok(leak.some((e) => /Hangul text is not allowed/u.test(e)));
 
     rows = clone().slice(1);
     assert.ok(validateMissReview({ rows, ...base }).errors.some((e) => /population row fx-ko-gpt-001 is missing/u.test(e)));
