@@ -87,6 +87,8 @@ Sol's opinion and this judgment are kept separate above so the reader can see wh
 
 Each is its own branch and PR, measure-only, under the contract above:
 
+Taxonomy constants, the deficit encoding and the two clarified readings (KO diagnostics as one AND gate; deficit 0 at equality) are frozen in [`ko-gpt-miss-taxonomy-v1.md`](./ko-gpt-miss-taxonomy-v1.md).
+
 1. `scripts/ko-miss-review-extract.mjs` — select the frozen population from the scored public manifest, run the fixed analyzer, emit the source-free `signals` projection, per-family deficits, margins, and `miss_reason` per the decision tree; write the `ko-gpt-miss-review.v1` JSONL with `analysis_provenance` and `analysis_role: discovery-only`.
 2. `scripts/ko-miss-review-validate.mjs` + unit tests — schema, precondition triple, hash/provenance binding, byte-identical regeneration, no-raw-text checks (mirroring the intake and claim-manifest validators).
 3. Blinded review kit — per-reviewer permutation and the signal-only view; capture of both labels, margins, disagreement flags, adjudication.
