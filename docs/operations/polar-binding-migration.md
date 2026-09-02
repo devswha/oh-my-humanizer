@@ -1,6 +1,6 @@
 # Wiring the Polar checkout into the source-controlled binding
 
-> **Status note (2026-09-02, index pass):** step 4 (owner flip) closed by `live-open-20260804.md`.
+> **Status note (2026-09-02, index pass):** step 4 (owner flip) closed by `live-open-20260804.md`. The `check-v6.4-preflight-hold.mjs` checker referenced below was retired the same day; the binding table it validated still lives in `scripts/checkout-evidence-bindings.mjs`.
 
 Verified production identities live in
 [`pay-b-binding-polar-20260729.json`](pay-b-binding-polar-20260729.json). Every

@@ -129,10 +129,11 @@ Adversarial variants inherit their source fixture's label.
 
 ## Normalization expectations
 
-The analyzer NFC-normalizes input. NFC does **not** strip zero-width characters
-(U+200B) and does **not** fold homoglyphs (confusable Cyrillic/Greek code
-points), so those transforms genuinely reach tokenization. Case folding is the
-mildest tactic because the analyzer lowercases internally.
+Input is NFC-normalized first. That normalization does **not** strip zero-width
+characters (U+200B), and it does **not** fold homoglyphs such as confusable
+Cyrillic or Greek code points, so both of those transforms genuinely reach
+tokenization. Case folding is the mildest tactic: the analyzer lowercases
+internally anyway.
 
 ## Overall
 
