@@ -95,6 +95,8 @@ Backend-backed modes use Method P; the rightmost column is the Method-D anchor.
 | `--score --offline` | `score` | **no** | deterministic signal score |
 | `--diff` | `diff` | yes | deterministic pattern/detection report |
 | `--preview [--serve]` | preview job | yes | deterministic prose extraction + word-diff rendering |
+| `--xliff [--dry-run]` | xliff | yes (none with `--dry-run`) | deterministic segment parse/scan/select in `src/cli/xliff.js`; rewrites reuse the rewrite lane |
+| `patina pack list/install` | — | **no** | licensed pack delivery (`src/commands/pack.js` ↔ `src/pack-handler.js`), entitlement checked server-side |
 | `patina-score` (bin) | — | **no** | hot-paragraph ratio over `analyzeText()` |
 | playground / hosted rewrite | — | yes | shared server-side prompt, analysis, and scoring assets |
 
@@ -143,15 +145,24 @@ checks remain global. `--serve` is a `--preview` transport option.
   `rewrite-handler.js`, `streaming-api.js` — web / hosted rewrite path
 - `src/web-config.js`, `web-observability.js`, `rate-limit.js`, `security.js` —
   web rewrite serving infrastructure
+- `src/web-prompt-budget.js`, `web-rewrite-receipt.js`, `pro-monitor.js`,
+  `funnel-analytics.js` — hosted request-shaped prompt budgets, downloadable
+  audit receipts, aggregate-only Pro health monitor, and privacy-safe funnel
+  events (no request content retained)
+- `src/entitlement.js`, `entitlement-polar.js`, `polar-webhook.js`,
+  `pack-handler.js` — server-only Pro entitlement (Polar license keys,
+  Standard-Webhooks verification) and licensed pack delivery
 - `src/preview/*`, `preview.js`, `browser-diff.js` — `--preview` page presentation
   over rewrite output (deterministic rendering; optional LLM diff narration)
 
 ### Shared infrastructure (lane-neutral)
 
-- `src/cli.js`, `cli/args.js`, `cli/run.js` (dispatcher), `cli/input.js`, `cli/batch.js`
+- `src/cli.js`, `cli/args.js`, `cli/run.js` (dispatcher), `cli/input.js`, `cli/batch.js`, `cli/xliff.js`
+- `src/commands/pack.js` — client half of `patina pack`
 - `src/config.js`, `errors.js`, `logger.js`, `loader.js`, `model-defaults.js`, `output.js`
-- `src/api.js`, `providers.js`, `backends/*` — LLM transport (used only by Lane B,
-  kept as shared transport)
+- `src/api.js`, `providers.js`, `backends/*`, `anthropic-native.js` (opt-in native
+  Anthropic Messages adapter) — LLM transport (used only by Lane B, kept as
+  shared transport)
 - `src/auth.js`, `commands/auth.js`, `commands/doctor.js`
 - `src/ocr.js` — image → text input extraction
 - `scoring`, `verification`, and `personas.thresholds` are separate

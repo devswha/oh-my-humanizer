@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-13T19:52:40.474Z",
-  "nodeVersion": "v22.17.1",
+  "generatedAt": "2026-09-02T03:59:33.649Z",
+  "nodeVersion": "v24.18.0",
   "note": "Report-only detection robustness under deterministic adversarial transforms. Adversarial variants inherit source labels. Not a CI gate and not a detector-threshold change.",
   "transforms": [
     {

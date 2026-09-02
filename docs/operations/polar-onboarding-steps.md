@@ -1,9 +1,11 @@
 # Polar onboarding — step by step (2026-07-29)
 
+> **Status note (2026-09-02, index pass):** completed — review, payout and KYC cleared per `polar-approval-20260803.md`.
+
 > Executable checklist replacing the LS go-live sequence. Facts verified
 > against Polar's own docs on 2026-07-29 (acceptable-use, account-reviews,
 > supported-countries, payout accounts, license-key benefit). Framing and
-> application text: [`polar-application-prep.md`](polar-application-prep.md).
+> application text: `polar-application-prep.md` (maintainer-private, `docs/internal/`).
 
 ## The sequencing correction
 

@@ -1,5 +1,7 @@
 # Wiring the Polar checkout into the source-controlled binding
 
+> **Status note (2026-09-02, index pass):** step 4 (owner flip) closed by `live-open-20260804.md`.
+
 Verified production identities live in
 [`pay-b-binding-polar-20260729.json`](pay-b-binding-polar-20260729.json). Every
 field there was read back from Polar, not transcribed from the dashboard.

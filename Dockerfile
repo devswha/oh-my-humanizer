@@ -15,7 +15,8 @@ COPY bin ./bin
 COPY src ./src
 COPY core ./core
 COPY patterns ./patterns
-COPY profiles ./profiles
+COPY document-types ./document-types
+COPY personas ./personas
 COPY lexicon ./lexicon
 COPY .patina.default.yaml README.md LICENSE ./
 RUN chmod +x bin/patina.js \

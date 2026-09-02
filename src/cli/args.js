@@ -871,7 +871,7 @@ ENVIRONMENT
   KIMI_API_KEY, MOONSHOT_API_KEY, MINIMAX_API_KEY
 
 EXIT CODES
-  0 success · 1 runtime/backend · 2 input/usage · 3 score gate exceeded · 130 interrupted
+  0 success · 1 runtime/backend · 2 input/usage · 3 score gate exceeded · 4 verify floor / dropped number · 130 interrupted
 
 LLM-backed modes require an API key or a logged-in local CLI backend. Use
 --score --offline for deterministic scoring with no backend call. Auto-fallback

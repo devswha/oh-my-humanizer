@@ -2,7 +2,7 @@
 
 A copy/paste demo for showing what patina does: remove AI packaging while keeping the claims intact.
 
-The README hero uses the `--preview` surface now: [`assets/demo/patina-preview-en.gif`](../assets/demo/patina-preview-en.gif). It shows a saved page snapshot with Rewritten / Original / Both / Diff toggles, jump chips, inline diff, and the score moving from 60 → 0.
+The README hero is a live capture of the hosted playground ([`assets/demo/patina-demo-live-en.gif`](../assets/demo/patina-demo-live-en.gif)): the deterministic AI signal drops 100 → 0 while MPS stays 100. The `--preview` surface demo, [`assets/demo/patina-preview-en.gif`](../assets/demo/patina-preview-en.gif), is the secondary asset. It shows a saved page snapshot with Rewritten / Original / Both / Diff toggles, jump chips, inline diff, and the score moving from 60 → 0.
 
 Regeneration notes live in [`assets/demo/README.md`](../assets/demo/README.md).
 

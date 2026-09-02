@@ -103,6 +103,7 @@
     "personas/",
     "docs/",
     "!docs/internal/**",
+    "!docs/operations/**",
     "assets/brand/",
     "assets/social/",
     "assets/demo/README.md",

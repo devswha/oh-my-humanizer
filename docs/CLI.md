@@ -16,12 +16,7 @@ patina --lang en --score --exit-on 30 draft.md
 
 ## Exit codes
 
-| Code | Meaning |
-|---:|---|
-| `0` | Command completed; for `--score --exit-on`, the score was at or below the gate. |
-| `1` | Runtime or backend error, including API/auth/backend failures. |
-| `2` | Input/usage error from no interactive input or empty stdin. |
-| `3` | `--score --exit-on` completed, but the score exceeded the configured gate. |
+`0` success · `1` runtime/backend · `2` input/usage · `3` score gate exceeded · `4` meaning-safety exit (`--verify` floor miss or dropped number; rewrite still printed) · `130` interrupted. Full definitions and merge rules: [EXIT-CODES.md](EXIT-CODES.md).
 
 ## Output formats
 

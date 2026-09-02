@@ -1,5 +1,7 @@
 # Korean performance improvement handoff — 2026-08-18
 
+> **Status note (2026-09-02, index pass):** superseded by `ko-confirmatory-verdict-20260901.md` (NOT PROMOTED) and by the frozen order in `humanization-data-backlog.md`; retained for its external-evidence section and as input to the 2026-09-02 review handoff.
+
 **Status:** research implementation complete; promotion blocked by live safety evidence.
 Production remains baseline.
 

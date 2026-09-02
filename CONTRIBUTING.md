@@ -30,7 +30,7 @@ When a PR changes one of these English files, update the Korean pair in the same
 
 ## Adding a New Pattern
 
-1. **Pick the right pack.** Patterns live in `patterns/{lang}-{category}.md`. Categories: content, language, style, structure, communication, filler.
+1. **Pick the right pack.** Patterns live in `patterns/{lang}-{category}.md`. Categories: content, language, style, structure, communication, filler, plus the score-only `viral-hook` pack.
 
 2. **Follow the template.** Each pattern needs:
    - Number (next available, e.g. #30)
@@ -44,7 +44,7 @@ When a PR changes one of these English files, update the Korean pair in the same
 
 4. **Update counts.** After adding a pattern:
    - Pack header: increment `patterns:` count
-   - README.md and README_KR.md: update pattern tables and totals
+   - `docs/PATTERNS.md` and `docs/PATTERNS-{lang}.md`: regenerate the catalog; README `Facts` row: update the total
    - SKILL.md description: update total if hardcoded
 
 5. **Add an example.** If possible, add `examples/{lang}-{number}-success-01.md` and `examples/{lang}-{number}-failure-01.md` (false positive case).
@@ -201,7 +201,7 @@ Be helpful. Don't be a jerk. AI writing patterns are not moral failings — we'r
 
 ## PR Process
 
-1. Fork and branch from `main`
+1. Fork and branch from `dev` (see the branching section above)
 2. Make your changes
 3. Verify pattern counts are consistent
 4. Open a PR with a clear description

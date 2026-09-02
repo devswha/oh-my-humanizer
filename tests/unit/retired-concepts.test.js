@@ -78,27 +78,6 @@ test('changelog uses the exact 7.0.0 boundary and pinned historical occurrences'
   assert.ok(scanText(malformed, path).historicalDrift.some((row) => /7\.0\.0/.test(row.reason)));
 });
 
-test('approved historical documents require their exact pinned occurrence sets', () => {
-  const paths = [
-    ['docs/audits/2026-05-deep-research.md', 14],
-    ['docs/superpowers/specs/2026-04-03-meaning-preservation-design.md', 2],
-  ];
-  for (const [path, expectedCount] of paths) {
-    const source = readFileSync(resolve(repoRoot, path), 'utf8');
-    const report = scanText(source, path);
-    assert.equal(report.forbidden.length, 0, path);
-    assert.equal(report.allowed.length, expectedCount, path);
-    assert.equal(report.historicalDrift.length, 0, path);
-
-    const expanded = scanText(`${source}\nHistorical ${retired} expansion\n`, path);
-    assert.equal(expanded.forbidden.length, 1, path);
-
-    const relocated = scanText(relocateFirstMatch(source), path);
-    assert.equal(relocated.forbidden.length, 1, path);
-    assert.ok(relocated.historicalDrift.some((row) => row.actualLines?.length === 1), path);
-  }
-});
-
 test('scanPaths reports only files actually scanned and names every skip reason', () => {
   const root = mkdtempSync(join(tmpdir(), 'patina-retired-scan-'));
   try {

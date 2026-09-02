@@ -124,7 +124,15 @@ const output = [
 ].filter(Boolean).join('\n\n') + '\n';
 
 await mkdir(dirname(OUT_PATH), { recursive: true });
-await writeFile(OUT_PATH, stripTrailingWhitespace(output));
+
+// jsdoc2md renders `{@link Symbol}` as `[Symbol](Symbol)` when the target is a
+// class in the same file; turn those into in-page anchors so the link resolves.
+function fixSymbolLinks(markdown) {
+  return markdown.replace(/\]\(([A-Za-z_$][\w$]*)\)/g, (match, symbol) =>
+    markdown.includes(`<a name="${symbol}"></a>`) ? `](#${symbol})` : match);
+}
+
+await writeFile(OUT_PATH, fixSymbolLinks(stripTrailingWhitespace(output)));
 console.log(`Wrote ${OUT_PATH}`);
 
 function stripTrailingWhitespace(markdown) {

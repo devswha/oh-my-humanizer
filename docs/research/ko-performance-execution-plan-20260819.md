@@ -1,5 +1,7 @@
 # Korean diagnosis performance completion plan — 2026-08-19
 
+> **Status note (2026-09-02, index pass):** steps 5–6 completed 2026-09-01 with verdict NOT PROMOTED (`ko-confirmatory-verdict-20260901.md`); steps 7–8 landed in 8.1.0 (#708). Kept as the executed plan; the verdict is the live document.
+
 Branch: `bot/ko-diagnosis-performance`
 Base: `dev` (`f0457e3`)
 

@@ -1,9 +1,19 @@
 # Docker image
 
-The npm release job does not publish Docker images automatically. GHCR
-publishing is tracked separately so the first npm release can stay npm-only.
+A public image is published at `ghcr.io/devswha/patina` (tag `latest`, verified
+2026-09-02). Publishing is **manual**: the `ghcr` job in `release.yml` runs only
+on `workflow_dispatch` with `publish_ghcr=true`, after the same release-ready
+authorization as the npm publish. Tag pushes publish npm and the GitHub Release
+but do not rebuild the image, so `latest` can lag the npm version; the job also
+emits a `<version>` tag only when it runs on a version tag ref.
 
-Until the image is published, build the local image:
+```bash
+docker pull ghcr.io/devswha/patina:latest
+printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
+  | docker run --rm -i -e PATINA_API_KEY ghcr.io/devswha/patina:latest --lang en --provider openai
+```
+
+To build locally instead (for example to match the exact npm version):
 
 ```bash
 docker build -t patina:local .
@@ -11,9 +21,10 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
   | docker run --rm -i -e PATINA_API_KEY patina:local --lang en --provider openai
 ```
 
-Planned tags after the GHCR publishing issue is closed:
+Maintainers publish a new image with:
 
-- `ghcr.io/devswha/patina:<version>` — version tag from `v<version>`.
-- `ghcr.io/devswha/patina:latest` — latest release tag.
+```bash
+gh workflow run release.yml -f publish=false -f publish_ghcr=true
+```
 
 The image uses `node:22-alpine`. It does **not** include codex, claude, or gemini CLI binaries, and it never carries local login state. For container runs, use an API-backed provider or mount your own authenticated tools explicitly.

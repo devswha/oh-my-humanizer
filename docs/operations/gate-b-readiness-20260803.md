@@ -1,5 +1,7 @@
 # Gate B readiness — what exists, what blocks (2026-08-03)
 
+> **Status note (2026-09-02, index pass):** closed by `live-open-20260804.md` — checkout opened 2026-08-04; items 3–4 (real-path OBS receipt, formal Gate-B approval) were bypassed by owner decision, as that record states.
+
 > Working ledger for the `GATE_B` blocker in
 > [`v6.4-preflight-hold.json`](v6.4-preflight-hold.json). Gate B requires:
 > completed production source-binding integration, hosted identity, usage,
@@ -11,7 +13,7 @@
 | Requirement | Evidence |
 |---|---|
 | Production source-binding integration | PR #668 (`db909c2`), shipped to main via PR #670; binding table carries exactly `PAY-B-20260729-POLAR-ea8385dc-4c9c3f17` |
-| Hosted identity | `https://patina.vibetip.help` serving v7.0.0; deployment `patina-klpr5q2jo…` ([`dep-prod-disabled-20260803.md`](dep-prod-disabled-20260803.md)) |
+| Hosted identity | `https://patina.vibetip.help` serving v7.0.0; deployment `patina-klpr5q2jo…` (`dep-prod-disabled-20260803.md` (maintainer-private, `docs/internal/`)) |
 | PAY-B-COST evidence | [`pay-b-cost-v1.md`](pay-b-cost-v1.md) + `pay-b-cost-20260724*.json.bundle.json`; margin decision [`pro-margin-decision-20260729.md`](pro-margin-decision-20260729.md) (~55% at 100 rewrites/mo on gemini-3.6-flash) |
 | Rollback procedures | [`rollback-drills.md`](rollback-drills.md) — measured 2026-07-23 (sale-close within the 10-minute bound); owner sign-off outstanding |
 | Approval + payout + KYC | [`polar-approval-20260803.md`](polar-approval-20260803.md) |
