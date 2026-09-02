@@ -1,18 +1,39 @@
 #!/usr/bin/env bash
 # Study 4 supervisor: run the resumable runner until every corpus row is clean
 # (both arms rewritten, every admitted judge parsed on both). Between passes,
-# prune fail-soft rows so resume retries them; back off 30 min to ride out
-# claude window exhaustion. Usage: S4_STAGE=ko|en scripts/research/rewrite-efficacy-study4-loop.sh
+# prune fail-soft rows so resume retries them. Back-off is reset-aware: when
+# the last pass died on claude's "session limit · resets Xam/pm (Asia/Seoul)"
+# message, sleep until that time (+90 s, capped at 6 h) instead of 30 min, so
+# idle passes do not burn the pass budget. Usage:
+#   S4_STAGE=ko|en S4_JUDGES=judge-gpt,judge-gemini-3.7-flash scripts/research/rewrite-efficacy-study4-loop.sh
 set -u
 cd "$(dirname "$0")/../.."
 STAGE="${S4_STAGE:-ko}"
 EXPECTED="${S4_EXPECTED:-$([ "$STAGE" = "en" ] && echo 42 || echo 54)}"
 ROWS="artifacts/rewrite-efficacy-study4/s4-rows-${STAGE}.jsonl"
 LOG="artifacts/rewrite-efficacy-study4/s4-run-${STAGE}.log"
+MAX_PASSES="${S4_MAX_PASSES:-240}"
 mkdir -p artifacts/rewrite-efficacy-study4
 
-for pass in $(seq 1 48); do
+reset_sleep_seconds() {
+  # Look at the tail of this pass's log for a session-limit message; print
+  # seconds until the stated KST reset (+90 s), or nothing.
+  local msg tok now target
+  msg=$(tail -n 40 "$LOG" | grep -o "resets [0-9]\{1,2\}\(:[0-9]\{2\}\)\?[ap]m (Asia/Seoul)" | tail -1) || true
+  [ -n "$msg" ] || return 0
+  tok=$(echo "$msg" | sed -E 's/resets ([0-9:]+[ap]m).*/\1/')
+  now=$(date +%s)
+  target=$(TZ=Asia/Seoul date -d "today $tok" +%s 2>/dev/null) || return 0
+  if [ "$target" -le "$now" ]; then target=$(TZ=Asia/Seoul date -d "tomorrow $tok" +%s 2>/dev/null) || return 0; fi
+  local delta=$((target - now + 90))
+  [ "$delta" -gt 21600 ] && delta=21600
+  [ "$delta" -lt 60 ] && delta=60
+  echo "$delta"
+}
+
+for pass in $(seq 1 "$MAX_PASSES"); do
   echo "[loop] pass $pass" >> "$LOG"
+  before=$(wc -l < "$LOG")
   S4_STAGE="$STAGE" S4_JUDGES="${S4_JUDGES:-}" node scripts/research/rewrite-efficacy-study4.mjs >> "artifacts/rewrite-efficacy-study4/s4-stdout-${STAGE}.log" 2>&1
   node -e '
     const fs = require("fs");
@@ -29,8 +50,12 @@ for pass in $(seq 1 48); do
     process.exit(good.length >= expected ? 42 : 0);
   ' "$ROWS" "$EXPECTED" >> "$LOG" 2>&1
   if [ $? -eq 42 ]; then echo "[loop] all $EXPECTED rows clean — done" >> "$LOG"; exit 0; fi
-  echo "[loop] incomplete after pass $pass — sleeping 30m before resume" >> "$LOG"
-  sleep 1800
+  wait_s=1800
+  if tail -n +"$before" "$LOG" | grep -q "session limit"; then
+    rs=$(reset_sleep_seconds); [ -n "${rs:-}" ] && wait_s=$rs
+  fi
+  echo "[loop] incomplete after pass $pass — sleeping ${wait_s}s before resume" >> "$LOG"
+  sleep "$wait_s"
 done
-echo "[loop] gave up after 48 passes" >> "$LOG"
+echo "[loop] gave up after $MAX_PASSES passes" >> "$LOG"
 exit 1
