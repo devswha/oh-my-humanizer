@@ -1,0 +1,203 @@
+{
+  "schema": "ko-gpt-miss-review-report.v1",
+  "generatedAt": "2026-09-02T08:00:10Z",
+  "input": "artifacts/rebaseline-2025/ko-gpt-miss-review.v1.jsonl",
+  "exclusionsPath": "artifacts/rebaseline-2025/ko-gpt-miss-review.v1.exclusions.jsonl",
+  "manifestHash": "sha256:f2b8d0874e0ac1ea68e12b771598823c1623be78ac345726d0ad6da2c32c6621",
+  "taxonomyVersion": "ko-gpt-miss-taxonomy.v1",
+  "near": 0.1,
+  "sourceManifest": "artifacts/rebaseline-2025/rebaseline-2026.scored.public.jsonl",
+  "sourceManifestHash": "sha256:a8cf8565ba0968f8571d4ed00d94bad51c0c3a5ccd290f1ba106745bc5589e86",
+  "provenance": {
+    "git_commit": "eb3464d2c612c7b72b9b614796ed4fedbc4d8af1",
+    "features_tree": "e99c5182ec2b06f5f797063473f5cea57ff4b01d",
+    "options_hash": "sha256:c2a509d9b834f5086f0dca13778ab0c955e17b9a3cff27edd901c040204fee56",
+    "lexicon_version": "2.0.0",
+    "lexicon_hash": "sha256:c9b6fbd6ee7c57e360506e661aef2f3736c03d2e28fdd07601184dad1d3aa4fd",
+    "analyzed_at": "2026-09-02T08:00:00Z"
+  },
+  "analysisOptions": {
+    "lang": "ko",
+    "burstinessBands": {
+      "low": 0.3,
+      "high": 0.5
+    },
+    "minBurstinessSentences": 3,
+    "mattrBands": {
+      "low": 0.55,
+      "high": 0.7
+    },
+    "mattrWindow": 50,
+    "koDiagnosticsEnabled": true,
+    "koDiagnosticBands": {
+      "minSentences": 4,
+      "minEojeols": 20,
+      "spacing": {
+        "maxEojeolLengthCV": 0.38
+      },
+      "comma": {
+        "maxPerSentence": 1
+      },
+      "posProxy": {
+        "minMatchedCount": 10,
+        "maxClassDiversity": 0.26
+      }
+    },
+    "koEndingMonotonyBands": {
+      "minDaRatio": 0.6,
+      "minDaCount": 2,
+      "minTokens": 20
+    },
+    "lexiconDensityThreshold": 3,
+    "lexiconMinHotMatches": 2,
+    "fakeCandorMin": 2,
+    "thematicBreakMin": 3,
+    "structuralModel": null,
+    "documentType": "default"
+  },
+  "validation": {
+    "pass": true,
+    "errors": [],
+    "warnings": [],
+    "regeneration": {
+      "checked": 48,
+      "identical": 48
+    }
+  },
+  "population": {
+    "candidates": 56,
+    "selected": 48,
+    "excluded": 8,
+    "source_manifest_hash": "sha256:a8cf8565ba0968f8571d4ed00d94bad51c0c3a5ccd290f1ba106745bc5589e86"
+  },
+  "exclusions": {
+    "count": 8,
+    "hotSignals": {
+      "rhythm:ending-monotony": 8
+    },
+    "byRegister": {
+      "blog": 1,
+      "academic-summary": 7
+    }
+  },
+  "byReason": {
+    "threshold-far": 44,
+    "threshold-near-burstiness": 4
+  },
+  "byRegister": {
+    "academic-summary": {
+      "threshold-far": 3,
+      "threshold-near-burstiness": 2
+    },
+    "chat-update": {
+      "threshold-far": 16
+    },
+    "technical-how-to": {
+      "threshold-far": 10
+    },
+    "blog": {
+      "threshold-far": 10,
+      "threshold-near-burstiness": 1
+    },
+    "product-doc": {
+      "threshold-far": 5,
+      "threshold-near-burstiness": 1
+    }
+  },
+  "byModel": {
+    "codex-cli / gpt-5.5": {
+      "threshold-far": 44,
+      "threshold-near-burstiness": 4
+    }
+  },
+  "closestFamilyForThresholdFar": {
+    "burstiness": 43,
+    "lexicon": 1
+  },
+  "nearFamilies": {
+    "burstiness": 4
+  },
+  "familyDeficitSummary": {
+    "burstiness": {
+      "present": 48,
+      "absent": 0,
+      "min": 0.00692,
+      "median": 0.333333,
+      "max": 0.767767
+    },
+    "mattr": {
+      "present": 48,
+      "absent": 0,
+      "min": 0.652893,
+      "median": 0.818182,
+      "max": 0.818182
+    },
+    "lexicon": {
+      "present": 48,
+      "absent": 0,
+      "min": 0.5,
+      "median": 1,
+      "max": 1
+    },
+    "ko-diagnostics": {
+      "present": 48,
+      "absent": 0,
+      "min": 0.398601,
+      "median": 1.071006,
+      "max": 1.884615
+    },
+    "structure": {
+      "present": 48,
+      "absent": 0,
+      "min": 1,
+      "median": 1,
+      "max": 1
+    }
+  },
+  "review": {
+    "reviewed": 48,
+    "unreviewed": 0,
+    "reviewers": [
+      {
+        "id": "reviewer-a",
+        "labels": 48,
+        "kind": "llm-agent-claude"
+      },
+      {
+        "id": "reviewer-b",
+        "labels": 48,
+        "kind": "llm-agent-gpt-5.5"
+      }
+    ],
+    "initialAgreement": {
+      "agreed": 48,
+      "total": 48,
+      "rate": 1
+    },
+    "disagreements": 0,
+    "adjudicated": 0,
+    "finalAgreesWithComputed": {
+      "agreed": 48,
+      "total": 48,
+      "rate": 1
+    },
+    "confusion": {
+      "threshold-far": {
+        "threshold-far": 44
+      },
+      "threshold-near-burstiness": {
+        "threshold-near-burstiness": 4
+      }
+    },
+    "labelCounts": {
+      "reviewer-a": {
+        "threshold-far": 44,
+        "threshold-near-burstiness": 4
+      },
+      "reviewer-b": {
+        "threshold-far": 44,
+        "threshold-near-burstiness": 4
+      }
+    }
+  }
+}
