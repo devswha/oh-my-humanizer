@@ -170,4 +170,15 @@ Do not commit private raw text when a hash, manifest row, or aggregate score is 
 
 ## Suggested Order
 
-Start with P0 issue 1 because it explains whether KO misses are caused by missing patterns, lexicon drift, register mismatch, or scoring weights. Then add the edited-AI intake scaffold before generating more samples, so future data lands in a stable shape.
+Execution order frozen for the next performance-only cycle (2026-09-01):
+
+1. **KO GPT-family miss-review manifest.** Classify the currently available misses (up to 100) by register, deterministic signal breakdown, and root cause. Do not change thresholds or production behavior in this step.
+2. **Edited-AI intake and corpus.** Freeze light/heavy edit policies and the manifest schema before generating samples.
+3. **Rewrite human-evaluation panel.** Run at least 30 randomized before/after pairs with 5 raters, separating naturalness preference from meaning-loss labels.
+4. **Deterministic structure-transform experiment.** Test bounded merge/split and seam-only LLM infill against the single-pass baseline; keep it research-only.
+5. **Selective Korean treatment.** Apply short diagnosis guidance only to suspect paragraphs, with clean paragraphs preserve-only and no global diagnosis payload.
+6. **Meaning-proxy calibration.** Complete two independent calibration rounds plus metamorphic number, polarity, causation, entity-role, modality, honorific, and speech-level fixtures before considering enforcement.
+7. **KO register and lexicon calibration.** Use the miss review and real false-positive intake to remine evidence-backed entries and stress high-risk registers without global threshold inflation.
+8. **ZH/JA corpus expansion.** Reach the same per-language class/register evidence gate before making broader claims.
+
+Step 1 is the sole active item. Promotion to the next step requires a reviewed artifact that satisfies its acceptance criteria; implementation changes discovered during review stay deferred to their own branch.
