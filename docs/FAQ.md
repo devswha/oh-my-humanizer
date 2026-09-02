@@ -68,7 +68,7 @@ validated server-side. The browser never calls an LLM provider directly.
 
 ## Does it only work in Claude Code?
 
-No. patina runs as a skill for Claude Code, Codex CLI, Cursor, and OpenCode, and it also works as a standalone Node.js CLI.
+No. patina runs as a skill for Claude Code, Codex CLI, Cursor, OpenCode, and Gemini CLI, and it also works as a standalone Node.js CLI.
 
 ## Which languages are supported?
 

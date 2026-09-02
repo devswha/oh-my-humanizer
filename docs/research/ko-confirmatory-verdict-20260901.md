@@ -1,5 +1,7 @@
 # KO confirmatory verdict — 2026-09-01 (run started 2026-08-31)
 
+Preregistration (verbatim, do not edit): [`ko-performance-preregistration-20260818.md`](./ko-performance-preregistration-20260818.md). Executed plan: [`ko-performance-execution-plan-20260819.md`](./ko-performance-execution-plan-20260819.md).
+
 The single preregistered `--confirmatory` run completed (120/120 rows
 accounted; corpus SHA `23c546ab…fee3` verified frozen before launch).
 Producer `deepseek-v4-flash` + `reasoning_effort: low`; judge `codex-cli`

@@ -204,9 +204,27 @@ function memoryKv() {
     async get(k) { return map.get(k); },
     async set(k, v) { map.set(k, v); },
     async incr(k) { const n = (Number(map.get(k)) || 0) + 1; map.set(k, n); return n; },
+    // Single-flight lease primitives (owner-token lock): one slot per registry.
+    leases: new Map(),
+    async acquireLease(k, lease, maxConcurrent, { ttlMs }) {
+      const now = Number(LEASE_NOW());
+      const live = new Map([...(this.leases.get(k) ?? [])].filter(([, exp]) => exp > now));
+      if (live.size >= maxConcurrent) { this.leases.set(k, live); return false; }
+      live.set(lease, now + ttlMs);
+      this.leases.set(k, live);
+      return true;
+    },
+    async releaseLease(k, lease) {
+      const live = this.leases.get(k);
+      if (!live || !live.has(lease)) return false;
+      live.delete(lease);
+      return true;
+    },
   };
 }
 
+/** Clock for the in-test lease registry; overridable per test if needed. */
+const LEASE_NOW = () => Date.now();
 /** Minimal Response stand-in; the entitlement core only reads ok/status/json. */
 function jsonResponse(status, body) {
   return /** @type {Response} */ (/** @type {unknown} */ ({ ok: status >= 200 && status < 300, status, json: async () => body }));

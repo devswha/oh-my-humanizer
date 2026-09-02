@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skill](https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet)](#快速开始)
 [![Multi-language](https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green)](https://github.com/devswha/patina)
-[![Version](https://img.shields.io/badge/version-8.1.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-8.1.1-blue)](CHANGELOG.md)
 
 <p align="center">
   <strong>去掉 AI 味，保留原意。</strong>
@@ -31,7 +31,7 @@ patina 是一个面向韩文、英文、中文和日文的确定性、基于模�
 更多例子：[Before/After Gallery](docs/EXAMPLES.md)（[한국어](docs/EXAMPLES_KR.md)） · [CLI transcript](docs/DEMO.md)。
 
 - **可审计，不是黑箱** — 184 条有名字的模式驱动每一次修改；`--diff` 展示改了什么、为什么改。
-- **含义经过验证地保留** — 每次改写都要通过含义保留（MPS）与忠实度下限；漂移的改写会重试或回滚。
+- **含义在网页端经过验证地保留** — playground 用 MPS 和忠实度下限校验每次改写，并拒绝漂移的结果。Node CLI 用 `--verify`、代理技能用 `/patina --strict` 启用同样的检查。
 - **三个相互独立的轴** — Document Type 管体裁，Persona 管声音，Register 管语域；省略的轴保持原文。
 - **全渠道可用** — 代理技能（Claude Code · Codex · Cursor · OpenCode）、Node CLI，以及[浏览器 playground](https://patina.vibetip.help/)。
 - **对局限诚实** — 分数是编辑信号而非作者判定；我们的[预注册研究](docs/research/2026-rewrite-efficacy-study1.md)把失败之处与成功一并公开。
@@ -100,7 +100,7 @@ patina --batch docs/*.md --outdir cleaned/
 
 ```yaml
 # .patina.default.yaml
-version: "8.1.0"
+version: "8.1.1"
 language: ko              # ko | en | zh | ja
 document-type: default    # 体裁/用途 + 模式策略
 persona:                  # 可选；省略时保留原文声音

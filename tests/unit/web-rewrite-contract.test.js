@@ -38,6 +38,17 @@ test('contract module imports no node: builtins or runtime deps', async () => {
   assert.doesNotMatch(src, /^\s*import\s+/m, 'contract must be self-contained with no imports');
 });
 
+test('generated browser contract is byte-identical to the server source of truth', async () => {
+  const { readFileSync } = await import('node:fs');
+  const server = readFileSync(new URL('../../src/web-rewrite-contract.js', import.meta.url), 'utf8');
+  const browser = readFileSync(new URL('../../playground/src/web-rewrite-contract.js', import.meta.url), 'utf8');
+  assert.equal(
+    browser,
+    server,
+    'run `npm run launch-config:generate` after changing src/web-rewrite-contract.js',
+  );
+});
+
 test('supported languages and floors match the documented contract', () => {
   assert.deepEqual([...SUPPORTED_LANGS], ['ko', 'en', 'zh', 'ja']);
   assert.equal(MPS_FLOOR, 70);
@@ -46,6 +57,9 @@ test('supported languages and floors match the documented contract', () => {
   assert.equal(CONTEXT_LIMITS.maxBytes, 12 * 1024);
   assert.equal(TIER_LIMITS.free.maxChars, 4000);
   assert.equal(TIER_LIMITS.byok.maxChars, 20000);
+  assert.equal(TIER_LIMITS.byok.maxConcurrent, 2);
+  assert.equal(TIER_LIMITS.byok.burstPerHour, 120);
+  assert.equal(TIER_LIMITS.byok.reqPerDay, 480);
 });
 
 test('byteLength counts UTF-8 bytes, not UTF-16 code units', () => {

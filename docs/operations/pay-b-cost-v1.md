@@ -1,5 +1,7 @@
 # PAY-B-COST-v1 staging cost receipt
 
+> **Status note (2026-09-02, index pass):** v1 stayed the accepted spec. The v2 revision that `pro-margin-decision-20260729.md` planned (margin measured at the shipped cap) was never built, so `unitChars` is still pinned to 1,000,000 with a 60% floor.
+
 `PAY-B-COST-v1` is a deterministic local validator for complete customer-probe staging evidence. It is not a Gate B approval, payment receipt, checkout binding, deployment action, production authorization, or provider call. Provider-billing authenticity remains private human Gate-B evidence; this collector independently closes its structure, joins, and hashes.
 
 ## Issue and validate

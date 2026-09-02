@@ -85,3 +85,6 @@ artifacts/rewrite-efficacy-study3/
 # Judge-calibration side study raw outputs (same policy: raw text never committed)
 artifacts/judge-calibration-2026/
 .env*
+
+# Local review-tool workspace (repo packs + model responses); never part of the tree
+.insane-review/

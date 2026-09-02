@@ -12,6 +12,24 @@ All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 Semver rationale: patch | minor | major — explain whether this changes patterns, schemas, CLI behavior, or docs only.
 ```
 
+## 8.1.1 — 2026-09-02
+
+**Docs cleanup, clean package contents, Docker image fix.**
+
+Semver rationale: patch — no CLI or API contract changes; fixes a broken Dockerfile and pre-commit hook entry, removes maintainer records from the npm tarball, refreshes docs.
+
+### Fixed
+
+- The Dockerfile copied the removed `profiles/` directory and omitted `document-types/` and `personas/`, so the image did not build; it now builds and runs.
+- `.pre-commit-hooks.yaml` passed the unknown `--gate` option to `patina-score`; it now passes `--score-threshold`.
+- `--help` lists exit `4` (`--verify` floor miss / dropped-number guard) alongside the other exit codes.
+- `docs/API.md` renders `{@link}` symbols as in-page anchors instead of broken links.
+
+### Changed
+
+- `package.json` `files` excludes `docs/operations/**`: the tarball no longer ships maintainer launch records (447 → 399 files). Seven maintainer-private records moved out of the public tree.
+- Docs refreshed against the shipped 8.1.0 surface: EXIT-CODES, COOKBOOK `skip-patterns`, INSTALLATION backends, FLAG-PARITY, ARCHITECTURE, release/docker guides, ROADMAP (Polar-only payment, serving engines, phase statuses), a new `docs/operations/README.md` index; 11 stale docs removed; `docs/research/humanization-literature-2026-09.md` added.
+
 ## 8.1.0 — 2026-09-01
 
 **Scorer prompt-injection hardening and the completed Korean performance research program.**

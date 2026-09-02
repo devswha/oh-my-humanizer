@@ -20,7 +20,7 @@
   <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <a href="#quick-start"><img alt="Skill: Claude Code | Codex | Cursor | OpenCode" src="https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet"></a>
   <a href="https://github.com/devswha/patina"><img alt="Languages: KO | EN | ZH | JA" src="https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green"></a>
-  <a href="CHANGELOG.md"><img alt="Version 8.1.0" src="https://img.shields.io/badge/version-8.1.0-blue"></a>
+  <a href="CHANGELOG.md"><img alt="Version 8.1.1" src="https://img.shields.io/badge/version-8.1.1-blue"></a>
 </p>
 
 <p align="center">
@@ -37,7 +37,7 @@
 patina is a deterministic, pattern-based humanizer for Korean, English, Chinese, and Japanese. It finds AI-sounding phrasing and rewrites it **without changing the claim, numbers, polarity, or causation** — built for allowed AI-assisted drafting, not for evading detectors.
 
 - **Auditable, not a black box** — 184 named patterns drive every edit; `--diff` shows exactly what changed and why.
-- **Meaning survives, verified** — every rewrite is gated by meaning-preservation (MPS) and fidelity floors; drifted rewrites are retried or rolled back.
+- **Meaning verified on the web** — web gates each rewrite with MPS/fidelity floors, rejecting drift; CLI `--verify` and `/patina --strict` add checks.
 - **Three independent axes** — Document Type owns genre, Persona owns voice, Register owns delivery. Omit any axis to preserve the source.
 - **Every surface** — agent skill (Claude Code · Codex · Cursor · OpenCode), Node CLI, and a [browser playground](https://patina.vibetip.help/).
 - **Honest about limits** — scores are editing signals, not authorship proof; our own [pre-registered study](docs/research/2026-rewrite-efficacy-study1.md) publishes where rewriting fails alongside where it works.
@@ -102,7 +102,7 @@ patina --batch docs/*.md --outdir cleaned/
 Project config lives in `.patina.yaml`:
 
 ```yaml
-version: "8.1.0"
+version: "8.1.1"
 language: ko              # ko | en | zh | ja
 document-type: default    # genre/purpose + pattern policy
 persona:                  # optional reusable voice; omit to preserve source

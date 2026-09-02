@@ -1,5 +1,5 @@
 // @ts-check
-// Vercel log-drain receiver. Counts closed patina.web.v1 outcomes into
+// Vercel log-drain receiver. Counts closed patina.web.v2 outcomes into
 // per-quarter counters and discards everything else. Never stores or echoes
 // raw log content. Fail-closed: malformed deliveries and store failures are
 // rejected with non-2xx so the drain redelivers instead of losing evidence.

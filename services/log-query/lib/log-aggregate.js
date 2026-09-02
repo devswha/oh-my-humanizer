@@ -21,6 +21,8 @@ export const LOGQ_OUTCOMES = Object.freeze([
 ]);
 const LATENCY_BUCKETS = ['<=30s', '30-60s', '60-120s', '>120s', 'unknown'];
 const STATUS_CLASSES = ['1xx', '2xx', '3xx', '4xx', '5xx', 'unknown'];
+const TOKEN_BUCKETS = ['0', '1-2k', '2k-10k', '10k-30k', '30k-60k', '>60k', 'unknown'];
+const LLM_CALL_BUCKETS = ['1', '2', '3', '4', '5+', 'unknown'];
 
 const QUARTER_MS = 15 * 60 * 1000;
 const WINDOW_MS = Object.freeze({ '15m': 15 * 60 * 1000, '30m': 30 * 60 * 1000 });
@@ -79,36 +81,40 @@ export function logqKey({ channel, tier, bucket, outcome }) {
 }
 
 // One event pattern for both renderings emitLog produces: JSON.stringify
-// (`"schema":"patina.web.v1"`) and Node console-inspect (`schema: 'patina...'`).
-// Both preserve buildWebObservabilityEvent's insertion order, so the full
-// nine-field envelope is required in canonical order with boundary guards.
-// A fragment that omits any field, reorders fields, or glues an event name
-// onto another identifier is rejected rather than counted.
+// (`"schema":"patina.web.v2"`) and Node console-inspect (`schema: 'patina...'`).
+// Both preserve buildWebObservabilityEvent's insertion order, so the complete
+// eleven-field envelope is required in canonical order with boundary guards.
+// Cost fields are validated as closed buckets but deliberately not persisted
+// by this availability/entitlement query service. A fragment that omits or
+// reorders a field, or glues a name onto another identifier, is rejected.
 const FIELD = (name, values) => `[{,\\s"']${name}["']?\\s*:\\s*["'](${values})["']\\s*`;
 const EVENT_PATTERN = new RegExp(
-  FIELD('schemaVersion', 'v1') + ',?\\s*'
-  + FIELD('schema', 'patina\\.web\\.v1') + ',?\\s*'
+  FIELD('schemaVersion', 'v2') + ',?\\s*'
+  + FIELD('schema', 'patina\\.web\\.v2') + ',?\\s*'
   + FIELD('channel', '[a-z_]+') + ',?\\s*'
   + FIELD('evidenceClass', 'aggregate_only') + ',?\\s*'
   + FIELD('tier', '[a-z_]+') + ',?\\s*'
   + FIELD('outcome', '[a-z_]+') + ',?\\s*'
   + FIELD('latencyBucket', LATENCY_BUCKETS.map((b) => b.replace(/[<>=-]/g, '\\$&')).join('|')) + ',?\\s*'
   + FIELD('statusClass', STATUS_CLASSES.join('|')) + ',?\\s*'
-  + FIELD('sampling', 'full|sampled_1_of_20'),
+  + FIELD('sampling', 'full|sampled_1_of_20') + ',?\\s*'
+  + FIELD('tokenBucket', TOKEN_BUCKETS.map((b) => b.replace(/[+<>=-]/g, '\\$&')).join('|')) + ',?\\s*'
+  + FIELD('llmCalls', LLM_CALL_BUCKETS.map((b) => b.replace(/[+<>=-]/g, '\\$&')).join('|'))
+  + '(?=\\s*[,}])',
   'g',
 );
 
 /**
- * Extract closed patina.web.v1 events from one log message. Only complete
- * nine-field envelopes in canonical order are accepted; only the closed
- * channel/tier/outcome dimensions are returned. Everything else in the
- * message is ignored and never returned.
+ * Extract closed patina.web.v2 events from one log message. Only complete
+ * eleven-field envelopes in canonical order are accepted; only the closed
+ * channel/tier/outcome dimensions are returned. Cost buckets and everything
+ * else in the message are ignored and never returned.
  * @param {unknown} message
  * @returns {Array<{channel: string, tier: string, outcome: string}>}
  */
 export function extractWebEvents(message) {
   if (typeof message !== 'string' || message.length === 0 || message.length > 65536) return [];
-  if (!message.includes('patina.web.v1')) return [];
+  if (!message.includes('patina.web.v2')) return [];
   const events = [];
   EVENT_PATTERN.lastIndex = 0;
   let match;

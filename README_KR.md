@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skill](https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet)](#빠른-시작)
 [![Multi-language](https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green)](https://github.com/devswha/patina)
-[![Version](https://img.shields.io/badge/version-8.1.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-8.1.1-blue)](CHANGELOG.md)
 
 <p align="center">
   <a href="https://patina.vibetip.help/"><b>브라우저에서 바로 써보기 — 설치 없음</b></a>
@@ -29,7 +29,7 @@ AI 티가 나는 글을 **[playground](https://patina.vibetip.help/)** 에 붙�
 더 많은 예시: [Before/After 갤러리](docs/EXAMPLES_KR.md) ([English](docs/EXAMPLES.md)) · [CLI transcript](docs/DEMO.md).
 
 - **블랙박스가 아닌, 감사 가능한 도구** — 184개의 이름 붙은 패턴이 모든 수정을 결정하고, `--diff`가 무엇이 왜 바뀌었는지 그대로 보여줍니다.
-- **의미는 검증되어 살아남습니다** — 모든 재작성은 의미 보존(MPS)·충실도 하한을 통과해야 하며, 어긋나면 재시도하거나 되돌립니다.
+- **의미는 웹에서 검증됩니다** — playground는 모든 재작성을 MPS·충실도 하한으로 검증하고, 어긋난 결과는 거부합니다. Node CLI는 `--verify`, 에이전트 스킬은 `/patina --strict`로 같은 검사를 켭니다.
 - **서로 독립적인 세 축** — Document Type은 장르를, Persona는 목소리를, Register는 전달 방식을 정합니다. 생략한 축은 원문이 유지됩니다.
 - **모든 채널에서** — 에이전트 스킬(Claude Code · Codex · Cursor · OpenCode), Node CLI, [브라우저 playground](https://patina.vibetip.help/).
 - **한계에 정직하게** — 점수는 편집 신호이지 작성자 판정이 아니며, [사전 등록 연구](docs/research/2026-rewrite-efficacy-study1.md)에서 실패 지점까지 함께 공개합니다.
@@ -100,7 +100,7 @@ patina --batch docs/*.md --outdir cleaned/
 
 ```yaml
 # .patina.default.yaml
-version: "8.1.0"
+version: "8.1.1"
 language: ko              # ko | en | zh | ja
 document-type: default    # 장르·용도 + 패턴 정책
 persona:                  # 선택 사항; 생략하면 원문 보이스 보존

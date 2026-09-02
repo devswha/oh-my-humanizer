@@ -8,10 +8,9 @@ box below. Agents and humans both follow it.
 > - Default branch: `main`
 > - Integration branch: `dev`
 > - Feature branch prefix: `bot/*` (agent/automation work), `feat/*` (larger features)
-> - Version-bearing files to bump on release: _list them here_ (e.g. `package.json`, and any files that embed the version)
+> - Version-bearing files to bump on release: `package.json`, `SKILL.md`, `.patina.default.yaml`, the README version badge, `.claude-plugin/plugin.json`, and the CHANGELOG entry (`npm run release:check` verifies they agree)
 > - CI: runs on pull requests to `main` (and `dev` if configured)
 
----
 
 ## The branch model
 
@@ -28,7 +27,6 @@ bot/<feature>  ──PR──▶  dev  ──release PR──▶  main  ──�
 immediately merge `main` → `dev` so `dev` never drifts behind (a stale `dev` is
 the #1 way this workflow rots).
 
----
 
 ## Feature workflow (single line of work)
 
@@ -46,7 +44,6 @@ Rules:
 - Run the project's tests + lint locally before opening the PR.
 - Keep a feature branch focused; if it grows, split it.
 
----
 
 ## Parallel work (multiple sessions at once)
 
@@ -73,7 +70,6 @@ Rules for parallel work:
 4. **`dev` is the single convergence point.** Resolve conflicts once, when each
    branch merges into `dev`.
 
----
 
 ## Release workflow (`dev` → `main`)
 
@@ -83,7 +79,12 @@ git switch dev && git pull
 # 2) run the full test + lint + release gate locally
 gh pr create --base main --head dev        # release PR: full CI matrix runs
 # 3) on green: MERGE (not squash) so the release keeps per-feature history
-# 4) tag the release on main; publish/deploy
+# 4) tag the release on main; publish/deploy — the tag push triggers
+#    .github/workflows/release.yml, which runs the verify gates, publishes
+#    npm, and creates the GitHub Release (notes auto-extracted from the
+#    CHANGELOG section for that version) as the `github-release` job.
+#    GitHub Releases must never be created manually; a missing CHANGELOG
+#    section for the tagged version fails the release job on purpose.
 git switch dev && git merge main           # keep dev in sync after the release
 ```
 
@@ -94,7 +95,6 @@ git switch dev && git merge main           # keep dev in sync after the release
   that embeds the version before the release PR.
 - **Let CI gate the release** — open it as a PR so the full matrix runs.
 
----
 
 ## Safety rules (you are not alone in the repo)
 
@@ -106,7 +106,6 @@ git switch dev && git merge main           # keep dev in sync after the release
 - Prefer PRs over direct pushes to shared branches so CI + review run.
 - Commit or stash before switching branches in a shared working directory.
 
----
 
 ## Cleanup
 
@@ -120,7 +119,6 @@ git switch dev && git merge main           # keep dev in sync after the release
 - Keep permanent branches only: `main`, `dev`, and genuinely in-flight feature
   branches.
 
----
 
 ## Quick reference
 

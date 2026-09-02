@@ -114,6 +114,153 @@ test('413 for oversize raw body', async () => {
   assert.deepEqual(res.json(), { error: 'request body too large' });
 });
 
+test('default body envelope accepts the largest valid CJK refine request', async () => {
+  const cjkText = '가'.repeat(20_000);
+  const body = {
+    mode: 'refine',
+    lang: 'ko',
+    tier: WEB_TIERS.BYOK,
+    text: cjkText,
+    original: cjkText,
+    history: [{ role: 'user', content: 'h'.repeat(12 * 1024) }],
+    provider: 'openai',
+    model: 'gpt-5.5',
+    apiKey: 'byok-test-key',
+  };
+  const rawBody = JSON.stringify(body);
+  assert.ok(Buffer.byteLength(rawBody, 'utf8') > 65_536);
+  assert.ok(Buffer.byteLength(rawBody, 'utf8') < 256 * 1024);
+
+  const res = makeRes();
+  let request;
+  const handler = createRewriteHandler({
+    rateLimiter: allowedLimiter(),
+    runRewrite(input) { request = input.request; },
+  });
+  await handler({ method: 'POST', headers: {}, body: rawBody }, res);
+
+  assert.notEqual(res.statusCode, 413);
+  assert.equal(request?.text, cjkText);
+  assert.equal(request?.original, cjkText);
+  assert.deepEqual(request?.history, body.history);
+});
+
+test('streamed request body preserves a CJK code point split across byte chunks', async () => {
+  const body = {
+    mode: 'first',
+    lang: 'ko',
+    tier: WEB_TIERS.BYOK,
+    text: '가나다',
+    provider: 'openai',
+    model: 'gpt-5.5',
+    apiKey: 'byok-test-key',
+  };
+  const raw = JSON.stringify(body);
+  const bytes = Buffer.from(raw, 'utf8');
+  const cjkStart = Buffer.byteLength(raw.slice(0, raw.indexOf('가')), 'utf8');
+  const split = cjkStart + 1; // one byte into the three-byte UTF-8 code point
+  const req = {
+    method: 'POST',
+    headers: {},
+    async *[Symbol.asyncIterator]() {
+      yield bytes.subarray(0, split);
+      yield bytes.subarray(split);
+    },
+  };
+  let request;
+  const res = makeRes();
+  const handler = createRewriteHandler({
+    rateLimiter: allowedLimiter(),
+    runRewrite(input) { request = input.request; },
+  });
+
+  await handler(req, res);
+
+  assert.notEqual(res.statusCode, 400);
+  assert.equal(request?.text, '가나다');
+});
+
+test('default body envelope rejects requests over 256 KiB', async () => {
+  const res = makeRes();
+  const handler = createRewriteHandler({ rateLimiter: allowedLimiter(), runRewrite() {} });
+  await handler({ method: 'POST', headers: {}, body: JSON.stringify({ payload: 'x'.repeat(256 * 1024) }) }, res);
+  assert.equal(res.statusCode, 413);
+  assert.deepEqual(res.json(), { error: 'request body too large' });
+});
+
+test('default body envelope accepts exactly 256 KiB and rejects the next byte for string, object, and stream inputs', async () => {
+  const rawAt = (size) => {
+    const prefix = '{"payload":"';
+    const suffix = '"}';
+    return prefix + 'x'.repeat(size - prefix.length - suffix.length) + suffix;
+  };
+  const exact = rawAt(256 * 1024);
+  const over = rawAt(256 * 1024 + 1);
+  assert.equal(Buffer.byteLength(exact), 256 * 1024);
+  assert.equal(Buffer.byteLength(over), 256 * 1024 + 1);
+  const representations = {
+    string: (raw) => ({ body: raw }),
+    object: (raw) => ({ body: JSON.parse(raw) }),
+    stream: (raw) => ({
+      async *[Symbol.asyncIterator]() {
+        yield Buffer.from(raw);
+      },
+    }),
+  };
+
+  for (const [name, createReq] of Object.entries(representations)) {
+    const handler = createRewriteHandler({ rateLimiter: allowedLimiter(), runRewrite() {} });
+    const exactRes = makeRes();
+    await handler({ method: 'POST', headers: {}, ...createReq(exact) }, exactRes);
+    assert.equal(exactRes.statusCode, 400, `${name}: exact envelope passes body reading, then fails request schema`);
+    const overRes = makeRes();
+    await handler({ method: 'POST', headers: {}, ...createReq(over) }, overRes);
+    assert.equal(overRes.statusCode, 413, `${name}: byte over the envelope is rejected`);
+    assert.deepEqual(overRes.json(), { error: 'request body too large' });
+  }
+});
+
+test('BYOK text cap still rejects a field over 20,000 characters after envelope reading', async () => {
+  const res = makeRes();
+  const handler = createRewriteHandler({ rateLimiter: allowedLimiter(), runRewrite() {} });
+  await handler({
+    method: 'POST',
+    headers: {},
+    body: JSON.stringify({
+      mode: 'first',
+      lang: 'ko',
+      tier: WEB_TIERS.BYOK,
+      text: '가'.repeat(20_001),
+      provider: 'openai',
+      model: 'gpt-5.5',
+      apiKey: 'byok-test-key',
+    }),
+  }, res);
+  assert.equal(res.statusCode, 413);
+  assert.deepEqual(res.json(), { error: 'text exceeds 20000 characters for tier byok' });
+});
+
+test('BYOK refine original cap still rejects a field over 20,000 characters', async () => {
+  const res = makeRes();
+  const handler = createRewriteHandler({ rateLimiter: allowedLimiter(), runRewrite() {} });
+  await handler({
+    method: 'POST',
+    headers: {},
+    body: JSON.stringify({
+      mode: 'refine',
+      lang: 'ko',
+      tier: WEB_TIERS.BYOK,
+      text: '가',
+      original: '가'.repeat(20_001),
+      provider: 'openai',
+      model: 'gpt-5.5',
+      apiKey: 'byok-test-key',
+    }),
+  }, res);
+  assert.equal(res.statusCode, 413);
+  assert.deepEqual(res.json(), { error: 'original exceeds 20000 characters for tier byok' });
+});
+
 test('400 for invalid JSON', async () => {
   const res = makeRes();
   const handler = createRewriteHandler({ rateLimiter: allowedLimiter(), runRewrite() {} });
@@ -256,7 +403,7 @@ test('free concurrent requests allow one runner and reject the second before run
     kv: createMemoryKv(),
     hmacSecret: 'secret',
     now: () => 0,
-    limits: { free: { maxChars: 4000, maxConcurrent: 1, reqPerDay: 99, burstPerHour: 99 }, byok: { maxChars: 20000, maxConcurrent: 2 } },
+    limits: { free: { maxChars: 4000, maxConcurrent: 1, reqPerDay: 99, burstPerHour: 99 }, byok: { maxChars: 20000, maxConcurrent: 2, reqPerDay: 480, burstPerHour: 120 } },
   });
   const events = [];
   const handler = createRewriteHandler({
@@ -302,7 +449,7 @@ test('free concurrency slot is released when runRewrite throws', async () => {
     kv: createMemoryKv(),
     hmacSecret: 'secret',
     now: () => 0,
-    limits: { free: { maxChars: 4000, maxConcurrent: 1, reqPerDay: 99, burstPerHour: 99 }, byok: { maxChars: 20000, maxConcurrent: 2 } },
+    limits: { free: { maxChars: 4000, maxConcurrent: 1, reqPerDay: 99, burstPerHour: 99 }, byok: { maxChars: 20000, maxConcurrent: 2, reqPerDay: 480, burstPerHour: 120 } },
   });
   const handler = createRewriteHandler({
     rateLimiter: limiter,
@@ -331,7 +478,7 @@ test('BYOK concurrent requests bypass free concurrency limit', async () => {
     kv: createMemoryKv(),
     hmacSecret: 'secret',
     now: () => 0,
-    limits: { free: { maxChars: 4000, maxConcurrent: 1, reqPerDay: 99, burstPerHour: 99 }, byok: { maxChars: 20000, maxConcurrent: 2 } },
+    limits: { free: { maxChars: 4000, maxConcurrent: 1, reqPerDay: 99, burstPerHour: 99 }, byok: { maxChars: 20000, maxConcurrent: 2, reqPerDay: 480, burstPerHour: 120 } },
   });
   const handler = createRewriteHandler({
     rateLimiter: limiter,

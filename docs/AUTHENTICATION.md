@@ -73,6 +73,8 @@ patina --backend gemini-cli --lang ko input.txt
 patina --model gemini-3-flash-preview --lang ko input.txt   # auto-routes
 ```
 
+Notes: patina passes `--skip-trust` because the prompt runs from a fresh temp directory (containment for prompt-injection in user text). Default timeout is higher than other CLIs because gemini's startup latency is longer.
+
 ## kimi-cli backend
 
 Spawns local [`kimi`](https://moonshotai.github.io/kimi-cli/) in print mode with the patina prompt on stdin. It works with Kimi Code CLI browser login, `KIMI_API_KEY`, or `MOONSHOT_API_KEY`. Kimi Code is an agent runtime, so patina treats it conservatively in batch mode: compact prompt mode, default max concurrency `1`, and default retries `0`. The default local CLI model is `kimi-code/kimi-for-coding`; the CLI display name may differ from Moonshot HTTP model IDs.
@@ -91,9 +93,7 @@ Use `--yes` only for automation where the launch is already intentional:
 patina auth login codex-cli --yes
 ```
 
-Notes: patina passes `--skip-trust` because the prompt runs from a fresh temp directory (containment for prompt-injection in user text). Default timeout is higher than other CLIs because gemini's startup latency is longer.
-
-> **Mode support:** `codex-cli`, `claude-cli`, `gemini-cli`, and `kimi-cli` can be used as rewrite backends without `PATINA_API_KEY` when their local CLIs are already authenticated. API-backed score/audit paths still use the configured HTTP/evaluator key.
+> **Mode support:** `codex-cli`, `claude-cli`, `gemini-cli`, and `kimi-cli` can be used as rewrite backends without `PATINA_API_KEY` when their local CLIs are already authenticated.
 
 For large rewrite batches, prefer `openai-http` or another stateless
 OpenAI-compatible HTTP provider over local agent CLIs. Batch mode exposes

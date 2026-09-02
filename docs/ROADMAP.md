@@ -21,6 +21,7 @@ This roadmap focuses on two things:
   - per-cell results: `docs/benchmarks/rebaseline-latest.md`
 - Current distribution:
   - npm package `patina-cli` is the public distribution channel; repo metadata (package.json / SKILL.md / README) is version-synced and verified with `npm run release:check` before publishing.
+  - hosted surface: browser playground + Pro HTTP API at `patina.vibetip.help` (`docs/HTTP-API.md`); Pro checkout via Polar since 2026-08-04 (`docs/operations/live-open-20260804.md`); container image `ghcr.io/devswha/patina:latest` (`docs/integrations/docker.md`)
 
 ## 0. Positioning principles
 
@@ -57,6 +58,8 @@ Avoid overclaiming:
 
 ### Phase 1 — benchmark credibility
 
+Status (2026-09-02): shipped. `docs/benchmarks/latest.md` carries Wilson CIs, ROC-AUC / PR-AUC and threshold diagnostics; register split lives in `docs/benchmarks/register-stratified-latest.md`; the adversarial MPS gate is `docs/research/adversarial-mps.md`. Remaining: keep the reports regenerated after deterministic-layer changes (the 8.1.0 Korean modules post-date the 2026-06-14 `-latest` reports).
+
 Goal: make claims easier to verify and harder to dismiss.
 
 - Publish a short benchmark report generated from `tests/quality/results.json`.
@@ -74,6 +77,8 @@ Acceptance criteria:
 - README claims are traceable to a specific benchmark report or spec section.
 
 ### Phase 2 — corpus expansion
+
+Status (2026-09-02): partial. KO/EN reached the 2026 rebaseline gate (`docs/research/2026-rebaseline.md`); ZH/JA public coverage and the edited-AI class are still empty — tracked as steps 2 and 8 of the frozen order in `docs/research/humanization-data-backlog.md`.
 
 Goal: reduce synthetic-fixture overfitting.
 
@@ -101,6 +106,8 @@ Acceptance criteria:
 
 ### Phase 3 — deterministic feature expansion
 
+Status (2026-09-02): in research. The Korean diagnosis modules (`src/features/korean-diagnosis.js`, `korean-invariants.js`, `korean-structure-fingerprint.js`) landed in 8.1.0 as research infrastructure and are **not** promoted to the shipped verdict (`docs/research/ko-confirmatory-verdict-20260901.md`). The smoothness-floor trigger below (payment open) has fired since 2026-08-04; the item is still roadmap-only.
+
 Goal: add signals that are not just sentence length or lexicon hits.
 
 Candidate features:
@@ -121,6 +128,8 @@ Acceptance criteria:
 
 ### Phase 4 — optional LM-probability research
 
+Status (2026-09-02): unchanged; no LM-probability track started. Literature context: `docs/research/humanization-literature-2026-09.md` §1 and §8.
+
 Goal: experiment without making the default tool heavy.
 
 Candidate tracks:
@@ -138,6 +147,8 @@ Acceptance criteria:
 ## 2. Product roadmap
 
 ### Phase 1 — try-it-now experience
+
+Status (2026-09-02): shipped. Hosted playground at <https://patina.vibetip.help/> (server-side rewrite, `docs/HTTP-API.md`), preview GIF hero in every README, brand assets in `assets/brand/` (`docs/BRANDING.md`).
 
 Goal: reduce the time from landing on README to seeing value.
 
@@ -160,6 +171,8 @@ Acceptance criteria:
 
 ### Phase 2 — packaging and distribution
 
+Status (2026-09-02): shipped. npm `patina-cli` (8.1.0), GitHub Releases auto-created from the changelog on tag push (`docs/integrations/release.md`), public image `ghcr.io/devswha/patina:latest` published manually (`docs/integrations/docker.md`). Homebrew not started.
+
 Goal: make patina installable from the channels users expect.
 
 - Publish npm package if the project is ready for package support.
@@ -174,6 +187,8 @@ Acceptance criteria:
 - Version-bearing files stay synchronized.
 
 ### Phase 3 — integrations
+
+Status (2026-09-02): shipped for the first-class paths — Claude Code / Codex / Cursor / OpenCode skill install, `devswha/patina-action`, pre-commit and static-site recipes under `docs/integrations/`. Subagent strict flow: `docs/agents.md`.
 
 Goal: make patina show up where AI-writing pain happens.
 
@@ -217,6 +232,8 @@ and separate approval.
 
 ### Phase 1 — community health basics
 
+Status (2026-09-02): shipped. `.github/ISSUE_TEMPLATE/` holds bug, feature, pattern-proposal, false-positive, benchmark-corpus, calibration-concern and research-proposal forms; `SECURITY.md`, `SUPPORT.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `MAINTAINERS.md` and the PR template exist.
+
 Goal: make the project safe and easy to contribute to.
 
 - Add issue templates:
@@ -236,6 +253,8 @@ Acceptance criteria:
 
 ### Phase 2 — contribution flywheel
 
+Status (2026-09-02): open. No labelled starter-issue programme or "pattern of the week" cadence is recorded; pattern PR requirements live in `CONTRIBUTING.md`.
+
 Goal: turn users into pattern contributors.
 
 - Label starter issues:
@@ -252,6 +271,8 @@ Acceptance criteria:
 - Pattern PRs include success/failure examples.
 
 ## 4. Launch roadmap
+
+Status (2026-09-02): the public launch and the Pro checkout opening (2026-08-04) are complete; the checklist and surface table below are kept as the standing rule for any future launch post. Operational evidence: `docs/operations/pro-launch.md`, `docs/operations/live-open-20260804.md`. Launch copy drafts were removed from the public tree on 2026-09-02; only `docs/social/signs-of-ai-writing.md` (dogfooded checklist) remains.
 
 ### Pre-launch checklist
 
@@ -281,79 +302,70 @@ Do not lead with “bypass AI detectors.” Lead with:
 
 > AI-assisted writing often sounds packaged. patina removes that packaging and checks that the meaning survived.
 
-## 5. Immediate next actions
+## 5. Current state and next actions
 
-Last triaged: 2026-06-05, after closing the public launch tracker and moving launch posting notes out of GitHub issues.
+Last refreshed: 2026-09-02. GitHub issues are the source of truth for open
+work; this section records only standing decisions and where their evidence
+lives, so nobody re-triages from a stale snapshot.
 
-Current GitHub issue inventory:
+### Standing decisions
 
-- 9 open issues.
-- Open PRs: 0.
-- Open priority split: 0 high, 1 medium, 8 low, and 0 without priority labels.
-- No current high-priority issue.
+- **Payment: Polar only.** Lemon Squeezy declined the store application (a
+  risk-underwriting decision, not a policy breach) (`docs/internal/payment-provider-reset-20260729.md` (maintainer-private)); Pro
+  checkout opened on production via Polar on 2026-08-04
+  (`docs/operations/live-open-20260804.md`); 8.0.0 removed the Lemon Squeezy
+  code paths (CHANGELOG). Rollback: `docs/operations/rollback-drills.md`.
+- **Serving engines.** Pro tier pin: `gemini-3.6-flash`; `gemini-3.7-flash`
+  allowlisted opt-in after the 2026-08-13 head-to-head
+  (`docs/operations/serving-engine-gemini-3.7-flash-20260813.md`,
+  `src/web-rewrite-contract.js`). Free tier: **gemini** (owner-confirmed 2026-09-02); the 2026-08-03
+  deepseek flip (`docs/operations/free-tier-deepseek-flip-20260803.md`,
+  CHANGELOG 7.0.0) is superseded, and the live engines remain deployment env
+  values (`PATINA_FREE_MODEL`, `PATINA_PRO_MODEL`). Cost evidence chain:
+  `serving-engine-cost-20260725.md` → `serving-engine-deepseek-0731-correction-20260803.md`.
+- **Register-failure diagnosis (closed 2026-07-27):** the apparent
+  cross-engine register failures were measurement-apparatus bugs (fidelity
+  rubric, persona-less harness prompt); fixing both took the same engine from
+  9/22 to 20/22 fixtures (`docs/operations/register-failure-handoff-20260726.md`).
+  Still recorded as open there: `en-marketing-01` (AI 35.6 → 5.7 but MPS 60)
+  and `en-public-docs-01` (meaning kept, AI 15.6 → 16.5) — add a second
+  fixture per register before treating either as a register-wide pattern.
 
-Campaign state:
+### Research programme
 
-- Merged campaign PRs: #281, #287, #288, #289, #290, #292, #293.
-- Concurrent cleanup merged during the final gate: #294 closed #291.
-- Final review blocker cleanup: #295.
-- Launch Wave 1 badge work: #297 closed #282; companion patina-action#1 added `badge-json` / `badge-branch`.
-- Launch Wave 2 support work: #299 closed #285; the experimental share-card generator from #283 has since been removed from the CLI surface.
-- Launch Wave 3 static playground work closes #208 and targets <https://patina.vibetip.help/> for the try-it-now URL.
-- Launch execution prep: Korean-first channel drafts live in `docs/social/patina-launch-korean-first.md` and score 0.0%; `docs/social/patina-launch-copy.md` scores 6.3% after the KO diagnostic scoring update. **Owner decision 2026-08-31: launch-posting follow-ups (the GeekNews update comment and similar) are DROPPED from the roadmap; the drafts are retained as historical material only and are not a pending queue.** Launch posting/deferral notes are maintainer-owned operational bookkeeping and should be tracked outside public GitHub issues.
-- Rebaseline claim pass: `npm run benchmark:rebaseline:report` refreshes `docs/benchmarks/rebaseline-latest.{md,json}` from the #155 claim-ready sanitized manifest (800 rows, no raw text).
-- KO/2025+ corpus prep: `docs/research/ko-2025-corpus-sources.md` records usable Korean sources, `artifacts/rebaseline-2025/intake.local.example.jsonl` provides the 25-row pilot skeleton, `artifacts/rebaseline-2025/sources.ko-public.jsonl` inventories public Korean web sources, `artifacts/rebaseline-2025/human-controls.public.jsonl` tracks 250 scored hash-only web human-control candidates at n=50 for each tracked register, `npm run benchmark:rebaseline:web` collects raw text into ignored private rows, and `npm run benchmark:rebaseline:score` refreshes deterministic outcome fields without copying raw text.
-- KO register pilot: `npm run benchmark:register-pilot -- --write --basename register-stratified-latest` refreshes false positives by register without committing raw text; the expanded current pilot shows 42/250 predicted-hot human-control rows, split by register for threshold work.
-- KO KatFish calibration: `npm run benchmark:katfish-ko -- --write --basename katfish-ko-latest` reports aggregate-only private KatFish metrics; current KO diagnostics improve catch rate from 58.9% to 74.8% versus Patina without KO diagnostics while public-web human-control FP stays 42/250.
-- Launch feedback prep: the false-positive issue form now captures text origin, redistribution, fired paragraph, score output, and expected behavior.
-- Growth nudge prep: the one-time CLI star reminder from #305 has since been removed to keep stderr operational-only.
-- README demo prep: #306/#308 terminal GIF work has been superseded by the preview-first README hero. The current viral-facing README sample uses `assets/demo/patina-preview-en.gif` across English, Korean, Chinese, and Japanese docs to show the real `--preview` page, inline diff, toggles, and score before → after.
-- Closed or verified during the campaign: #99, #104, #155, #156, #157, #160, #303, #165, #186, #191, #199, #209, #210, #286, #304, #305, #306, #308.
-- Kept open with explicit blocker comments or pending external action: #158, #159, #206, #207, #211, #212, #284, #307, #324.
-- Legacy bot/harness notes were removed from the public repo; restart autonomous bot work only from a fresh, tracked design if it becomes necessary.
-- Payment processor decision (2026-07-23, owner-agreed): ship Pro on Lemon
-  Squeezy — the store is active and the go-live path is mechanical. A Polar
-  migration (lower fees: 4%+$0.40 vs 5%+$0.50; stronger support reputation) is
-  deliberately deferred and becomes an agenda item only when either trigger
-  fires: (a) MRR exceeds $500, or (b) a concrete LS support/payout failure.
-  The entitlement layer stays provider-agnostic (injected license validator,
-  env-driven checkout URL) so an adapter remains bounded work; do not build it
-  speculatively before a trigger fires.
-- Serving engine (2026-07-26, owner-approved; evidence re-established
-  2026-07-27): both tiers run `gemini-3.6-flash`. The original comparison was
-  taken under a broken fidelity rubric and a harness prompt missing the
-  persona, so it was void. Rerun with both fixed, on subscription seats:
-  gemini-3.6-flash and claude-sonnet-5 both score **20/22** (ko 11/11,
-  en 9/11), MPS 90.4 vs 91.5, fidelity 92.4 vs 94.7. Quality is level; the case
-  for the swap is cost and latency — $0.030 vs $0.156 per rewrite, 8.3s vs
-  27.7s. Evidence: `docs/operations/serving-engine-cost-20260725.md`.
-- Cheaper engines were rerun on the fixed apparatus and none can undercut the
-  shipped one. `deepseek-v4-flash` ($0.003) rewrites hard but gutted
-  `ko-news-01` to MPS 24; `gemini-3.5-flash-lite` ($0.007) preserves meaning
-  and barely rewrites — 8 of 22 fixtures carry `ai_not_improved`, the same
-  evasion that made `gpt-4.1-mini` look like a leader. $0.030 per rewrite is
-  the current floor, not a number to shave. The OpenAI-hosted candidates remain
-  unmeasured on an exhausted account balance; none is in production.
-- Register failures (opened 2026-07-26, **closed 2026-07-27**): five registers
-  appeared to fail on every engine across a 20x price spread. Both causes were
-  in the measuring apparatus, not the engines. The fidelity rubric charged
-  removal of the stylistic packaging patina exists to strip as omitted claims —
-  production was returning `floor_failed` to real users for correct rewrites —
-  and the live-quality harness built its prompt without the persona, so it
-  measured meaning preservation on rewrites that were never told to preserve
-  meaning. Fixing both took the same engine on the same 22 fixtures from 9/22
-  to **20/22**, and Korean from 2/11 to **11/11**. Evidence:
-  `docs/operations/register-failure-handoff-20260726.md`.
-- **Open**: two English fixtures, failing in opposite directions.
-  `en-marketing-01` strips hype thoroughly (AI 35.6 → 5.7) but drops anchors
-  (MPS 60); `en-public-docs-01` preserves meaning and barely improves the AI
-  score (15.6 → 16.5). Add a second fixture per register before treating either
-  as a register-wide pattern.
+- Performance-only order frozen 2026-09-01 in
+  `docs/research/humanization-data-backlog.md`; step 1 (KO GPT-family
+  miss-review manifest) is the sole active item; its session handoff is
+  maintainer-private (`docs/internal/ko-gpt-miss-review-handoff-20260902.md`).
+- Rewrite-efficacy study series: `2026-rewrite-efficacy-study1.md` (EN doc
+  −23.4, KO doc −6.0), `study2.md` / `study3.md` (structure pack and plan-step
+  both failed; nothing shipped). Judge panel: `2026-judge-calibration.md`,
+  `2026-panel-v2-design.md`. Korean program verdict:
+  `ko-confirmatory-verdict-20260901.md`. External literature survey:
+  `humanization-literature-2026-09.md`.
+- #159 blinded human panel = step 3 of the frozen order
+  (`docs/research/human-eval-panel.md`). #158 cross-judge matrix was closed
+  2026-07-12 as answered by Study 1's cross-family panel agreement
+  (α 0.751 en / 0.526 ko); `2026-judge-calibration.md` adds per-judge AUC and
+  self-preference.
 
-Next recommended order:
+### Parked ecosystem items
 
-1. Prepare #307 awesome-list discovery submissions only as candidate copy/checklists; maintainer-owned external submissions should stay outside automated repo changes.
-2. Re-implement #324 only when live credentialed quality checks are worth the larger local-runner investment.
-3. Treat low-priority research/ecosystem items (#158, #159, #206, #207, #211, #212, #284) as parked until evaluator budget, reviewer pool, redistributable corpus, external repo, hosting, or governance prerequisites exist; keep new campaign PRs short-lived.
+#206 VS Code extension, #207 Obsidian plugin, #211 pattern marketplace, #212
+HuggingFace dataset, #284 browser extension. Each was parked on a recorded
+blocker (extension scope and auth model; local-file privacy model; governance
+and pack-schema stability; redistributable corpus rows; content-script privacy
+and store policy). They reopen only when the blocker is resolved, not on a
+schedule.
 
-Detailed wave grouping lives in `docs/ISSUE-WAVES.md` so launch/growth, completed profile work, evaluation-gated research, and parked ecosystem work can move independently without re-triage.
+### Operating rules
+
+- Launch posts and public claims cite checked-in benchmark reports and the
+  sanitized rebaseline report; they never claim broader generalization.
+- Any scoring-threshold change updates benchmark ranges and dogfood evidence in
+  the same change.
+- KO/2025+ raw text stays in `artifacts/rebaseline-2025/` or another private
+  store; only redistributable examples, hashes, metadata and aggregate reports
+  are committed.
+- External-account actions (HN, Reddit, X, Threads, LinkedIn) are
+  maintainer-owned; the repo holds evidence, not posting queues.

@@ -42,10 +42,10 @@ jobs:
   score:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
       - run: |
           git clone --depth 1 https://github.com/devswha/patina.git /tmp/patina
           cd /tmp/patina && npm install --omit=dev && npm link
@@ -88,10 +88,10 @@ Cross-reference the firing pattern IDs against [`PATTERNS.md`](PATTERNS.md). If 
 ```yaml
 # .patina.yaml
 skip-patterns:
-  - en:7    # AI vocabulary words — too aggressive for legal prose
+  - en-language    # drop the whole pack (pack file name without .md)
 ```
 
-`skip-patterns` is a list key that merges additively across default / global / project configs, so the project-level skip doesn't lose the defaults.
+`skip-patterns` takes **pack names**, not pattern numbers, and merges additively across default / global / project configs. To suppress a single pattern (for example en #7) keep the pack and use a Document Type `pattern-overrides:` entry (`en: 7: suppress`), as in recipe 5.
 
 ---
 

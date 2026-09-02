@@ -5,8 +5,8 @@ survives common evasion transforms. **Not a CI gate** and **not a detector-
 threshold change** — a sub-100% rate is informative, not a regression.
 Adversarial variants inherit their source fixture's label.
 
-- Generated at: 2026-06-13T19:52:40.474Z
-- Node: v22.17.1
+- Generated at: 2026-09-02T03:59:33.649Z
+- Node: v24.18.0
 - Base fixtures: 49
 - Transforms: zero-width insertion, homoglyph substitution, uppercase fold, punctuation stripping, sentence repetition
 - Reproduce: `npm run benchmark:robustness`

@@ -14,7 +14,7 @@ patterns. Lower means less AI-sounding; it is not proof of authorship. See
 
 The mode that detects and reports AI-writing patterns without rewriting the
 text. Use it when you want to inspect what patina would flag before changing
-anything. See the [mode table](../README.md#modes) and [examples guide](EXAMPLES.md).
+anything. See the [mode table](../README.md#commands) and [examples guide](EXAMPLES.md).
 
 ## Burstiness
 
@@ -25,7 +25,7 @@ need closer inspection. See [Stylometry](../core/stylometry.md#4-burstiness-metr
 ## Diff mode
 
 The mode that shows changes pattern by pattern, making the edit auditable
-instead of a black-box paraphrase. See the [mode table](../README.md#modes)
+instead of a black-box paraphrase. See the [mode table](../README.md#commands)
 and [examples checklist](EXAMPLES.md#what-patina-is-checking).
 
 ## Document Type
@@ -60,7 +60,7 @@ language limitations. See [Stylometry](../core/stylometry.md#5-ttr-via-mattr).
 
 A CLI output path such as rewrite, audit, score, or diff. Modes control whether
 patina edits text or reports findings. `--verify` is a rewrite modifier, not a
-separate mode. See the [mode table](../README.md#modes).
+separate mode. See the [mode table](../README.md#commands).
 
 ## MPS
 
@@ -80,7 +80,7 @@ rewrites against. See [PATTERNS.md](PATTERNS.md).
 
 A language and category file such as `patterns/en-style.md` or
 `patterns/ko-content.md`. Packs group related patterns and provide counts used
-by scoring. See [PATTERNS.md](PATTERNS.md#language-specific-patterns).
+by scoring. See [PATTERNS.md](PATTERNS.md).
 
 ## Persona
 
@@ -127,4 +127,4 @@ usually because burstiness, MATTR, or lexicon signals fired. See
 A score-only pattern class for SNS and marketing signals such as shock numbers,
 clickbait closes, source-skipping authority claims, short-sentence stacking,
 and hyperbolic engagement language. See
-[Score-only viral hooks](PATTERNS.md#score-only-viral-hooks-v3110).
+[Score-only viral hooks](PATTERNS.md).

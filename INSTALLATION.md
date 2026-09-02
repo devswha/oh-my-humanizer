@@ -150,7 +150,7 @@ test -f ~/.claude/skills/patina/SKILL.md && \
   grep '^version:' ~/.claude/skills/patina/SKILL.md
 ```
 
-Expected output: `version: 6.2.0` (or newer).
+Expected output: `version: 8.1.1` (or newer).
 
 For each host you installed into, also verify the symlink target:
 
@@ -186,18 +186,18 @@ Or via the standalone Node CLI (only if Step 3 of Path B was run):
 patina --lang ko input.txt
 ```
 
-Or through Docker after the GHCR release image exists:
+Or through Docker (public image, published manually — see [docs/integrations/docker.md](docs/integrations/docker.md)):
 
 ```bash
 printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
-  | docker run --rm -i -e PATINA_API_KEY ghcr.io/devswha/patina:7.0.0 --lang en --provider openai
+  | docker run --rm -i -e PATINA_API_KEY ghcr.io/devswha/patina:latest --lang en --provider openai
 ```
 
 The Docker image intentionally does not bake in codex/claude/gemini CLI binaries or logins. Use API-backed providers inside the container, or mount your own authenticated tooling explicitly.
 
-Free tier: when [`codex`](https://github.com/openai/codex) is installed and logged in, patina works **without** an API key — it dispatches through the codex backend automatically.
+Free tier: when [`codex`](https://github.com/openai/codex) is installed and logged in, patina works **without** an API key. The `/patina` skill uses the host agent's own model; the standalone CLI needs an explicit `--backend codex-cli` (auto-fallback was removed in v3.9 to keep agent backends opt-in).
 
-For Gemini and Claude API backends, the user can set `GEMINI_API_KEY` or `PATINA_API_KEY` and pass `--backend gemini` / `--backend openai-http` respectively.
+Other backends: a logged-in `gemini` or `claude` CLI works with `--backend gemini-cli` / `--backend claude-cli` (`GEMINI_API_KEY` also works for gemini-cli); any OpenAI-compatible HTTP API works with `PATINA_API_KEY` and `--backend openai-http`. `patina --list-backends` shows what is available.
 
 ---
 
@@ -227,7 +227,7 @@ npm unlink -g patina-cli 2>/dev/null || true
 | `~/.claude/skills/patina exists but is not a git repo` | A previous partial install or unrelated directory | Stop. Ask the user to remove or rename it manually. |
 | `git pull --ff-only` fails with `local changes` | User edited the patina source | Stop. Ask before running `git stash` or `git reset`. |
 | Slash command `/patina` not recognized after install | Host agent needs a restart, or wrong skill directory | Restart the host agent. Re-run **Verification** above. |
-| Standalone `patina` command not found after `npm link` | `npm` global bin not on `PATH` | Tell the user to run `npm bin -g` and add it to `PATH`. |
+| Standalone `patina` command not found after `npm link` | `npm` global bin not on `PATH` | Tell the user to run `npm prefix -g` and add its `bin/` subdirectory to `PATH`. |
 | `--score` mode says "No API key found" | Codex CLI not logged in and no API key set | Run `codex login`, or set `PATINA_API_KEY`. |
 
 ---

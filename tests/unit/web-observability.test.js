@@ -13,8 +13,8 @@ import {
 } from '../../src/web-observability.js';
 
 test('canonical web observability schema is deeply frozen', () => {
-  assert.equal(WEB_OBSERVABILITY_SCHEMA.schemaVersion, 'v1');
-  assert.equal(WEB_OBSERVABILITY_SCHEMA.schema, 'patina.web.v1');
+  assert.equal(WEB_OBSERVABILITY_SCHEMA.schemaVersion, 'v2');
+  assert.equal(WEB_OBSERVABILITY_SCHEMA.schema, 'patina.web.v2');
   assert.equal(WEB_OBSERVABILITY_FIELDS, WEB_OBSERVABILITY_SCHEMA.fields);
   assert.ok(Object.isFrozen(WEB_OBSERVABILITY_SCHEMA));
   assert.ok(Object.isFrozen(WEB_OBSERVABILITY_SCHEMA.fields));
@@ -33,6 +33,16 @@ test('builder output keys and closed values match the canonical schema', () => {
     ...[0, 30_001, 60_001, 120_001, -1].map((latencyMs) => buildWebObservabilityEvent({ ...common, latencyMs })),
     ...[100, 200, 300, 400, 500, 0].map((status) => buildWebObservabilityEvent({ ...common, status })),
     buildWebObservabilityEvent({ ...common, sampling: 'sampled_1_of_20' }),
+    // Cost buckets: every band is reachable from raw numeric inputs.
+    ...WEB_OBSERVABILITY_SCHEMA.values.tokenBucket.map((band, index) => buildWebObservabilityEvent({
+      ...common,
+      totalTokens: [0, 1_500, 5_000, 20_000, 45_000, 90_000, 'not-a-number'][index],
+    })),
+    buildWebObservabilityEvent({ ...common, totalTokens: -5 }),
+    ...WEB_OBSERVABILITY_SCHEMA.values.llmCalls.map((band, index) => buildWebObservabilityEvent({
+      ...common,
+      llmCalls: [1, 2, 3, 4, 5, 'none'][index],
+    })),
   ];
 
   const observed = Object.fromEntries(Object.keys(WEB_OBSERVABILITY_SCHEMA.values).map((field) => [field, new Set()]));
@@ -49,7 +59,7 @@ test('builder output keys and closed values match the canonical schema', () => {
     assert.deepEqual(observed[field], new Set(values), field);
   }
 });
-test('patina.web.v1 is closed and rejects raw dimensions', () => {
+test('patina.web.v2 is closed, rejects raw dimensions, and sanitizes idempotently', () => {
   const event = buildWebObservabilityEvent(/** @type {any} */ ({
     channel: 'production', tier: 'pro', outcome: 'completed', status: 201, latencyMs: 30_001,
     text: 'customer document', prompt: 'secret prompt', output: 'rewritten document',
@@ -58,10 +68,13 @@ test('patina.web.v1 is closed and rejects raw dimensions', () => {
   }));
   assert.deepEqual(Object.keys(event).sort(), [...WEB_OBSERVABILITY_FIELDS].sort());
   assert.deepEqual(event, {
-    schemaVersion: 'v1', schema: 'patina.web.v1', channel: 'production', evidenceClass: 'aggregate_only',
+    schemaVersion: 'v2', schema: 'patina.web.v2', channel: 'production', evidenceClass: 'aggregate_only',
     tier: 'pro', outcome: 'completed', latencyBucket: '30-60s', statusClass: '2xx', sampling: 'full',
+    tokenBucket: 'unknown', llmCalls: 'unknown',
   });
-  const json = JSON.stringify(sanitizeWebObservabilityEvent(/** @type {any} */ ({ ...event, prompt: 'secret' })));
+  const sanitized = sanitizeWebObservabilityEvent(/** @type {any} */ ({ ...event, prompt: 'secret' }));
+  assert.deepEqual(sanitized, event, 'a built closed event must survive sanitization unchanged');
+  const json = JSON.stringify(sanitized);
   assert.doesNotMatch(json, /customer|secret|203\.0\.113\.42|req_123|campaign|raw-license|hmac-license|raw-error-canary/);
 });
 

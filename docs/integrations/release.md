@@ -8,20 +8,14 @@
 gh workflow run release.yml -f publish=false -f publish_ghcr=false
 ```
 
-The dry run verifies:
-
-- version metadata across `package.json`, skill files, `.patina.default.yaml`, README, and CHANGELOG;
-- unit/e2e tests;
-- benchmark report schema;
-- dogfood docs score;
-- `npm pack --dry-run` for both `patina-cli` and the `patina-humanizer` alias package.
+The dry run (`verify` job) runs, in order: `npm run lint`, `npm run release:check` (version metadata across `package.json`, skill files, `.patina.default.yaml`, README, CHANGELOG, plus the retired-concepts scan), `npm test`, `npm run benchmark:report` and `npm run benchmark:compare` with a checked-in `docs/benchmarks` drift check, `npm run dogfood`, `npm run check:no-private-assets`, and `npm pack --dry-run` for both `patina-cli` and the `patina-humanizer` alias package.
 
 ## Publish
 
 Publishing the npm packages is intended for `v*.*.*` tags:
 
 ```bash
-VERSION=v4.0.0
+VERSION=v8.1.1
 git tag "$VERSION"
 git push origin "$VERSION"
 ```
@@ -30,16 +24,16 @@ Required secret:
 
 - `NPM_TOKEN` for npm provenance publishing.
 
-The publish job uploads:
+On a tag push the workflow:
 
-- `patina-cli` to npm;
-- `patina-humanizer` alias to npm.
+- publishes `patina-cli` and the `patina-humanizer` alias to npm (`npm` job);
+- creates the GitHub Release from the CHANGELOG entry (`github-release` job).
 
-Docker / GHCR publishing is intentionally decoupled from npm releases while
-the container distribution issue is still open. Maintainers can run the
-experimental image path manually after npm verification:
+Docker / GHCR publishing is decoupled from tag pushes: the `ghcr` job runs only
+on `workflow_dispatch` with `publish_ghcr=true` and pushes `latest` plus the
+semver tag when run on a version ref (see [docker.md](docker.md)):
 
 ```bash
-VERSION=v4.0.0
+VERSION=v8.1.1
 gh workflow run release.yml --ref "$VERSION" -f publish=false -f publish_ghcr=true
 ```

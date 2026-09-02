@@ -9,8 +9,8 @@ It returns only the four exact closed integer counts from
 ## Endpoints
 
 - `POST /api/ingest` — Vercel log-drain receiver. Verifies the drain HMAC-SHA1
-  signature (`x-vercel-signature`), extracts only complete nine-field
-  `patina.web.v1` envelopes (canonical field order, closed dimensions) from
+  signature (`x-vercel-signature`), extracts only complete eleven-field
+  `patina.web.v2` envelopes (canonical field order, closed dimensions) from
   delivered log messages, and commits every counter increment in ONE atomic
   EVAL (`patina:logq:v1:{channel}:{tier}:{quarter}:{outcome}`, TTL 7200s) in
   the service's own Upstash store. Fail-closed: a malformed delivery is `400`

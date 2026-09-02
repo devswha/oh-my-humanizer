@@ -46,7 +46,7 @@ These are the current server-enforced defaults; Pro values may be reduced or rai
 | Tier | Text/original maximum | Concurrency | Request quota | Other quota |
 | --- | ---: | ---: | --- | --- |
 | Free | 4,000 characters | 1 | 20/day; 10/hour burst | — |
-| BYOK | 20,000 characters | 2 | Provider account quota applies | — |
+| BYOK | 20,000 characters | 2/IP | Provider account quota applies; 120/hour burst; 480/day | Admission caps bound Patina function, connection, and egress usage, not your provider cost |
 | Pro | 20,000 characters | 3 | 200/day; 100/month | 50,000 characters/month |
 
 The meaning-preservation gates require MPS and fidelity scores of at least 70.
@@ -65,6 +65,8 @@ When `Accept` is absent, `*/*`, or does not request JSON, the response is `200 a
 ```
 
 `mps`, `fidelity`, `signals`, `diff`, and `receipt` are emitted on `done`. The score values are `mps.mps` and `fidelity.fidelity`; `signals.before.overall` and `signals.after.overall` are the deterministic signal scores.
+
+`delta` frames are **provisional display text**, not an accepted rewrite. They are emitted from the first rewrite attempt before number-safety, MPS, and fidelity gates finish. API consumers must treat only `done.rewrite` as authoritative, replace any accumulated deltas with it, and discard provisional text when the terminal frame is `error`.
 
 A streaming terminal error is also an NDJSON frame, for example:
 
@@ -171,7 +173,7 @@ print(response.json())
 
 ## Versioning
 
-This document describes the current unversioned path, `/api/rewrite`. Breaking changes will be announced before they are made.
+This document describes the current pre-GA path, `/api/rewrite`. Before the paid API reaches general availability, Patina will expose an explicit protocol version (`/api/v1/rewrite` or an equivalent version field) so breaking changes cannot silently alter existing clients.
 
 ## Constant sources
 

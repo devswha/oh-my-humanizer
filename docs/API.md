@@ -625,7 +625,7 @@ Decide whether an LLM call failure should be retried.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| err | <code>Error</code> \| <code>Object</code> | Error thrown by fetch or [HttpError](HttpError). |
+| err | <code>Error</code> \| <code>Object</code> | Error thrown by fetch or [HttpError](#HttpError). |
 
 **Example**
 ```js
@@ -1438,6 +1438,8 @@ Build the LLM prompt for rewrite, diff, audit, or score mode.
 | [options.includeSelfAudit] | <code>boolean</code> | <code>true</code> | Include the Phase 3 self-audit   in rewrite instructions; the rewrite loop passes false to skip the token cost (#444). |
 | [options.jargon] | <code>string</code> | <code>&quot;keep&quot;</code> | Technical-term policy   (keep|explain|remove); non-default values add the opt-in   transformation directive to rewrite prompts. |
 | [options.rewriteHeadings] | <code>boolean</code> | <code>false</code> | When false (default),   instruct the model to preserve Markdown ATX heading lines verbatim as   structure (#473); true opts back into rewording/adding/removing them. |
+| [options.structureGuidance] | <code>&#x27;baseline&#x27;</code> \| <code>&#x27;ko-contextual-v1&#x27;</code> | <code>baseline</code> | Research-only strict rewrite structure treatment. |
+| [options.minimalStructureGuidance] | <code>&#x27;baseline&#x27;</code> \| <code>&#x27;short-safe-v1&#x27;</code> | <code>baseline</code> | Research/hosted short-request treatment for the minimal prompt. |
 
 **Example**
 ```js

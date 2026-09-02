@@ -1,5 +1,7 @@
 # deepseek-v4-flash-0731 remeasured — meaning-gutting fixed, fidelity now the blocker (2026-08-03)
 
+> **Status note (2026-09-02, index pass):** superseded — `serving-engine-deepseek-0731-correction-20260803.md` retracts this run's conclusions; read that file. Kept for provenance.
+
 > Same apparatus as the definitive 2026-07-27 rerun in
 > [`serving-engine-cost-20260725.md`](serving-engine-cost-20260725.md): all 22
 > live-quality fixtures, fixed judge `gpt-5.5` via the codex-cli subscription

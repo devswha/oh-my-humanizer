@@ -51,9 +51,122 @@ test('createMemoryKv supports get, set, incr, decr, and TTL expiry', async () =>
   }
 });
 
-test('BYOK tier bypasses shared quota', async () => {
-  const limiter = createRateLimiter({ kv: null, hmacSecret: undefined, env: { NODE_ENV: 'production' } });
-  assert.deepEqual(await limiter.check({ tier: WEB_TIERS.BYOK, ip: null }), { allowed: true, tier: WEB_TIERS.BYOK });
+test('BYOK requests use IP-keyed hourly and daily admission buckets', async () => {
+  const hourlyLimiter = createRateLimiter({
+    kv: createMemoryKv(),
+    hmacSecret: 'secret',
+    now: () => 0,
+    limits: {
+      free: { maxChars: 4000, maxConcurrent: 1, reqPerDay: 99, burstPerHour: 99 },
+      byok: { maxChars: 20000, maxConcurrent: 2, reqPerDay: 99, burstPerHour: 2 },
+    },
+  });
+  const input = { tier: WEB_TIERS.BYOK, ip: '203.0.113.9' };
+  assert.equal((await hourlyLimiter.check(input)).allowed, true);
+  assert.equal((await hourlyLimiter.check(input)).allowed, true);
+  assert.deepEqual(await hourlyLimiter.check(input), {
+    allowed: false,
+    status: 429,
+    reason: QUOTA_REASONS.HOURLY,
+  });
+
+  const dailyLimiter = createRateLimiter({
+    kv: createMemoryKv(),
+    hmacSecret: 'secret',
+    now: () => 0,
+    limits: {
+      free: { maxChars: 4000, maxConcurrent: 1, reqPerDay: 99, burstPerHour: 99 },
+      byok: { maxChars: 20000, maxConcurrent: 2, reqPerDay: 2, burstPerHour: 99 },
+    },
+  });
+  assert.equal((await dailyLimiter.check(input)).allowed, true);
+  assert.equal((await dailyLimiter.check(input)).allowed, true);
+  assert.deepEqual(await dailyLimiter.check(input), {
+    allowed: false,
+    status: 429,
+    reason: QUOTA_REASONS.DAILY,
+  });
+});
+
+test('default BYOK caps enforce 120/hour and 480/day with UTC resets and tier-isolated IP keys', async () => {
+  let clock = 0;
+  const hourly = createRateLimiter({
+    kv: createMemoryKv(),
+    hmacSecret: 'secret',
+    now: () => clock,
+  });
+  const hourlyInput = { tier: WEB_TIERS.BYOK, ip: '203.0.113.91' };
+  for (let i = 0; i < 120; i += 1) assert.equal((await hourly.check(hourlyInput)).allowed, true);
+  assert.deepEqual(await hourly.check(hourlyInput), {
+    allowed: false, status: 429, reason: QUOTA_REASONS.HOURLY,
+  });
+  clock = 3_600_000;
+  assert.equal((await hourly.check(hourlyInput)).allowed, true, 'hour bucket resets at the UTC boundary');
+
+  clock = 0;
+  const daily = createRateLimiter({
+    kv: createMemoryKv(),
+    hmacSecret: 'secret',
+    now: () => clock,
+  });
+  const dailyInput = { tier: WEB_TIERS.BYOK, ip: '203.0.113.92' };
+  for (let hour = 0; hour < 4; hour += 1) {
+    clock = hour * 3_600_000;
+    for (let i = 0; i < 120; i += 1) assert.equal((await daily.check(dailyInput)).allowed, true);
+  }
+  assert.deepEqual(await daily.check(dailyInput), {
+    allowed: false, status: 429, reason: QUOTA_REASONS.DAILY,
+  });
+  clock = 86_400_000;
+  assert.equal((await daily.check(dailyInput)).allowed, true, 'day bucket resets at the UTC boundary');
+
+  const sharedKv = createMemoryKv();
+  const isolated = createRateLimiter({ kv: sharedKv, hmacSecret: 'secret', now: () => 0 });
+  const ip = '203.0.113.93';
+  for (let i = 0; i < 10; i += 1) {
+    assert.equal((await isolated.check({ tier: WEB_TIERS.FREE, ip })).allowed, true);
+  }
+  assert.deepEqual(await isolated.check({ tier: WEB_TIERS.FREE, ip }), {
+    allowed: false, status: 429, reason: QUOTA_REASONS.HOURLY,
+  });
+  assert.deepEqual(await isolated.check({ tier: WEB_TIERS.BYOK, ip }), {
+    allowed: true, tier: WEB_TIERS.BYOK, remainingDay: 479,
+  });
+  assert.equal((await isolated.acquireConcurrency({ tier: WEB_TIERS.FREE, ip })).allowed, true);
+  assert.equal((await isolated.acquireConcurrency({ tier: WEB_TIERS.BYOK, ip })).allowed, true);
+  assert.equal((await isolated.acquireConcurrency({ tier: WEB_TIERS.BYOK, ip })).allowed, true);
+  assert.deepEqual(await isolated.acquireConcurrency({ tier: WEB_TIERS.BYOK, ip }), {
+    allowed: false, status: 429, reason: QUOTA_REASONS.CONCURRENT,
+  });
+});
+
+test('malformed injected BYOK limits fail closed instead of disabling admission', async () => {
+  const free = { maxChars: 4000, maxConcurrent: 1, reqPerDay: 20, burstPerHour: 10 };
+  const input = { tier: WEB_TIERS.BYOK, ip: '203.0.113.94' };
+  for (const byok of [
+    { maxChars: 20000, maxConcurrent: 2, burstPerHour: 120 },
+    { maxChars: 20000, maxConcurrent: 2, reqPerDay: 480, burstPerHour: NaN },
+  ]) {
+    const limiter = createRateLimiter({
+      kv: createMemoryKv(),
+      hmacSecret: 'secret',
+      limits: /** @type {any} */ ({ free, byok }),
+    });
+    assert.deepEqual(await limiter.check(input), {
+      allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE,
+    });
+  }
+  const invalidConcurrency = createRateLimiter({
+    kv: createMemoryKv(),
+    hmacSecret: 'secret',
+    limits: /** @type {any} */ ({
+      free,
+      byok: { maxChars: 20000, maxConcurrent: 0, reqPerDay: 480, burstPerHour: 120 },
+    }),
+  });
+  assert.deepEqual(await invalidConcurrency.acquireConcurrency(input), {
+    allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE,
+  });
 });
 
 test('non-production memory KV allows free requests up to daily quota then returns 429', async () => {
@@ -238,15 +351,35 @@ test('concurrency slot TTL defaults to 5m and honors an override so an extended 
   assert.equal(overrideCalls[0].ttlMs, 12 * 60 * 1000);
 });
 
-test('BYOK concurrency bypasses shared free slot limit', async () => {
+test('BYOK concurrency is limited to two active slots per IP', async () => {
   const limiter = createRateLimiter({
     kv: createMemoryKv(),
     hmacSecret: 'secret',
-    limits: { free: { maxChars: 4000, maxConcurrent: 1, reqPerDay: 99, burstPerHour: 99 }, byok: { maxChars: 20000, maxConcurrent: 2 } },
+    limits: {
+      free: { maxChars: 4000, maxConcurrent: 1, reqPerDay: 99, burstPerHour: 99 },
+      byok: { maxChars: 20000, maxConcurrent: 2, reqPerDay: 99, burstPerHour: 99 },
+    },
   });
 
-  assert.equal((await limiter.acquireConcurrency({ tier: WEB_TIERS.BYOK, ip: null })).allowed, true);
-  assert.equal((await limiter.acquireConcurrency({ tier: WEB_TIERS.BYOK, ip: null })).allowed, true);
+  const input = { tier: WEB_TIERS.BYOK, ip: '203.0.113.35' };
+  assert.equal((await limiter.acquireConcurrency(input)).allowed, true);
+  assert.equal((await limiter.acquireConcurrency(input)).allowed, true);
+  assert.deepEqual(await limiter.acquireConcurrency(input), {
+    allowed: false,
+    status: 429,
+    reason: QUOTA_REASONS.CONCURRENT,
+  });
+});
+
+test('BYOK admission requires a client IP', async () => {
+  const limiter = createRateLimiter({ kv: createMemoryKv(), hmacSecret: 'secret' });
+  const expected = {
+    allowed: false,
+    status: 400,
+    reason: QUOTA_REASONS.IP_UNAVAILABLE,
+  };
+  assert.deepEqual(await limiter.check({ tier: WEB_TIERS.BYOK, ip: null }), expected);
+  assert.deepEqual(await limiter.acquireConcurrency({ tier: WEB_TIERS.BYOK, ip: null }), expected);
 });
 
 test('QUOTA_REASONS values stay backward-compatible with the emitted reason strings', () => {
