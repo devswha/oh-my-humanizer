@@ -10,7 +10,7 @@ The hook is **score-only**: it never rewrites files during commit. It uses Patin
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/devswha/patina
-    rev: v8.1.0
+    rev: v8.1.1
     hooks:
       - id: patina-score
         args: [--score-threshold, "30", --lang, auto]

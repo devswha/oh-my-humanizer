@@ -150,7 +150,7 @@ test -f ~/.claude/skills/patina/SKILL.md && \
   grep '^version:' ~/.claude/skills/patina/SKILL.md
 ```
 
-Expected output: `version: 8.1.0` (or newer).
+Expected output: `version: 8.1.1` (or newer).
 
 For each host you installed into, also verify the symlink target:
 
