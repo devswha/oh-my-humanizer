@@ -43,7 +43,10 @@ Combination:
 - AND gates take the **maximum** sub-deficit (`combine: and-max`); if any
   sub-gate is absent the whole gate is absent, because it can never be satisfied.
 - OR gates take the **minimum** over present sub-gates (`combine: or-min`); the
-  gate is absent only when every sub-gate is absent.
+  gate is absent only when every sub-gate is absent. Sub-gates that tie (for
+  example the standard and ending-monotony burstiness gates sharing the same
+  `cv` leaf) need no tie order: the family deficit is the same either way, and
+  the report counts such rows as ties.
 - Multiple paragraphs are an OR: the family deficit is the best paragraph, and
   that paragraph's gates are the ones recorded. All current rows are single
   paragraphs.
