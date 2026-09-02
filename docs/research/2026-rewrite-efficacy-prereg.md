@@ -647,6 +647,29 @@ No Study 4 corpus row, rewrite, or judgment exists at registration time.
 
 The registered bridge ran on the 108 archived S1-D passages (`artifacts/rewrite-efficacy-study4/bridge-verdict.json`): gemini-2.5-pro AUC on the 54 originals **0.556** (gpt 0.995, grok 0.967); Spearman(gemini, gpt) **0.137** vs Spearman(grok, gpt) 0.857 on the same passages. Both admission conditions fail, so per the registered fallback stage 1 runs with **judge-gpt + judge-det only** and the results doc is labelled *single-perceptual-judge*. xAI credit was not restored before launch. If it is restored later, grok may score the stored P/S bodies as a post-hoc corroboration column, labelled as collected after the run; it cannot enter the primary metric.
 
+### Study 4 — amendment 2026-09-02 (recorded before any Study 4 judge outcome was read): second-judge candidates without xAI credit
+
+The owner asked for a second perceptual judge that does not need xAI credit.
+Recorded before the bridges run and before this session has read any Study 4
+per-document judge score (the run log is filtered to loop-level lines):
+
+- Candidates, all cross-family for claude rewrites, reached through the
+  OpenAI-compatible API endpoints patina's providers already use:
+  `gemini-3.7-flash`, `gemini-3.1-pro-preview`, `deepseek-v4-pro`, `kimi-k3`.
+  Each is bridged exactly like gemini-2.5-pro (108 archived S1-D passages,
+  Study 1 judge prompt) under the **same registered admission rule** (AUC on
+  the 54 originals ≥ 0.85 AND Spearman with gpt ≥ Spearman(grok, gpt) − 0.10).
+- Selection rule, fixed now: among admitted candidates, the one with the
+  highest AUC on the originals; ties broken by Spearman with gpt. Exactly one
+  candidate is added, so the panel stays two LLM judges + det.
+- The admitted judge scores **every** P and S body from the stored private
+  texts, including rows finished before admission, and the run continues with
+  both judges for the remaining rows. The primary metric is then the two-judge
+  mean; if no candidate is admitted, stage 1 stays single-perceptual-judge.
+- Bridge rows and verdicts for every candidate are kept
+  (`artifacts/rewrite-efficacy-study4/bridge-*.jsonl`, `bridge-verdict-*.json`);
+  the results doc reports all of them, admitted or not.
+
 ## Sources
 - Self-Preference Bias in LLM-as-a-Judge — arXiv:2410.21819
 - TH-Bench (humanizing attacks vs detectors) — arXiv:2503.08708
