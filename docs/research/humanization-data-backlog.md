@@ -183,3 +183,5 @@ Execution order frozen for the next performance-only cycle (2026-09-01):
 8. **ZH/JA corpus expansion.** Reach the same per-language class/register evidence gate before making broader claims.
 
 Step 1 is the sole active item. Promotion to the next step requires a reviewed artifact that satisfies its acceptance criteria; implementation changes discovered during review stay deferred to their own branch.
+
+**Owner decision 2026-09-02:** with step 1 complete (PR #718), the survey's H-4b (specificity-preservation constraint on the plain rewrite) runs ahead of steps 2–8 as rewrite-efficacy **Study 4**, registered in [`2026-rewrite-efficacy-prereg.md`](./2026-rewrite-efficacy-prereg.md) before any data. Steps 2–8 stay in their frozen order behind it.
