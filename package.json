@@ -52,7 +52,10 @@
     "lexicon:freshness": "node scripts/lexicon-freshness.mjs --check",
     "benchmark:rebaseline:generate-modern": "node scripts/rebaseline-generate-modern.mjs",
     "benchmark:rebaseline:claim-manifest": "node scripts/rebaseline-build-claim-manifest.mjs",
-    "benchmark:rebaseline:fp-fixtures": "node scripts/fp-fixture-export.mjs"
+    "benchmark:rebaseline:fp-fixtures": "node scripts/fp-fixture-export.mjs",
+    "benchmark:ko-miss-review:extract": "node scripts/ko-miss-review-extract.mjs",
+    "benchmark:ko-miss-review:validate": "node scripts/ko-miss-review-validate.mjs",
+    "benchmark:ko-miss-review:report": "node scripts/ko-miss-review-report.mjs"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"

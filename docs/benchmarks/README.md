@@ -12,6 +12,7 @@ says the evidence is ready.
 | `detector-comparison.md` / `.json` | `npm run benchmark:compare` | Manual/offline comparison protocol for third-party detectors. |
 | `rebaseline-latest.md` / `.json` | `npm run benchmark:rebaseline:report` | #155 claim-ready 2026 modern-model rebaseline summary (800 hash-only rows; KO+EN × GPT/Claude/Gemini plus human controls). |
 | `katfish-ko-latest.md` / `.json` | `npm run benchmark:katfish-ko -- --write --basename katfish-ko-latest` | Aggregate-only private KatFish calibration for the Korean diagnostic layer; raw rows stay ignored/private. |
+| `ko-gpt-miss-review-v1.md` / `.json` | `npm run benchmark:ko-miss-review:report -- --write` | Measure-only step-1 review of the KO GPT-family misses: population, `register × miss_reason`, family deficits, blinded reviewer agreement. Hash-only manifest in `artifacts/rebaseline-2025/`; regeneration needs the ignored private corpus. Not a threshold recommendation. |
 
 ## Refresh
 
