@@ -670,6 +670,20 @@ per-document judge score (the run log is filtered to loop-level lines):
   (`artifacts/rewrite-efficacy-study4/bridge-*.jsonl`, `bridge-verdict-*.json`);
   the results doc reports all of them, admitted or not.
 
+### Study 4 — dated note 2026-09-02 (after the candidate bridges, before any Study 4 judge outcome was read): `judge-gemini-3.7-flash` admitted and selected
+
+Bridge results on the 108 archived S1-D passages (reference on the same passages: gpt AUC 0.995, grok AUC 0.967, Spearman(grok, gpt) 0.857; admission needs AUC ≥ 0.85 and Spearman with gpt ≥ 0.757):
+
+| candidate | scored | AUC (54 originals) | Spearman vs gpt | Spearman vs grok | admitted |
+|---|---:|---:|---:|---:|---|
+| gemini-3.7-flash (API) | 108/108 | **1.000** | **0.884** | 0.794 | yes |
+| gemini-3.1-pro-preview (API) | 108/108 | 0.971 | 0.849 | 0.790 | yes |
+| deepseek-v4-pro (API) | 49/108 | incomplete (5 consecutive unparseable replies stopped the bridge) | 0.696 (partial) | 0.690 (partial) | no — incomplete at decision time |
+| kimi-k3 (API) | 0/108 | account suspended for insufficient balance (HTTP 429) | — | — | not bridged |
+| gemini-2.5-pro (CLI, original deviation) | 108/108 | 0.556 | 0.137 | 0.233 | no |
+
+Selection rule (highest AUC among admitted) picks **`judge-gemini-3.7-flash`**. From this note on, stage 1 is a two-judge panel (`judge-gpt` + `judge-gemini-3.7-flash`) plus det: the admitted judge scores every stored P/S body from rows finished so far, and the runner is restarted with both judges for the remaining rows. The results doc drops the *single-perceptual-judge* label and reports every candidate above. The deepseek bridge may be resumed for the record only; it cannot change the selection.
+
 ## Sources
 - Self-Preference Bias in LLM-as-a-Judge — arXiv:2410.21819
 - TH-Bench (humanizing attacks vs detectors) — arXiv:2503.08708

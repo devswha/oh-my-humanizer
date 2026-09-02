@@ -17,10 +17,22 @@ export const NO_MCP_SERVERS = '__patina_no_mcp__'; // src/backends/gemini-cli.js
 export const JUDGE_TIMEOUT_MS = 180_000;
 export const JUDGE_ATTEMPTS = 3;
 
+const HTTP_CLI = [join('scripts', 'research', 'judge-http-cli.mjs')];
+const http = (id, family, baseURL, keyEnv, model) => ({
+  id, family, cmd: 'node', args: HTTP_CLI,
+  env: { JUDGE_BASE_URL: baseURL, JUDGE_API_KEY_ENV: keyEnv, JUDGE_MODEL: model },
+});
+
 export const JUDGE_DEFS = Object.freeze({
   'judge-gpt': { id: 'judge-gpt', family: 'gpt', cmd: 'codex', args: ['exec', '--skip-git-repo-check', '--sandbox', 'read-only'] },
   'judge-gemini': { id: 'judge-gemini', family: 'gemini', cmd: 'gemini', args: ['-p', '', '--output-format', 'text', '--skip-trust', '--allowed-mcp-server-names', NO_MCP_SERVERS, '-m', 'gemini-2.5-pro'] },
   'judge-grok': { id: 'judge-grok', family: 'xai', cmd: 'node', args: [join('scripts', 'research', 'xai-cli.mjs')] },
+  // Bridge candidates without xAI credit (2026-09-02 amendment): API judges on
+  // the OpenAI-compatible endpoints patina's providers already use.
+  'judge-gemini-3.7-flash': http('judge-gemini-3.7-flash', 'gemini', 'https://generativelanguage.googleapis.com/v1beta/openai', 'GEMINI_API_KEY', 'gemini-3.7-flash'),
+  'judge-gemini-3.1-pro': http('judge-gemini-3.1-pro', 'gemini', 'https://generativelanguage.googleapis.com/v1beta/openai', 'GEMINI_API_KEY', 'gemini-3.1-pro-preview'),
+  'judge-deepseek-v4-pro': http('judge-deepseek-v4-pro', 'deepseek', 'https://api.deepseek.com', 'DEEPSEEK_API_KEY', 'deepseek-v4-pro'),
+  'judge-kimi-k3': http('judge-kimi-k3', 'moonshot', 'https://api.moonshot.ai/v1', 'KIMI_API_KEY', 'kimi-k3'),
 });
 
 export const sha = (s) => createHash('sha256').update(s, 'utf8').digest('hex').slice(0, 16);
@@ -33,9 +45,9 @@ export function makeLogger(path) {
   };
 }
 
-export function run(cmd, args, { input = '', timeout = 120_000, cwd = ROOT } = {}) {
+export function run(cmd, args, { input = '', timeout = 120_000, cwd = ROOT, env = null } = {}) {
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'], detached: true });
+    const child = spawn(cmd, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'], detached: true, env: env ? { ...process.env, ...env } : process.env });
     let stdout = '';
     let stderr = '';
     let settled = false;
@@ -124,7 +136,7 @@ export async function judgeOnce(judge, text, lang) {
   let lastOut = '';
   let lastErr = '';
   for (let attempt = 1; attempt <= JUDGE_ATTEMPTS; attempt += 1) {
-    const res = await run(judge.cmd, judge.args, { input: judgePrompt(text, lang), timeout: JUDGE_TIMEOUT_MS });
+    const res = await run(judge.cmd, judge.args, { input: judgePrompt(text, lang), timeout: JUDGE_TIMEOUT_MS, env: judge.env ?? null });
     const parsed = parseJudge(res.stdout);
     if (parsed) return attempt === 1 ? parsed : { ...parsed, retried: true };
     attempts.push(res.error || 'unparseable');

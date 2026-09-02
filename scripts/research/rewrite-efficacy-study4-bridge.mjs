@@ -13,9 +13,14 @@ import {
   JUDGE_DEFS, OUT_DIR, S1_DIR, auc, judgeOnce, loadS1Texts, makeLogger, readJsonl, spearman,
 } from './study4-common.mjs';
 
-const ROWS = join(OUT_DIR, 'bridge-gemini.jsonl');
-const VERDICT = join(OUT_DIR, 'bridge-verdict.json');
-const LOG = join(OUT_DIR, 'bridge-run.log');
+// BRIDGE_JUDGE selects the candidate (default: the original gemini CLI judge).
+const JUDGE_ID = process.env.BRIDGE_JUDGE || 'judge-gemini';
+const JUDGE = JUDGE_DEFS[JUDGE_ID];
+if (!JUDGE) throw new Error(`unknown bridge judge ${JUDGE_ID}`);
+const SUFFIX = JUDGE_ID === 'judge-gemini' ? '' : `-${JUDGE_ID.replace(/^judge-/u, '')}`;
+const ROWS = join(OUT_DIR, `bridge-gemini${SUFFIX}.jsonl`.replace('bridge-gemini-', 'bridge-'));
+const VERDICT = join(OUT_DIR, `bridge-verdict${SUFFIX}.json`);
+const LOG = join(OUT_DIR, `bridge-run${SUFFIX}.log`);
 const RULE = { min_auc: 0.85, spearman_slack: 0.10, reference: 'grok-vs-gpt on the same passages' };
 
 function analyze(log) {
@@ -47,12 +52,13 @@ function analyze(log) {
     spearman_gemini_gpt: rhoGeminiGpt,
     spearman_grok_gpt: rhoGrokGpt,
     spearman_gemini_grok: rhoGeminiGrok,
+    candidate: JUDGE_ID,
     admitted,
-    judges: admitted ? ['judge-gpt', 'judge-gemini'] : ['judge-gpt'],
+    judges: admitted ? ['judge-gpt', JUDGE_ID] : ['judge-gpt'],
     label: admitted ? 'panel-v2-deviation-gemini' : 'single-perceptual-judge',
   };
   writeFileSync(VERDICT, JSON.stringify(verdict, null, 2) + '\n');
-  log(`bridge verdict: scored ${complete}/108; AUC gemini ${fmt(aucGemini)} (gpt ${fmt(aucGpt)}, grok ${fmt(aucGrok)}); rho gemini-gpt ${fmt(rhoGeminiGpt)} vs grok-gpt ${fmt(rhoGrokGpt)} (gemini-grok ${fmt(rhoGeminiGrok)}); admitted=${admitted}`);
+  log(`bridge verdict [${JUDGE_ID}]: scored ${complete}/108; AUC gemini ${fmt(aucGemini)} (gpt ${fmt(aucGpt)}, grok ${fmt(aucGrok)}); rho gemini-gpt ${fmt(rhoGeminiGpt)} vs grok-gpt ${fmt(rhoGrokGpt)} (gemini-grok ${fmt(rhoGeminiGrok)}); admitted=${admitted}`);
   return verdict;
 }
 
@@ -74,11 +80,11 @@ async function main() {
     if (r.rewrite_sha && t.rewritten) passages.push({ key: `${r.original_sha}:rewrite`, original_sha: r.original_sha, cond: 'rewrite', source_class: r.source_class, text: t.rewritten, archived: r.judges?.rewrite ?? {} });
   }
   const done = new Set(readJsonl(ROWS).filter((r) => r.gemini && Number.isFinite(r.gemini.ai_likeness)).map((r) => r.key));
-  log(`bridge start — ${passages.length} passages, ${done.size} already scored`);
+  log(`bridge start [${JUDGE_ID}] — ${passages.length} passages, ${done.size} already scored`);
   let failures = 0;
   for (const p of passages) {
     if (done.has(p.key)) continue;
-    const gemini = await judgeOnce(JUDGE_DEFS['judge-gemini'], p.text, 'ko');
+    const gemini = await judgeOnce(JUDGE, p.text, 'ko');
     if (gemini.error) {
       failures += 1;
       log(`${p.key}: gemini FAILED — ${gemini.error}`);
