@@ -83,6 +83,15 @@ Accepted as the step-1 design, with three clarifications the session adds:
 
 Sol's opinion and this judgment are kept separate above so the reader can see where the design came from.
 
+## Amendment 2026-09-02: population drift at extraction time
+
+Clarification 3 above required an amendment rather than silent reuse if the population changed before the extractor ran. It did, through the analyzer rather than the manifest:
+
+- The scored manifest is unchanged (`sha256:a8cf8565…`, 56 candidate misses), but the analyzer that scored it on 2026-05-22 predates the KO ending-monotony gate (`d23043a`, #498). At the extraction commit, 8 of the 56 candidates are flagged hot by `rhythm:ending-monotony` (7 `academic-summary`, 1 `blog`). They violate the precondition triple and are recorded in `artifacts/rebaseline-2025/ko-gpt-miss-review.v1.exclusions.jsonl` as `precondition-violated:document-hot`, not classified.
+- The reviewed population is therefore the 48 candidates that remain misses under the recorded analyzer. Selection stays bound to the frozen manifest SHA; the analyzer commit, `src/features` tree hash, options hash and lexicon hash are in every row.
+- Re-scoring the public claim manifest with the current analyzer would move the published KO GPT-family catch rate (44% → 52% on this cell) and is a claim-surface change outside step 1's permitted diff. It is left as an owner decision; if taken, the same 48 `text_hash`es are the misses under the new score, so this review carries over unchanged.
+- The extractor default is `--on-drift fail`; the committed manifest was produced with `--on-drift exclude`, and the report states both counts.
+
 ## Deferred implementation tasks (not started in this step)
 
 Each is its own branch and PR, measure-only, under the contract above:
