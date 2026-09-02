@@ -1,0 +1,27 @@
+name: npm unpublish (temporary, maintainer-dispatched)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact patina-cli version to unpublish (within npm's 72h window)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  unpublish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Unpublish the requested version
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm view "patina-cli@${{ inputs.version }}" version
+          npm unpublish "patina-cli@${{ inputs.version }}"
+          npm view patina-cli versions --json | tail -5
