@@ -3,7 +3,7 @@
 > **Status note (2026-09-02, index pass):** closed by `live-open-20260804.md` — checkout opened 2026-08-04; items 3–4 (real-path OBS receipt, formal Gate-B approval) were bypassed by owner decision, as that record states.
 
 > Working ledger for the `GATE_B` blocker in
-> [`v6.4-preflight-hold.json`](v6.4-preflight-hold.json). Gate B requires:
+> `v6.4-preflight-hold.json` (retired 2026-09-02; see git history). Gate B requires:
 > completed production source-binding integration, hosted identity, usage,
 > dedicated runtime, content-valid PAY-B-COST evidence, and real-path OBS
 > evidence — approved by the Payment Runtime Owner + maintainer.

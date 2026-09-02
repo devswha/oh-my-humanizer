@@ -5,7 +5,7 @@ survives common evasion transforms. **Not a CI gate** and **not a detector-
 threshold change** — a sub-100% rate is informative, not a regression.
 Adversarial variants inherit their source fixture's label.
 
-- Generated at: 2026-09-02T03:59:33.649Z
+- Generated at: 2026-09-02T06:03:54.306Z
 - Node: v24.18.0
 - Base fixtures: 49
 - Transforms: zero-width insertion, homoglyph substitution, uppercase fold, punctuation stripping, sentence repetition
@@ -14,10 +14,11 @@ Adversarial variants inherit their source fixture's label.
 
 ## Normalization expectations
 
-The analyzer NFC-normalizes input. NFC does **not** strip zero-width characters
-(U+200B) and does **not** fold homoglyphs (confusable Cyrillic/Greek code
-points), so those transforms genuinely reach tokenization. Case folding is the
-mildest tactic because the analyzer lowercases internally.
+Input is NFC-normalized first. That normalization does **not** strip zero-width
+characters (U+200B), and it does **not** fold homoglyphs such as confusable
+Cyrillic or Greek code points, so both of those transforms genuinely reach
+tokenization. Case folding is the mildest tactic: the analyzer lowercases
+internally anyway.
 
 ## Overall
 

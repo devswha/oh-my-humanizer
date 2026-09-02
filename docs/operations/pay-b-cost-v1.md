@@ -10,15 +10,15 @@
 node scripts/pay-b-cost-receipt.mjs < staging-evidence.json > staging-cost-receipt.json
 ```
 
-The stdin issuer adds only `issuer`, per-attempt `attemptCosts`, derived financial values, and `artifactSha256`. `validatePayBCostReceipt` independently validates an issued receipt.
+The stdin issuer adds four things and nothing else: `issuer`, per-attempt `attemptCosts`, the derived financial values, and `artifactSha256`. Validation is separate. `validatePayBCostReceipt` checks an issued receipt on its own.
 
 ## Deterministic G002 collector and immutable bundle
 
 `collectPayBCostSourceBundle(rawG002, providerBillingFacts)` is the only supported way to turn exact raw G002 probe/stage attempt arrays into a bundle. It takes the raw metadata and three probe records plus a separate array of facts keyed by `probeId`, `stage`, and one-based `attemptIndex`. The collector rejects missing, extra, or duplicate facts; derives `billingDisposition` from the fact's `billed` value; canonicalizes the resulting bundle; and computes each evidence hash. Callers do not hand-edit runtime records.
 
-The immutable `sourceBundle` has exact metadata pins: `channel`, `collectorVersion`, `sourceCommitSha`, `deploymentId`, `provider`, `requestedModel`, `effectiveModel`, and `usageAdapterVersion: "g002-provider-usage-v1"`. The receipt repeats those pins (except adapter version), and every repeated value must equal the bundle. Every billed attempt's requested and effective model must equal the exact bundle pins. An unbilled real G002 failure retains the exact bundle `requestedModel` (never null), while its `effectiveModel` and `usage` are null.
+The immutable `sourceBundle` pins eight metadata fields exactly: `channel`, `collectorVersion`, `sourceCommitSha`, `deploymentId`, `provider`, `requestedModel`, `effectiveModel`, and `usageAdapterVersion: "g002-provider-usage-v1"`. The receipt repeats all of them except the adapter version. Repeated values must equal the bundle. So must every billed attempt's requested and effective model. The one asymmetry is an unbilled real G002 failure, which keeps the exact bundle `requestedModel` (never null) while its `effectiveModel` and `usage` are null.
 
-There are exactly three unique probes, each with positive `inputChars` and `rewrite`, `mps`, and `fidelity` attempt arrays. Indexes are one-based and contiguous; preterminal attempts are errors and terminal attempts succeed. First attempts are `initial`; a later `initial` is legal only after errored `score_schema_parse`.
+There are exactly three unique probes. Each has positive `inputChars` plus `rewrite`, `mps`, and `fidelity` attempt arrays, with one-based contiguous indexes where every preterminal attempt is an error and the terminal attempt succeeds. First attempts are `initial`. A later `initial` is legal only after an errored `score_schema_parse`.
 
 Each bundled attempt embeds a closed billing fact, rather than only a reference hash:
 
@@ -43,7 +43,7 @@ Each bundled attempt embeds a closed billing fact, rather than only a reference 
 
 ## Usage, pricing, and cost closure
 
-The versioned adapter preserves full raw usage in the hashed bundle. It accepts G002/OpenAI `prompt_tokens`, `completion_tokens`, optional verified `total_tokens`, `cost_usd` (finite non-negative and not used for token pricing), and supported numeric prompt/completion detail counters. It also accepts Anthropic `input_tokens`, `output_tokens`, `cache_read_input_tokens`, and `cache_creation_input_tokens`; cache categories have explicit pricing. Unknown fields, mixed shapes, unsafe numeric values, inconsistent totals, and excessive cached prompt tokens fail.
+The versioned adapter keeps full raw usage in the hashed bundle. On the G002/OpenAI side it accepts `prompt_tokens`, `completion_tokens`, an optional verified `total_tokens`, `cost_usd` (finite, non-negative, never used for token pricing), and the supported numeric prompt/completion detail counters; on the Anthropic side it accepts `input_tokens`, `output_tokens`, `cache_read_input_tokens`, and `cache_creation_input_tokens`, each cache category carrying explicit pricing. Anything else fails: unknown fields, mixed shapes, unsafe numbers, inconsistent totals, excessive cached prompt tokens.
 
 Pricing carries source text/source hash plus explicit positive rates, granularities, and minimum charge for input, output, cache-read, and cache-creation. All money is integer USD micros. The validator recomputes every attempt cost from raw usage and pricing; provider-reported amount is evidence, not a pricing override.
 
