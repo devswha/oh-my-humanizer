@@ -173,7 +173,7 @@ Do not commit private raw text when a hash, manifest row, or aggregate score is 
 
 Execution order frozen for the next performance-only cycle (2026-09-01):
 
-1. **KO GPT-family miss-review manifest.** Classify the currently available misses (up to 100) by register, deterministic signal breakdown, and root cause. Do not change thresholds or production behavior in this step.
+1. **KO GPT-family miss-review manifest.** Classify the currently available misses (up to 100) by register, deterministic signal breakdown, and root cause. Do not change thresholds or production behavior in this step. **Reviewed 2026-09-02 — GO (measure-only); design, data contract, taxonomy, procedure and acceptance criteria in [`ko-gpt-miss-review-step1-decision-20260902.md`](./ko-gpt-miss-review-step1-decision-20260902.md); implementation deferred to its own branches.**
 2. **Edited-AI intake and corpus.** Freeze light/heavy edit policies and the manifest schema before generating samples.
 3. **Rewrite human-evaluation panel.** Run at least 30 randomized before/after pairs with 5 raters, separating naturalness preference from meaning-loss labels.
 4. **Deterministic structure-transform experiment.** Test bounded merge/split and seam-only LLM infill against the single-pass baseline; keep it research-only.
