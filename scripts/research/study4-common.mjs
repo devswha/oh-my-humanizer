@@ -70,7 +70,9 @@ export async function claudeCall(prompt, { timeout, model = REWRITER_MODEL } = {
   const dir = mkdtempSync(join(tmpdir(), 'patina-s4-claude-'));
   try {
     const res = await run('claude', ['-p', '--model', model], { input: prompt, timeout, cwd: dir });
-    if (!res.ok) return { text: null, error: res.error || res.stderr.slice(0, 300) || `exit ${res.code}` };
+    // claude prints usage-limit and auth messages on stdout with exit 1, so
+    // keep a head of stdout in the error when stderr is empty (diagnosable).
+    if (!res.ok) return { text: null, error: res.error || res.stderr.slice(0, 300) || (String(res.stdout).trim() ? `exit ${res.code}: ${String(res.stdout).trim().slice(0, 300)}` : `exit ${res.code}`) };
     let out = String(res.stdout).trim();
     const fence = out.match(/^```[a-z]*\n([\s\S]*)\n```$/);
     if (fence) out = fence[1].trim();
