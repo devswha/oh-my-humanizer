@@ -13,7 +13,7 @@ mkdir -p artifacts/rewrite-efficacy-study4
 
 for pass in $(seq 1 48); do
   echo "[loop] pass $pass" >> "$LOG"
-  S4_STAGE="$STAGE" node scripts/research/rewrite-efficacy-study4.mjs >> "artifacts/rewrite-efficacy-study4/s4-stdout-${STAGE}.log" 2>&1
+  S4_STAGE="$STAGE" S4_JUDGES="${S4_JUDGES:-}" node scripts/research/rewrite-efficacy-study4.mjs >> "artifacts/rewrite-efficacy-study4/s4-stdout-${STAGE}.log" 2>&1
   node -e '
     const fs = require("fs");
     const [p, expected] = [process.argv[1], Number(process.argv[2])];
