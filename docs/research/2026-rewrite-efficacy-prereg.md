@@ -688,6 +688,10 @@ Selection rule (highest AUC among admitted) picks **`judge-gemini-3.7-flash`**. 
 
 Stage 1 (ko) closed on 2026-09-03 with H-4b not supported. The owner asked to resume; stage 2 runs under the identical registered rules. Before the first row: (1) the 42 Arm-A1 documents inherit Study 1's `spok` exclusion (pilot Deviation 4); (2) the second-judge seat is re-bridged on the 84 archived Arm-A1 passages (42 originals + 42 S1 rewrites) with the English judge prompt under the same admission rule — `judge-gemini-3.7-flash` was admitted on Korean only. The bridge verdict is recorded in `artifacts/rewrite-efficacy-study4/bridge-en-verdict-gemini-3.7-flash.json`; if it fails, `judge-gemini-3.1-pro` is bridged next, and if neither passes stage 2 runs single-perceptual-judge as registered. Plumbing is smoke-tested on a synthetic English paragraph only.
 
+### Study 4 — dated note 2026-09-04 (before any stage 2 row): stage 2 judge seat
+
+EN bridge on the 84 archived Arm-A1 passages: `judge-gemini-3.7-flash` (Gemini API, the local research key — not the product keys, which the owner rotated to product-only use the same day) scored 84/84, **AUC 0.994**, Spearman vs gpt **0.911** (reference: gpt AUC 1.000, grok AUC 0.998, Spearman(grok, gpt) 0.894) — admitted. A subscription-only transport of the same model (`judge-gemini-3.7-flash-cli`, gemini CLI) was bridged in parallel to avoid API-key use; it produced 8/84 scores and then timed out three times in a row on consecutive passages (180 s each), so it is **not admitted** and its partial rows are discarded. Stage 2 therefore runs with the same two-judge panel as stage 1: `judge-gpt` + `judge-gemini-3.7-flash` (API) plus the det chief.
+
 ## Sources
 - Self-Preference Bias in LLM-as-a-Judge — arXiv:2410.21819
 - TH-Bench (humanizing attacks vs detectors) — arXiv:2503.08708
