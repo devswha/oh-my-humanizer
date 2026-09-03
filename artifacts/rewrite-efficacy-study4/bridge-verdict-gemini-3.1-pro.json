@@ -1,0 +1,26 @@
+{
+  "computed_at": "2026-09-02T09:27:49.173Z",
+  "rule": {
+    "min_auc": 0.85,
+    "spearman_slack": 0.1,
+    "reference": "grok-vs-gpt on the same passages"
+  },
+  "passages_scored": 108,
+  "originals": 54,
+  "n_ai": 27,
+  "n_human": 27,
+  "auc_gemini": 0.9705075445816187,
+  "auc_gpt_reference": 0.9945130315500685,
+  "auc_grok_reference": 0.9670781893004116,
+  "n_paired": 108,
+  "spearman_gemini_gpt": 0.8486555202072771,
+  "spearman_grok_gpt": 0.8571965489263718,
+  "spearman_gemini_grok": 0.7895873527481948,
+  "candidate": "judge-gemini-3.1-pro",
+  "admitted": true,
+  "judges": [
+    "judge-gpt",
+    "judge-gemini-3.1-pro"
+  ],
+  "label": "panel-v2-deviation-gemini"
+}

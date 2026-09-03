@@ -1,0 +1,25 @@
+{
+  "computed_at": "2026-09-02T09:55:18.652Z",
+  "rule": {
+    "min_auc": 0.85,
+    "spearman_slack": 0.1,
+    "reference": "grok-vs-gpt on the same passages"
+  },
+  "passages_scored": 49,
+  "originals": 25,
+  "n_ai": 25,
+  "n_human": 0,
+  "auc_gemini": null,
+  "auc_gpt_reference": null,
+  "auc_grok_reference": null,
+  "n_paired": 49,
+  "spearman_gemini_gpt": 0.6960253011309628,
+  "spearman_grok_gpt": 0.751180116074978,
+  "spearman_gemini_grok": 0.6903286859071949,
+  "candidate": "judge-deepseek-v4-pro",
+  "admitted": false,
+  "judges": [
+    "judge-gpt"
+  ],
+  "label": "single-perceptual-judge"
+}
