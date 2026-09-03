@@ -1,0 +1,24 @@
+{
+  "computed_at": "2026-09-02T08:51:13.973Z",
+  "rule": {
+    "min_auc": 0.85,
+    "spearman_slack": 0.1,
+    "reference": "grok-vs-gpt on the same passages"
+  },
+  "passages_scored": 108,
+  "originals": 54,
+  "n_ai": 27,
+  "n_human": 27,
+  "auc_gemini": 0.5555555555555556,
+  "auc_gpt_reference": 0.9945130315500685,
+  "auc_grok_reference": 0.9670781893004116,
+  "n_paired": 108,
+  "spearman_gemini_gpt": 0.13719415781074779,
+  "spearman_grok_gpt": 0.8571965489263718,
+  "spearman_gemini_grok": 0.23318025500328657,
+  "admitted": false,
+  "judges": [
+    "judge-gpt"
+  ],
+  "label": "single-perceptual-judge"
+}
