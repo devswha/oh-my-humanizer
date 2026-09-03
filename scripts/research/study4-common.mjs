@@ -36,10 +36,11 @@ export const JUDGE_DEFS = Object.freeze({
   'judge-gemini-3.1-pro': http('judge-gemini-3.1-pro', 'gemini', 'https://generativelanguage.googleapis.com/v1beta/openai', 'GEMINI_API_KEY', 'gemini-3.1-pro-preview'),
   'judge-deepseek-v4-pro': http('judge-deepseek-v4-pro', 'deepseek', 'https://api.deepseek.com', 'DEEPSEEK_API_KEY', 'deepseek-v4-pro'),
   'judge-kimi-k3': http('judge-kimi-k3', 'moonshot', 'https://api.moonshot.ai/v1', 'KIMI_API_KEY', 'kimi-k3'),
-  // Same model as judge-gemini-3.7-flash, reached through the gemini CLI's
-  // subscription login instead of GEMINI_API_KEY (no API key). Transport
-  // differs (CLI default sampling vs API temperature 0), so it is bridged
-  // separately before use.
+  // Same model as judge-gemini-3.7-flash through the gemini CLI. NOTE: on a
+  // machine where the CLI's auth type is gemini-api-key (or GEMINI_API_KEY is
+  // exported) this is API-key billed too — it is NOT a subscription path.
+  // Transport differs (CLI default sampling vs API temperature 0), so it is
+  // bridged separately before use. Not admitted for Study 4 (timeouts).
   'judge-gemini-3.7-flash-cli': { id: 'judge-gemini-3.7-flash-cli', family: 'gemini', cmd: GEMINI_BIN, args: ['-p', '', '--output-format', 'text', '--skip-trust', '--allowed-mcp-server-names', NO_MCP_SERVERS, '-m', 'gemini-3.7-flash'] },
 });
 

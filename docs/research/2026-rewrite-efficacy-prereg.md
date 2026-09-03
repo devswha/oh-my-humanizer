@@ -692,6 +692,10 @@ Stage 1 (ko) closed on 2026-09-03 with H-4b not supported. The owner asked to re
 
 EN bridge on the 84 archived Arm-A1 passages: `judge-gemini-3.7-flash` (Gemini API, the local research key — not the product keys, which the owner rotated to product-only use the same day) scored 84/84, **AUC 0.994**, Spearman vs gpt **0.911** (reference: gpt AUC 1.000, grok AUC 0.998, Spearman(grok, gpt) 0.894) — admitted. A subscription-only transport of the same model (`judge-gemini-3.7-flash-cli`, gemini CLI) was bridged in parallel to avoid API-key use; it produced 8/84 scores and then timed out three times in a row on consecutive passages (180 s each), so it is **not admitted** and its partial rows are discarded. Stage 2 therefore runs with the same two-judge panel as stage 1: `judge-gpt` + `judge-gemini-3.7-flash` (API) plus the det chief.
 
+### Study 4 — correction 2026-09-04: the "CLI" gemini transport was also API-key authenticated
+
+On this machine the gemini CLI's effective auth is `gemini-api-key` (`~/.gemini/settings.json` → `security.auth.selectedType`) and `GEMINI_API_KEY` is exported in the login shell, so every gemini CLI call in this study — the 2026-09-02 gemini-2.5-pro bridge (108 passages) and the 2026-09-04 `judge-gemini-3.7-flash-cli` bridge (8 passages before timeouts) — was billed to the local research key, not to a subscription. The earlier notes' "subscription-only" wording for that transport is withdrawn; the transports differ only in sampling defaults. Nothing about the admitted judge, the panel, or any row changes.
+
 ## Sources
 - Self-Preference Bias in LLM-as-a-Judge — arXiv:2410.21819
 - TH-Bench (humanizing attacks vs detectors) — arXiv:2503.08708
