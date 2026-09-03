@@ -684,6 +684,10 @@ Bridge results on the 108 archived S1-D passages (reference on the same passages
 
 Selection rule (highest AUC among admitted) picks **`judge-gemini-3.7-flash`**. From this note on, stage 1 is a two-judge panel (`judge-gpt` + `judge-gemini-3.7-flash`) plus det: the admitted judge scores every stored P/S body from rows finished so far, and the runner is restarted with both judges for the remaining rows. The results doc drops the *single-perceptual-judge* label and reports every candidate above. The deepseek bridge may be resumed for the record only; it cannot change the selection.
 
+### Study 4 — dated note 2026-09-04 (before any stage 2 row): stage 2 (en) started on the owner's instruction
+
+Stage 1 (ko) closed on 2026-09-03 with H-4b not supported. The owner asked to resume; stage 2 runs under the identical registered rules. Before the first row: (1) the 42 Arm-A1 documents inherit Study 1's `spok` exclusion (pilot Deviation 4); (2) the second-judge seat is re-bridged on the 84 archived Arm-A1 passages (42 originals + 42 S1 rewrites) with the English judge prompt under the same admission rule — `judge-gemini-3.7-flash` was admitted on Korean only. The bridge verdict is recorded in `artifacts/rewrite-efficacy-study4/bridge-en-verdict-gemini-3.7-flash.json`; if it fails, `judge-gemini-3.1-pro` is bridged next, and if neither passes stage 2 runs single-perceptual-judge as registered. Plumbing is smoke-tested on a synthetic English paragraph only.
+
 ## Sources
 - Self-Preference Bias in LLM-as-a-Judge — arXiv:2410.21819
 - TH-Bench (humanizing attacks vs detectors) — arXiv:2503.08708

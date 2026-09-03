@@ -14,13 +14,21 @@ import {
 } from './study4-common.mjs';
 
 // BRIDGE_JUDGE selects the candidate (default: the original gemini CLI judge).
+// BRIDGE_STAGE=en bridges on the archived Study 1 Arm-A1 passages (spok
+// excluded per pilot Deviation 4) with the English judge prompt; files carry
+// an `en-` prefix. Default stage ko = Arm D.
 const JUDGE_ID = process.env.BRIDGE_JUDGE || 'judge-gemini';
 const JUDGE = JUDGE_DEFS[JUDGE_ID];
 if (!JUDGE) throw new Error(`unknown bridge judge ${JUDGE_ID}`);
+const STAGE = process.env.BRIDGE_STAGE === 'en' ? 'en' : 'ko';
+const S1_ARM = STAGE === 'en' ? 'A1' : 'D';
+const EXCLUDED_REGISTERS = new Set(['spok']);
 const SUFFIX = JUDGE_ID === 'judge-gemini' ? '' : `-${JUDGE_ID.replace(/^judge-/u, '')}`;
-const ROWS = join(OUT_DIR, `bridge-gemini${SUFFIX}.jsonl`.replace('bridge-gemini-', 'bridge-'));
-const VERDICT = join(OUT_DIR, `bridge-verdict${SUFFIX}.json`);
-const LOG = join(OUT_DIR, `bridge-run${SUFFIX}.log`);
+const STAGE_PREFIX = STAGE === 'en' ? 'en-' : '';
+const ROWS = join(OUT_DIR, `bridge-${STAGE_PREFIX}gemini${SUFFIX}.jsonl`.replace(`bridge-${STAGE_PREFIX}gemini-`, `bridge-${STAGE_PREFIX}`));
+const VERDICT = join(OUT_DIR, `bridge-${STAGE_PREFIX}verdict${SUFFIX}.json`);
+const LOG = join(OUT_DIR, `bridge-${STAGE_PREFIX}run${SUFFIX}.log`);
+const EXPECTED = STAGE === 'en' ? 84 : 108;
 const RULE = { min_auc: 0.85, spearman_slack: 0.10, reference: 'grok-vs-gpt on the same passages' };
 
 function analyze(log) {
@@ -36,10 +44,12 @@ function analyze(log) {
   const aucGpt = auc(originals.filter((r) => r.source_class === 'ai').map((r) => r.gpt?.ai_likeness).filter(Number.isFinite), originals.filter((r) => r.source_class === 'human').map((r) => r.gpt?.ai_likeness).filter(Number.isFinite));
   const aucGrok = auc(originals.filter((r) => r.source_class === 'ai').map((r) => r.grok?.ai_likeness).filter(Number.isFinite), originals.filter((r) => r.source_class === 'human').map((r) => r.grok?.ai_likeness).filter(Number.isFinite));
   const complete = rows.length;
-  const admitted = complete >= 100 && aucGemini !== null && rhoGeminiGpt !== null && rhoGrokGpt !== null
+  const admitted = complete >= Math.floor(EXPECTED * 0.93) && aucGemini !== null && rhoGeminiGpt !== null && rhoGrokGpt !== null
     && aucGemini >= RULE.min_auc && rhoGeminiGpt >= rhoGrokGpt - RULE.spearman_slack;
   const verdict = {
     computed_at: new Date().toISOString(),
+    stage: STAGE,
+    s1_arm: S1_ARM,
     rule: RULE,
     passages_scored: complete,
     originals: originals.length,
@@ -58,7 +68,7 @@ function analyze(log) {
     label: admitted ? 'panel-v2-deviation-gemini' : 'single-perceptual-judge',
   };
   writeFileSync(VERDICT, JSON.stringify(verdict, null, 2) + '\n');
-  log(`bridge verdict [${JUDGE_ID}]: scored ${complete}/108; AUC gemini ${fmt(aucGemini)} (gpt ${fmt(aucGpt)}, grok ${fmt(aucGrok)}); rho gemini-gpt ${fmt(rhoGeminiGpt)} vs grok-gpt ${fmt(rhoGrokGpt)} (gemini-grok ${fmt(rhoGeminiGrok)}); admitted=${admitted}`);
+  log(`bridge verdict [${JUDGE_ID}] stage ${STAGE}: scored ${complete}/${EXPECTED}; AUC gemini ${fmt(aucGemini)} (gpt ${fmt(aucGpt)}, grok ${fmt(aucGrok)}); rho gemini-gpt ${fmt(rhoGeminiGpt)} vs grok-gpt ${fmt(rhoGrokGpt)} (gemini-grok ${fmt(rhoGeminiGrok)}); admitted=${admitted}`);
   return verdict;
 }
 
@@ -70,8 +80,8 @@ async function main() {
   const log = makeLogger(LOG);
   if (process.argv.includes('--analyze')) { analyze(log); return; }
 
-  const s1Rows = readJsonl(join(S1_DIR, 's1-rows-D.jsonl'));
-  const texts = loadS1Texts('D');
+  const s1Rows = readJsonl(join(S1_DIR, `s1-rows-${S1_ARM}.jsonl`)).filter((r) => !EXCLUDED_REGISTERS.has(r.register));
+  const texts = loadS1Texts(S1_ARM);
   const passages = [];
   for (const r of s1Rows) {
     const t = texts.get(r.original_sha);
@@ -80,11 +90,11 @@ async function main() {
     if (r.rewrite_sha && t.rewritten) passages.push({ key: `${r.original_sha}:rewrite`, original_sha: r.original_sha, cond: 'rewrite', source_class: r.source_class, text: t.rewritten, archived: r.judges?.rewrite ?? {} });
   }
   const done = new Set(readJsonl(ROWS).filter((r) => r.gemini && Number.isFinite(r.gemini.ai_likeness)).map((r) => r.key));
-  log(`bridge start [${JUDGE_ID}] — ${passages.length} passages, ${done.size} already scored`);
+  log(`bridge start [${JUDGE_ID}] stage ${STAGE} (S1 arm ${S1_ARM}) — ${passages.length} passages, ${done.size} already scored`);
   let failures = 0;
   for (const p of passages) {
     if (done.has(p.key)) continue;
-    const gemini = await judgeOnce(JUDGE, p.text, 'ko');
+    const gemini = await judgeOnce(JUDGE, p.text, STAGE);
     if (gemini.error) {
       failures += 1;
       log(`${p.key}: gemini FAILED — ${gemini.error}`);
