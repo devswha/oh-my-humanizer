@@ -54,6 +54,13 @@ live, which is terminal, and which must not be edited.
    **`serving-engine-deepseek-0731-correction-20260803.md`** →
    **`free-tier-deepseek-flip-20260803.md`**; `serving-engine-gemini-3.7-flash-20260813.md`
    is a self-contained branch.
+4. **Secrets (names only, never values):** `secret-manager-record-20260803.md`
+   → **key rotation 2026-09-04**: the owner replaced `PATINA_FREE_API_KEY` and
+   `PATINA_PRO_API_KEY` (Vercel Production, Sensitive) with product-only Gemini
+   keys in the dashboard; production was redeployed
+   (`patina-ihkxs0l2g`, alias `patina.vibetip.help`), the free tier was
+   verified by one live `/api/rewrite` call, and the pro tier by the synthetic
+   monitor's next scheduled run. Research jobs use a separate local key.
 
 ## Known open loops (recorded, not resolved here)
 
