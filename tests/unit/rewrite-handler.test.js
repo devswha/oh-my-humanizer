@@ -1311,7 +1311,7 @@ test('redteam(6): the runner request has its Authorization header stripped; non-
   assert.equal(runnerHeaders['x-real-ip'], '203.0.113.80');
   assert.equal(typeof runnerArgs.req.on, 'function');
   runnerArgs.req.on('aborted', () => {});
-  assert.deepEqual(onEvents, ['aborted']);
+  assert.deepEqual(onEvents, ['aborted', 'aborted']); // admission guard, then delegated runner subscription
 });
 
 test('pro path passes the request char count to the limiter (monthly cap plumbing); free passes 0', async () => {

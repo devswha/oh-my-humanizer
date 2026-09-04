@@ -44,6 +44,29 @@ test('rejects unauthorized or non-empty cron requests before adapter I/O', async
   assert.equal(called, false);
 });
 
+test('Discord delivery uses a valid content envelope, disables mentions, and requests its receipt', async () => {
+  const payload = { trigger: 'monitor_blind', countBand: '0', window: '30m', channel: 'production', evidence: { reason: 'no_production_aggregate' } };
+  let delivered = false;
+  const handler = createProMonitorApiHandler({ env,
+    fetchImpl: fetchFake(async (url, options) => {
+      assert.equal(new URL(String(url)).searchParams.get('wait'), 'true');
+      const body = JSON.parse(options.body);
+      // Discord rejects the old top-level trigger/countBand object as empty.
+      if (typeof body.content !== 'string' || !body.content) return { ok: false, status: 400 };
+      assert.deepEqual(JSON.parse(body.content), payload);
+      assert.deepEqual(body.allowed_mentions, { parse: [] });
+      assert.ok(body.content.length <= 2000); delivered = true;
+      return { ok: true, status: 200, headers: { get: () => 'application/json' }, text: async () => '{"id":"123456789012345678"}' };
+    }),
+    evaluateProMonitorImpl: evaluateFake(async (deps) => {
+      assert.deepEqual(await deps.discordSender(payload), { status: 200, receiptId: '123456789012345678' });
+      return monitorResult();
+    }), evaluateFreeTierHealthImpl: /** @type {any} */ (async () => null),
+  });
+  const res = response(); await handler(request(), res);
+  assert.equal(res.statusCode, 200); assert.equal(delivered, true);
+});
+
 test('monitor diagnostics distinguish configuration, input and evaluation failures without secrets', async () => {
   const events = [];
   const logger = { warn(event) { events.push(event); } };
