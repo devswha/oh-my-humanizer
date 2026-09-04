@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler, { createObservabilityRestKv, createRestKv, createRewriteApiHandler } from '../../api/rewrite.js';
+import { RESERVE_QUOTA_LUA } from '../../src/quota-reservation.js';
 
 function makeReq({ body = undefined, method = 'POST', headers = {} } = {}) {
   return {
@@ -1027,6 +1028,7 @@ test('pro tier: in production, no pro key + present free key + no allow-flag ret
     if (init && init.method === 'POST') {
       // Root-POST commands: atomic EVAL(INCRBY+PEXPIRE) counters return 1; SET returns OK.
       const args = JSON.parse(String(init.body));
+      if (args[0] === 'EVAL' && args[1] === RESERVE_QUOTA_LUA) return { ok: true, async json() { return { result: [1, 199] }; } };
       if (args[0] === 'EVAL') return { ok: true, async json() { return { result: 1 }; } };
       return { ok: true, async json() { return { result: 'OK' }; } };
     }
