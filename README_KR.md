@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skill](https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet)](#빠른-시작)
 [![Multi-language](https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green)](https://github.com/devswha/patina)
-[![Version](https://img.shields.io/badge/version-8.1.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-8.1.2-blue)](CHANGELOG.md)
 
 <p align="center">
   <a href="https://patina.vibetip.help/"><b>브라우저에서 바로 써보기 — 설치 없음</b></a>
@@ -100,7 +100,7 @@ patina --batch docs/*.md --outdir cleaned/
 
 ```yaml
 # .patina.default.yaml
-version: "8.1.1"
+version: "8.1.2"
 language: ko              # ko | en | zh | ja
 document-type: default    # 장르·용도 + 패턴 정책
 persona:                  # 선택 사항; 생략하면 원문 보이스 보존

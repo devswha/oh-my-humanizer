@@ -2,6 +2,12 @@
 
 All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 
+## 8.1.2 — 2026-09-04
+
+- **Pro monitor diagnostics.** Authenticated 503 failures log the failing stage and adapter readiness without credentials, endpoint URLs, upstream bodies, or customer data. Logging failures cannot alter the response.
+- **Research records.** Includes the completed KO GPT-family miss review and both languages of rewrite-efficacy Study 4. The treatment did not meet its promotion criteria; production rewrite behavior is unchanged.
+- Synchronize released and integration branch ancestry.
+
 ## Release entry template
 
 ```md

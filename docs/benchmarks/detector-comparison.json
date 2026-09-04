@@ -1,8 +1,8 @@
 {
   "reportVersion": 1,
-  "generatedAt": "2026-07-29T08:50:08.370Z",
+  "generatedAt": "2026-09-04T21:18:22.532Z",
   "fixtureCount": 49,
-  "benchmarkGeneratedAt": "2026-07-29T08:50:08.356Z",
+  "benchmarkGeneratedAt": "2026-09-04T21:18:22.520Z",
   "note": "Offline comparison protocol. Built-in Patina row uses deterministic suspect-zone analyzer; third-party rows are manual opt-in only.",
   "manualInput": null,
   "detectors": [
