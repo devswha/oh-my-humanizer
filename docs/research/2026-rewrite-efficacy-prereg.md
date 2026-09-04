@@ -696,6 +696,10 @@ EN bridge on the 84 archived Arm-A1 passages: `judge-gemini-3.7-flash` (Gemini A
 
 On this machine the gemini CLI's effective auth is `gemini-api-key` (`~/.gemini/settings.json` → `security.auth.selectedType`) and `GEMINI_API_KEY` is exported in the login shell, so every gemini CLI call in this study — the 2026-09-02 gemini-2.5-pro bridge (108 passages) and the 2026-09-04 `judge-gemini-3.7-flash-cli` bridge (8 passages before timeouts) — was billed to the local research key, not to a subscription. The earlier notes' "subscription-only" wording for that transport is withdrawn; the transports differ only in sampling defaults. Nothing about the admitted judge, the panel, or any row changes.
 
+### Study 4 — dated note 2026-09-04 (after stage 2): stage 2 closed; detail-token definition flaw on English
+
+Stage 2 (en, 42/42) closed **not supported** (paired d +3.7 [−3.5, +10.8]; det +12.1 [+4.5, +20.6]; floor met 42/42; meaning gate 38/42 violated). Post-hoc observation, not a criterion change: the registered detail-token regex `[A-Za-z][A-Za-z0-9+._-]+` matches every English word, so H-4b-c retention and guard rail 3 are vocabulary-overlap measures on English and are reported as such in the results doc. Both stages are complete; nothing ships; the next candidate is H-4a.
+
 ## Sources
 - Self-Preference Bias in LLM-as-a-Judge — arXiv:2410.21819
 - TH-Bench (humanizing attacks vs detectors) — arXiv:2503.08708
