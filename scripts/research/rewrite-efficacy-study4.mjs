@@ -45,7 +45,12 @@ const PREFIX = SMOKE_FILE ? 's4-smoke' : 's4';
 const OUT_JSONL = join(OUT_DIR, `${PREFIX}-rows-${STAGE}.jsonl`);
 const TEXTS_JSONL = join(OUT_DIR, `${PREFIX}-texts-${STAGE}.private.jsonl`);
 const LOG = join(OUT_DIR, `${PREFIX}-run-${STAGE}.log`);
-const VERDICT = join(OUT_DIR, 'bridge-verdict.json');
+// Stage-specific bridge verdict for the admitted second judge (ko: the
+// gemini-3.7-flash amendment verdict; en: the en bridge). S4_JUDGES overrides.
+const VERDICT = join(OUT_DIR, STAGE === 'en' ? 'bridge-en-verdict-gemini-3.7-flash.json' : 'bridge-verdict-gemini-3.7-flash.json');
+// Pilot Deviation 4: the HAP-E `spok` register is not written prose; Study 1
+// excluded it and stage 2 inherits the exclusion (42 = 21 + 21 documents).
+const EXCLUDED_REGISTERS = new Set(['spok']);
 
 const REWRITE_TIMEOUT_MS = 900_000; // raised 600s -> 900s at doc 12 (S attempt 2 timeout), Study 3 precedent; execution note, no criterion change
 const FLOOR = 0.98;
@@ -197,7 +202,7 @@ async function judgeAll(judges, text, lang) {
 function resolveJudges(log) {
   if (process.env.S4_JUDGES) return process.env.S4_JUDGES.split(',').map((s) => s.trim()).filter(Boolean);
   if (process.env.S4_USE_GROK === '1') return ['judge-gpt', 'judge-grok'];
-  if (!existsSync(VERDICT)) throw new Error('bridge-verdict.json missing — run rewrite-efficacy-study4-bridge.mjs first (registered admission rule)');
+  if (!existsSync(VERDICT)) throw new Error(`${VERDICT} missing — run rewrite-efficacy-study4-bridge.mjs for this stage first (registered admission rule)`);
   const verdict = JSON.parse(readFileSync(VERDICT, 'utf8'));
   log(`bridge verdict ${verdict.label}: judges ${verdict.judges.join(', ')} (AUC gemini ${verdict.auc_gemini?.toFixed?.(3)}, rho gemini-gpt ${verdict.spearman_gemini_gpt?.toFixed?.(3)} vs grok-gpt ${verdict.spearman_grok_gpt?.toFixed?.(3)})`);
   return verdict.judges;
@@ -217,7 +222,7 @@ async function main() {
   const judges = resolveJudges(log);
   for (const id of judges) if (!JUDGE_DEFS[id]) throw new Error(`unknown judge ${id}`);
 
-  let s1Rows = readJsonl(join(S1_DIR, `s1-rows-${S1_ARM}.jsonl`)).filter((r) => r.original_sha);
+  let s1Rows = readJsonl(join(S1_DIR, `s1-rows-${S1_ARM}.jsonl`)).filter((r) => r.original_sha && !EXCLUDED_REGISTERS.has(r.register));
   let texts = loadS1Texts(S1_ARM);
   if (SMOKE_FILE) {
     const smokeText = readFileSync(SMOKE_FILE, 'utf8').trim();

@@ -161,12 +161,61 @@ the production prompt. The next candidate on the registered list is **H-4a —
 deterministic merge/split with seam-only LLM infill** — the first mechanism
 that acts on the architecture the judges keep naming.
 
-## Stage 2 (en)
+## Stage 2 (en) — completed 2026-09-04: **NOT supported either**
 
-Registered to run after stage 1 with identical rules. Not started as of
-2026-09-03: the runner spends the owner's Claude subscription window (the
-same quota interactive sessions use), and the Korean result is decisive. If
-the owner wants the English data point, the bridge must first be re-run on the
-84 archived Study 1 Arm-A1 passages (the gemini-3.7-flash seat was admitted on
-Korean only), then `S4_STAGE=en` runs the same harness. A deferral is
-recorded here as a dated note per the registration; it is not a withdrawal.
+Run 2026-09-04 07:02 → 10:15 UTC on the owner's instruction, 2 supervisor
+passes, no session-limit hits. The 42 Study 1 Arm-A1 documents (21 AI + 21
+human; `spok` excluded per pilot Deviation 4), same rewriter, English
+production prompt (template `72428aea…`), English constraint block
+(`81e2e53c…`) and retry suffix (`b320025b…`). Panel: `judge-gpt` +
+`judge-gemini-3.7-flash` (re-admitted on the 84 archived English passages:
+AUC 0.994, Spearman vs gpt 0.911 against grok's 0.894; the gemini CLI
+transport of the same model timed out and was not admitted). Det chief
+fresh-corpus accuracy on the English originals was **0.762 < 0.85**, so per
+panel v2 the binary det column is disabled and only the continuous det score
+is reported.
+
+| | P (plain) | S (specificity) | paired d = S − P (95% CI) |
+|---|---:|---:|---|
+| AI docs, panel AI-likeness (n=21) | 81.8 | **85.5** | **+3.7 [−3.5, +10.8]** |
+| AI docs, det chief (continuous) | 11.3 | **23.4** | **+12.1 [+4.5, +20.6]** |
+| human docs, panel (n=21) | 10.5 | 9.5 | −0.9 [−3.3, +1.9] (guard rail 2 held) |
+
+- **H-4b-a: NOT SUPPORTED.** The point estimate is positive again and the
+  interval includes zero. AI-call rate 95.2% → 95.2% (discordant 2 vs 2).
+- **The floor executed this time.** Unlike Korean, every English S row met
+  the 98% floor (42/42; mean 1.67 attempts on AI docs). The plain rewrite
+  compresses English hard (P length ratio **0.806** on AI docs, 0.908 on
+  human); S restored it to 1.03 / 1.00. So stage 2 is the clean test of the
+  hypothesis that stage 1 could not deliver: with the length actually held,
+  the constrained rewrite still reads *more* AI-like to both the panel and
+  the deterministic scorer.
+- **Copy check:** S median trigram Jaccard 0.630 vs P 0.540 on AI docs; on
+  human docs 0.885 vs 0.746 (just under the 0.90 "rewrote less" line).
+- **Guard rail 1: 38/42 = 90.5% — VIOLATED** (no corpus-artifact documents
+  in this arm; four real dropped numbers in S; P 37/42). Rails 2 and 3 held.
+- **Cue mix on AI docs still called "ai":** structural share fell from 35%
+  (P) to 18% (S) while the specificity-absence class rose from 11 to 17 of 40
+  cues. English judges name different residual tells than Korean judges
+  (Korean: 84–92% structural), and keeping the length did not remove them.
+- **Descriptive gpt-only:** S1 rw1 74.0 | P 86.0 | S 89.5 on AI docs — the
+  same upward drift of today's plain rewrite versus July's that stage 1
+  showed (prompt changed twice since; judge drift possible).
+
+**Metric caveat found after the fact (not a criterion change):** the
+registered detail-token definition counts every Latin token of two or more
+letters, which in English is every word. The English "retention" (P 45% →
+S 64%) and "added tokens" (~130 per document in both arms) therefore measure
+vocabulary overlap, not concrete details, and guard rail 3 is vacuous for
+English. The numbers-and-quotes part of the definition is unaffected; a
+future English stage needs a detail definition that excludes ordinary
+words. Recorded here and in the prereg as a dated note.
+
+### Combined verdict
+
+Both stages fail the registered primary criterion in the same direction and
+both violate the meaning gate. In Korean the model would not hold the floor;
+in English it held the floor and the result got worse. The hypothesis that
+the plain rewrite's lost specificity is what judges react to is not
+supported in either language. Nothing ships; the next candidate remains
+H-4a.
