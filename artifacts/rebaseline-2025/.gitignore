@@ -11,3 +11,5 @@
 !rebaseline-2026.scored.public.jsonl
 !manifest.ko.scored.public.jsonl
 !manifest.en.scored.public.jsonl
+!ko-gpt-miss-review.v1.jsonl
+!ko-gpt-miss-review.v1.exclusions.jsonl

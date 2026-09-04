@@ -482,6 +482,224 @@ candidate on that list — a pre-rewrite **structure plan step**.
 
 No Study 3 corpus row, rewrite, plan, or judgment exists at registration time.
 
+## Study 4 (specificity-preservation constraint, survey H-4b) — registered 2026-09-02, before any Study 4 data
+
+Studies 2 and 3 tested structural mechanisms and both failed while dropping
+content: S2/S3 compressed documents (length ratio ≈ 0.91) and lost numbers,
+and Study 1's judges named *specificity* — named institutions, exact values,
+first-person edge cases — as the cue that flips a verdict to "human". The
+2026-09 literature survey (`humanization-literature-2026-09.md` §9, H-4b)
+records the competing hypothesis this study tests: **the plain rewrite loses
+Layer-4 material, and a length floor plus a retain-every-concrete-detail
+constraint on the plain rewrite lowers perceived AI-likeness without any new
+mechanism.** Owner decision 2026-09-02: this study runs ahead of the frozen
+backlog order (steps 2–8), recorded in `humanization-data-backlog.md`.
+
+### Design
+
+- **Corpus (stage 1, ko):** the same 54 Study 1 Arm-D documents (27 AI +
+  27 human) by stored original text (`original_sha`). **Stage 2 (en):** the
+  42 Study 1 Arm-A1 documents (21 AI + 21 human), identical rules, run only
+  after stage 1 completes and reported in the same results doc. Stage 2 is
+  registered now so it cannot be dropped silently; it may be deferred with a
+  dated note.
+- **Two fresh arms per document, run back-to-back (P then S), same pinned
+  rewriter** `claude -p --model claude-sonnet-4-6` in a fresh temp cwd (the
+  S3 `claudeCall` shape, which is also the claude-cli backend's shape):
+  - **P (plain):** the production minimal-mode prompt built by `buildPrompt`
+    exactly as `patina --lang ko --backend claude-cli` builds it today
+    (document type `default`, no persona, no register, measured document
+    signals, `jargon: keep`, headings preserved). No retry.
+  - **S (specificity):** the identical prompt with one fixed block spliced in
+    immediately before the `## 출력 형식` (ko) / `## Output format` (en)
+    section. **Enforcement is part of the mechanism:** if the extracted body
+    is shorter than 98% of the original (characters, whitespace-collapsed),
+    the model is re-prompted with the same prompt plus a fixed feedback suffix
+    stating the measured ratio, at most **two** retries (three attempts). The
+    last attempt is kept whether or not it meets the floor; attempt count and
+    every attempt's ratio are recorded. P receives no retry.
+  - Body extraction uses the production `cleanRewriteOutput`. Every row
+    records the rewriter model, the prompt-template sha (prompt built on a
+    fixed probe text, S3 style), the constraint-block sha and the retry-suffix
+    sha. None of these texts may change after the first real row exists.
+- **P today is not Study 1's rw1.** The production prompt changed twice since
+  Study 1 (2026-07-28 no-invented-claims rule; 2026-08-05 voice-axis cutover),
+  so the primary comparison is S vs P within this run. Comparisons to archived
+  S1 rewrites are descriptive only and use the **gpt column alone**, the one
+  judge common to S1, P and S.
+
+### The constraint block (ko, verbatim; the en block is its direct translation and is stamped by sha in every row)
+
+```
+## 구체성 보존 (필수 — 위의 "±30%" 분량 규칙보다 우선한다)
+
+1. 길이 하한: 다듬은 본문의 글자 수는 원문의 98% 이상이어야 한다. 군더더기를 걷어낸 자리는 요약이 아니라 같은 무게의 구체적인 표현으로 다시 채운다.
+2. 원문에 있는 구체적 세부는 하나도 빠뜨리지 않는다: 숫자·날짜·단위·비율, 사람·기관·제품·기능·장소 이름, 인용구, 예시와 일화, 비유에 등장하는 대상. 여러 항목을 "등"이나 일반 명사로 뭉뚱그리지 않는다.
+3. 원문에 없는 사실·숫자·이름·예시를 새로 만들어 넣지 않는다. 길이를 채우려고 지어내는 것은 금지다.
+4. 다 쓰고 나서 원문과 나란히 대조해, 빠진 세부가 있으면 원래 자리에 되살린 뒤에 출력한다.
+```
+
+Retry suffix (ko, verbatim; `{ratio}` is the measured percentage):
+
+```
+## 재시도 사유
+
+직전 출력은 원문 길이의 {ratio}%였다. 위 "구체성 보존" 규칙 1의 98% 하한을 지키지 못했다. 빠뜨린 구체적 세부를 되살리고 군더더기 자리를 같은 무게의 표현으로 채워, 원문 길이의 98% 이상으로 다시 출력하라. 새 사실을 지어내지 마라.
+```
+
+### Judges — panel v2 with a registered deviation
+
+- **Chief judge-det:** `scoreText(lang)` with the fixed threshold 35. Before
+  any binary det column is reported the run calls
+  `requireFreshCorpusValidation` on det scores **recomputed at run time** over
+  the 54 originals (labels from the corpus). Accuracy < 0.85 disables the
+  binary column; continuous det scores stay reportable.
+- **Perceptual corroboration:** `judge-gpt` (codex exec, gpt-5.5) and
+  **`judge-gemini` (gemini-cli, gemini-2.5-pro, invoked with the production
+  backend's arguments) in place of `judge-grok`.** Deviation cause, recorded
+  before any row: the xAI API returned HTTP 403 "credits exhausted" on
+  2026-09-02 (probe logged). If xAI credit is restored before the first Study
+  4 row, grok is used and this deviation is void; a dated note records which
+  path ran.
+- **Gemini admission rule (bridge, run before any Study 4 row, not study
+  data):** gemini scores the 108 archived S1-D passages (54 originals + 54
+  S1 rewrites) with the Study 1 judge prompt. Gemini is admitted iff (a) its
+  AUC separating the 27 AI from the 27 human originals is ≥ 0.85 (mirrors the
+  det gate) AND (b) Spearman(gemini, gpt) over the 108 passages ≥
+  Spearman(grok, gpt) over the same 108 − 0.10 (both reference columns exist
+  in the archived rows). If gemini fails admission, the study runs with gpt +
+  det only and the results doc is labelled *single-perceptual-judge*.
+- Both admitted LLM judges are required per passage; a missing or
+  unparseable judge after three attempts is data loss, never silently reduced
+  to one judge. Originals are not re-judged; rewrites are claude output, so
+  both LLM judges are cross-family for every rewrite.
+
+### Metrics (fixed)
+
+- **Perceptual score** = mean of the admitted LLM judges' 0–100 AI-likeness.
+- **Primary (H-4b-a):** paired d = score(S) − score(P) on AI documents. Support
+  requires **mean d ≤ −3 AND the 95% bootstrap CI upper bound < 0.** Bar
+  justification: the mechanism adds no LLM call (only capped retries), so
+  Study 3's −5 (set for a doubled-cost mechanism) is not the right bar; −3 is
+  the smallest effect separable from per-judge repeat SD (2–5 in the
+  calibration study) at n = 27.
+- **Secondary:** (b) AI-call rate S vs P on AI documents (McNemar); (c)
+  detail-token retention S vs P (definition below); (d) floor achievement:
+  share of S rows with final length ratio ≥ 0.98 (target ≥ 80%; below it the
+  enforcement itself failed and (a) is read with that caveat); (e) det chief
+  continuous delta S − P and verdict flips; (f) structural share of
+  strongest-cues among still-"ai" judgments (descriptive, S1 rubric); (g)
+  descriptive gpt-only comparison of S and P with archived S1 rw1.
+- **Detail tokens (frozen):** text is NFC-normalized and whitespace-collapsed.
+  (1) numbers: `/\d[\d,.]*(?:\s?(?:%|[A-Za-z]{1,4}|[가-힣]{1,2}))?/gu`, then
+  thousands separators removed; (2) Latin tokens:
+  `/[A-Za-z][A-Za-z0-9+._-]+/gu`, lower-cased; (3) quoted spans: the inner
+  text of `/[“"‘'「『]([^”"’'」』\n]{2,60})[”"’'」』]/gu`. Each text yields a
+  unique set. Retention = |orig ∩ rewrite| / |orig| (documents with an empty
+  original set are excluded from the mean and counted). Added =
+  |rewrite − orig|.
+
+### Guard rails (any violation blocks shipping regardless of d)
+
+1. Deterministic meaning gate (`deterministicMeaningGuard`, dropped numbers)
+   passes on ≥ 95% of S rows (≥ 52/54).
+2. Human-control paired d(S − P) is not significantly positive (CI includes 0
+   or is negative): a length floor must not push human text toward AI.
+3. **Invented-content proxy:** mean added detail tokens per document in S
+   must not exceed P's by more than 1.0. A length floor invites padding; the
+   meaning gate only catches *dropped* numbers, this catches *added* ones.
+4. **Copy check (descriptive, reported):** character-trigram Jaccard between
+   original and rewrite for P and S. If S's median exceeds 0.90 while P's does
+   not, "preserved specificity" is read as "rewrote less", and the results doc
+   says so beside the primary result.
+
+### Confounds noted up front
+
+Rewriter and judges are stochastic; the two arms run back-to-back per
+document so run-level drift is shared, but the judge panel differs from the
+archived series (gemini for grok) and the production prompt differs from
+Study 1, so only within-run S vs P is confirmatory. Near-zero d reads as
+"indistinguishable from rerun variance".
+
+### Runner
+
+Clone of the Study 3 harness: fail-soft recorded rows, resume by
+`original_sha` + arm, three-failure circuit breaker, a supervisor loop with a
+30-minute back-off, and quota probes on claude, codex and gemini logged
+immediately before launch. Plumbing is smoke-tested on a synthetic paragraph,
+never on a corpus document. Raw texts stay in gitignored
+`artifacts/rewrite-efficacy-study4/`; rows carry hashes, scores and metadata
+only.
+
+### What ships on the result
+
+- All criteria pass (stage 1) → a product proposal to fold the constraint
+  block into the production rewrite prompt (minimal and strict modes) for ko,
+  with the en decision waiting on stage 2; separate approval, citing this
+  registration and the measured CIs.
+- H-4b-a fails or a guard rail is violated → published as-is; the next
+  candidate is H-4a (deterministic merge/split with seam-only infill). No
+  efficacy claim ships from a failed study.
+
+No Study 4 corpus row, rewrite, or judgment exists at registration time.
+
+### Study 4 — dated note 2026-09-02 (before the first row): gemini failed admission, running single-perceptual-judge
+
+The registered bridge ran on the 108 archived S1-D passages (`artifacts/rewrite-efficacy-study4/bridge-verdict.json`): gemini-2.5-pro AUC on the 54 originals **0.556** (gpt 0.995, grok 0.967); Spearman(gemini, gpt) **0.137** vs Spearman(grok, gpt) 0.857 on the same passages. Both admission conditions fail, so per the registered fallback stage 1 runs with **judge-gpt + judge-det only** and the results doc is labelled *single-perceptual-judge*. xAI credit was not restored before launch. If it is restored later, grok may score the stored P/S bodies as a post-hoc corroboration column, labelled as collected after the run; it cannot enter the primary metric.
+
+### Study 4 — amendment 2026-09-02 (recorded before any Study 4 judge outcome was read): second-judge candidates without xAI credit
+
+The owner asked for a second perceptual judge that does not need xAI credit.
+Recorded before the bridges run and before this session has read any Study 4
+per-document judge score (the run log is filtered to loop-level lines):
+
+- Candidates, all cross-family for claude rewrites, reached through the
+  OpenAI-compatible API endpoints patina's providers already use:
+  `gemini-3.7-flash`, `gemini-3.1-pro-preview`, `deepseek-v4-pro`, `kimi-k3`.
+  Each is bridged exactly like gemini-2.5-pro (108 archived S1-D passages,
+  Study 1 judge prompt) under the **same registered admission rule** (AUC on
+  the 54 originals ≥ 0.85 AND Spearman with gpt ≥ Spearman(grok, gpt) − 0.10).
+- Selection rule, fixed now: among admitted candidates, the one with the
+  highest AUC on the originals; ties broken by Spearman with gpt. Exactly one
+  candidate is added, so the panel stays two LLM judges + det.
+- The admitted judge scores **every** P and S body from the stored private
+  texts, including rows finished before admission, and the run continues with
+  both judges for the remaining rows. The primary metric is then the two-judge
+  mean; if no candidate is admitted, stage 1 stays single-perceptual-judge.
+- Bridge rows and verdicts for every candidate are kept
+  (`artifacts/rewrite-efficacy-study4/bridge-*.jsonl`, `bridge-verdict-*.json`);
+  the results doc reports all of them, admitted or not.
+
+### Study 4 — dated note 2026-09-02 (after the candidate bridges, before any Study 4 judge outcome was read): `judge-gemini-3.7-flash` admitted and selected
+
+Bridge results on the 108 archived S1-D passages (reference on the same passages: gpt AUC 0.995, grok AUC 0.967, Spearman(grok, gpt) 0.857; admission needs AUC ≥ 0.85 and Spearman with gpt ≥ 0.757):
+
+| candidate | scored | AUC (54 originals) | Spearman vs gpt | Spearman vs grok | admitted |
+|---|---:|---:|---:|---:|---|
+| gemini-3.7-flash (API) | 108/108 | **1.000** | **0.884** | 0.794 | yes |
+| gemini-3.1-pro-preview (API) | 108/108 | 0.971 | 0.849 | 0.790 | yes |
+| deepseek-v4-pro (API) | 49/108 | incomplete (5 consecutive unparseable replies stopped the bridge) | 0.696 (partial) | 0.690 (partial) | no — incomplete at decision time |
+| kimi-k3 (API) | 0/108 | account suspended for insufficient balance (HTTP 429) | — | — | not bridged |
+| gemini-2.5-pro (CLI, original deviation) | 108/108 | 0.556 | 0.137 | 0.233 | no |
+
+Selection rule (highest AUC among admitted) picks **`judge-gemini-3.7-flash`**. From this note on, stage 1 is a two-judge panel (`judge-gpt` + `judge-gemini-3.7-flash`) plus det: the admitted judge scores every stored P/S body from rows finished so far, and the runner is restarted with both judges for the remaining rows. The results doc drops the *single-perceptual-judge* label and reports every candidate above. The deepseek bridge may be resumed for the record only; it cannot change the selection.
+
+### Study 4 — dated note 2026-09-04 (before any stage 2 row): stage 2 (en) started on the owner's instruction
+
+Stage 1 (ko) closed on 2026-09-03 with H-4b not supported. The owner asked to resume; stage 2 runs under the identical registered rules. Before the first row: (1) the 42 Arm-A1 documents inherit Study 1's `spok` exclusion (pilot Deviation 4); (2) the second-judge seat is re-bridged on the 84 archived Arm-A1 passages (42 originals + 42 S1 rewrites) with the English judge prompt under the same admission rule — `judge-gemini-3.7-flash` was admitted on Korean only. The bridge verdict is recorded in `artifacts/rewrite-efficacy-study4/bridge-en-verdict-gemini-3.7-flash.json`; if it fails, `judge-gemini-3.1-pro` is bridged next, and if neither passes stage 2 runs single-perceptual-judge as registered. Plumbing is smoke-tested on a synthetic English paragraph only.
+
+### Study 4 — dated note 2026-09-04 (before any stage 2 row): stage 2 judge seat
+
+EN bridge on the 84 archived Arm-A1 passages: `judge-gemini-3.7-flash` (Gemini API, the local research key — not the product keys, which the owner rotated to product-only use the same day) scored 84/84, **AUC 0.994**, Spearman vs gpt **0.911** (reference: gpt AUC 1.000, grok AUC 0.998, Spearman(grok, gpt) 0.894) — admitted. A subscription-only transport of the same model (`judge-gemini-3.7-flash-cli`, gemini CLI) was bridged in parallel to avoid API-key use; it produced 8/84 scores and then timed out three times in a row on consecutive passages (180 s each), so it is **not admitted** and its partial rows are discarded. Stage 2 therefore runs with the same two-judge panel as stage 1: `judge-gpt` + `judge-gemini-3.7-flash` (API) plus the det chief.
+
+### Study 4 — correction 2026-09-04: the "CLI" gemini transport was also API-key authenticated
+
+On this machine the gemini CLI's effective auth is `gemini-api-key` (`~/.gemini/settings.json` → `security.auth.selectedType`) and `GEMINI_API_KEY` is exported in the login shell, so every gemini CLI call in this study — the 2026-09-02 gemini-2.5-pro bridge (108 passages) and the 2026-09-04 `judge-gemini-3.7-flash-cli` bridge (8 passages before timeouts) — was billed to the local research key, not to a subscription. The earlier notes' "subscription-only" wording for that transport is withdrawn; the transports differ only in sampling defaults. Nothing about the admitted judge, the panel, or any row changes.
+
+### Study 4 — dated note 2026-09-04 (after stage 2): stage 2 closed; detail-token definition flaw on English
+
+Stage 2 (en, 42/42) closed **not supported** (paired d +3.7 [−3.5, +10.8]; det +12.1 [+4.5, +20.6]; floor met 42/42; meaning gate 38/42 violated). Post-hoc observation, not a criterion change: the registered detail-token regex `[A-Za-z][A-Za-z0-9+._-]+` matches every English word, so H-4b-c retention and guard rail 3 are vocabulary-overlap measures on English and are reported as such in the results doc. Both stages are complete; nothing ships; the next candidate is H-4a.
+
 ## Sources
 - Self-Preference Bias in LLM-as-a-Judge — arXiv:2410.21819
 - TH-Bench (humanizing attacks vs detectors) — arXiv:2503.08708

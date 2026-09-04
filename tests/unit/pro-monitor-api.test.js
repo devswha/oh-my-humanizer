@@ -44,6 +44,44 @@ test('rejects unauthorized or non-empty cron requests before adapter I/O', async
   assert.equal(called, false);
 });
 
+test('monitor diagnostics distinguish configuration, input and evaluation failures without secrets', async () => {
+  const events = [];
+  const logger = { warn(event) { events.push(event); } };
+  let res = response();
+  await createProMonitorApiHandler({ env: { ...env, PATINA_VERCEL_LOG_QUERY_TOKEN: '' }, logger })(request(), res);
+  assert.equal(res.statusCode, 503);
+  assert.equal(events[0].stage, 'configuration');
+  assert.equal(events[0].adapters.logs, false);
+  assert.equal(events[0].adapters.aggregate, true);
+
+  res = response();
+  await createProMonitorApiHandler({ env, logger, evaluateProMonitorImpl: evaluateFake(async () => ({
+    ...monitorResult(), adapters: { aggregate: true, safetyEntitlementLogs: false, monitorDropLogs: true },
+  })), evaluateFreeTierHealthImpl: /** @type {any} */ (async () => null) })(request(), res);
+  assert.equal(res.statusCode, 503);
+  assert.equal(events[1].stage, 'inputs');
+  assert.equal(events[1].adapters.safetyEntitlementLogs, false);
+
+  res = response();
+  await createProMonitorApiHandler({ env, logger, evaluateProMonitorImpl: evaluateFake(async () => {
+    throw new Error('secret provider response https://private.example/token-secret');
+  }) })(request(), res);
+  assert.equal(res.statusCode, 503);
+  assert.equal(events[2].stage, 'evaluation');
+  assert.doesNotMatch(JSON.stringify(events), /token-secret|private\.example|cron-secret|license-secret|observer-secret/);
+  assert.deepEqual(JSON.parse(res.body), { error: 'monitor_unavailable' });
+});
+
+test('diagnostic logger failures preserve the closed monitor response', async () => {
+  const res = response();
+  await createProMonitorApiHandler({ env: {}, logger: { warn() { throw new Error('logger failed'); } } })(request({ headers: {} }), res);
+  assert.equal(res.statusCode, 401);
+  await createProMonitorApiHandler({ env: { CRON_SECRET: 'cron-secret' }, logger: { warn() { throw new Error('logger failed'); } } })(request(), res);
+  assert.equal(res.statusCode, 503);
+  await createProMonitorApiHandler({ env: { CRON_SECRET: 'cron-secret' }, logger: { async warn() { throw new Error('async logger failed'); } } })(request(), res);
+  assert.equal(res.statusCode, 503);
+});
+
 test('uses pinned aggregate-only logs, bounded adapters, and Lua-backed control mutations', async () => {
   const calls = [];
   const fetchImpl = async (url, options = {}) => {

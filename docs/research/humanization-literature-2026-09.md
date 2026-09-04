@@ -389,6 +389,8 @@ active item.
   removed Layer-4 material. *Metric:* same panel; rewrite/original length
   ratio ≥ 0.98; count of retained named entities, numbers, and examples.
   This is the cheapest test in the list and does not require a new mechanism.
+  **Activated as Study 4 on 2026-09-02** (owner decision; registered in
+  `2026-rewrite-efficacy-prereg.md`).
 - **H-6 (meaning proxy).** Certainty-direction and claim-neutrality
   metamorphic fixtures will catch failures that anchor-MPS passes, with an
   asymmetry toward increased certainty. *Metric:* per-fixture pass rate,

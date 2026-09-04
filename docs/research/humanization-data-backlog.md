@@ -173,7 +173,7 @@ Do not commit private raw text when a hash, manifest row, or aggregate score is 
 
 Execution order frozen for the next performance-only cycle (2026-09-01):
 
-1. **KO GPT-family miss-review manifest.** Classify the currently available misses (up to 100) by register, deterministic signal breakdown, and root cause. Do not change thresholds or production behavior in this step.
+1. **KO GPT-family miss-review manifest.** Classify the currently available misses (up to 100) by register, deterministic signal breakdown, and root cause. Do not change thresholds or production behavior in this step. **Reviewed 2026-09-02 — GO (measure-only); design, data contract, taxonomy, procedure and acceptance criteria in [`ko-gpt-miss-review-step1-decision-20260902.md`](./ko-gpt-miss-review-step1-decision-20260902.md); implementation deferred to its own branches. Implemented 2026-09-02 (PR #718): hash-only discovery manifest (48 reviewed rows + 8 precondition exclusions from analyzer drift), blinded two-reviewer labels, and the measure-only report [`docs/benchmarks/ko-gpt-miss-review-v1.md`](../benchmarks/ko-gpt-miss-review-v1.md); taxonomy constants in [`ko-gpt-miss-taxonomy-v1.md`](./ko-gpt-miss-taxonomy-v1.md).**
 2. **Edited-AI intake and corpus.** Freeze light/heavy edit policies and the manifest schema before generating samples.
 3. **Rewrite human-evaluation panel.** Run at least 30 randomized before/after pairs with 5 raters, separating naturalness preference from meaning-loss labels.
 4. **Deterministic structure-transform experiment.** Test bounded merge/split and seam-only LLM infill against the single-pass baseline; keep it research-only.
@@ -183,3 +183,5 @@ Execution order frozen for the next performance-only cycle (2026-09-01):
 8. **ZH/JA corpus expansion.** Reach the same per-language class/register evidence gate before making broader claims.
 
 Step 1 is the sole active item. Promotion to the next step requires a reviewed artifact that satisfies its acceptance criteria; implementation changes discovered during review stay deferred to their own branch.
+
+**Owner decision 2026-09-02:** with step 1 complete (PR #718), the survey's H-4b (specificity-preservation constraint on the plain rewrite) runs ahead of steps 2–8 as rewrite-efficacy **Study 4**, registered in [`2026-rewrite-efficacy-prereg.md`](./2026-rewrite-efficacy-prereg.md) before any data. Steps 2–8 stay in their frozen order behind it.

@@ -1,0 +1,25 @@
+{
+  "computed_at": "2026-09-02T09:02:33.550Z",
+  "rule": {
+    "min_auc": 0.85,
+    "spearman_slack": 0.1,
+    "reference": "grok-vs-gpt on the same passages"
+  },
+  "passages_scored": 0,
+  "originals": 0,
+  "n_ai": 0,
+  "n_human": 0,
+  "auc_gemini": null,
+  "auc_gpt_reference": null,
+  "auc_grok_reference": null,
+  "n_paired": 0,
+  "spearman_gemini_gpt": null,
+  "spearman_grok_gpt": null,
+  "spearman_gemini_grok": null,
+  "candidate": "judge-kimi-k3",
+  "admitted": false,
+  "judges": [
+    "judge-gpt"
+  ],
+  "label": "single-perceptual-judge"
+}

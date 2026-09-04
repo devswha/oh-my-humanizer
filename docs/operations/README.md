@@ -8,24 +8,25 @@ live, which is terminal, and which must not be edited.
 
 ## Rules
 
-- **Hash-frozen** (`tests/unit/v6.4-preflight-hold.test.js` verifies SHA-256s
-  from `v6.4-preflight-hold.json`): `pro-launch.md` and the six `pay-*.json`
-  evidence files. Editing, moving, or deleting them fails `npm test` until the
-  owner re-freezes the hashes.
+- **The v6.4 preflight hold was retired on 2026-09-02** (owner decision):
+  `v6.4-preflight-hold.json`, `scripts/check-v6.4-preflight-hold.mjs`,
+  `scripts/check-v6.4-release-ready.mjs` and their tests were removed, so no
+  file in this directory is hash-frozen any more. `pro-launch.md` and the
+  `pay-*.json` evidence files are ordinary tracked records now.
 - **Append-only by their own header:** `dep-prod-disabled-20260803.md` (private),
   `polar-approval-20260803.md`, `secret-manager-record-20260803.md`. Add a
   dated section; never rewrite the body.
-- `v6.4-preflight-hold.json` still reads `HOLD_NO_PROMOTION` with all nine
-  human blockers at `evidence: null`, although checkout opened on 2026-08-04
-  and 7.0.0 → 8.1.0 shipped. The release-ready guard is version-gated to
-  6.4.x, so at 8.x it only freezes hashes. Wiring the exit records below into
-  it is an owner task.
+- The retired hold still listed its nine human blockers as `evidence: null`
+  even though checkout opened on 2026-08-04; the exit records that actually
+  closed them are the chain below (`live-open-20260804.md` is the terminal
+  node). Its last state is in git history (removed in the 2026-09-02
+  retirement commit).
 
 ## Live documents (start here)
 
 | file | role |
 |---|---|
-| `pro-launch.md` | sale-close / service-kill / key-rotation runbook (v6.4 framing, frozen) |
+| `pro-launch.md` | sale-close / service-kill / key-rotation runbook (v6.4 framing; no longer hash-frozen) |
 | `live-open-20260804.md` | terminal record: checkout enabled on production via Polar |
 | `rollback-drills.md` | measured sale-close drill used by live-open |
 | `dashboards/pro-launch-v1.md`, `queries/pro-launch-v1.md` | private monitor operating procedure and queries (`services/log-query/`) |
@@ -53,10 +54,24 @@ live, which is terminal, and which must not be edited.
    **`serving-engine-deepseek-0731-correction-20260803.md`** →
    **`free-tier-deepseek-flip-20260803.md`**; `serving-engine-gemini-3.7-flash-20260813.md`
    is a self-contained branch.
+4. **Secrets (names only, never values):** `secret-manager-record-20260803.md`
+   → **key rotation 2026-09-04**: the owner replaced `PATINA_FREE_API_KEY` and
+   `PATINA_PRO_API_KEY` (Vercel Production, Sensitive) with product-only Gemini
+   keys in the dashboard; production was redeployed
+   (`patina-ihkxs0l2g`, alias `patina.vibetip.help`), the free tier was
+   verified by one live `/api/rewrite` call, and the pro tier by the synthetic
+   monitor's next scheduled run. Research jobs use a separate local key.
 
 ## Known open loops (recorded, not resolved here)
 
 - First healthy `OBS-ALERT-v1` receipt after live-open: no record found.
+  Observed 2026-09-04 (08:31, 08:45, 09:00 KST, three consecutive production
+  deployments including the one before the key rotation): every 15-minute
+  `GET /api/pro-monitor` returns **503 `monitor_unavailable`**, while the
+  synthetic pro `POST /api/rewrite` it issues one second later returns 200.
+  The pro serving path is healthy; the monitor's aggregate/log adapters are
+  not. Pre-existing, not caused by the rotation; owner to inspect the
+  observability adapters (`PATINA_OBSERVABILITY_*`, `PATINA_VERCEL_LOG_QUERY_*`).
 - Refund path for number-safety failures (`src/rewrite-handler.js` still says
   "no refund path").
 - Free-tier engine: resolved 2026-09-02 — owner confirmed gemini; no record

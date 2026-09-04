@@ -8,7 +8,7 @@ import {
   runReleaseMetadataCheck,
 } from '../../scripts/check-release-metadata.mjs';
 
-const VERSION = '8.1.1';
+const VERSION = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
 const README_FILES = ['README.md', 'README_KR.md', 'README_ZH.md', 'README_JA.md'];
 const README_CATALOGS = {
   'README.md': '**184 patterns** | 37 rewrite-capable + 9 score-only viral-hook per language (46 each across KO/EN/ZH/JA)',

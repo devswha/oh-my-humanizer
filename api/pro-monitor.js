@@ -88,12 +88,23 @@ function summary(value) { return { channel: value.channel, tier: 'pro', windows:
 // A free-monitor result is reported, never fatal: the cron's status code
 // speaks for the pro evidence run only.
 function freeSummary(value) { if (!value || value.error) return { available: false }; return { available: true, tier: value.tier, total: value.denominators?.total ?? 0, failed: value.denominators?.failed ?? 0, canary: value.canaryTerminal, signals: value.triggers?.map((x) => x.trigger) ?? [] }; }
-export function createProMonitorApiHandler({ env = process.env, fetchImpl = globalThis.fetch, evaluateProMonitorImpl = evaluateProMonitor, evaluateFreeTierHealthImpl = evaluateFreeTierHealth } = {}) {
+export function createProMonitorApiHandler({ env = process.env, fetchImpl = globalThis.fetch, evaluateProMonitorImpl = evaluateProMonitor, evaluateFreeTierHealthImpl = evaluateFreeTierHealth, logger = /** @type {{warn?: (...args: unknown[]) => unknown}} */ (console) } = {}) {
+  // Closed booleans and stage labels diagnose a blind monitor without exposing
+  // upstream bodies, endpoint URLs, deployment secrets or customer traffic.
+  const unavailable = (res, stage, adapters = {}) => {
+    try { Promise.resolve(logger.warn?.({ code: 'pro_monitor_unavailable', stage, adapters })).catch(() => {}); } catch { /* Logging cannot change the response. */ }
+    return send(res, 503, { error: 'monitor_unavailable' });
+  };
   return async (req, res) => {
     if (req?.method !== 'GET' || !empty(req?.body)) return send(res, 405, { error: 'method_not_allowed' });
     if (!authorized(req, env.CRON_SECRET)) return send(res, 401, { error: 'unauthorized' });
     const start = Date.now(); const kv = createKv(env, fetchImpl, start); const logs = createLogQuery(env, fetchImpl, start); const synthetic = createSynthetic(env, fetchImpl, start); const freeCanary = createFreeCanary(env, fetchImpl, start); const discord = createDiscord(env, fetchImpl, start);
-    if (!['production', 'staging'].includes(env.PATINA_DEPLOYMENT_CHANNEL) || !DEPLOYMENT_ID.test(env.VERCEL_GIT_COMMIT_SHA || '') || !kv || !logs || !synthetic || !discord) return send(res, 503, { error: 'monitor_unavailable' });
+    const configuration = {
+      channel: ['production', 'staging'].includes(env.PATINA_DEPLOYMENT_CHANNEL),
+      deployment: DEPLOYMENT_ID.test(env.VERCEL_GIT_COMMIT_SHA || ''),
+      aggregate: Boolean(kv), logs: Boolean(logs), synthetic: Boolean(synthetic), discord: Boolean(discord),
+    };
+    if (Object.values(configuration).some((ready) => !ready)) return unavailable(res, 'configuration', configuration);
     try {
       const sleep = async (ms) => { if (ms > deadline(start)) throw new Error('deadline'); await race(new Promise((resolve) => setTimeout(resolve, ms)), deadline(start)); };
       const prepareAlertEvidence = async (fact) => pending(env, fact, fact.alert);
@@ -118,9 +129,14 @@ export function createProMonitorApiHandler({ env = process.env, fetchImpl = glob
         free = await race(evaluateFreeTierHealthImpl({ channel: /** @type {'production'|'staging'} */ (env.PATINA_DEPLOYMENT_CHANNEL), tier: 'free', aggregateReader: kv, controlStore: kv, canaryRequest: freeCanary ?? undefined, discordSender: discord, sleep, deadlineMs: Math.min(10_000, deadline(start)) }), deadline(start));
       } catch { free = { error: 'free_monitor_unavailable' }; }
       const blindUnacked = value.alerts?.some((item) => item.trigger === 'monitor_blind' && !item.deduped && !item.sent);
-      if (!value.adapters?.aggregate || !value.adapters?.safetyEntitlementLogs || !value.adapters?.monitorDropLogs || blindUnacked) return send(res, 503, { error: 'monitor_unavailable' });
+      if (!value.adapters?.aggregate || !value.adapters?.safetyEntitlementLogs || !value.adapters?.monitorDropLogs || blindUnacked) return unavailable(res, 'inputs', {
+        aggregate: value.adapters?.aggregate === true,
+        safetyEntitlementLogs: value.adapters?.safetyEntitlementLogs === true,
+        monitorDropLogs: value.adapters?.monitorDropLogs === true,
+        blindnessAcknowledged: !blindUnacked,
+      });
       return send(res, 200, { ...summary(value), free: freeSummary(free) });
-    } catch { return send(res, 503, { error: 'monitor_unavailable' }); }
+    } catch { return unavailable(res, 'evaluation'); }
   };
 }
 export default createProMonitorApiHandler();
