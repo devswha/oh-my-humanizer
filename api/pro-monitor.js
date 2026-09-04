@@ -67,7 +67,25 @@ function createSynthetic(env, fetchImpl, start) { const origin = publicServiceUr
 // it watches; it does NOT exempt the request from the free IP quota, which is
 // why evaluateFreeTierHealth budgets how often this may run.
 function createFreeCanary(env, fetchImpl, start) { const origin = publicServiceUrl(env.PATINA_PUBLIC_BASE_URL); if (!origin || origin.pathname !== '/' || !required(env.PATINA_PUBLIC_BASE_URL_SHA256) || !/^[a-f0-9]{64}$/.test(env.PATINA_PUBLIC_BASE_URL_SHA256) || textHash(origin.toString()) !== env.PATINA_PUBLIC_BASE_URL_SHA256 || !required(env.PATINA_SYNTHETIC_OBSERVER_SECRET)) return null; return async () => { try { const response = await fetchBounded(fetchImpl, start, new URL('/api/rewrite', origin), { method: 'POST', redirect: 'error', headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson', 'x-patina-synthetic-observer': env.PATINA_SYNTHETIC_OBSERVER_SECRET }, body: JSON.stringify({ mode: 'first', lang: 'en', tier: 'free', text: SYNTHETIC_TEXT }) }); return response.ok && /^application\/x-ndjson(?:;|\s|$)/i.test(response.headers?.get?.('content-type') ?? '') && parseSynthetic(await bodyText(response, start)) ? { ok: true, terminal: 'done' } : { ok: false, terminal: 'failed' }; } catch { return { ok: false, terminal: 'failed' }; } }; }
-function createDiscord(env, fetchImpl, start) { const url = safeHttps(env.PATINA_ALERT_DISCORD_WEBHOOK, (host) => DISCORD_HOSTS.has(host)); if (!url || !/^\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/.test(url.pathname)) return null; url.searchParams.set('wait', 'true'); return async (payload) => { const response = await fetchBounded(fetchImpl, start, url, { method: 'POST', redirect: 'error', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(payload) }); if (!response.ok) return { status: response.status }; try { const data = await bodyJson(response, start); return { status: response.status, receiptId: SAFE_ID.test(data?.id || '') ? data.id : undefined }; } catch { return { status: response.status }; } }; }
+function createDiscord(env, fetchImpl, start) {
+  const url = safeHttps(env.PATINA_ALERT_DISCORD_WEBHOOK, (host) => DISCORD_HOSTS.has(host));
+  if (!url || !/^\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/.test(url.pathname)) return null;
+  url.searchParams.set('wait', 'true');
+  return async (payload) => {
+    const content = JSON.stringify(payload);
+    if (typeof content !== 'string' || !content.length || content.length > 2000) throw new Error('invalid Discord message');
+    const response = await fetchBounded(fetchImpl, start, url, {
+      method: 'POST', redirect: 'error', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ content, allowed_mentions: { parse: [] } }),
+    });
+    if (!response.ok) return { status: response.status };
+    try {
+      const data = await bodyJson(response, start);
+      return { status: response.status, receiptId: SAFE_ID.test(data?.id || '') ? data.id : undefined };
+    } catch { return { status: response.status }; }
+  };
+}
+
 function int(value) { return Number.isSafeInteger(value) && value >= 0 ? value : null; }
 function plain(value) { return value !== null && typeof value === 'object' && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null); }
 function exact(value, keys) { return plain(value) && Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key)); }

@@ -11,10 +11,10 @@ import { extractBearerLicense } from './entitlement.js';
  * disconnect) and legacy `req` emits 'aborted'. All emitter members are
  * optional so bare serverless/test mocks keep working.
  *
- * @typedef {{method?: string, headers?: Record<string, string|string[]|undefined>, rawHeaders?: string[], body?: unknown, on?: (event: string, listener: (...args: unknown[]) => void) => unknown, off?: (event: string, listener: (...args: unknown[]) => void) => unknown, [Symbol.asyncIterator]?: () => AsyncIterator<Buffer|string|Uint8Array>}} RewriteReq
+ * @typedef {{method?: string, aborted?: boolean, headers?: Record<string, string|string[]|undefined>, rawHeaders?: string[], body?: unknown, on?: (event: string, listener: (...args: unknown[]) => void) => unknown, off?: (event: string, listener: (...args: unknown[]) => void) => unknown, [Symbol.asyncIterator]?: () => AsyncIterator<Buffer|string|Uint8Array>}} RewriteReq
  * @typedef {{statusCode?: number, setHeader?: (name: string, value: string) => void, write?: (chunk: string) => void, end?: (body?: string) => void, on?: (event: string, listener: (...args: unknown[]) => void) => unknown, off?: (event: string, listener: (...args: unknown[]) => void) => unknown, writableEnded?: boolean, headersSent?: boolean, destroyed?: boolean, destroy?: () => void}} RewriteRes
- * @typedef {{check(input: {tier: string, ip: string|null, subject?: string, chars?: number}): Promise<{allowed: true, tier: string}|{allowed: false, status: number, reason: string, remainingMonthlyChars?: number, limitMonthlyChars?: number}>, acquireConcurrency?(input: {tier: string, ip: string|null, subject?: string}): Promise<{allowed: true, tier: string, lease: string}|{allowed: false, status: number, reason: string}>, releaseConcurrency?(input: {tier: string, ip: string|null, subject?: string, lease: string}): Promise<void>}} RateLimiter
- * @typedef {{req: RewriteReq, res: RewriteRes, request: Record<string, unknown>, now: () => number, observe?: Function, beforeResponseEnd?: () => Promise<void>}} RewriteRunnerInput
+ * @typedef {{check(input: {tier: string, ip: string|null, subject?: string, chars?: number, requestId?: string}): Promise<{allowed: true, tier: string, reservation?: import('./quota-reservation.js').ReservationPlan}|{allowed: false, status: number, reason: string, remainingMonthlyChars?: number, limitMonthlyChars?: number}>, acquireConcurrency?(input: {tier: string, ip: string|null, subject?: string}): Promise<{allowed: true, tier: string, lease: string}|{allowed: false, status: number, reason: string}>, releaseConcurrency?(input: {tier: string, ip: string|null, subject?: string, lease: string}): Promise<void>, settleReservation?(input: {reservation: import('./quota-reservation.js').ReservationPlan, refund: boolean}): Promise<boolean>}} RateLimiter
+ * @typedef {{req: RewriteReq, res: RewriteRes, request: Record<string, unknown>, now: () => number, observe?: Function, beforeResponseEnd?: (outcome?: {ok?: boolean, code?: string}) => Promise<void>}} RewriteRunnerInput
  * @typedef {{validate(input: {licenseKey: string}): Promise<{ok: true, subject: string, tier: string, status: string, cache: string}|{ok: false, status: number, reason: string}>}} LicenseValidator
  */
 
@@ -74,8 +74,14 @@ export function createRewriteHandler({ rateLimiter, runRewrite, env = {}, now = 
         // A telemetry clock cannot alter a customer response.
       }
     }
+    let clientClosed = req.aborted === true || (res.destroyed === true && !res.writableEnded);
+    const isClientClosed = () => clientClosed || req.aborted === true || (res.destroyed === true && !res.writableEnded);
+    const onAbort = () => { clientClosed = true; };
+    const onClose = () => { if (!res.writableEnded) clientClosed = true; };
     setSecurityHeaders(res);
     try {
+      req.on?.('aborted', onAbort); res.on?.('close', onClose);
+      if (isClientClosed()) return undefined;
       if (req.method === 'OPTIONS') {
         res.statusCode = 204;
         res.end?.();
@@ -182,18 +188,17 @@ export function createRewriteHandler({ rateLimiter, runRewrite, env = {}, now = 
         observeClosed(customerObserve, tier, 'quota_denied', 503, startedAt);
         return send(res, 503, { error: QUOTA_REASONS.STORAGE_UNAVAILABLE });
       }
+      if (isClientClosed()) return undefined;
       if (!hasAcquire) {
         const quota = await rateLimiter.check({ tier, ip, subject, chars });
         if (!quota.allowed) return sendQuotaDenied(/** @type {{status: number, reason: string}} */ (quota));
         // await so a runner rejection is caught by the redacted 500 handler below.
+        if (isClientClosed()) return undefined;
         return await runRewrite({ req: runnerReq, res, request, now, observe: customerObserve });
       }
 
-      // The concurrency slot is acquired BEFORE check() charges the daily/monthly
-      // counters: those counters increment fail-closed with no refund path, so
-      // charging first would bill a request the concurrency gate then rejects
-      // with 429 (and bill again on the retry). Holding the slot for the extra
-      // quota round-trips costs milliseconds and is the cheaper unfairness.
+      // Reserve concurrency before allowance. Pro uses an atomic charge receipt
+      // so a rejected server rewrite can restore usage exactly once.
       const concurrency = await rateLimiter.acquireConcurrency({ tier, ip, subject });
       if (!concurrency.allowed) {
         const denied = /** @type {{status: number, reason: string}} */ (concurrency);
@@ -212,21 +217,45 @@ export function createRewriteHandler({ rateLimiter, runRewrite, env = {}, now = 
         return releasePromise;
       };
       try {
-        const quota = await rateLimiter.check({ tier, ip, subject, chars });
+        if (isClientClosed()) return undefined;
+        const refundable = tier === WEB_TIERS.PRO && typeof rateLimiter.settleReservation === 'function';
+        const quota = await rateLimiter.check({ tier, ip, subject, chars, ...(refundable ? { requestId: concurrency.lease } : {}) });
         if (!quota.allowed) {
           await releaseSlot();
           return sendQuotaDenied(/** @type {{status: number, reason: string}} */ (quota));
         }
+        if (refundable && !quota.reservation) return send(res, 503, { error: QUOTA_REASONS.STORAGE_UNAVAILABLE });
+        let settlement;
+        const beforeResponseEnd = async (outcome) => {
+          try {
+            if (quota.reservation && rateLimiter.settleReservation) {
+              settlement ??= rateLimiter.settleReservation({ reservation: quota.reservation,
+                refund: outcome?.ok === false && outcome?.code !== 'client_closed' && !isClientClosed() });
+              await settlement;
+            }
+          } finally { await releaseSlot(); }
+        };
+        if (isClientClosed()) { await beforeResponseEnd({ ok: false, code: 'client_closed' }); return undefined; }
         // Runners that finalize a serverless response must await this hook before
         // res.end(); the finally below retains compatibility with injected runners
         // that do not use it and covers thrown paths.
-        return await runRewrite({ req: runnerReq, res, request, now, observe: customerObserve, beforeResponseEnd: releaseSlot });
+        try {
+          const result = await runRewrite({ req: runnerReq, res, request, now, observe: customerObserve, beforeResponseEnd });
+          await beforeResponseEnd(result);
+          return result;
+        } catch (error) {
+          await beforeResponseEnd({ ok: false, code: res.destroyed ? 'client_closed' : 'runner_failed' });
+          throw error;
+        }
       } finally {
         await releaseSlot();
       }
     } catch (err) {
       logger.error?.({ code: 'rewrite_handler_failed', stage: 'handler' });
+      if (isClientClosed()) return undefined;
       return send(res, 500, { error: 'internal error' });
+    } finally {
+      req.off?.('aborted', onAbort); res.off?.('close', onClose);
     }
   };
 }
