@@ -1,0 +1,303 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-04",
+  "scope": "49 repository regression fixtures only; no private rebaseline corpora or human-panel responses",
+  "licensePath": "LICENSE",
+  "licenseSha256": "558dbc06a12e4c33f5e042985713f286fce6897c68599ee0fe68e5de4c824df2",
+  "entries": [
+    {
+      "path": "tests/fixtures/suspect-zones/en/ai/en-ai-01.md",
+      "sha256": "c94f054bf15872040383bf65bd2db14647c52dac938515fb5e8e41654460c460",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/ai/en-ai-02.md",
+      "sha256": "6766d6621dd6decbc76fc3bc8f4ecda8a61f74e330177bcb07e545c47d9b7bf8",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/ai/en-ai-03.md",
+      "sha256": "e69661476677431d3093147222d505154af07dcf572f7e925cbf31f826ab43cf",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/ai/en-ai-04.md",
+      "sha256": "18185ad221967a72d09e583b81e17e5580251172acb9f255edcf65a6cccc3fa8",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/ai/en-ai-05.md",
+      "sha256": "90adbe0e557adb75b12a1c1bda8094e9452bb7d5b15b07ff139a1902fc07e41b",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/ai/en-ai-06-chat-register.md",
+      "sha256": "b48a8acb9e18fcc482fb6519cd6c20e6dfdd42a9bddcc762138b5027a026f741",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/ai/en-ai-07-discourse-candor.md",
+      "sha256": "2b305ec4aa96992f08f354a6fe75b8cf06ecacaa2cccc084d66727d94ba4fbd3",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/natural/en-nat-01.md",
+      "sha256": "061a84b5d26d22f1196da02a23860fbc3f6e37114a7d09c99777236c21629ecb",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/natural/en-nat-02.md",
+      "sha256": "8b634dd6ddf27f9b829b42def797b622ac010c93c85498ba64be74c013c27094",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/natural/en-nat-03.md",
+      "sha256": "9e11b1fc39cbc01f99dcb6ad23cfbe9f6d8134e28036c662e42ae8ede042e963",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/natural/en-nat-04.md",
+      "sha256": "4b5961115a59fc33bdcdeb8c7ea662b400b2b4ba2c51fe02a959ca9d9602e3b0",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/natural/en-nat-05.md",
+      "sha256": "413e0366aa525b5bbc82bfd975e92c05f82a3dcc4367bc2b6919dfeb4456a1d6",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/en/natural/en-nat-06-single-opener.md",
+      "sha256": "1030ea9d10b0e5e1b4efac5c3b748a8d3ed6d3b908879c787705035aae175076",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/ai/ja-ai-01.md",
+      "sha256": "5928e85d6e461839a4a3ba8560f74ed0ba24b543f83e9aa06c6e58a72ab44ca3",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/ai/ja-ai-02.md",
+      "sha256": "a9a1207331b2bf58ef0d0629c8bbcf7e17c03f057370280d5125663bfd722eb7",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/ai/ja-ai-03.md",
+      "sha256": "550faa1f5f7b3ebbbb0db38201dea13db2d406af09cb0f2c6818492d8c886090",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/ai/ja-ai-04-lexicon.md",
+      "sha256": "51586169a69f29c3c28e8c546e50e16c46e905778dc9320d577cda725b3c21c8",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/ai/ja-ai-05-formulaic-summary.md",
+      "sha256": "646859ea4d277ec02a13caca33a723944d74635e29c926ef0e1322b716569114",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/ai/ja-ai-06-broad-tech.md",
+      "sha256": "fa0f317ff9b79ba9378d51f17873832b57f5b6a347bc7746fe9d3741916a2779",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/natural/ja-nat-01.md",
+      "sha256": "eeb68b06f8cc49f69d3802ab7d9b92af47cd17d08f7dae16c2ed811fcab59c5a",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/natural/ja-nat-02.md",
+      "sha256": "81d76389c481b892d872e5076fd2ac8a2e69583b6c457b747abb49149e12bce4",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/natural/ja-nat-03.md",
+      "sha256": "b12de1b29bb8845556ad80ebb9613d10baa062cf36fad23947a0e977d9de96f2",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/natural/ja-nat-04-lexicon-cold.md",
+      "sha256": "ae4679681b31bf372ed3fb32e8301d6d8357fab1ed93016af8aca4afb3d4db04",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/natural/ja-nat-05-station-note.md",
+      "sha256": "a222bdbe175d9ad52aa2a9720dad280ec920077a9fff44b7822f70cf9aed280e",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ja/natural/ja-nat-06-maintenance-log.md",
+      "sha256": "88f631488f32437e005bcfca73e74e1eee0b1f661685e294fc896097a30c9294",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/ai/ko-ai-01.md",
+      "sha256": "cf89db1eeee7bb1f47976e42b0eaed0724bf1036a279dadae824bb03342a3fa2",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/ai/ko-ai-02.md",
+      "sha256": "15f86ce845a9401608157d7824d8039233056ea604d3e76049c38d8177aa610a",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/ai/ko-ai-03.md",
+      "sha256": "3fa51aa517877a73435b2bdeb37d617a6a2c46ffaae2156292375927453cfe0e",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/ai/ko-ai-04.md",
+      "sha256": "8fce516c0031cc5cca64e6ac122cdb372857fe69c66750cf73465a9fa16d902a",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/ai/ko-ai-05.md",
+      "sha256": "34f86794d623701dce9276ab8e246788cb9bb577a6e2e00b539787e6971f61d6",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/ai/ko-ai-06-chat-register.md",
+      "sha256": "72bf485f5f327c1bc86f4cd7767246abfc6164e89948249550d03656c58e6e92",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/ai/ko-ai-07-ko-diagnostic.md",
+      "sha256": "f121bab66810ecea109598e9f8cc6e47afb53427b7f9c08818145adba285ad36",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/natural/ko-nat-01.md",
+      "sha256": "cdbe22f0deaa8543d0753d8fac531a0e5356907b441940e8092247b69c1cafc7",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/natural/ko-nat-02.md",
+      "sha256": "cc58383459597584455c4b04a86f906d8464388911a9e5a2421406ce869f6e02",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/natural/ko-nat-03.md",
+      "sha256": "f150f7cd3b9343626a0ca4ce15d89a7b97486fd59771b1fe117f4e545d2ef9bf",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/natural/ko-nat-04.md",
+      "sha256": "733e881bae43db28d625971f80eab2ce6a42d48e2847904d9bc8cda4da635029",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/ko/natural/ko-nat-05.md",
+      "sha256": "2313e94cf1ac4f8a790df43ed98faed2abf9c74940ebd007c8cbcb713f283b0b",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/ai/zh-ai-01.md",
+      "sha256": "fa0d7149e078f347b4a32f414d65f13c22da18d9e31a3066966d970afa0da71b",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/ai/zh-ai-02.md",
+      "sha256": "dcb96b0b77ef655581a095ad8094ec877576c598fc9a1173beb1db7238199743",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/ai/zh-ai-03.md",
+      "sha256": "948201f7d2cd666df5438fd31f03bf34b8eb0bfb1be0f50b1902b458d6ed565b",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/ai/zh-ai-04-lexicon.md",
+      "sha256": "7cf41ca65763c499a050b0dec98404a07e5486ce1144c00aa9766c7e2f17df3d",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/ai/zh-ai-05-formulaic-summary.md",
+      "sha256": "b64635fdb718aa4c24188174f0d9778edec42e523bf8d20aa1d5125e4bdba83d",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/ai/zh-ai-06-broad-tech.md",
+      "sha256": "a2e69c1da1124460c5a2b9e22e1949dff865f9a9fe279a0763e79e9bf9fe42f5",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/natural/zh-nat-01.md",
+      "sha256": "2005534f5671e7ac91eb496ad230370e512b37d4eb7dbc2354f13c4ccd4338d3",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/natural/zh-nat-02.md",
+      "sha256": "c45b0494e156a36eb3506211b13becbabbeaba44ac81544b7d6595cca91996cf",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/natural/zh-nat-03.md",
+      "sha256": "4d3a350c0b67aceb9bf0e2803bfb5999b512e571ce76f2acdcabff9a7551f7fa",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/natural/zh-nat-04-lexicon-cold.md",
+      "sha256": "7f8c2155993628cfbbcab35334354355ce73e013eee09f38df6b96bdd5121390",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/natural/zh-nat-05-market-note.md",
+      "sha256": "c5e73f0b576276c8eba3119b4592e7338b2cacafd94fbe7a6a4404488aed9f86",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    },
+    {
+      "path": "tests/fixtures/suspect-zones/zh/natural/zh-nat-06-maintenance-log.md",
+      "sha256": "8f02bf759586fc74d9f0bfed6c289aaa5afe8dab63f67b445e6b8340737c73c2",
+      "license": "MIT",
+      "basis": "Repository MIT license; inspected regression fixture, no external attribution or redistribution restriction in its metadata. Authorship is not independently certified."
+    }
+  ]
+}
