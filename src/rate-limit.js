@@ -1,6 +1,7 @@
 // @ts-check
 
 import { createHmac, randomBytes } from 'node:crypto';
+import { memoryReservationMethods, PRO_RETRY_HEADROOM, validateReservationPlan } from './quota-reservation.js';
 import { isProductionPosture, QUOTA_REASONS, TIER_LIMITS, WEB_TIERS } from './web-rewrite-contract.js';
 
 const DAY_MS = 86_400_000;
@@ -79,7 +80,7 @@ function isLeaseRegistry(value) {
  * Create an in-memory KV store for tests and local development only.
  *
  * @param {{now?: () => number}} [options]
- * @returns {{__memory: true, get(key: string): Promise<unknown>, set(key: string, val: unknown, options?: {ttlMs?: number}): Promise<void>, incr(key: string, options?: {ttlMs?: number}): Promise<number>, incrBy(key: string, amount: number, options?: {ttlMs?: number}): Promise<number>, decr(key: string): Promise<number>, acquireLease(registryKey: string, lease: string, maxConcurrent: number, options: {ttlMs: number}): Promise<boolean>, releaseLease(registryKey: string, lease: string): Promise<boolean>}}
+ * @returns {{__memory: true, get(key: string): Promise<unknown>, set(key: string, val: unknown, options?: {ttlMs?: number}): Promise<void>, incr(key: string, options?: {ttlMs?: number}): Promise<number>, incrBy(key: string, amount: number, options?: {ttlMs?: number}): Promise<number>, decr(key: string): Promise<number>, acquireLease(registryKey: string, lease: string, maxConcurrent: number, options: {ttlMs: number}): Promise<boolean>, releaseLease(registryKey: string, lease: string): Promise<boolean>, reserveQuota(plan: import('./quota-reservation.js').ReservationPlan): Promise<number[]>, settleQuota(plan: import('./quota-reservation.js').ReservationPlan, refund: boolean): Promise<number>}}
  */
 export function createMemoryKv({ now = () => Date.now() } = {}) {
   /** @type {Map<string, {value: unknown, expiresAt: number}>} */
@@ -97,6 +98,7 @@ export function createMemoryKv({ now = () => Date.now() } = {}) {
 
   return {
     __memory: true,
+    ...memoryReservationMethods(entries, now, expire),
     async get(key) {
       expire();
       return entries.get(key)?.value;
@@ -159,8 +161,8 @@ export function createMemoryKv({ now = () => Date.now() } = {}) {
 export { isProductionPosture };
 
 /**
- * @typedef {{get?(key: string): Promise<unknown>, set?(key: string, val: unknown, options?: {ttlMs?: number}): Promise<void>, incr(key: string, options?: {ttlMs?: number}): Promise<number>, incrBy?(key: string, amount: number, options?: {ttlMs?: number}): Promise<number>, decr?(key: string): Promise<number>, acquireLease?(registryKey: string, lease: string, maxConcurrent: number, options: {ttlMs: number}): Promise<boolean>, releaseLease?(registryKey: string, lease: string): Promise<boolean>, __memory?: boolean}} QuotaKv
- * @typedef {{allowed: true, tier: string, remainingDay?: number}|{allowed: false, status: number, reason: string, remainingMonthlyChars?: number, limitMonthlyChars?: number}} RateLimitResult
+ * @typedef {{get?(key: string): Promise<unknown>, set?(key: string, val: unknown, options?: {ttlMs?: number}): Promise<void>, incr(key: string, options?: {ttlMs?: number}): Promise<number>, incrBy?(key: string, amount: number, options?: {ttlMs?: number}): Promise<number>, decr?(key: string): Promise<number>, acquireLease?(registryKey: string, lease: string, maxConcurrent: number, options: {ttlMs: number}): Promise<boolean>, releaseLease?(registryKey: string, lease: string): Promise<boolean>, reserveQuota?(plan: import('./quota-reservation.js').ReservationPlan): Promise<number[]>, settleQuota?(plan: import('./quota-reservation.js').ReservationPlan, refund: boolean): Promise<number>, __memory?: boolean}} QuotaKv
+ * @typedef {{allowed: true, tier: string, remainingDay?: number, reservation?: import('./quota-reservation.js').ReservationPlan}|{allowed: false, status: number, reason: string, remainingMonthlyChars?: number, limitMonthlyChars?: number}} RateLimitResult
  * @typedef {{allowed: true, tier: string, remainingDay?: number, lease: string}|{allowed: false, status: number, reason: string, remainingMonthlyChars?: number, limitMonthlyChars?: number}} ConcurrencyResult
  * @typedef {{warn?: (...args: unknown[]) => void}} RateLimitLogger
  */
@@ -171,7 +173,7 @@ export { isProductionPosture };
  * @param {{kv?: QuotaKv|null, hmacSecret?: string, env?: Record<string, string|undefined>, now?: () => number, limits?: typeof TIER_LIMITS, logger?: RateLimitLogger, concurrencyTtlMs?: number, leaseId?: () => string}} options
  *   `concurrencyTtlMs` is the self-healing expiry for a concurrency slot; keep it
  *   >= the maximum stream budget so a slot never expires mid-stream (defaults to 5m).
- * @returns {{check(input: {tier: string, ip?: string|null, subject?: string|null, chars?: number}): Promise<RateLimitResult>, acquireConcurrency(input: {tier: string, ip?: string|null, subject?: string|null}): Promise<ConcurrencyResult>, releaseConcurrency(input: {tier: string, ip?: string|null, subject?: string|null, lease?: string}): Promise<void>}}
+ * @returns {{check(input: {tier: string, ip?: string|null, subject?: string|null, chars?: number, requestId?: string}): Promise<RateLimitResult>, settleReservation(input: {reservation: import('./quota-reservation.js').ReservationPlan, refund: boolean}): Promise<boolean>, acquireConcurrency(input: {tier: string, ip?: string|null, subject?: string|null}): Promise<ConcurrencyResult>, releaseConcurrency(input: {tier: string, ip?: string|null, subject?: string|null, lease?: string}): Promise<void>}}
  */
 export function createRateLimiter({ kv, hmacSecret, env = {}, now = () => Date.now(), limits = TIER_LIMITS, logger = console, concurrencyTtlMs = DEFAULT_CONCURRENCY_TTL_MS, leaseId = () => randomBytes(32).toString('base64url') }) {
   const productionGuard = () => {
@@ -180,6 +182,51 @@ export function createRateLimiter({ kv, hmacSecret, env = {}, now = () => Date.n
     if (production && !hmacSecret) return /** @type {RateLimitResult} */ ({ allowed: false, status: 503, reason: QUOTA_REASONS.SECRET_UNAVAILABLE });
     if (!kv) return /** @type {RateLimitResult} */ ({ allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE });
     return null;
+  };
+
+  const reservePro = async ({ subject, chars, requestId }) => {
+    const unavailable = /** @type {RateLimitResult} */ ({ allowed: false, status: 503, reason: QUOTA_REASONS.STORAGE_UNAVAILABLE });
+    const guard = productionGuard(); if (guard) return guard;
+    if (typeof subject !== 'string' || !subject) return /** @type {RateLimitResult} */ ({ allowed: false, status: 401, reason: QUOTA_REASONS.LICENSE_REQUIRED });
+    if (!requestId || typeof requestId !== 'string' || !kv?.reserveQuota || !kv?.settleQuota) return unavailable;
+    const cap = limits.pro;
+    if (!isPositiveSafeInteger(cap?.reqPerDay) || !isPositiveSafeInteger(cap?.reqPerMonth)) return unavailable;
+    const timestamp = now(); const date = new Date(timestamp);
+    const day = Math.floor(timestamp / DAY_MS);
+    const month = date.getUTCFullYear() * 12 + date.getUTCMonth();
+    const dayTtl = (day + 1) * DAY_MS - timestamp;
+    const monthTtl = Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1) - timestamp;
+    const charCap = isPositiveSafeInteger(cap.charsPerMonth) ? cap.charsPerMonth : 0;
+    if (!Number.isSafeInteger(chars) || chars < 0) return unavailable;
+    const secret = hmacSecret || 'patina-local-quota-secret';
+    const plan = {
+      keys: [quotaKeyHmac(secret, 'pro', 'day', subject, day), quotaKeyHmac(secret, 'pro', 'req-month', subject, month),
+        quotaKeyHmac(secret, 'pro', 'chars-month', subject, month), quotaKeyHmac(secret, 'pro', 'attempt-month', subject, month),
+        quotaKeyHmac(secret, 'pro', 'reservation', subject, requestId)],
+      caps: [cap.reqPerDay, cap.reqPerMonth, charCap], amounts: [1, 1, charCap ? chars : 0],
+      ttlMs: [dayTtl, monthTtl, monthTtl], receiptTtlMs: monthTtl + concurrencyTtlMs,
+      attemptCap: cap.reqPerMonth + Math.min(PRO_RETRY_HEADROOM, cap.reqPerMonth),
+    };
+    try {
+      validateReservationPlan(plan);
+      const result = await kv.reserveQuota(plan);
+      if (result.length === 2 && result[0] === 1 && Number.isSafeInteger(result[1]) && result[1] >= 0 && result[1] < cap.reqPerDay) {
+        return /** @type {RateLimitResult} */ ({ allowed: true, tier: WEB_TIERS.PRO, remainingDay: result[1], reservation: plan });
+      }
+      if (result.length === 2 && result[0] === 0 && [1, 2, 3, 4].includes(result[1])) {
+        const reasons = { 1: QUOTA_REASONS.DAILY, 2: QUOTA_REASONS.MONTHLY_REQUESTS, 3: QUOTA_REASONS.MONTHLY_CHARS, 4: 'monthly processing attempt limit reached' };
+        return /** @type {RateLimitResult} */ ({ allowed: false, status: 429, reason: reasons[result[1]],
+          ...(result[1] === 2 ? { remainingMonthlyRequests: 0, limitMonthlyRequests: cap.reqPerMonth } : {}),
+          ...(result[1] === 3 ? { remainingMonthlyChars: 0, limitMonthlyChars: charCap } : {}) });
+      }
+      // An ambiguous reservation response must not leave a paid allowance
+      // charge when no model invocation is going to happen.
+      await kv.settleQuota(plan, true);
+      return unavailable;
+    } catch {
+      try { await kv.settleQuota(plan, true); } catch { /* Outage remains fail-closed. */ }
+      return unavailable;
+    }
   };
 
   // Resolve the concurrency-slot key per tier: BYOK and FREE key on the client
@@ -225,7 +272,21 @@ export function createRateLimiter({ kv, hmacSecret, env = {}, now = () => Date.n
   };
 
   return {
-    async check({ tier, ip, subject, chars }) {
+    async settleReservation({ reservation, refund }) {
+      if (!kv?.settleQuota || typeof refund !== 'boolean') return false;
+      try { validateReservationPlan(reservation); } catch { return false; }
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const result = await kv.settleQuota(reservation, refund);
+          if (result === 1) return true;
+          if (result === 0) return false;
+        } catch { /* Replay the same receipt once; no duplicate credit. */ }
+      }
+      try { Promise.resolve(logger.warn?.({ code: 'pro_quota_settlement_unavailable' })).catch(() => {}); } catch { /* Preserve the customer response. */ }
+      return false;
+    },
+    async check({ tier, ip, subject, chars, requestId }) {
+      if (tier === WEB_TIERS.PRO && requestId !== undefined) return reservePro({ subject, chars, requestId });
       switch (tier) {
         case WEB_TIERS.BYOK:
         case WEB_TIERS.FREE: {

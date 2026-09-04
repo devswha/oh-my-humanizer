@@ -1,4 +1,5 @@
 // @ts-check
+import { reservationArgs, RESERVE_QUOTA_LUA, settlementArgs, SETTLE_QUOTA_LUA } from '../src/quota-reservation.js';
 import { createRateLimiter, createMemoryKv, isProductionPosture } from '../src/rate-limit.js';
 import { createRewriteHandler } from '../src/rewrite-handler.js';
 import { encodeStreamFrame, QUOTA_REASONS, resolveTierLimits, WEB_TIERS } from '../src/web-rewrite-contract.js';
@@ -88,7 +89,7 @@ export function createObservabilityRestKv(env = {}) {
  * Create a dependency-free Upstash/Vercel KV REST adapter.
  *
  * @param {Record<string,string|undefined>} env
- * @returns {null|{get(key: string): Promise<unknown>, set(key: string, val: unknown, options?: {ttlMs?: number}): Promise<void>, incr(key: string, options?: {ttlMs?: number}): Promise<number>, incrBy(key: string, amount: number, options?: {ttlMs?: number}): Promise<number>, decr(key: string): Promise<number>, acquireLease(registryKey: string, lease: string, maxConcurrent: number, options: {ttlMs: number}): Promise<boolean>, releaseLease(registryKey: string, lease: string): Promise<boolean>}}
+ * @returns {null|{get(key: string): Promise<unknown>, set(key: string, val: unknown, options?: {ttlMs?: number}): Promise<void>, incr(key: string, options?: {ttlMs?: number}): Promise<number>, incrBy(key: string, amount: number, options?: {ttlMs?: number}): Promise<number>, decr(key: string): Promise<number>, acquireLease(registryKey: string, lease: string, maxConcurrent: number, options: {ttlMs: number}): Promise<boolean>, releaseLease(registryKey: string, lease: string): Promise<boolean>, reserveQuota(plan: import('../src/quota-reservation.js').ReservationPlan): Promise<number[]>, settleQuota(plan: import('../src/quota-reservation.js').ReservationPlan, refund: boolean): Promise<number>}}
  */
 export function createRestKv(env = {}) {
   const base = env.KV_REST_API_URL;
@@ -172,6 +173,17 @@ export function createRestKv(env = {}) {
   }
 
   return {
+    async reserveQuota(plan) {
+      const data = await command(['EVAL', RESERVE_QUOTA_LUA, '5', ...plan.keys, ...reservationArgs(plan)]);
+      if (!Array.isArray(data?.result)) throw new Error('invalid quota reservation response');
+      return data.result;
+    },
+    async settleQuota(plan, refund) {
+      const data = await command(['EVAL', SETTLE_QUOTA_LUA, '5', ...plan.keys, ...settlementArgs(plan, refund)]);
+      const value = parseKvNumber(data);
+      if (![0, 1, -1].includes(value)) throw new Error('invalid quota settlement response');
+      return value;
+    },
     async get(key) {
       const data = await read(`/get/${encodeURIComponent(key)}`);
       const result = data?.result;
@@ -398,18 +410,20 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
         observeTerminal('service_disabled', 503);
         res.statusCode = 503;
         res.setHeader?.('Content-Type', 'application/json');
-        await beforeResponseEnd?.();
+        await beforeResponseEnd?.({ ok: false, code: 'service_disabled' });
         res.end?.(JSON.stringify({ error: QUOTA_REASONS.SERVICE_UNAVAILABLE }));
         return;
       }
       res.statusCode = 200;
       res.setHeader?.('Content-Type', jsonResponse ? 'application/json' : 'application/x-ndjson');
       const controller = new AbortController();
+      let clientClosed = req.aborted === true || (res.destroyed === true && !res.writableEnded);
       const onClose = () => { clientClosed = true; if (!res.writableEnded) controller.abort(); };
       res.on?.('close', onClose);
       req.on?.('aborted', onClose);
-      let clientClosed = false;
+      if (clientClosed) controller.abort();
       let streamCompleted = false;
+      let terminalOutcome;
       try {
         const result = await runWebRewriteStreamImpl({
           request: { ...request, apiKey },
@@ -422,6 +436,7 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
           observe: observeGuarded,
           now,
         });
+        terminalOutcome = result;
         if (!terminalObserved) {
           observeTerminal(
             result?.ok === false && result.code === 'number_safety_failed' ? 'number_safety_failed'
@@ -452,12 +467,13 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
         return result;
       } catch (err) {
         observeTerminal('terminal_failed', 500);
+        await beforeResponseEnd?.({ ok: false, code: clientClosed ? 'client_closed' : 'runner_failed' });
         throw err;
       } finally {
         res.off?.('close', onClose);
         req.off?.('aborted', onClose);
         if (streamCompleted) {
-          await beforeResponseEnd?.();
+          await beforeResponseEnd?.(clientClosed ? { ok: false, code: 'client_closed' } : terminalOutcome);
           // The lease is released above regardless; after a premature client
           // close the response may already be destroyed — never write to it.
           if (!clientClosed && !res.writableEnded && !res.destroyed) {
