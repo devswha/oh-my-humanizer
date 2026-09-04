@@ -65,6 +65,13 @@ live, which is terminal, and which must not be edited.
 ## Known open loops (recorded, not resolved here)
 
 - First healthy `OBS-ALERT-v1` receipt after live-open: no record found.
+  Observed 2026-09-04 (08:31, 08:45, 09:00 KST, three consecutive production
+  deployments including the one before the key rotation): every 15-minute
+  `GET /api/pro-monitor` returns **503 `monitor_unavailable`**, while the
+  synthetic pro `POST /api/rewrite` it issues one second later returns 200.
+  The pro serving path is healthy; the monitor's aggregate/log adapters are
+  not. Pre-existing, not caused by the rotation; owner to inspect the
+  observability adapters (`PATINA_OBSERVABILITY_*`, `PATINA_VERCEL_LOG_QUERY_*`).
 - Refund path for number-safety failures (`src/rewrite-handler.js` still says
   "no refund path").
 - Free-tier engine: resolved 2026-09-02 — owner confirmed gemini; no record
