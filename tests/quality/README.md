@@ -338,7 +338,8 @@ sample can become a public fixture.
 
 - LLM-based scoring (`src/scoring.js`). The LLM is non-deterministic by
   design and adds API cost / latency, so it stays out of this layer.
-  A separate live-mode benchmark is its own follow-up (#412).
+  The opt-in `npm run benchmark:scorer:live` exercises that path separately
+  (#412); see [live scorer evaluation](#live-scorer-evaluation).
 - Mandatory rewrite quality gates. Live rewrite quality lives in
   `tests/quality/live-quality.mjs` and remains opt-in because it can shell out
   to a model backend. It is configured through `PATINA_LIVE_*` variables
@@ -348,6 +349,39 @@ sample can become a public fixture.
 - Generalized model-era detector claims. The report now includes
   `signal_score` ranking diagnostics (ROC-AUC, PR-AUC, best-F1 threshold), but
   those numbers are still limited to the checked-in fixture corpus.
+
+## Live scorer evaluation
+
+`live-scorer-benchmark.mjs` runs the production LLM scorer on the 49 regression
+fixtures across all four languages. Its reports include distributions by
+language and pattern pack, requested/effective models, transport, token usage,
+latency, and schema or transport failures. Invalid scores remain missing rather
+than being counted as zero. These are opt-in diagnostics, not CI gates or
+authorship claims.
+
+```bash
+npm run benchmark:scorer:live -- --live \
+  --candidates docs/research/model-evaluation-20260904.json \
+  --provider gemini --output artifacts/model-evaluation-20260904/scorer-gemini
+```
+
+The recorded comparison uses the local OpenCodex proxy for Gemini, without a
+Gemini API key. Configure candidate IDs and transports explicitly in a separate
+JSON file for another environment. `--manifest FILE --texts FILE` scores a
+hash-bound rebaseline manifest against its local source texts; neither source
+texts nor raw model responses enter the scorer report.
+
+Completed rows are appended to `scorer-rows.jsonl`. Re-running the exact command
+continues from the first unrecorded row. Changes to the corpus, candidate set,
+or repeat count require a new output directory. Keep each worker's output
+directory separate.
+
+For the paired rewrite study, see
+[`model-evaluation-20260904.md`](../../docs/research/model-evaluation-20260904.md).
+The Linux-only `scripts/research/study-job.mjs` supervisor can retain process and
+terminal receipts across an interrupted agent turn. Its `status` command checks
+the current PID, process start time and boot identity; a stale file is not a
+running job.
 
 ## Extending the corpus
 
