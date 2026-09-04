@@ -2,6 +2,11 @@
 
 All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 
+## 8.1.3 — 2026-09-04
+
+- **Pro failure allowance.** Trusted server-side rewrite failures restore daily/monthly request and character allowance once. Atomic reservations, cancellation fencing and an independent monthly processing budget bound retries; client cancellations after admission remain charged.
+- **Monitor delivery.** Send Discord webhook alerts in the required content envelope, disable mention parsing and request acknowledgement.
+
 ## 8.1.2 — 2026-09-04
 
 - **Pro monitor diagnostics.** Authenticated 503 failures log the failing stage and adapter readiness without credentials, endpoint URLs, upstream bodies, or customer data. Logging failures cannot alter the response.
