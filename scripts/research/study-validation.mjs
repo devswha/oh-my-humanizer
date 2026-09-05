@@ -29,7 +29,8 @@ export function validateRawMps(text) {
     if (!object(anchor) || !types.has(anchor.type) || !verdicts.has(anchor.verdict) || typeof anchor.content !== 'string' || !anchor.content.trim()) throw new Error('invalid-anchor');
   }
   const passed = value.anchors.filter((anchor) => anchor.verdict === 'PASS').length;
-  const polarity = value.anchors.filter((anchor) => anchor.type === 'polarity');
+  // core/scoring.md defines the weighted polarity group as Polarity + Negation.
+  const polarity = value.anchors.filter((anchor) => ['polarity', 'negation'].includes(anchor.type));
   const polarityPassed = polarity.filter((anchor) => anchor.verdict === 'PASS').length;
   if (value.pass_count !== passed || value.total_count !== value.anchors.length
     || value.polarity_pass_count !== polarityPassed || value.polarity_total_count !== polarity.length) throw new Error('inconsistent-mps-counts');
