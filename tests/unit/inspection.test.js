@@ -2,7 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { inspectText, normalizedOffsetMap } from '../../src/inspection.js';
+import { inspectText, inspectAuditSource, normalizedOffsetMap } from '../../src/inspection.js';
+import { formatOutput } from '../../src/output.js';
+import { maskInspectionNonProse } from '../../src/inspection-masks.js';
 import { loadConfig } from '../../src/config.js';
 
 const sample = "In today's rapidly evolving landscape, this comprehensive solution unlocks unprecedented opportunities. Furthermore, it fosters seamless collaboration and takes productivity to the next level.";
@@ -66,4 +68,71 @@ test('automatic Korean detection is invariant under NFC/NFD source encoding', ()
   const nfc = inspectText(text); const nfd = inspectText(text.normalize('NFD'));
   assert.equal(nfc.language, 'ko'); assert.equal(nfd.language, 'ko'); assert.equal(nfc.score, nfd.score);
   assert.notEqual(nfc.sourceHash, nfd.sourceHash);
+});
+
+test('sentence hints localize lexical evidence and preserve a calm neighboring sentence', () => {
+  const text = 'I fixed the typo. ' + sample;
+  const result = inspectText(text, { language: 'en' });
+  const sentences = result.diagnostics.filter((row) => row.scope === 'sentence');
+  assert.ok(sentences.length > 0);
+  for (const row of sentences) {
+    assert.ok(!text.slice(row.start, row.end).includes('I fixed the typo.'));
+    assert.equal(row.code, 'ai-like-sentence'); assert.ok(row.evidenceCount > 0);
+  }
+  assert.equal(result.diagnostics.find((row) => row.scope === 'paragraph').localized, true);
+});
+
+test('sentence hints skip inline and fenced code without changing the score', () => {
+  for (const text of ['``pivotal transformative landscape``', '```js\nconst x = "pivotal transformative landscape";\n```']) {
+    const result = inspectText(text, { language: 'en' });
+    assert.equal(result.diagnostics.filter((row) => row.scope === 'sentence').length, 0);
+  }
+  const source = `cafe\u0301 👩‍💻. ${sample}\r\n\r\n${sample}`;
+  for (const row of inspectText(source, { language: 'en' }).diagnostics.filter((row) => row.scope === 'sentence')) {
+    assert.ok(row.end <= source.length);
+    assert.ok(source.slice(row.start, row.end).trim().length > 0);
+  }
+});
+
+test('JSON audit metadata is source-bound and large audit reports remain usable', () => {
+  const inspection = inspectAuditSource(sample, { language: 'en' });
+  const result = JSON.parse(formatOutput('Audit report.', 'audit', { format: 'json' }, { inspection }));
+  assert.equal(result.output, 'Audit report.');
+  assert.equal(result.inspection.sourceHash, inspection.sourceHash);
+  assert.ok(result.inspection.diagnostics.some((row) => row.scope === 'sentence'));
+  const huge = inspectAuditSource('x'.repeat(200001), { language: 'en' });
+  assert.equal(huge.available, false); assert.equal(huge.score, null);
+  assert.equal(JSON.parse(formatOutput('Kept.', 'rewrite', { format: 'json' }, { inspection })).inspection, undefined);
+});
+
+test('localized masks handle multiline code, indented fences and quoted HTML attributes', () => {
+  for (const text of ['`seamless\ntransformative curated`', '<span\n title="seamless transformative curated">ordinary</span>', '<span title="x > seamless transformative curated">ordinary</span>']) {
+    assert.equal(inspectText(text, { language: 'en' }).diagnostics.filter((row) => row.scope === 'sentence').length, 0);
+    assert.equal(maskInspectionNonProse(text).length, text.length);
+  }
+  const text = '```\nseamless transformative curated\n   ```\n\n' + sample;
+  const diagnostics = inspectText(text, { language: 'en' }).diagnostics.filter((row) => row.scope === 'sentence');
+  assert.ok(diagnostics.length > 0); assert.ok(diagnostics.every((row) => row.start >= text.indexOf(sample)));
+});
+
+test('long fence runs remain bounded below the inspection input limit', () => {
+  const bin = fileURLToPath(new URL('../../bin/patina.js', import.meta.url));
+  const result = JSON.parse(execFileSync(process.execPath, [bin, 'inspect', '--lang', 'en'], { input: '~'.repeat(4000), encoding: 'utf8', timeout: 1500 }));
+  assert.equal(result.available, true);
+});
+
+test('HTML masks preserve Unicode offsets and require an exact closing tag name', () => {
+  const prefix = 'İstanbul '.repeat(12);
+  for (const tag of ['script', 'style']) {
+    const code = `<${tag}>x = "</${tag}ure> seamless transformative curated";</${tag.toUpperCase()}>`;
+    const source = `${prefix}${code}\n\n${sample}`;
+    const masked = maskInspectionNonProse(source);
+    assert.equal(masked.length, source.length);
+    assert.equal(masked.slice(0, prefix.length), prefix);
+    assert.equal(masked.slice(prefix.length, prefix.length + code.length).trim(), '');
+    assert.equal(masked.slice(source.indexOf(sample)), sample);
+    const hints = inspectText(source, { language: 'en' }).diagnostics.filter((row) => row.scope === 'sentence');
+    assert.ok(hints.length > 0);
+    assert.ok(hints.every((row) => row.start >= source.indexOf(sample)));
+  }
 });
