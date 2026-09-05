@@ -1,0 +1,4473 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-05",
+  "timezone": "Asia/Seoul",
+  "status": "complete-terminal-confirmation-join",
+  "protocolHash": "4713d6af4dfc4c32e03b6fdde7a49c2e5b55f01067b895536f33b8a211761c89",
+  "protocol": {
+    "schemaVersion": 1,
+    "kind": "full-rewrite-confirmation-canonical-mps",
+    "sourceCommits": {
+      "E": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+      "D": "dca3aa1de00bd21594f39e5b3c83614f28f22b85",
+      "G": "5567e4a81fedd6f56cdd518507051c6c0db04f9d"
+    },
+    "sourceManifestHashes": {
+      "E": "de9c193ca706a50c6b7cd590ed9f3e63997ae68d3ea980f30423dda675ad2af7",
+      "D": "4292debdb98ecebb143a8b5126c6340b6d81eb4c3692225eed67eb4cb73887cc",
+      "G": "07593ce748d927cbee43e7c8da7314fb9bba07690193e79de71403fd87615b94"
+    },
+    "derivationScriptHash": "6888ff58af204e85a43598d29421b167e53000d0daa24ae4b3a23963c01c925b",
+    "reviewedReplayHelperHash": "3bd298a7b5f6b3d8302ff25f8c2e74fa8ed82e6c4ef7dde1af8a4687900ce977",
+    "canonicalValidatorHash": "3425c404615ca1fe53a586348c26d1dedd01b27888d8634a40b60038ca4e6e8b",
+    "canonicalSpecHash": "0100887249e43eccb0d320dc9680d7ec3ade65d83bf24d724a742e222d81275d",
+    "rankingRuleHash": "81f947b1dcdcb40618e821046452d75e10c0864167518029f16a70004864e0df",
+    "fixtureIdentityHash": "35bf6009007bd16d96361d1ffcb851cb91069b55f1f7ecac29174a012aec90eb",
+    "bootstrap": {
+      "iterations": 5000,
+      "seed": 20260905,
+      "drawHash": "4a94e7278d54b6ea7ca3b26605027d25847099d9a68541a17bed64b38665b0f6",
+      "method": "language-stratified paired fixture-cluster percentile bootstrap"
+    },
+    "datasets": [
+      {
+        "candidate": "openai-astra",
+        "provenance": {
+          "source": "E",
+          "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+          "protocolHash": "de440a5bef9483c7da3eeb2a21cff2001fc8199520aafc66276b9611df6ccfac",
+          "parentSnapshotHash": "035ad730aca2014f11d2d93049985b89b03fc7603dd1cdccb6b34c84745f1f66",
+          "generationFileHash": "abaf23e9dd8435064188ae5609458c5f0356788859959f57c42e9e88d706a88d",
+          "privateGenerationFileHash": "4f7f607dc5ba5d871e804d77e515ec53a08fd0d3b9d1769694e859389ace0e40",
+          "generationJob": {
+            "path": "artifacts/model-confirmation-20260905/jobs/openai-astra/job.json",
+            "sha256": "9123db06e5a8d7a1a6748a1295411e6890cf059d911d098f2715c94241990cbe",
+            "state": "completed",
+            "exitCode": 0,
+            "startedAt": "2026-09-05T03:20:37.347Z",
+            "endedAt": "2026-09-05T03:43:58.468Z",
+            "rowsPredatingLatestJobStart": 0
+          },
+          "generationReceipts": 102,
+          "generationReceiptManifestHash": "58bb6d22be96c41f39ca6c7215056181b3a5bc801434380af30691143e972362",
+          "judgments": [
+            {
+              "source": "E",
+              "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+              "judgeId": "gemini-3.7",
+              "requestedModel": "google-antigravity/gemini-3.7-flash",
+              "transport": "opencodex",
+              "originalProtocolHash": "d6a01e6e1f90feac25e434a6d27b7b62b0cee26f1d2473e94fe4c97e767ecfbc",
+              "publicFile": "artifacts/model-confirmation-20260905/gemini-3.7-on-openai-astra/judge-gemini-3.7.jsonl",
+              "publicFileHash": "8186e48f0c6c59448998950127bc915b76bcd466c9e1806b76a3fedac3e85c63",
+              "privateFile": "artifacts/model-confirmation-20260905/gemini-3.7-on-openai-astra/judge-gemini-3.7.private.jsonl",
+              "privateFileHash": "d433f53b5fae153d86d0f086c0bc5007b2551186b264c4e80e0c9265456d55c2",
+              "provenanceHash": "57e1fbe489bc31102f01e7a04e5b3469203448a881b6cc375f51ee1d0cc9261b",
+              "bindingHash": "39048645b835e7563ea8680169fe75880fb2ec49241cc776557f88eddf10dbf1",
+              "job": {
+                "path": "artifacts/model-confirmation-20260905/jobs/gemini-3.7-on-openai-astra/job.json",
+                "sha256": "416107db1691e7faaec2ba325c12f85f20064766403ce0b235be1e9138d4452a",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T04:58:04.425Z",
+                "endedAt": "2026-09-05T05:11:58.708Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 102,
+              "canonicalValid": 85,
+              "statusTransitions": {
+                "ok->ok": 85,
+                "ok->error": 17,
+                "error->ok": 0,
+                "error->error": 0
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "8cf0cf307462e29b808c334f78ba1f7639f2adc83f2a0a48a310250e2bb32484"
+            },
+            {
+              "source": "G",
+              "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+              "judgeId": "anthropic-sonnet",
+              "requestedModel": "claude-sonnet-5",
+              "transport": "claude-cli",
+              "originalProtocolHash": "f84eee802dfa766876bdef4304a366ff345ba0d541a76f8271683f5bbb176c42",
+              "publicFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-openai-astra/judge-anthropic-sonnet.jsonl",
+              "publicFileHash": "885da6cc0c5ab5568f417529d8cd47caf5425d040725e225b77f7e46fb21a434",
+              "privateFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-openai-astra/judge-anthropic-sonnet.private.jsonl",
+              "privateFileHash": "f88bb87510f2f178ba444401b91021830ae30a5c1644d7d5ca5134bf12b758d6",
+              "provenanceHash": "8bb2f26c325c6770701fea7212ef2e442f6039dbad6b6d1591284d6e1a6820da",
+              "bindingHash": "0121e3ddfb14cbde60ea0c08a4bd64731749351cb9c0ba669892aa94d51374c9",
+              "job": {
+                "path": "artifacts/corrected-judgments-20260905/jobs/anthropic-sonnet-on-openai-astra/job.json",
+                "sha256": "0e7211e5aced7f1144c88d62d8f3f4e2bdec4f1e20b6394a11520f2d65cf0d5b",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T06:35:02.961Z",
+                "endedAt": "2026-09-05T07:06:15.267Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 81,
+              "canonicalValid": 81,
+              "statusTransitions": {
+                "ok->ok": 81,
+                "ok->error": 0,
+                "error->ok": 0,
+                "error->error": 21
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "b7238b53ca92bfe5b01b928676b89c282bfc53ddaf0c0a25fc7f8243870f01b9"
+            }
+          ]
+        }
+      },
+      {
+        "candidate": "openai-terra",
+        "provenance": {
+          "source": "E",
+          "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+          "protocolHash": "4446c1e71e30d753d7602a8839c2a69e813d3f683e27f6b012f73c4ec08f5506",
+          "parentSnapshotHash": "cae656c132b3f8c9f8c0e62f3e484975b90a3ffdaebd34314081b53b5be4990e",
+          "generationFileHash": "39177e29b7d8fda542ee516a464ff073efca9ed83ee434fa6521ccbcd3bb81a7",
+          "privateGenerationFileHash": "388c088a0d504acbebf46421bed481b3dad972f480265d683d50e41a9a22a7bd",
+          "generationJob": {
+            "path": "artifacts/model-confirmation-20260905/jobs/openai-terra/job.json",
+            "sha256": "b85828827590e3e1b9b4548c10f90e5b9548e21e8e26dab6350a1043529824a3",
+            "state": "completed",
+            "exitCode": 0,
+            "startedAt": "2026-09-05T03:45:55.650Z",
+            "endedAt": "2026-09-05T03:55:45.353Z",
+            "rowsPredatingLatestJobStart": 0
+          },
+          "generationReceipts": 102,
+          "generationReceiptManifestHash": "6bb2a56b6117ace4f0c5c0a16aa55b342c5d1472da65b635d7401fd98b0a2f26",
+          "judgments": [
+            {
+              "source": "E",
+              "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+              "judgeId": "gemini-3.7",
+              "requestedModel": "google-antigravity/gemini-3.7-flash",
+              "transport": "opencodex",
+              "originalProtocolHash": "6fce9a17d6883930d9911e2646bb068b8a90ddad226bfd05bfceb57996cbbc5e",
+              "publicFile": "artifacts/model-confirmation-20260905/gemini-on-openai-terra/judge-gemini-3.7.jsonl",
+              "publicFileHash": "82b50ef8e7ca0e09f63596f0d3a9bb1c42845631027be3bf1d3599310f403261",
+              "privateFile": "artifacts/model-confirmation-20260905/gemini-on-openai-terra/judge-gemini-3.7.private.jsonl",
+              "privateFileHash": "6749cd867036add092a9f974cc66fa4bfb84055e95bb18d471e3f1d8bebf12e3",
+              "provenanceHash": "9462cefa2be4fd05c3d58c8c4c5abc7869f354d70948a03485578f15f65a2bc1",
+              "bindingHash": "e7bd618131fb3123c4bc409beb62de5b7565437340d1871e8178208f6336411c",
+              "job": {
+                "path": "artifacts/model-confirmation-20260905/jobs/gemini-on-openai-terra/job.json",
+                "sha256": "239e0640e8d37e9bf3a38b70560d9ec84ff4a36488a0b4e24fb218686b865a99",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T04:36:29.249Z",
+                "endedAt": "2026-09-05T04:49:46.281Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 102,
+              "canonicalValid": 89,
+              "statusTransitions": {
+                "ok->ok": 89,
+                "ok->error": 13,
+                "error->ok": 0,
+                "error->error": 0
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "2c65e7128e4a0afef26fc6c7448074789e23557942188c5edddd759043e0957e"
+            },
+            {
+              "source": "G",
+              "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+              "judgeId": "anthropic-sonnet",
+              "requestedModel": "claude-sonnet-5",
+              "transport": "claude-cli",
+              "originalProtocolHash": "8206c4d37bc500d1dae2149b8155e3380bedc7e71148f1e4a853aadbdf31ad9b",
+              "publicFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-openai-terra/judge-anthropic-sonnet.jsonl",
+              "publicFileHash": "95ea7788e02eb271b8afd5098b085fb61d6322127daab6f133dcdbcf1064c90b",
+              "privateFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-openai-terra/judge-anthropic-sonnet.private.jsonl",
+              "privateFileHash": "09b1b0a910d7f1cf1cf70bcea76b2c05cb9a8121e9bd81011acfd551fda5a936",
+              "provenanceHash": "0a9ed734a23fb1857c2a4eb61fb848a43fa7a11872eb192909d91debabc08c79",
+              "bindingHash": "a3e6792979c8f03bdc6ecab6956e623c1f8dfa2f110334c29f2a7e00ef204f3e",
+              "job": {
+                "path": "artifacts/corrected-judgments-20260905/jobs/anthropic-sonnet-on-openai-terra/job.json",
+                "sha256": "2158ecef8e1a8f4a38073c8fa1906e4562bfb9840af19f861cdb243f3ea37bf8",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T06:35:03.104Z",
+                "endedAt": "2026-09-05T07:08:48.289Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 79,
+              "canonicalValid": 79,
+              "statusTransitions": {
+                "ok->ok": 79,
+                "ok->error": 0,
+                "error->ok": 0,
+                "error->error": 23
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "6ebbe223da5f719532119e48c82de2b40c752d557509b34eb2112a828c5167af"
+            }
+          ]
+        }
+      },
+      {
+        "candidate": "gemini-3.8-high",
+        "provenance": {
+          "source": "E",
+          "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+          "protocolHash": "fa024d21dcc0d9caf5ebb633e4578fa39cf9a406f501ec1d7e5779c60ee16a22",
+          "parentSnapshotHash": "e94a9f0bad5956832990938152c48f6ce5b548cb8b47bdd8c4fb6ee314a17978",
+          "generationFileHash": "30146f6baed05ccc748ac3982f2affb2682f449fd14cb2d0bd0e510e36833f8b",
+          "privateGenerationFileHash": "26143d8bd3a712b049fdda3cfe52fad1cdfe249b2d8e205b9547b8ebf26e1ae7",
+          "generationJob": {
+            "path": "artifacts/model-confirmation-20260905/jobs/gemini-3.8-high/job.json",
+            "sha256": "4694e23571ebfb926f3b76d9bf5a7fafe2b546ae6bf7fe692f35ad518c0ff239",
+            "state": "completed",
+            "exitCode": 0,
+            "startedAt": "2026-09-05T03:44:09.689Z",
+            "endedAt": "2026-09-05T04:01:49.605Z",
+            "rowsPredatingLatestJobStart": 0
+          },
+          "generationReceipts": 102,
+          "generationReceiptManifestHash": "f1a37a509fae17d3a442b85a81251f9620cd5d1286e33e8c126d3c6cc14b3391",
+          "judgments": [
+            {
+              "source": "E",
+              "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+              "judgeId": "openai-5.5",
+              "requestedModel": "gpt-5.5",
+              "transport": "opencodex",
+              "originalProtocolHash": "fa8830daa40724f111248df8946e19deafd9532221efe4c881099a99f4744354",
+              "publicFile": "artifacts/model-confirmation-20260905/openai-5.5-on-gemini-3.8-high/judge-openai-5.5.jsonl",
+              "publicFileHash": "8ff0af19523ffed59c1fa9569d90c9abd6c792ac50f3e5cebc454ed892f99607",
+              "privateFile": "artifacts/model-confirmation-20260905/openai-5.5-on-gemini-3.8-high/judge-openai-5.5.private.jsonl",
+              "privateFileHash": "5ac1f334b1ba4ba23c3348b03571e46a18cc1d232c542c1357d494ad86300fd0",
+              "provenanceHash": "4ac9892bd397d0295e8cd43470ff74429bf4701da84489763b91c466e8445fe7",
+              "bindingHash": "ee9af4fc29f5a2428e541f1a757d3af760f684bdae958bcc59c73b84abc12ad5",
+              "job": {
+                "path": "artifacts/model-confirmation-20260905/jobs/openai-5.5-on-gemini-3.8-high/job.json",
+                "sha256": "4b40a5cd56c1048b0963f8e4609063a9a6a465d39f9678f442ff7eb619c64ef3",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T04:58:04.424Z",
+                "endedAt": "2026-09-05T05:44:43.244Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 84,
+              "canonicalValid": 86,
+              "statusTransitions": {
+                "ok->ok": 77,
+                "ok->error": 7,
+                "error->ok": 9,
+                "error->error": 9
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "c69f6a97bb93dc9932a3d98fcbec9100668be0d336b4984dd2c379062d4f0d92"
+            },
+            {
+              "source": "G",
+              "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+              "judgeId": "anthropic-sonnet",
+              "requestedModel": "claude-sonnet-5",
+              "transport": "claude-cli",
+              "originalProtocolHash": "025b1724afcea2f3bdf6aadcd973c5637a6eccea506308f2c1a1491da0359efc",
+              "publicFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-gemini-3.8-high/judge-anthropic-sonnet.jsonl",
+              "publicFileHash": "44eba2e4a1361e03b6713f0b7adca88139d98cd6741cfe93d02181e69a75848d",
+              "privateFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-gemini-3.8-high/judge-anthropic-sonnet.private.jsonl",
+              "privateFileHash": "fcab57968b3b8a1e5976b69199a54906b245fb2f59264482ba530e9f5b2e0c3d",
+              "provenanceHash": "6d8f75d1832b2f7e423cb51370f9d33ec2e0748cdb0ed45bf720855cac9cdf2a",
+              "bindingHash": "b5c918231cb249bf752a26788815bde022a201901609695e3294ad67840fc9cf",
+              "job": {
+                "path": "artifacts/corrected-judgments-20260905/jobs/anthropic-sonnet-on-gemini-3.8-high/job.json",
+                "sha256": "f68d9a088533aff8d4384b7904b6107e55c5dff0fdaae4ce9fb2ee762c1f0adb",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T06:35:03.256Z",
+                "endedAt": "2026-09-05T07:19:11.578Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 80,
+              "canonicalValid": 80,
+              "statusTransitions": {
+                "ok->ok": 80,
+                "ok->error": 0,
+                "error->ok": 0,
+                "error->error": 22
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "9ebecb737ea0767c1c3cbd6c39bee355ddcc85e54c51fae5b6f6f1be33d53427"
+            }
+          ]
+        }
+      },
+      {
+        "candidate": "gemini-3.8-medium",
+        "provenance": {
+          "source": "E",
+          "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+          "protocolHash": "c56d56de68dfb36c49bfdbdce28e937f694d8892c402e5f06822c1b7e1ac9add",
+          "parentSnapshotHash": "caa29f05852c17b8da1b3d73bd9aef0d34fe49459e21fe9c63dda58349cc05f8",
+          "generationFileHash": "36fc92e0eef1ed4141f9c5a16b8533c501d8e5b41a20fa17d53d1d31428a4f69",
+          "privateGenerationFileHash": "2c59752dd1023501246a6a8ee3d574519d4912e4037e3e084375eae396a1e825",
+          "generationJob": {
+            "path": "artifacts/model-confirmation-20260905/jobs/gemini-3.8-medium/job.json",
+            "sha256": "1a3ba9a6a0e2c0ae06878cbae8627c54c43a3942a02e190ce31eb068084f02a3",
+            "state": "completed",
+            "exitCode": 0,
+            "startedAt": "2026-09-05T04:13:38.928Z",
+            "endedAt": "2026-09-05T04:30:59.088Z",
+            "rowsPredatingLatestJobStart": 0
+          },
+          "generationReceipts": 102,
+          "generationReceiptManifestHash": "f253e7f30f5ffacc78a5d89017593ca4c09cd3f2065878a9f5dc20c4fb1a1280",
+          "judgments": [
+            {
+              "source": "E",
+              "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+              "judgeId": "openai-5.5",
+              "requestedModel": "gpt-5.5",
+              "transport": "opencodex",
+              "originalProtocolHash": "d40ddad77b549a3be0c3c16b21524f74360e8517e44be163f9a5ef2df471c0bd",
+              "publicFile": "artifacts/model-confirmation-20260905/openai-5.5-on-gemini-3.8-medium/judge-openai-5.5.jsonl",
+              "publicFileHash": "43d994bb50db601d484bccceac09d88e1fa363b98125232c464b0c21e38aea92",
+              "privateFile": "artifacts/model-confirmation-20260905/openai-5.5-on-gemini-3.8-medium/judge-openai-5.5.private.jsonl",
+              "privateFileHash": "6e55bbffa4a5428fbdb6641d0fba3d8e4ee6c868a03fed6fd17d6799b9e5224d",
+              "provenanceHash": "337e6be0528749aa0b5c0f6a0e7870c437e44a411cd01452348ec5b8c683913a",
+              "bindingHash": "c73565123c900f8957a4015b61c76a5fc012d4f6337bd7b50d83eaca7d49a0e7",
+              "job": {
+                "path": "artifacts/model-confirmation-20260905/jobs/openai-5.5-on-gemini-3.8-medium/job.json",
+                "sha256": "ba7d207e3dd44699dd244d9530c04c1cdbced58ecfe913b57bf5522b550e90b5",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T05:43:47.379Z",
+                "endedAt": "2026-09-05T06:31:13.340Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 86,
+              "canonicalValid": 76,
+              "statusTransitions": {
+                "ok->ok": 72,
+                "ok->error": 14,
+                "error->ok": 4,
+                "error->error": 12
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "f953c5742af7f9dee4a86d5bb5dee30b3c7011cd28e063363161ac0c4fa1675c"
+            },
+            {
+              "source": "G",
+              "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+              "judgeId": "anthropic-sonnet",
+              "requestedModel": "claude-sonnet-5",
+              "transport": "claude-cli",
+              "originalProtocolHash": "df623b49f66311a4ecb87fc7646c9e6c197b3b42447870e13caac2f45711d72c",
+              "publicFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-gemini-3.8-medium/judge-anthropic-sonnet.jsonl",
+              "publicFileHash": "1da17ad135748bf7c33ac62708d30742ef3403b21ee5c0ef7445710af61e12ec",
+              "privateFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-gemini-3.8-medium/judge-anthropic-sonnet.private.jsonl",
+              "privateFileHash": "d2e4fe56b6c234c159827e25ab3597c8b3ac3d6a9c0dc5d1c6da20176b1c357d",
+              "provenanceHash": "d07101770db687f7e9e1edd6672f51f9eaed6b52e36ffa9606cff47f5c069456",
+              "bindingHash": "1dc8082531d736e80e728097cfc833c1a467f0013452a92d418209086fdf26d6",
+              "job": {
+                "path": "artifacts/corrected-judgments-20260905/jobs/anthropic-sonnet-on-gemini-3.8-medium/job.json",
+                "sha256": "1b8c1f25c37a54703a378ee89de0f0b61cb419dd7cb58a7d13d94334336e2853",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T06:35:03.410Z",
+                "endedAt": "2026-09-05T07:22:18.815Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 78,
+              "canonicalValid": 78,
+              "statusTransitions": {
+                "ok->ok": 78,
+                "ok->error": 0,
+                "error->ok": 0,
+                "error->error": 24
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "0e3696b40aa701672292f062b238cbdfd15351035619129b3a1eb146234eedfc"
+            }
+          ]
+        }
+      },
+      {
+        "candidate": "anthropic-sonnet",
+        "provenance": {
+          "source": "D",
+          "sourceCommit": "dca3aa1de00bd21594f39e5b3c83614f28f22b85",
+          "protocolHash": "039f00a9c00de4912e88dac70fbd0187ed0d6e71f8132309b5a772ea58bf3aec",
+          "parentSnapshotHash": "a768f9215efa81875445340bcb9b807d607b238ef68ef90e42fe108633f5c1ee",
+          "generationFileHash": "2211159db0873bd68d1d88a4cc539ea22c195ea83225ca5b60a4d32a94056d75",
+          "privateGenerationFileHash": "795c6feca1d723a70c58f81422fde82ce0c4a19f2f1123c10b19b4d4ea17dd11",
+          "generationJob": {
+            "path": "artifacts/model-confirmation-20260905/jobs/anthropic-sonnet/job.json",
+            "sha256": "94b3549e66592809ea76f565acb885a044c418b7cdbd61ac47f42988efe7b4cc",
+            "state": "completed",
+            "exitCode": 0,
+            "startedAt": "2026-09-05T05:43:47.276Z",
+            "endedAt": "2026-09-05T06:06:16.385Z",
+            "rowsPredatingLatestJobStart": 0
+          },
+          "generationReceipts": 102,
+          "generationReceiptManifestHash": "185f6355cb670754675521dba672875168f633fa718952f19bb58201210c7bbc",
+          "judgments": [
+            {
+              "source": "G",
+              "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+              "judgeId": "openai-5.5",
+              "requestedModel": "gpt-5.5",
+              "transport": "opencodex",
+              "originalProtocolHash": "a15fd0901972bf011256a377067f2bac5290476adaf8b6e5cbfd05bbee55f601",
+              "publicFile": "artifacts/corrected-judgments-20260905/openai-5.5-on-anthropic-sonnet/judge-openai-5.5.jsonl",
+              "publicFileHash": "0b9827c52273fc80043f3e210d0fcd6f77e600b32f096cd511c357943be6e5ba",
+              "privateFile": "artifacts/corrected-judgments-20260905/openai-5.5-on-anthropic-sonnet/judge-openai-5.5.private.jsonl",
+              "privateFileHash": "623aaad5f8c471bfa869313d9b3c47fe964cbe5859d712957de0201124ef05e8",
+              "provenanceHash": "a9b3f6319c8ad3e79f13e74f224b3f6e9fcd07216b65df6484190659821858cb",
+              "bindingHash": "5a1d41348adbe4f797d1dcfe1623b359bfaa54b6316515999890fd38f5489f42",
+              "job": {
+                "path": "artifacts/corrected-judgments-20260905/jobs/openai-5.5-on-anthropic-sonnet/job.json",
+                "sha256": "d87b35aefe794da1e22190fee088b873569f41c24e92d5ffef5c124fbd5df750",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T06:29:44.066Z",
+                "endedAt": "2026-09-05T07:11:10.599Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 82,
+              "canonicalValid": 82,
+              "statusTransitions": {
+                "ok->ok": 82,
+                "ok->error": 0,
+                "error->ok": 0,
+                "error->error": 20
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "1c0317d07445203d7eb61c76c93d5ba8d772337322f15f72bfc2d671cd80b6cf"
+            },
+            {
+              "source": "G",
+              "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+              "judgeId": "gemini-3.7",
+              "requestedModel": "google-antigravity/gemini-3.7-flash",
+              "transport": "opencodex",
+              "originalProtocolHash": "d0b510a22c24671068333b365c0eefe4c2264669a5a4107bb22e9f65d34db72c",
+              "publicFile": "artifacts/corrected-judgments-20260905/gemini-3.7-on-anthropic-sonnet/judge-gemini-3.7.jsonl",
+              "publicFileHash": "d8c672f3400792eb4634808339b052be0e547a99c823fb0eda3110845bfd0e0b",
+              "privateFile": "artifacts/corrected-judgments-20260905/gemini-3.7-on-anthropic-sonnet/judge-gemini-3.7.private.jsonl",
+              "privateFileHash": "74b44ddc8e91da955439d883e696a41b1de3c7b0e45c83e47e74e756e0e19f47",
+              "provenanceHash": "536e02d700ed5f85d92e41dba5a220c000cc22b9be1063c5fd2fa0d443a5c727",
+              "bindingHash": "9c2a3c44ee6fff59b041fbd9c2b56d54d21c3673a577e27a68147d3b8d6164bf",
+              "job": {
+                "path": "artifacts/corrected-judgments-20260905/jobs/gemini-3.7-on-anthropic-sonnet/job.json",
+                "sha256": "b0b403e7ea5d5b43398d41baf18fdd47d40c9b2cd72d79055c0b53c2b6e0ab47",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T06:08:16.507Z",
+                "endedAt": "2026-09-05T06:22:36.878Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 90,
+              "canonicalValid": 90,
+              "statusTransitions": {
+                "ok->ok": 90,
+                "ok->error": 0,
+                "error->ok": 0,
+                "error->error": 12
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "7383c415ec948552d45e3aea08715b48ba9137b92a995e2b6d2dbbe012678e13"
+            }
+          ]
+        }
+      },
+      {
+        "candidate": "anthropic-fable",
+        "provenance": {
+          "source": "D",
+          "sourceCommit": "dca3aa1de00bd21594f39e5b3c83614f28f22b85",
+          "protocolHash": "f9c0931236e1e72dccec0da3580e21e430eb3d1385276896a2f55b14ba7d73ed",
+          "parentSnapshotHash": "245e9a8ff18be17ea1c7b02673985a1deb186406b894eac5de88b4057f985c97",
+          "generationFileHash": "b3f3db60d6e2f3787d5e55c4fd74ae79a8a9e86de557d68ac9a67dea7c612cbf",
+          "privateGenerationFileHash": "c83ff744af8a98604058c8655464d2ac804cd70ff5be671042258c546a59f7dc",
+          "generationJob": {
+            "path": "artifacts/model-confirmation-20260905/jobs/anthropic-fable/job.json",
+            "sha256": "d11e904fcae97da93b260f2ddc63a61310ebb506c64c98312eb470bdeed8bd52",
+            "state": "completed",
+            "exitCode": 0,
+            "startedAt": "2026-09-05T05:43:47.319Z",
+            "endedAt": "2026-09-05T06:15:23.485Z",
+            "rowsPredatingLatestJobStart": 0
+          },
+          "generationReceipts": 102,
+          "generationReceiptManifestHash": "89471f71410f773cd9cf49b1de076781501b0b50a0835e9dede141cf0687e514",
+          "judgments": [
+            {
+              "source": "G",
+              "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+              "judgeId": "openai-5.5",
+              "requestedModel": "gpt-5.5",
+              "transport": "opencodex",
+              "originalProtocolHash": "ea517c4a8cce04d3ad338c6f4b3fc33df4c759dff9af8b72c7b19d78782d1f0d",
+              "publicFile": "artifacts/corrected-judgments-20260905/openai-5.5-on-anthropic-fable/judge-openai-5.5.jsonl",
+              "publicFileHash": "2090f5c29facf940d45302083160f740158d05dcf58d32e9bd1d5ad1ed688957",
+              "privateFile": "artifacts/corrected-judgments-20260905/openai-5.5-on-anthropic-fable/judge-openai-5.5.private.jsonl",
+              "privateFileHash": "65226e112508d2f13710afeb9f3e96b10971d873d94729cad535628aae434011",
+              "provenanceHash": "5be99e33377c938eaa937cf0899c808758c58e9e597029c2f8084760f497d1f6",
+              "bindingHash": "bd5a672f1a5dc1c1c4bf9b5c2816c220d317a9e3921a6c866afcb415e72ed4a3",
+              "job": {
+                "path": "artifacts/corrected-judgments-20260905/jobs/openai-5.5-on-anthropic-fable/job.json",
+                "sha256": "078eb76cd1d2a6e7934b4b22b3b13648215dd15e67bf563e802e10ea700e8d11",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T06:15:26.896Z",
+                "endedAt": "2026-09-05T06:56:42.941Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 74,
+              "canonicalValid": 74,
+              "statusTransitions": {
+                "ok->ok": 74,
+                "ok->error": 0,
+                "error->ok": 0,
+                "error->error": 28
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "715a38be92940bfb9d39546761d146a66bf3a3667c779c38b4454648b87d47c5"
+            },
+            {
+              "source": "G",
+              "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+              "judgeId": "gemini-3.7",
+              "requestedModel": "google-antigravity/gemini-3.7-flash",
+              "transport": "opencodex",
+              "originalProtocolHash": "62f26205ec6eb2736bfea499825f9821bbcda2462771f7e85ed8a7d519fad58e",
+              "publicFile": "artifacts/corrected-judgments-20260905/gemini-3.7-on-anthropic-fable/judge-gemini-3.7.jsonl",
+              "publicFileHash": "cf43984fe16ca8d2b5c61fdc0a873f470e56628fdc65ebf1ae2c235dab080ab7",
+              "privateFile": "artifacts/corrected-judgments-20260905/gemini-3.7-on-anthropic-fable/judge-gemini-3.7.private.jsonl",
+              "privateFileHash": "06c74ab74e30eb75b3dcefd25d82c172ad2ee54efcee9dcf271d6c2b01187037",
+              "provenanceHash": "0911f379f3bbfb3ed66f678b919384af91546a4129bac39275a66d63df6fea01",
+              "bindingHash": "11a5035d640a574c1242c2b52d8a6ce28fe8b5454fb99f34d0d83d022770841a",
+              "job": {
+                "path": "artifacts/corrected-judgments-20260905/jobs/gemini-3.7-on-anthropic-fable/job.json",
+                "sha256": "5310c7caaee7cdfdb642053ae0a50224819ced5b05c055c5d760b6be29d07b73",
+                "state": "completed",
+                "exitCode": 0,
+                "startedAt": "2026-09-05T06:29:44.210Z",
+                "endedAt": "2026-09-05T06:43:29.602Z",
+                "rowsPredatingLatestJobStart": 0
+              },
+              "rows": 102,
+              "originalValid": 91,
+              "canonicalValid": 91,
+              "statusTransitions": {
+                "ok->ok": 91,
+                "ok->error": 0,
+                "error->ok": 0,
+                "error->error": 11
+              },
+              "receiptCount": 306,
+              "receiptManifestHash": "28870f851fb9cc83c6d6d09e1de7d753b00cce220538d8da24de947838126855"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "privateLedgerHash": "a2aea213c1d5abcb3918198425be0ee3b9c3222ae129e679e92978ad4a3cd5eb",
+  "coverage": {
+    "candidates": 6,
+    "uniqueFixtures": 34,
+    "repeatsPerFixture": 3,
+    "generations": 612,
+    "expectedJudgments": 1224,
+    "observedJudgments": 1224,
+    "terminalGenerationJobs": 6,
+    "terminalJudgeJobs": 12,
+    "originalValidJudgments": 1029,
+    "canonicalValidJudgments": 991,
+    "statusTransitions": {
+      "ok->ok": 978,
+      "ok->error": 51,
+      "error->ok": 13,
+      "error->error": 182
+    },
+    "byOriginalEvaluator": {
+      "E": {
+        "judgments": 408,
+        "statusTransitions": {
+          "ok->ok": 323,
+          "ok->error": 51,
+          "error->ok": 13,
+          "error->error": 21
+        }
+      },
+      "G": {
+        "judgments": 816,
+        "statusTransitions": {
+          "ok->ok": 655,
+          "ok->error": 0,
+          "error->ok": 0,
+          "error->error": 161
+        }
+      }
+    },
+    "judgedReceipts": 3672,
+    "generationReceipts": 612
+  },
+  "originalRanks": [
+    {
+      "rank": 1,
+      "id": "openai-astra",
+      "attempted": 102,
+      "safe": 62,
+      "safeRate": 0.6078431372549019,
+      "judgeErrors": 21,
+      "naturalnessMedian": 2.5,
+      "generationMedianMs": 13531
+    },
+    {
+      "rank": 2,
+      "id": "openai-terra",
+      "attempted": 102,
+      "safe": 45,
+      "safeRate": 0.4411764705882353,
+      "judgeErrors": 23,
+      "naturalnessMedian": 3,
+      "generationMedianMs": 5320
+    },
+    {
+      "rank": 3,
+      "id": "anthropic-sonnet",
+      "attempted": 102,
+      "safe": 42,
+      "safeRate": 0.4117647058823529,
+      "judgeErrors": 27,
+      "naturalnessMedian": 3.5,
+      "generationMedianMs": 8357.5
+    },
+    {
+      "rank": 4,
+      "id": "anthropic-fable",
+      "attempted": 102,
+      "safe": 36,
+      "safeRate": 0.35294117647058826,
+      "judgeErrors": 31,
+      "naturalnessMedian": 3.5,
+      "generationMedianMs": 17961
+    },
+    {
+      "rank": 5,
+      "id": "gemini-3.8-medium",
+      "attempted": 102,
+      "safe": 18,
+      "safeRate": 0.17647058823529413,
+      "judgeErrors": 32,
+      "naturalnessMedian": 2.5,
+      "generationMedianMs": 8702
+    },
+    {
+      "rank": 6,
+      "id": "gemini-3.8-high",
+      "attempted": 102,
+      "safe": 10,
+      "safeRate": 0.09803921568627451,
+      "judgeErrors": 30,
+      "naturalnessMedian": 2.5,
+      "generationMedianMs": 8492
+    }
+  ],
+  "ranks": [
+    {
+      "rank": 1,
+      "id": "openai-astra",
+      "attempted": 102,
+      "safe": 58,
+      "safeRate": 0.5686274509803921,
+      "judgeErrors": 25,
+      "naturalnessMedian": 2.5,
+      "generationMedianMs": 13531
+    },
+    {
+      "rank": 2,
+      "id": "openai-terra",
+      "attempted": 102,
+      "safe": 45,
+      "safeRate": 0.4411764705882353,
+      "judgeErrors": 23,
+      "naturalnessMedian": 3,
+      "generationMedianMs": 5320
+    },
+    {
+      "rank": 3,
+      "id": "anthropic-sonnet",
+      "attempted": 102,
+      "safe": 42,
+      "safeRate": 0.4117647058823529,
+      "judgeErrors": 27,
+      "naturalnessMedian": 3.5,
+      "generationMedianMs": 8357.5
+    },
+    {
+      "rank": 4,
+      "id": "anthropic-fable",
+      "attempted": 102,
+      "safe": 36,
+      "safeRate": 0.35294117647058826,
+      "judgeErrors": 31,
+      "naturalnessMedian": 3.5,
+      "generationMedianMs": 17961
+    },
+    {
+      "rank": 5,
+      "id": "gemini-3.8-medium",
+      "attempted": 102,
+      "safe": 18,
+      "safeRate": 0.17647058823529413,
+      "judgeErrors": 34,
+      "naturalnessMedian": 2.5,
+      "generationMedianMs": 8702
+    },
+    {
+      "rank": 6,
+      "id": "gemini-3.8-high",
+      "attempted": 102,
+      "safe": 10,
+      "safeRate": 0.09803921568627451,
+      "judgeErrors": 30,
+      "naturalnessMedian": 2.5,
+      "generationMedianMs": 8492
+    }
+  ],
+  "candidates": [
+    {
+      "id": "openai-astra",
+      "provider": "openai",
+      "requestedModel": "gpt-6-astra",
+      "transport": "opencodex",
+      "overall": {
+        "generations": 102,
+        "fixtureClusters": 34,
+        "generationErrors": 0,
+        "expectedJudgments": 204,
+        "observedJudgments": 204,
+        "validJudgments": 166,
+        "judgmentErrors": 38,
+        "transportErrors": 0,
+        "validJudgePairs": 77,
+        "safe": 58,
+        "safeRate": 0.5686274509803921,
+        "numericSafety": {
+          "assessed": 102,
+          "passed": 81,
+          "failed": 21
+        },
+        "stages": {
+          "mps": {
+            "observed": 204,
+            "valid": 166,
+            "invalid": 38,
+            "belowFloor": 1,
+            "hardFailureResponses": 0,
+            "scores": {
+              "n": 166,
+              "min": 48,
+              "median": 100,
+              "mean": 99.6867469879518,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "fidelity": {
+            "observed": 204,
+            "valid": 204,
+            "invalid": 0,
+            "belowFloor": 1,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 204,
+              "min": 83.3,
+              "median": 100,
+              "mean": 99.30784313725489,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "naturalness": {
+            "observed": 204,
+            "valid": 203,
+            "invalid": 1,
+            "belowFloor": null,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 203,
+              "min": 1,
+              "median": 3,
+              "mean": 2.6354679802955663,
+              "p95": 4,
+              "max": 4
+            }
+          }
+        },
+        "pairNaturalness": {
+          "n": 77,
+          "min": 1.5,
+          "median": 2.5,
+          "mean": 2.564935064935065,
+          "p95": 3.5,
+          "max": 3.5
+        },
+        "generationLatencyMs": {
+          "n": 102,
+          "min": 6302,
+          "median": 13531,
+          "mean": 13732.911764705883,
+          "p95": 21459,
+          "max": 29364
+        }
+      },
+      "byLanguage": {
+        "en": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 65,
+          "judgmentErrors": 1,
+          "transportErrors": 0,
+          "validJudgePairs": 32,
+          "safe": 21,
+          "safeRate": 0.6363636363636364,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 21,
+            "failed": 12
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 65,
+              "invalid": 1,
+              "belowFloor": 1,
+              "hardFailureResponses": 0,
+              "scores": {
+                "n": 65,
+                "min": 48,
+                "median": 100,
+                "mean": 99.2,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 0,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 91.7,
+                "median": 100,
+                "mean": 99.37121212121212,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 1,
+                "median": 2.5,
+                "mean": 2.5303030303030303,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 32,
+            "min": 1.5,
+            "median": 2.5,
+            "mean": 2.53125,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 6302,
+            "median": 13755,
+            "mean": 13886.69696969697,
+            "p95": 19934,
+            "max": 21104
+          }
+        },
+        "ko": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 60,
+          "judgmentErrors": 6,
+          "transportErrors": 0,
+          "validJudgePairs": 27,
+          "safe": 24,
+          "safeRate": 0.7272727272727273,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 29,
+            "failed": 4
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 60,
+              "invalid": 6,
+              "belowFloor": 0,
+              "hardFailureResponses": 0,
+              "scores": {
+                "n": 60,
+                "min": 100,
+                "median": 100,
+                "mean": 100,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 1,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 83.3,
+                "median": 100,
+                "mean": 98.61515151515152,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 1,
+                "median": 3,
+                "mean": 2.6666666666666665,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 27,
+            "min": 1.5,
+            "median": 2.5,
+            "mean": 2.611111111111111,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 10131,
+            "median": 17446,
+            "mean": 18087.545454545456,
+            "p95": 26009,
+            "max": 29364
+          }
+        },
+        "zh": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 16,
+          "judgmentErrors": 20,
+          "transportErrors": 0,
+          "validJudgePairs": 6,
+          "safe": 5,
+          "safeRate": 0.2777777777777778,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 17,
+            "failed": 1
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 16,
+              "invalid": 20,
+              "belowFloor": 0,
+              "hardFailureResponses": 0,
+              "scores": {
+                "n": 16,
+                "min": 100,
+                "median": 100,
+                "mean": 100,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 0,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 91.7,
+                "median": 100,
+                "mean": 99.76944444444445,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 35,
+              "invalid": 1,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 35,
+                "min": 1,
+                "median": 3,
+                "mean": 2.6285714285714286,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 6,
+            "min": 1.5,
+            "median": 2.25,
+            "mean": 2.25,
+            "p95": 3,
+            "max": 3
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 6598,
+            "median": 9366.5,
+            "mean": 9176.833333333334,
+            "p95": 11847,
+            "max": 11847
+          }
+        },
+        "ja": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 25,
+          "judgmentErrors": 11,
+          "transportErrors": 0,
+          "validJudgePairs": 12,
+          "safe": 8,
+          "safeRate": 0.4444444444444444,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 14,
+            "failed": 4
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 25,
+              "invalid": 11,
+              "belowFloor": 0,
+              "hardFailureResponses": 0,
+              "scores": {
+                "n": 25,
+                "min": 100,
+                "median": 100,
+                "mean": 100,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 0,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 100,
+                "median": 100,
+                "mean": 100,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 1,
+                "median": 3,
+                "mean": 2.7777777777777777,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 12,
+            "min": 2,
+            "median": 3,
+            "mean": 2.7083333333333335,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 7833,
+            "median": 9231,
+            "mean": 10023.555555555555,
+            "p95": 14675,
+            "max": 14675
+          }
+        }
+      },
+      "provenance": {
+        "source": "E",
+        "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+        "protocolHash": "de440a5bef9483c7da3eeb2a21cff2001fc8199520aafc66276b9611df6ccfac",
+        "parentSnapshotHash": "035ad730aca2014f11d2d93049985b89b03fc7603dd1cdccb6b34c84745f1f66",
+        "generationFileHash": "abaf23e9dd8435064188ae5609458c5f0356788859959f57c42e9e88d706a88d",
+        "privateGenerationFileHash": "4f7f607dc5ba5d871e804d77e515ec53a08fd0d3b9d1769694e859389ace0e40",
+        "generationJob": {
+          "path": "artifacts/model-confirmation-20260905/jobs/openai-astra/job.json",
+          "sha256": "9123db06e5a8d7a1a6748a1295411e6890cf059d911d098f2715c94241990cbe",
+          "state": "completed",
+          "exitCode": 0,
+          "startedAt": "2026-09-05T03:20:37.347Z",
+          "endedAt": "2026-09-05T03:43:58.468Z",
+          "rowsPredatingLatestJobStart": 0
+        },
+        "generationReceipts": 102,
+        "generationReceiptManifestHash": "58bb6d22be96c41f39ca6c7215056181b3a5bc801434380af30691143e972362",
+        "judgments": [
+          {
+            "source": "E",
+            "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+            "judgeId": "gemini-3.7",
+            "requestedModel": "google-antigravity/gemini-3.7-flash",
+            "transport": "opencodex",
+            "originalProtocolHash": "d6a01e6e1f90feac25e434a6d27b7b62b0cee26f1d2473e94fe4c97e767ecfbc",
+            "publicFile": "artifacts/model-confirmation-20260905/gemini-3.7-on-openai-astra/judge-gemini-3.7.jsonl",
+            "publicFileHash": "8186e48f0c6c59448998950127bc915b76bcd466c9e1806b76a3fedac3e85c63",
+            "privateFile": "artifacts/model-confirmation-20260905/gemini-3.7-on-openai-astra/judge-gemini-3.7.private.jsonl",
+            "privateFileHash": "d433f53b5fae153d86d0f086c0bc5007b2551186b264c4e80e0c9265456d55c2",
+            "provenanceHash": "57e1fbe489bc31102f01e7a04e5b3469203448a881b6cc375f51ee1d0cc9261b",
+            "bindingHash": "39048645b835e7563ea8680169fe75880fb2ec49241cc776557f88eddf10dbf1",
+            "job": {
+              "path": "artifacts/model-confirmation-20260905/jobs/gemini-3.7-on-openai-astra/job.json",
+              "sha256": "416107db1691e7faaec2ba325c12f85f20064766403ce0b235be1e9138d4452a",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T04:58:04.425Z",
+              "endedAt": "2026-09-05T05:11:58.708Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 102,
+            "canonicalValid": 85,
+            "statusTransitions": {
+              "ok->ok": 85,
+              "ok->error": 17,
+              "error->ok": 0,
+              "error->error": 0
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "8cf0cf307462e29b808c334f78ba1f7639f2adc83f2a0a48a310250e2bb32484"
+          },
+          {
+            "source": "G",
+            "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+            "judgeId": "anthropic-sonnet",
+            "requestedModel": "claude-sonnet-5",
+            "transport": "claude-cli",
+            "originalProtocolHash": "f84eee802dfa766876bdef4304a366ff345ba0d541a76f8271683f5bbb176c42",
+            "publicFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-openai-astra/judge-anthropic-sonnet.jsonl",
+            "publicFileHash": "885da6cc0c5ab5568f417529d8cd47caf5425d040725e225b77f7e46fb21a434",
+            "privateFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-openai-astra/judge-anthropic-sonnet.private.jsonl",
+            "privateFileHash": "f88bb87510f2f178ba444401b91021830ae30a5c1644d7d5ca5134bf12b758d6",
+            "provenanceHash": "8bb2f26c325c6770701fea7212ef2e442f6039dbad6b6d1591284d6e1a6820da",
+            "bindingHash": "0121e3ddfb14cbde60ea0c08a4bd64731749351cb9c0ba669892aa94d51374c9",
+            "job": {
+              "path": "artifacts/corrected-judgments-20260905/jobs/anthropic-sonnet-on-openai-astra/job.json",
+              "sha256": "0e7211e5aced7f1144c88d62d8f3f4e2bdec4f1e20b6394a11520f2d65cf0d5b",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T06:35:02.961Z",
+              "endedAt": "2026-09-05T07:06:15.267Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 81,
+            "canonicalValid": 81,
+            "statusTransitions": {
+              "ok->ok": 81,
+              "ok->error": 0,
+              "error->ok": 0,
+              "error->error": 21
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "b7238b53ca92bfe5b01b928676b89c282bfc53ddaf0c0a25fc7f8243870f01b9"
+          }
+        ]
+      }
+    },
+    {
+      "id": "openai-terra",
+      "provider": "openai",
+      "requestedModel": "gpt-5.6-terra",
+      "transport": "opencodex",
+      "overall": {
+        "generations": 102,
+        "fixtureClusters": 34,
+        "generationErrors": 0,
+        "expectedJudgments": 204,
+        "observedJudgments": 204,
+        "validJudgments": 168,
+        "judgmentErrors": 36,
+        "transportErrors": 0,
+        "validJudgePairs": 79,
+        "safe": 45,
+        "safeRate": 0.4411764705882353,
+        "numericSafety": {
+          "assessed": 102,
+          "passed": 78,
+          "failed": 24
+        },
+        "stages": {
+          "mps": {
+            "observed": 204,
+            "valid": 168,
+            "invalid": 36,
+            "belowFloor": 25,
+            "hardFailureResponses": 0,
+            "scores": {
+              "n": 168,
+              "min": 40,
+              "median": 100,
+              "mean": 96.23654761904761,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "fidelity": {
+            "observed": 204,
+            "valid": 204,
+            "invalid": 0,
+            "belowFloor": 1,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 204,
+              "min": 83.3,
+              "median": 100,
+              "mean": 99.30784313725489,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "naturalness": {
+            "observed": 204,
+            "valid": 204,
+            "invalid": 0,
+            "belowFloor": null,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 204,
+              "min": 1,
+              "median": 3,
+              "mean": 2.9019607843137254,
+              "p95": 4,
+              "max": 4
+            }
+          }
+        },
+        "pairNaturalness": {
+          "n": 79,
+          "min": 1.5,
+          "median": 3,
+          "mean": 2.930379746835443,
+          "p95": 3.5,
+          "max": 3.5
+        },
+        "generationLatencyMs": {
+          "n": 102,
+          "min": 3232,
+          "median": 5320,
+          "mean": 5778.343137254902,
+          "p95": 9585,
+          "max": 15228
+        }
+      },
+      "byLanguage": {
+        "en": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 64,
+          "judgmentErrors": 2,
+          "transportErrors": 0,
+          "validJudgePairs": 31,
+          "safe": 17,
+          "safeRate": 0.5151515151515151,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 20,
+            "failed": 13
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 64,
+              "invalid": 2,
+              "belowFloor": 8,
+              "hardFailureResponses": 0,
+              "scores": {
+                "n": 64,
+                "min": 60,
+                "median": 100,
+                "mean": 97.1765625,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 0,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 91.7,
+                "median": 100,
+                "mean": 98.74242424242425,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 1,
+                "median": 3,
+                "mean": 3.212121212121212,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 31,
+            "min": 2.5,
+            "median": 3.5,
+            "mean": 3.193548387096774,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 3232,
+            "median": 4402,
+            "mean": 4668.424242424242,
+            "p95": 7234,
+            "max": 9963
+          }
+        },
+        "ko": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 60,
+          "judgmentErrors": 6,
+          "transportErrors": 0,
+          "validJudgePairs": 27,
+          "safe": 15,
+          "safeRate": 0.45454545454545453,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 28,
+            "failed": 5
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 60,
+              "invalid": 6,
+              "belowFloor": 14,
+              "hardFailureResponses": 0,
+              "scores": {
+                "n": 60,
+                "min": 40,
+                "median": 100,
+                "mean": 94.14,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 0,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 91.7,
+                "median": 100,
+                "mean": 99.4969696969697,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 1,
+                "median": 3,
+                "mean": 3.0303030303030303,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 27,
+            "min": 1.5,
+            "median": 3.5,
+            "mean": 3.0555555555555554,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 3947,
+            "median": 5484,
+            "mean": 6377.878787878788,
+            "p95": 15042,
+            "max": 15228
+          }
+        },
+        "zh": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 20,
+          "judgmentErrors": 16,
+          "transportErrors": 0,
+          "validJudgePairs": 9,
+          "safe": 8,
+          "safeRate": 0.4444444444444444,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 18,
+            "failed": 0
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 20,
+              "invalid": 16,
+              "belowFloor": 1,
+              "hardFailureResponses": 0,
+              "scores": {
+                "n": 20,
+                "min": 66.67,
+                "median": 100,
+                "mean": 98.3335,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 0,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 100,
+                "median": 100,
+                "mean": 100,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 1,
+                "median": 3,
+                "mean": 2.4722222222222223,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 9,
+            "min": 1.5,
+            "median": 2.5,
+            "mean": 2.3333333333333335,
+            "p95": 3,
+            "max": 3
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 3734,
+            "median": 5658.5,
+            "mean": 6153.222222222223,
+            "p95": 10733,
+            "max": 10733
+          }
+        },
+        "ja": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 24,
+          "judgmentErrors": 12,
+          "transportErrors": 0,
+          "validJudgePairs": 12,
+          "safe": 5,
+          "safeRate": 0.2777777777777778,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 12,
+            "failed": 6
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 24,
+              "invalid": 12,
+              "belowFloor": 2,
+              "hardFailureResponses": 0,
+              "scores": {
+                "n": 24,
+                "min": 66.67,
+                "median": 100,
+                "mean": 97.22375,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 1,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 83.3,
+                "median": 100,
+                "mean": 99.30555555555556,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 1,
+                "median": 3,
+                "mean": 2.5277777777777777,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 12,
+            "min": 1.5,
+            "median": 2.25,
+            "mean": 2.4166666666666665,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 4814,
+            "median": 5813.5,
+            "mean": 6339.166666666667,
+            "p95": 9585,
+            "max": 9585
+          }
+        }
+      },
+      "provenance": {
+        "source": "E",
+        "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+        "protocolHash": "4446c1e71e30d753d7602a8839c2a69e813d3f683e27f6b012f73c4ec08f5506",
+        "parentSnapshotHash": "cae656c132b3f8c9f8c0e62f3e484975b90a3ffdaebd34314081b53b5be4990e",
+        "generationFileHash": "39177e29b7d8fda542ee516a464ff073efca9ed83ee434fa6521ccbcd3bb81a7",
+        "privateGenerationFileHash": "388c088a0d504acbebf46421bed481b3dad972f480265d683d50e41a9a22a7bd",
+        "generationJob": {
+          "path": "artifacts/model-confirmation-20260905/jobs/openai-terra/job.json",
+          "sha256": "b85828827590e3e1b9b4548c10f90e5b9548e21e8e26dab6350a1043529824a3",
+          "state": "completed",
+          "exitCode": 0,
+          "startedAt": "2026-09-05T03:45:55.650Z",
+          "endedAt": "2026-09-05T03:55:45.353Z",
+          "rowsPredatingLatestJobStart": 0
+        },
+        "generationReceipts": 102,
+        "generationReceiptManifestHash": "6bb2a56b6117ace4f0c5c0a16aa55b342c5d1472da65b635d7401fd98b0a2f26",
+        "judgments": [
+          {
+            "source": "E",
+            "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+            "judgeId": "gemini-3.7",
+            "requestedModel": "google-antigravity/gemini-3.7-flash",
+            "transport": "opencodex",
+            "originalProtocolHash": "6fce9a17d6883930d9911e2646bb068b8a90ddad226bfd05bfceb57996cbbc5e",
+            "publicFile": "artifacts/model-confirmation-20260905/gemini-on-openai-terra/judge-gemini-3.7.jsonl",
+            "publicFileHash": "82b50ef8e7ca0e09f63596f0d3a9bb1c42845631027be3bf1d3599310f403261",
+            "privateFile": "artifacts/model-confirmation-20260905/gemini-on-openai-terra/judge-gemini-3.7.private.jsonl",
+            "privateFileHash": "6749cd867036add092a9f974cc66fa4bfb84055e95bb18d471e3f1d8bebf12e3",
+            "provenanceHash": "9462cefa2be4fd05c3d58c8c4c5abc7869f354d70948a03485578f15f65a2bc1",
+            "bindingHash": "e7bd618131fb3123c4bc409beb62de5b7565437340d1871e8178208f6336411c",
+            "job": {
+              "path": "artifacts/model-confirmation-20260905/jobs/gemini-on-openai-terra/job.json",
+              "sha256": "239e0640e8d37e9bf3a38b70560d9ec84ff4a36488a0b4e24fb218686b865a99",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T04:36:29.249Z",
+              "endedAt": "2026-09-05T04:49:46.281Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 102,
+            "canonicalValid": 89,
+            "statusTransitions": {
+              "ok->ok": 89,
+              "ok->error": 13,
+              "error->ok": 0,
+              "error->error": 0
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "2c65e7128e4a0afef26fc6c7448074789e23557942188c5edddd759043e0957e"
+          },
+          {
+            "source": "G",
+            "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+            "judgeId": "anthropic-sonnet",
+            "requestedModel": "claude-sonnet-5",
+            "transport": "claude-cli",
+            "originalProtocolHash": "8206c4d37bc500d1dae2149b8155e3380bedc7e71148f1e4a853aadbdf31ad9b",
+            "publicFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-openai-terra/judge-anthropic-sonnet.jsonl",
+            "publicFileHash": "95ea7788e02eb271b8afd5098b085fb61d6322127daab6f133dcdbcf1064c90b",
+            "privateFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-openai-terra/judge-anthropic-sonnet.private.jsonl",
+            "privateFileHash": "09b1b0a910d7f1cf1cf70bcea76b2c05cb9a8121e9bd81011acfd551fda5a936",
+            "provenanceHash": "0a9ed734a23fb1857c2a4eb61fb848a43fa7a11872eb192909d91debabc08c79",
+            "bindingHash": "a3e6792979c8f03bdc6ecab6956e623c1f8dfa2f110334c29f2a7e00ef204f3e",
+            "job": {
+              "path": "artifacts/corrected-judgments-20260905/jobs/anthropic-sonnet-on-openai-terra/job.json",
+              "sha256": "2158ecef8e1a8f4a38073c8fa1906e4562bfb9840af19f861cdb243f3ea37bf8",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T06:35:03.104Z",
+              "endedAt": "2026-09-05T07:08:48.289Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 79,
+            "canonicalValid": 79,
+            "statusTransitions": {
+              "ok->ok": 79,
+              "ok->error": 0,
+              "error->ok": 0,
+              "error->error": 23
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "6ebbe223da5f719532119e48c82de2b40c752d557509b34eb2112a828c5167af"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gemini-3.8-high",
+      "provider": "gemini",
+      "requestedModel": "google-antigravity/gemini-3.8-flash-high",
+      "transport": "opencodex",
+      "overall": {
+        "generations": 102,
+        "fixtureClusters": 34,
+        "generationErrors": 0,
+        "expectedJudgments": 204,
+        "observedJudgments": 204,
+        "validJudgments": 166,
+        "judgmentErrors": 38,
+        "transportErrors": 0,
+        "validJudgePairs": 72,
+        "safe": 10,
+        "safeRate": 0.09803921568627451,
+        "numericSafety": {
+          "assessed": 102,
+          "passed": 68,
+          "failed": 34
+        },
+        "stages": {
+          "mps": {
+            "observed": 204,
+            "valid": 166,
+            "invalid": 38,
+            "belowFloor": 64,
+            "hardFailureResponses": 51,
+            "scores": {
+              "n": 166,
+              "min": 33.33,
+              "median": 100,
+              "mean": 88.10289156626507,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "fidelity": {
+            "observed": 204,
+            "valid": 204,
+            "invalid": 0,
+            "belowFloor": 82,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 204,
+              "min": 16.7,
+              "median": 91.7,
+              "mean": 88.40000000000019,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "naturalness": {
+            "observed": 204,
+            "valid": 204,
+            "invalid": 0,
+            "belowFloor": null,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 204,
+              "min": 1,
+              "median": 3,
+              "mean": 2.75,
+              "p95": 4,
+              "max": 4
+            }
+          }
+        },
+        "pairNaturalness": {
+          "n": 72,
+          "min": 1.5,
+          "median": 2.5,
+          "mean": 2.701388888888889,
+          "p95": 3.5,
+          "max": 4
+        },
+        "generationLatencyMs": {
+          "n": 102,
+          "min": 1966,
+          "median": 8492,
+          "mean": 10386.941176470587,
+          "p95": 20877,
+          "max": 45020
+        }
+      },
+      "byLanguage": {
+        "en": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 61,
+          "judgmentErrors": 5,
+          "transportErrors": 0,
+          "validJudgePairs": 29,
+          "safe": 4,
+          "safeRate": 0.12121212121212122,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 14,
+            "failed": 19
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 61,
+              "invalid": 5,
+              "belowFloor": 21,
+              "hardFailureResponses": 22,
+              "scores": {
+                "n": 61,
+                "min": 33.33,
+                "median": 100,
+                "mean": 88.567868852459,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 22,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 41.7,
+                "median": 91.7,
+                "mean": 89.65303030303022,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 2,
+                "median": 3,
+                "mean": 2.757575757575758,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 29,
+            "min": 2,
+            "median": 2.5,
+            "mean": 2.706896551724138,
+            "p95": 3.5,
+            "max": 4
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 1966,
+            "median": 8251,
+            "mean": 8978.90909090909,
+            "p95": 12966,
+            "max": 22298
+          }
+        },
+        "ko": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 55,
+          "judgmentErrors": 11,
+          "transportErrors": 0,
+          "validJudgePairs": 23,
+          "safe": 4,
+          "safeRate": 0.12121212121212122,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 27,
+            "failed": 6
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 55,
+              "invalid": 11,
+              "belowFloor": 26,
+              "hardFailureResponses": 20,
+              "scores": {
+                "n": 55,
+                "min": 48,
+                "median": 90,
+                "mean": 86.88727272727272,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 31,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 75,
+                "median": 91.7,
+                "mean": 88.1318181818181,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 2,
+                "median": 3,
+                "mean": 2.772727272727273,
+                "p95": 3,
+                "max": 3
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 23,
+            "min": 2,
+            "median": 3,
+            "mean": 2.8260869565217392,
+            "p95": 3,
+            "max": 3
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 3634,
+            "median": 10218,
+            "mean": 13868.727272727272,
+            "p95": 34980,
+            "max": 45020
+          }
+        },
+        "zh": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 23,
+          "judgmentErrors": 13,
+          "transportErrors": 0,
+          "validJudgePairs": 8,
+          "safe": 1,
+          "safeRate": 0.05555555555555555,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 17,
+            "failed": 1
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 23,
+              "invalid": 13,
+              "belowFloor": 5,
+              "hardFailureResponses": 2,
+              "scores": {
+                "n": 23,
+                "min": 66.67,
+                "median": 100,
+                "mean": 93.33652173913042,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 15,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 16.7,
+                "median": 91.7,
+                "mean": 88.42222222222222,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 1,
+                "median": 3,
+                "mean": 2.8055555555555554,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 8,
+            "min": 1.5,
+            "median": 2.5,
+            "mean": 2.625,
+            "p95": 4,
+            "max": 4
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 5341,
+            "median": 8206,
+            "mean": 8617.5,
+            "p95": 19260,
+            "max": 19260
+          }
+        },
+        "ja": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 27,
+          "judgmentErrors": 9,
+          "transportErrors": 0,
+          "validJudgePairs": 12,
+          "safe": 1,
+          "safeRate": 0.05555555555555555,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 10,
+            "failed": 8
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 27,
+              "invalid": 9,
+              "belowFloor": 12,
+              "hardFailureResponses": 7,
+              "scores": {
+                "n": 27,
+                "min": 50,
+                "median": 100,
+                "mean": 85.07037037037037,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 14,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 33.3,
+                "median": 100,
+                "mean": 86.57222222222221,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 1,
+                "median": 3,
+                "mean": 2.638888888888889,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 12,
+            "min": 1.5,
+            "median": 2.5,
+            "mean": 2.5,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 6010,
+            "median": 8160,
+            "mean": 8354.5,
+            "p95": 11163,
+            "max": 11163
+          }
+        }
+      },
+      "provenance": {
+        "source": "E",
+        "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+        "protocolHash": "fa024d21dcc0d9caf5ebb633e4578fa39cf9a406f501ec1d7e5779c60ee16a22",
+        "parentSnapshotHash": "e94a9f0bad5956832990938152c48f6ce5b548cb8b47bdd8c4fb6ee314a17978",
+        "generationFileHash": "30146f6baed05ccc748ac3982f2affb2682f449fd14cb2d0bd0e510e36833f8b",
+        "privateGenerationFileHash": "26143d8bd3a712b049fdda3cfe52fad1cdfe249b2d8e205b9547b8ebf26e1ae7",
+        "generationJob": {
+          "path": "artifacts/model-confirmation-20260905/jobs/gemini-3.8-high/job.json",
+          "sha256": "4694e23571ebfb926f3b76d9bf5a7fafe2b546ae6bf7fe692f35ad518c0ff239",
+          "state": "completed",
+          "exitCode": 0,
+          "startedAt": "2026-09-05T03:44:09.689Z",
+          "endedAt": "2026-09-05T04:01:49.605Z",
+          "rowsPredatingLatestJobStart": 0
+        },
+        "generationReceipts": 102,
+        "generationReceiptManifestHash": "f1a37a509fae17d3a442b85a81251f9620cd5d1286e33e8c126d3c6cc14b3391",
+        "judgments": [
+          {
+            "source": "E",
+            "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+            "judgeId": "openai-5.5",
+            "requestedModel": "gpt-5.5",
+            "transport": "opencodex",
+            "originalProtocolHash": "fa8830daa40724f111248df8946e19deafd9532221efe4c881099a99f4744354",
+            "publicFile": "artifacts/model-confirmation-20260905/openai-5.5-on-gemini-3.8-high/judge-openai-5.5.jsonl",
+            "publicFileHash": "8ff0af19523ffed59c1fa9569d90c9abd6c792ac50f3e5cebc454ed892f99607",
+            "privateFile": "artifacts/model-confirmation-20260905/openai-5.5-on-gemini-3.8-high/judge-openai-5.5.private.jsonl",
+            "privateFileHash": "5ac1f334b1ba4ba23c3348b03571e46a18cc1d232c542c1357d494ad86300fd0",
+            "provenanceHash": "4ac9892bd397d0295e8cd43470ff74429bf4701da84489763b91c466e8445fe7",
+            "bindingHash": "ee9af4fc29f5a2428e541f1a757d3af760f684bdae958bcc59c73b84abc12ad5",
+            "job": {
+              "path": "artifacts/model-confirmation-20260905/jobs/openai-5.5-on-gemini-3.8-high/job.json",
+              "sha256": "4b40a5cd56c1048b0963f8e4609063a9a6a465d39f9678f442ff7eb619c64ef3",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T04:58:04.424Z",
+              "endedAt": "2026-09-05T05:44:43.244Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 84,
+            "canonicalValid": 86,
+            "statusTransitions": {
+              "ok->ok": 77,
+              "ok->error": 7,
+              "error->ok": 9,
+              "error->error": 9
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "c69f6a97bb93dc9932a3d98fcbec9100668be0d336b4984dd2c379062d4f0d92"
+          },
+          {
+            "source": "G",
+            "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+            "judgeId": "anthropic-sonnet",
+            "requestedModel": "claude-sonnet-5",
+            "transport": "claude-cli",
+            "originalProtocolHash": "025b1724afcea2f3bdf6aadcd973c5637a6eccea506308f2c1a1491da0359efc",
+            "publicFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-gemini-3.8-high/judge-anthropic-sonnet.jsonl",
+            "publicFileHash": "44eba2e4a1361e03b6713f0b7adca88139d98cd6741cfe93d02181e69a75848d",
+            "privateFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-gemini-3.8-high/judge-anthropic-sonnet.private.jsonl",
+            "privateFileHash": "fcab57968b3b8a1e5976b69199a54906b245fb2f59264482ba530e9f5b2e0c3d",
+            "provenanceHash": "6d8f75d1832b2f7e423cb51370f9d33ec2e0748cdb0ed45bf720855cac9cdf2a",
+            "bindingHash": "b5c918231cb249bf752a26788815bde022a201901609695e3294ad67840fc9cf",
+            "job": {
+              "path": "artifacts/corrected-judgments-20260905/jobs/anthropic-sonnet-on-gemini-3.8-high/job.json",
+              "sha256": "f68d9a088533aff8d4384b7904b6107e55c5dff0fdaae4ce9fb2ee762c1f0adb",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T06:35:03.256Z",
+              "endedAt": "2026-09-05T07:19:11.578Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 80,
+            "canonicalValid": 80,
+            "statusTransitions": {
+              "ok->ok": 80,
+              "ok->error": 0,
+              "error->ok": 0,
+              "error->error": 22
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "9ebecb737ea0767c1c3cbd6c39bee355ddcc85e54c51fae5b6f6f1be33d53427"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gemini-3.8-medium",
+      "provider": "gemini",
+      "requestedModel": "google-antigravity/gemini-3.8-flash-medium",
+      "transport": "opencodex",
+      "overall": {
+        "generations": 102,
+        "fixtureClusters": 34,
+        "generationErrors": 0,
+        "expectedJudgments": 204,
+        "observedJudgments": 204,
+        "validJudgments": 154,
+        "judgmentErrors": 50,
+        "transportErrors": 0,
+        "validJudgePairs": 68,
+        "safe": 18,
+        "safeRate": 0.17647058823529413,
+        "numericSafety": {
+          "assessed": 102,
+          "passed": 70,
+          "failed": 32
+        },
+        "stages": {
+          "mps": {
+            "observed": 204,
+            "valid": 157,
+            "invalid": 47,
+            "belowFloor": 48,
+            "hardFailureResponses": 34,
+            "scores": {
+              "n": 157,
+              "min": 25,
+              "median": 100,
+              "mean": 90.44095541401295,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "fidelity": {
+            "observed": 204,
+            "valid": 204,
+            "invalid": 0,
+            "belowFloor": 75,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 204,
+              "min": 25,
+              "median": 91.7,
+              "mean": 87.95392156862762,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "naturalness": {
+            "observed": 204,
+            "valid": 200,
+            "invalid": 4,
+            "belowFloor": null,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 200,
+              "min": 1,
+              "median": 3,
+              "mean": 2.76,
+              "p95": 4,
+              "max": 4
+            }
+          }
+        },
+        "pairNaturalness": {
+          "n": 68,
+          "min": 1.5,
+          "median": 2.5,
+          "mean": 2.7058823529411766,
+          "p95": 3.5,
+          "max": 3.5
+        },
+        "generationLatencyMs": {
+          "n": 102,
+          "min": 4049,
+          "median": 8702,
+          "mean": 10193.941176470587,
+          "p95": 22666,
+          "max": 28541
+        }
+      },
+      "byLanguage": {
+        "en": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 61,
+          "judgmentErrors": 5,
+          "transportErrors": 0,
+          "validJudgePairs": 29,
+          "safe": 8,
+          "safeRate": 0.24242424242424243,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 19,
+            "failed": 14
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 61,
+              "invalid": 5,
+              "belowFloor": 22,
+              "hardFailureResponses": 15,
+              "scores": {
+                "n": 61,
+                "min": 25,
+                "median": 100,
+                "mean": 89.17092896174918,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 15,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 83.3,
+                "median": 91.7,
+                "mean": 91.67727272727265,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 2,
+                "median": 3,
+                "mean": 2.8181818181818183,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 29,
+            "min": 2,
+            "median": 2.5,
+            "mean": 2.793103448275862,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 5166,
+            "median": 7882,
+            "mean": 8481.333333333334,
+            "p95": 12547,
+            "max": 12763
+          }
+        },
+        "ko": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 57,
+          "judgmentErrors": 9,
+          "transportErrors": 0,
+          "validJudgePairs": 25,
+          "safe": 6,
+          "safeRate": 0.18181818181818182,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 25,
+            "failed": 8
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 57,
+              "invalid": 9,
+              "belowFloor": 17,
+              "hardFailureResponses": 15,
+              "scores": {
+                "n": 57,
+                "min": 40,
+                "median": 100,
+                "mean": 90.19941520467778,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 35,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 25,
+                "median": 83.3,
+                "mean": 82.58030303030297,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 1,
+                "median": 3,
+                "mean": 2.6818181818181817,
+                "p95": 3,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 25,
+            "min": 1.5,
+            "median": 3,
+            "mean": 2.7,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 4049,
+            "median": 11085,
+            "mean": 12715.121212121212,
+            "p95": 27556,
+            "max": 28541
+          }
+        },
+        "zh": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 15,
+          "judgmentErrors": 21,
+          "transportErrors": 0,
+          "validJudgePairs": 6,
+          "safe": 2,
+          "safeRate": 0.1111111111111111,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 16,
+            "failed": 2
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 18,
+              "invalid": 18,
+              "belowFloor": 5,
+              "hardFailureResponses": 1,
+              "scores": {
+                "n": 18,
+                "min": 66.6666666667,
+                "median": 100,
+                "mean": 91.48537037037221,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 10,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 83.3,
+                "median": 91.7,
+                "mean": 92.59444444444446,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 32,
+              "invalid": 4,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 32,
+                "min": 2,
+                "median": 3,
+                "mean": 2.9375,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 6,
+            "min": 2,
+            "median": 2.5,
+            "mean": 2.5,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 5269,
+            "median": 7705,
+            "mean": 8190.166666666667,
+            "p95": 12947,
+            "max": 12947
+          }
+        },
+        "ja": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 21,
+          "judgmentErrors": 15,
+          "transportErrors": 0,
+          "validJudgePairs": 8,
+          "safe": 2,
+          "safeRate": 0.1111111111111111,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 10,
+            "failed": 8
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 21,
+              "invalid": 15,
+              "belowFloor": 4,
+              "hardFailureResponses": 3,
+              "scores": {
+                "n": 21,
+                "min": 50,
+                "median": 100,
+                "mean": 93.89047619047619,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 15,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 25,
+                "median": 91.7,
+                "mean": 86.33888888888889,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 1,
+                "median": 3,
+                "mean": 2.638888888888889,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 8,
+            "min": 2,
+            "median": 2.5,
+            "mean": 2.5625,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 6452,
+            "median": 9052.5,
+            "mean": 10715.333333333334,
+            "p95": 24738,
+            "max": 24738
+          }
+        }
+      },
+      "provenance": {
+        "source": "E",
+        "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+        "protocolHash": "c56d56de68dfb36c49bfdbdce28e937f694d8892c402e5f06822c1b7e1ac9add",
+        "parentSnapshotHash": "caa29f05852c17b8da1b3d73bd9aef0d34fe49459e21fe9c63dda58349cc05f8",
+        "generationFileHash": "36fc92e0eef1ed4141f9c5a16b8533c501d8e5b41a20fa17d53d1d31428a4f69",
+        "privateGenerationFileHash": "2c59752dd1023501246a6a8ee3d574519d4912e4037e3e084375eae396a1e825",
+        "generationJob": {
+          "path": "artifacts/model-confirmation-20260905/jobs/gemini-3.8-medium/job.json",
+          "sha256": "1a3ba9a6a0e2c0ae06878cbae8627c54c43a3942a02e190ce31eb068084f02a3",
+          "state": "completed",
+          "exitCode": 0,
+          "startedAt": "2026-09-05T04:13:38.928Z",
+          "endedAt": "2026-09-05T04:30:59.088Z",
+          "rowsPredatingLatestJobStart": 0
+        },
+        "generationReceipts": 102,
+        "generationReceiptManifestHash": "f253e7f30f5ffacc78a5d89017593ca4c09cd3f2065878a9f5dc20c4fb1a1280",
+        "judgments": [
+          {
+            "source": "E",
+            "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+            "judgeId": "openai-5.5",
+            "requestedModel": "gpt-5.5",
+            "transport": "opencodex",
+            "originalProtocolHash": "d40ddad77b549a3be0c3c16b21524f74360e8517e44be163f9a5ef2df471c0bd",
+            "publicFile": "artifacts/model-confirmation-20260905/openai-5.5-on-gemini-3.8-medium/judge-openai-5.5.jsonl",
+            "publicFileHash": "43d994bb50db601d484bccceac09d88e1fa363b98125232c464b0c21e38aea92",
+            "privateFile": "artifacts/model-confirmation-20260905/openai-5.5-on-gemini-3.8-medium/judge-openai-5.5.private.jsonl",
+            "privateFileHash": "6e55bbffa4a5428fbdb6641d0fba3d8e4ee6c868a03fed6fd17d6799b9e5224d",
+            "provenanceHash": "337e6be0528749aa0b5c0f6a0e7870c437e44a411cd01452348ec5b8c683913a",
+            "bindingHash": "c73565123c900f8957a4015b61c76a5fc012d4f6337bd7b50d83eaca7d49a0e7",
+            "job": {
+              "path": "artifacts/model-confirmation-20260905/jobs/openai-5.5-on-gemini-3.8-medium/job.json",
+              "sha256": "ba7d207e3dd44699dd244d9530c04c1cdbced58ecfe913b57bf5522b550e90b5",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T05:43:47.379Z",
+              "endedAt": "2026-09-05T06:31:13.340Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 86,
+            "canonicalValid": 76,
+            "statusTransitions": {
+              "ok->ok": 72,
+              "ok->error": 14,
+              "error->ok": 4,
+              "error->error": 12
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "f953c5742af7f9dee4a86d5bb5dee30b3c7011cd28e063363161ac0c4fa1675c"
+          },
+          {
+            "source": "G",
+            "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+            "judgeId": "anthropic-sonnet",
+            "requestedModel": "claude-sonnet-5",
+            "transport": "claude-cli",
+            "originalProtocolHash": "df623b49f66311a4ecb87fc7646c9e6c197b3b42447870e13caac2f45711d72c",
+            "publicFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-gemini-3.8-medium/judge-anthropic-sonnet.jsonl",
+            "publicFileHash": "1da17ad135748bf7c33ac62708d30742ef3403b21ee5c0ef7445710af61e12ec",
+            "privateFile": "artifacts/corrected-judgments-20260905/anthropic-sonnet-on-gemini-3.8-medium/judge-anthropic-sonnet.private.jsonl",
+            "privateFileHash": "d2e4fe56b6c234c159827e25ab3597c8b3ac3d6a9c0dc5d1c6da20176b1c357d",
+            "provenanceHash": "d07101770db687f7e9e1edd6672f51f9eaed6b52e36ffa9606cff47f5c069456",
+            "bindingHash": "1dc8082531d736e80e728097cfc833c1a467f0013452a92d418209086fdf26d6",
+            "job": {
+              "path": "artifacts/corrected-judgments-20260905/jobs/anthropic-sonnet-on-gemini-3.8-medium/job.json",
+              "sha256": "1b8c1f25c37a54703a378ee89de0f0b61cb419dd7cb58a7d13d94334336e2853",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T06:35:03.410Z",
+              "endedAt": "2026-09-05T07:22:18.815Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 78,
+            "canonicalValid": 78,
+            "statusTransitions": {
+              "ok->ok": 78,
+              "ok->error": 0,
+              "error->ok": 0,
+              "error->error": 24
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "0e3696b40aa701672292f062b238cbdfd15351035619129b3a1eb146234eedfc"
+          }
+        ]
+      }
+    },
+    {
+      "id": "anthropic-sonnet",
+      "provider": "anthropic",
+      "requestedModel": "claude-sonnet-5",
+      "transport": "claude-cli",
+      "overall": {
+        "generations": 102,
+        "fixtureClusters": 34,
+        "generationErrors": 0,
+        "expectedJudgments": 204,
+        "observedJudgments": 204,
+        "validJudgments": 172,
+        "judgmentErrors": 32,
+        "transportErrors": 0,
+        "validJudgePairs": 75,
+        "safe": 42,
+        "safeRate": 0.4117647058823529,
+        "numericSafety": {
+          "assessed": 102,
+          "passed": 77,
+          "failed": 25
+        },
+        "stages": {
+          "mps": {
+            "observed": 204,
+            "valid": 172,
+            "invalid": 32,
+            "belowFloor": 21,
+            "hardFailureResponses": 13,
+            "scores": {
+              "n": 172,
+              "min": 66.67,
+              "median": 100,
+              "mean": 97.09773901808767,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "fidelity": {
+            "observed": 204,
+            "valid": 204,
+            "invalid": 0,
+            "belowFloor": 10,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 204,
+              "min": 75,
+              "median": 100,
+              "mean": 97.39117647058822,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "naturalness": {
+            "observed": 204,
+            "valid": 204,
+            "invalid": 0,
+            "belowFloor": null,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 204,
+              "min": 2,
+              "median": 3,
+              "mean": 3.4019607843137254,
+              "p95": 4,
+              "max": 4
+            }
+          }
+        },
+        "pairNaturalness": {
+          "n": 75,
+          "min": 2,
+          "median": 3.5,
+          "mean": 3.4466666666666668,
+          "p95": 4,
+          "max": 4
+        },
+        "generationLatencyMs": {
+          "n": 102,
+          "min": 5188,
+          "median": 8357.5,
+          "mean": 13218.058823529413,
+          "p95": 32039,
+          "max": 78702
+        }
+      },
+      "byLanguage": {
+        "en": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 61,
+          "judgmentErrors": 5,
+          "transportErrors": 0,
+          "validJudgePairs": 28,
+          "safe": 13,
+          "safeRate": 0.3939393939393939,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 20,
+            "failed": 13
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 61,
+              "invalid": 5,
+              "belowFloor": 12,
+              "hardFailureResponses": 7,
+              "scores": {
+                "n": 61,
+                "min": 66.67,
+                "median": 100,
+                "mean": 95.42750455373405,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 5,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 83.3,
+                "median": 100,
+                "mean": 96.34545454545454,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 2,
+                "median": 4,
+                "mean": 3.5606060606060606,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 28,
+            "min": 2.5,
+            "median": 3.5,
+            "mean": 3.607142857142857,
+            "p95": 4,
+            "max": 4
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 5188,
+            "median": 6184,
+            "mean": 6436.878787878788,
+            "p95": 8513,
+            "max": 8890
+          }
+        },
+        "ko": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 59,
+          "judgmentErrors": 7,
+          "transportErrors": 0,
+          "validJudgePairs": 26,
+          "safe": 14,
+          "safeRate": 0.42424242424242425,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 26,
+            "failed": 7
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 59,
+              "invalid": 7,
+              "belowFloor": 6,
+              "hardFailureResponses": 3,
+              "scores": {
+                "n": 59,
+                "min": 68,
+                "median": 100,
+                "mean": 97.90395480225932,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 3,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 75,
+                "median": 100,
+                "mean": 97.73181818181818,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 2,
+                "median": 4,
+                "mean": 3.4696969696969697,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 26,
+            "min": 2,
+            "median": 3.5,
+            "mean": 3.4423076923076925,
+            "p95": 4,
+            "max": 4
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 6470,
+            "median": 13605,
+            "mean": 19401.454545454544,
+            "p95": 59732,
+            "max": 78702
+          }
+        },
+        "zh": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 23,
+          "judgmentErrors": 13,
+          "transportErrors": 0,
+          "validJudgePairs": 9,
+          "safe": 8,
+          "safeRate": 0.4444444444444444,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 17,
+            "failed": 1
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 23,
+              "invalid": 13,
+              "belowFloor": 0,
+              "hardFailureResponses": 0,
+              "scores": {
+                "n": 23,
+                "min": 100,
+                "median": 100,
+                "mean": 100,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 0,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 91.7,
+                "median": 100,
+                "mean": 97.92500000000001,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 2,
+                "median": 3,
+                "mean": 3.3055555555555554,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 9,
+            "min": 2.5,
+            "median": 3.5,
+            "mean": 3.2777777777777777,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 6461,
+            "median": 9746.5,
+            "mean": 12385.555555555555,
+            "p95": 29027,
+            "max": 29027
+          }
+        },
+        "ja": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 29,
+          "judgmentErrors": 7,
+          "transportErrors": 0,
+          "validJudgePairs": 12,
+          "safe": 7,
+          "safeRate": 0.3888888888888889,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 14,
+            "failed": 4
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 29,
+              "invalid": 7,
+              "belowFloor": 3,
+              "hardFailureResponses": 3,
+              "scores": {
+                "n": 29,
+                "min": 66.7,
+                "median": 100,
+                "mean": 96.66896551724139,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 2,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 83.3,
+                "median": 100,
+                "mean": 98.15,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 2,
+                "median": 3,
+                "mean": 3.0833333333333335,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 12,
+            "min": 2,
+            "median": 3.5,
+            "mean": 3.2083333333333335,
+            "p95": 4,
+            "max": 4
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 6470,
+            "median": 13892,
+            "mean": 15146.5,
+            "p95": 33966,
+            "max": 33966
+          }
+        }
+      },
+      "provenance": {
+        "source": "D",
+        "sourceCommit": "dca3aa1de00bd21594f39e5b3c83614f28f22b85",
+        "protocolHash": "039f00a9c00de4912e88dac70fbd0187ed0d6e71f8132309b5a772ea58bf3aec",
+        "parentSnapshotHash": "a768f9215efa81875445340bcb9b807d607b238ef68ef90e42fe108633f5c1ee",
+        "generationFileHash": "2211159db0873bd68d1d88a4cc539ea22c195ea83225ca5b60a4d32a94056d75",
+        "privateGenerationFileHash": "795c6feca1d723a70c58f81422fde82ce0c4a19f2f1123c10b19b4d4ea17dd11",
+        "generationJob": {
+          "path": "artifacts/model-confirmation-20260905/jobs/anthropic-sonnet/job.json",
+          "sha256": "94b3549e66592809ea76f565acb885a044c418b7cdbd61ac47f42988efe7b4cc",
+          "state": "completed",
+          "exitCode": 0,
+          "startedAt": "2026-09-05T05:43:47.276Z",
+          "endedAt": "2026-09-05T06:06:16.385Z",
+          "rowsPredatingLatestJobStart": 0
+        },
+        "generationReceipts": 102,
+        "generationReceiptManifestHash": "185f6355cb670754675521dba672875168f633fa718952f19bb58201210c7bbc",
+        "judgments": [
+          {
+            "source": "G",
+            "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+            "judgeId": "openai-5.5",
+            "requestedModel": "gpt-5.5",
+            "transport": "opencodex",
+            "originalProtocolHash": "a15fd0901972bf011256a377067f2bac5290476adaf8b6e5cbfd05bbee55f601",
+            "publicFile": "artifacts/corrected-judgments-20260905/openai-5.5-on-anthropic-sonnet/judge-openai-5.5.jsonl",
+            "publicFileHash": "0b9827c52273fc80043f3e210d0fcd6f77e600b32f096cd511c357943be6e5ba",
+            "privateFile": "artifacts/corrected-judgments-20260905/openai-5.5-on-anthropic-sonnet/judge-openai-5.5.private.jsonl",
+            "privateFileHash": "623aaad5f8c471bfa869313d9b3c47fe964cbe5859d712957de0201124ef05e8",
+            "provenanceHash": "a9b3f6319c8ad3e79f13e74f224b3f6e9fcd07216b65df6484190659821858cb",
+            "bindingHash": "5a1d41348adbe4f797d1dcfe1623b359bfaa54b6316515999890fd38f5489f42",
+            "job": {
+              "path": "artifacts/corrected-judgments-20260905/jobs/openai-5.5-on-anthropic-sonnet/job.json",
+              "sha256": "d87b35aefe794da1e22190fee088b873569f41c24e92d5ffef5c124fbd5df750",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T06:29:44.066Z",
+              "endedAt": "2026-09-05T07:11:10.599Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 82,
+            "canonicalValid": 82,
+            "statusTransitions": {
+              "ok->ok": 82,
+              "ok->error": 0,
+              "error->ok": 0,
+              "error->error": 20
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "1c0317d07445203d7eb61c76c93d5ba8d772337322f15f72bfc2d671cd80b6cf"
+          },
+          {
+            "source": "G",
+            "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+            "judgeId": "gemini-3.7",
+            "requestedModel": "google-antigravity/gemini-3.7-flash",
+            "transport": "opencodex",
+            "originalProtocolHash": "d0b510a22c24671068333b365c0eefe4c2264669a5a4107bb22e9f65d34db72c",
+            "publicFile": "artifacts/corrected-judgments-20260905/gemini-3.7-on-anthropic-sonnet/judge-gemini-3.7.jsonl",
+            "publicFileHash": "d8c672f3400792eb4634808339b052be0e547a99c823fb0eda3110845bfd0e0b",
+            "privateFile": "artifacts/corrected-judgments-20260905/gemini-3.7-on-anthropic-sonnet/judge-gemini-3.7.private.jsonl",
+            "privateFileHash": "74b44ddc8e91da955439d883e696a41b1de3c7b0e45c83e47e74e756e0e19f47",
+            "provenanceHash": "536e02d700ed5f85d92e41dba5a220c000cc22b9be1063c5fd2fa0d443a5c727",
+            "bindingHash": "9c2a3c44ee6fff59b041fbd9c2b56d54d21c3673a577e27a68147d3b8d6164bf",
+            "job": {
+              "path": "artifacts/corrected-judgments-20260905/jobs/gemini-3.7-on-anthropic-sonnet/job.json",
+              "sha256": "b0b403e7ea5d5b43398d41baf18fdd47d40c9b2cd72d79055c0b53c2b6e0ab47",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T06:08:16.507Z",
+              "endedAt": "2026-09-05T06:22:36.878Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 90,
+            "canonicalValid": 90,
+            "statusTransitions": {
+              "ok->ok": 90,
+              "ok->error": 0,
+              "error->ok": 0,
+              "error->error": 12
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "7383c415ec948552d45e3aea08715b48ba9137b92a995e2b6d2dbbe012678e13"
+          }
+        ]
+      }
+    },
+    {
+      "id": "anthropic-fable",
+      "provider": "anthropic",
+      "requestedModel": "claude-fable-5-1",
+      "transport": "claude-cli",
+      "overall": {
+        "generations": 102,
+        "fixtureClusters": 34,
+        "generationErrors": 0,
+        "expectedJudgments": 204,
+        "observedJudgments": 204,
+        "validJudgments": 165,
+        "judgmentErrors": 39,
+        "transportErrors": 0,
+        "validJudgePairs": 71,
+        "safe": 36,
+        "safeRate": 0.35294117647058826,
+        "numericSafety": {
+          "assessed": 102,
+          "passed": 62,
+          "failed": 40
+        },
+        "stages": {
+          "mps": {
+            "observed": 204,
+            "valid": 165,
+            "invalid": 39,
+            "belowFloor": 12,
+            "hardFailureResponses": 9,
+            "scores": {
+              "n": 165,
+              "min": 48,
+              "median": 100,
+              "mean": 97.65078787878788,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "fidelity": {
+            "observed": 204,
+            "valid": 204,
+            "invalid": 0,
+            "belowFloor": 8,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 204,
+              "min": 75,
+              "median": 100,
+              "mean": 97.71764705882352,
+              "p95": 100,
+              "max": 100
+            }
+          },
+          "naturalness": {
+            "observed": 204,
+            "valid": 204,
+            "invalid": 0,
+            "belowFloor": null,
+            "hardFailureResponses": null,
+            "scores": {
+              "n": 204,
+              "min": 2,
+              "median": 3,
+              "mean": 3.2450980392156863,
+              "p95": 4,
+              "max": 4
+            }
+          }
+        },
+        "pairNaturalness": {
+          "n": 71,
+          "min": 2,
+          "median": 3.5,
+          "mean": 3.2183098591549295,
+          "p95": 4,
+          "max": 4
+        },
+        "generationLatencyMs": {
+          "n": 102,
+          "min": 7264,
+          "median": 17961,
+          "mean": 18576,
+          "p95": 29701,
+          "max": 39383
+        }
+      },
+      "byLanguage": {
+        "en": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 61,
+          "judgmentErrors": 5,
+          "transportErrors": 0,
+          "validJudgePairs": 28,
+          "safe": 10,
+          "safeRate": 0.30303030303030304,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 13,
+            "failed": 20
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 61,
+              "invalid": 5,
+              "belowFloor": 7,
+              "hardFailureResponses": 6,
+              "scores": {
+                "n": 61,
+                "min": 50,
+                "median": 100,
+                "mean": 96.49786885245902,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 3,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 75,
+                "median": 100,
+                "mean": 97.10303030303032,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 2,
+                "median": 3.5,
+                "mean": 3.3636363636363638,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 28,
+            "min": 2,
+            "median": 3.5,
+            "mean": 3.3392857142857144,
+            "p95": 4,
+            "max": 4
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 7264,
+            "median": 14006,
+            "mean": 14121.60606060606,
+            "p95": 18577,
+            "max": 23063
+          }
+        },
+        "ko": {
+          "generations": 33,
+          "fixtureClusters": 11,
+          "generationErrors": 0,
+          "expectedJudgments": 66,
+          "observedJudgments": 66,
+          "validJudgments": 58,
+          "judgmentErrors": 8,
+          "transportErrors": 0,
+          "validJudgePairs": 25,
+          "safe": 16,
+          "safeRate": 0.48484848484848486,
+          "numericSafety": {
+            "assessed": 33,
+            "passed": 22,
+            "failed": 11
+          },
+          "stages": {
+            "mps": {
+              "observed": 66,
+              "valid": 58,
+              "invalid": 8,
+              "belowFloor": 2,
+              "hardFailureResponses": 2,
+              "scores": {
+                "n": 58,
+                "min": 48,
+                "median": 100,
+                "mean": 98.72413793103448,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": 2,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 75,
+                "median": 100,
+                "mean": 98.11060606060606,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 66,
+              "valid": 66,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 66,
+                "min": 2,
+                "median": 3,
+                "mean": 3.1515151515151514,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 25,
+            "min": 2,
+            "median": 3,
+            "mean": 3.1,
+            "p95": 4,
+            "max": 4
+          },
+          "generationLatencyMs": {
+            "n": 33,
+            "min": 12630,
+            "median": 23839,
+            "mean": 24534.636363636364,
+            "p95": 38662,
+            "max": 39383
+          }
+        },
+        "zh": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 21,
+          "judgmentErrors": 15,
+          "transportErrors": 0,
+          "validJudgePairs": 6,
+          "safe": 4,
+          "safeRate": 0.2222222222222222,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 15,
+            "failed": 3
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 21,
+              "invalid": 15,
+              "belowFloor": 0,
+              "hardFailureResponses": 0,
+              "scores": {
+                "n": 21,
+                "min": 100,
+                "median": 100,
+                "mean": 100,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 2,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 83.3,
+                "median": 100,
+                "mean": 98.38055555555555,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 2,
+                "median": 3,
+                "mean": 3.2222222222222223,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 6,
+            "min": 2,
+            "median": 3.25,
+            "mean": 2.9166666666666665,
+            "p95": 3.5,
+            "max": 3.5
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 12913,
+            "median": 17202.5,
+            "mean": 17327.38888888889,
+            "p95": 23324,
+            "max": 23324
+          }
+        },
+        "ja": {
+          "generations": 18,
+          "fixtureClusters": 6,
+          "generationErrors": 0,
+          "expectedJudgments": 36,
+          "observedJudgments": 36,
+          "validJudgments": 25,
+          "judgmentErrors": 11,
+          "transportErrors": 0,
+          "validJudgePairs": 12,
+          "safe": 6,
+          "safeRate": 0.3333333333333333,
+          "numericSafety": {
+            "assessed": 18,
+            "passed": 12,
+            "failed": 6
+          },
+          "stages": {
+            "mps": {
+              "observed": 36,
+              "valid": 25,
+              "invalid": 11,
+              "belowFloor": 3,
+              "hardFailureResponses": 1,
+              "scores": {
+                "n": 25,
+                "min": 66.67,
+                "median": 100,
+                "mean": 96.00040000000001,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "fidelity": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": 1,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 83.3,
+                "median": 100,
+                "mean": 97.46111111111112,
+                "p95": 100,
+                "max": 100
+              }
+            },
+            "naturalness": {
+              "observed": 36,
+              "valid": 36,
+              "invalid": 0,
+              "belowFloor": null,
+              "hardFailureResponses": null,
+              "scores": {
+                "n": 36,
+                "min": 2,
+                "median": 3,
+                "mean": 3.2222222222222223,
+                "p95": 4,
+                "max": 4
+              }
+            }
+          },
+          "pairNaturalness": {
+            "n": 12,
+            "min": 2.5,
+            "median": 3.5,
+            "mean": 3.3333333333333335,
+            "p95": 4,
+            "max": 4
+          },
+          "generationLatencyMs": {
+            "n": 18,
+            "min": 11132,
+            "median": 16875,
+            "mean": 17066.833333333332,
+            "p95": 24752,
+            "max": 24752
+          }
+        }
+      },
+      "provenance": {
+        "source": "D",
+        "sourceCommit": "dca3aa1de00bd21594f39e5b3c83614f28f22b85",
+        "protocolHash": "f9c0931236e1e72dccec0da3580e21e430eb3d1385276896a2f55b14ba7d73ed",
+        "parentSnapshotHash": "245e9a8ff18be17ea1c7b02673985a1deb186406b894eac5de88b4057f985c97",
+        "generationFileHash": "b3f3db60d6e2f3787d5e55c4fd74ae79a8a9e86de557d68ac9a67dea7c612cbf",
+        "privateGenerationFileHash": "c83ff744af8a98604058c8655464d2ac804cd70ff5be671042258c546a59f7dc",
+        "generationJob": {
+          "path": "artifacts/model-confirmation-20260905/jobs/anthropic-fable/job.json",
+          "sha256": "d11e904fcae97da93b260f2ddc63a61310ebb506c64c98312eb470bdeed8bd52",
+          "state": "completed",
+          "exitCode": 0,
+          "startedAt": "2026-09-05T05:43:47.319Z",
+          "endedAt": "2026-09-05T06:15:23.485Z",
+          "rowsPredatingLatestJobStart": 0
+        },
+        "generationReceipts": 102,
+        "generationReceiptManifestHash": "89471f71410f773cd9cf49b1de076781501b0b50a0835e9dede141cf0687e514",
+        "judgments": [
+          {
+            "source": "G",
+            "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+            "judgeId": "openai-5.5",
+            "requestedModel": "gpt-5.5",
+            "transport": "opencodex",
+            "originalProtocolHash": "ea517c4a8cce04d3ad338c6f4b3fc33df4c759dff9af8b72c7b19d78782d1f0d",
+            "publicFile": "artifacts/corrected-judgments-20260905/openai-5.5-on-anthropic-fable/judge-openai-5.5.jsonl",
+            "publicFileHash": "2090f5c29facf940d45302083160f740158d05dcf58d32e9bd1d5ad1ed688957",
+            "privateFile": "artifacts/corrected-judgments-20260905/openai-5.5-on-anthropic-fable/judge-openai-5.5.private.jsonl",
+            "privateFileHash": "65226e112508d2f13710afeb9f3e96b10971d873d94729cad535628aae434011",
+            "provenanceHash": "5be99e33377c938eaa937cf0899c808758c58e9e597029c2f8084760f497d1f6",
+            "bindingHash": "bd5a672f1a5dc1c1c4bf9b5c2816c220d317a9e3921a6c866afcb415e72ed4a3",
+            "job": {
+              "path": "artifacts/corrected-judgments-20260905/jobs/openai-5.5-on-anthropic-fable/job.json",
+              "sha256": "078eb76cd1d2a6e7934b4b22b3b13648215dd15e67bf563e802e10ea700e8d11",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T06:15:26.896Z",
+              "endedAt": "2026-09-05T06:56:42.941Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 74,
+            "canonicalValid": 74,
+            "statusTransitions": {
+              "ok->ok": 74,
+              "ok->error": 0,
+              "error->ok": 0,
+              "error->error": 28
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "715a38be92940bfb9d39546761d146a66bf3a3667c779c38b4454648b87d47c5"
+          },
+          {
+            "source": "G",
+            "sourceCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+            "judgeId": "gemini-3.7",
+            "requestedModel": "google-antigravity/gemini-3.7-flash",
+            "transport": "opencodex",
+            "originalProtocolHash": "62f26205ec6eb2736bfea499825f9821bbcda2462771f7e85ed8a7d519fad58e",
+            "publicFile": "artifacts/corrected-judgments-20260905/gemini-3.7-on-anthropic-fable/judge-gemini-3.7.jsonl",
+            "publicFileHash": "cf43984fe16ca8d2b5c61fdc0a873f470e56628fdc65ebf1ae2c235dab080ab7",
+            "privateFile": "artifacts/corrected-judgments-20260905/gemini-3.7-on-anthropic-fable/judge-gemini-3.7.private.jsonl",
+            "privateFileHash": "06c74ab74e30eb75b3dcefd25d82c172ad2ee54efcee9dcf271d6c2b01187037",
+            "provenanceHash": "0911f379f3bbfb3ed66f678b919384af91546a4129bac39275a66d63df6fea01",
+            "bindingHash": "11a5035d640a574c1242c2b52d8a6ce28fe8b5454fb99f34d0d83d022770841a",
+            "job": {
+              "path": "artifacts/corrected-judgments-20260905/jobs/gemini-3.7-on-anthropic-fable/job.json",
+              "sha256": "5310c7caaee7cdfdb642053ae0a50224819ced5b05c055c5d760b6be29d07b73",
+              "state": "completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-05T06:29:44.210Z",
+              "endedAt": "2026-09-05T06:43:29.602Z",
+              "rowsPredatingLatestJobStart": 0
+            },
+            "rows": 102,
+            "originalValid": 91,
+            "canonicalValid": 91,
+            "statusTransitions": {
+              "ok->ok": 91,
+              "ok->error": 0,
+              "error->ok": 0,
+              "error->error": 11
+            },
+            "receiptCount": 306,
+            "receiptManifestHash": "28870f851fb9cc83c6d6d09e1de7d753b00cce220538d8da24de947838126855"
+          }
+        ]
+      }
+    }
+  ],
+  "uncertainty": {
+    "method": "language-stratified paired fixture-cluster percentile bootstrap",
+    "iterations": 5000,
+    "seed": 20260905,
+    "quantiles": "sorted finite replicates: floor(0.025*n), ceil(0.975*n)-1; report missing replicates",
+    "clusters": 34,
+    "strata": {
+      "en": 11,
+      "ko": 11,
+      "zh": 6,
+      "ja": 6
+    },
+    "drawHash": "4a94e7278d54b6ea7ca3b26605027d25847099d9a68541a17bed64b38665b0f6",
+    "byCandidate": {
+      "openai-astra": {
+        "safeRate": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.4215686274509804,
+          "upper": 0.7156862745098039
+        },
+        "naturalnessMedian": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 2,
+          "upper": 3
+        },
+        "byLanguage": {
+          "en": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.36363636363636365,
+              "upper": 0.9090909090909091
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 2,
+              "upper": 3
+            }
+          },
+          "ko": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.48484848484848486,
+              "upper": 0.9090909090909091
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 2.5,
+              "upper": 3
+            }
+          },
+          "zh": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0,
+              "upper": 0.6111111111111112
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4531,
+              "missingReplicates": 469,
+              "lower": 1.5,
+              "upper": 3
+            }
+          },
+          "ja": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.1111111111111111,
+              "upper": 0.8333333333333334
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4995,
+              "missingReplicates": 5,
+              "lower": 2,
+              "upper": 3.25
+            }
+          }
+        }
+      },
+      "openai-terra": {
+        "safeRate": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.29411764705882354,
+          "upper": 0.5882352941176471
+        },
+        "naturalnessMedian": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 3,
+          "upper": 3.5
+        },
+        "byLanguage": {
+          "en": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.24242424242424243,
+              "upper": 0.7575757575757576
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 3,
+              "upper": 3.5
+            }
+          },
+          "ko": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.18181818181818182,
+              "upper": 0.7272727272727273
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 2.5,
+              "upper": 3.5
+            }
+          },
+          "zh": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.1111111111111111,
+              "upper": 0.7777777777777778
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4998,
+              "missingReplicates": 2,
+              "lower": 1.5,
+              "upper": 3
+            }
+          },
+          "ja": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0,
+              "upper": 0.6111111111111112
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4995,
+              "missingReplicates": 5,
+              "lower": 1.5,
+              "upper": 3.5
+            }
+          }
+        }
+      },
+      "gemini-3.8-high": {
+        "safeRate": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.029411764705882353,
+          "upper": 0.17647058823529413
+        },
+        "naturalnessMedian": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 2.5,
+          "upper": 3
+        },
+        "byLanguage": {
+          "en": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0,
+              "upper": 0.30303030303030304
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 2.5,
+              "upper": 3
+            }
+          },
+          "ko": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0,
+              "upper": 0.2727272727272727
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 2.5,
+              "upper": 3
+            }
+          },
+          "zh": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0,
+              "upper": 0.16666666666666666
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4998,
+              "missingReplicates": 2,
+              "lower": 2,
+              "upper": 4
+            }
+          },
+          "ja": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0,
+              "upper": 0.16666666666666666
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4995,
+              "missingReplicates": 5,
+              "lower": 2.5,
+              "upper": 3
+            }
+          }
+        }
+      },
+      "gemini-3.8-medium": {
+        "safeRate": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.0784313725490196,
+          "upper": 0.28431372549019607
+        },
+        "naturalnessMedian": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 2.5,
+          "upper": 3
+        },
+        "byLanguage": {
+          "en": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.030303030303030304,
+              "upper": 0.48484848484848486
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 2.5,
+              "upper": 3
+            }
+          },
+          "ko": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.030303030303030304,
+              "upper": 0.3333333333333333
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 2.5,
+              "upper": 3
+            }
+          },
+          "zh": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0,
+              "upper": 0.3333333333333333
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4921,
+              "missingReplicates": 79,
+              "lower": 2,
+              "upper": 3.5
+            }
+          },
+          "ja": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0,
+              "upper": 0.3333333333333333
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4925,
+              "missingReplicates": 75,
+              "lower": 2.25,
+              "upper": 3
+            }
+          }
+        }
+      },
+      "anthropic-sonnet": {
+        "safeRate": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.27450980392156865,
+          "upper": 0.5490196078431373
+        },
+        "naturalnessMedian": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 3.5,
+          "upper": 3.5
+        },
+        "byLanguage": {
+          "en": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.15151515151515152,
+              "upper": 0.6363636363636364
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 3.5,
+              "upper": 4
+            }
+          },
+          "ko": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.18181818181818182,
+              "upper": 0.6666666666666666
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 3.5,
+              "upper": 3.5
+            }
+          },
+          "zh": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.1111111111111111,
+              "upper": 0.7777777777777778
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4998,
+              "missingReplicates": 2,
+              "lower": 2.5,
+              "upper": 3.5
+            }
+          },
+          "ja": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.1111111111111111,
+              "upper": 0.7222222222222222
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4995,
+              "missingReplicates": 5,
+              "lower": 2.5,
+              "upper": 3.5
+            }
+          }
+        }
+      },
+      "anthropic-fable": {
+        "safeRate": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.22549019607843138,
+          "upper": 0.49019607843137253
+        },
+        "naturalnessMedian": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 3,
+          "upper": 3.5
+        },
+        "byLanguage": {
+          "en": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.09090909090909091,
+              "upper": 0.5454545454545454
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 3,
+              "upper": 3.5
+            }
+          },
+          "ko": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.24242424242424243,
+              "upper": 0.7272727272727273
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 2.75,
+              "upper": 3.5
+            }
+          },
+          "zh": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0,
+              "upper": 0.5555555555555556
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 4908,
+              "missingReplicates": 92,
+              "lower": 2,
+              "upper": 3.5
+            }
+          },
+          "ja": {
+            "safeRate": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 0.1111111111111111,
+              "upper": 0.6111111111111112
+            },
+            "naturalnessMedian": {
+              "confidence": 0.95,
+              "validReplicates": 5000,
+              "missingReplicates": 0,
+              "lower": 3,
+              "upper": 3.5
+            }
+          }
+        }
+      }
+    },
+    "pairs": [
+      {
+        "left": "openai-astra",
+        "right": "openai-terra",
+        "safeRateDifference": 0.12745098039215685,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.02941176470588236,
+          "upper": 0.23529411764705876
+        }
+      },
+      {
+        "left": "openai-astra",
+        "right": "gemini-3.8-high",
+        "safeRateDifference": 0.47058823529411764,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.3137254901960784,
+          "upper": 0.6176470588235294
+        }
+      },
+      {
+        "left": "openai-astra",
+        "right": "gemini-3.8-medium",
+        "safeRateDifference": 0.392156862745098,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.2647058823529412,
+          "upper": 0.5196078431372548
+        }
+      },
+      {
+        "left": "openai-astra",
+        "right": "anthropic-sonnet",
+        "safeRateDifference": 0.1568627450980392,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.019607843137254943,
+          "upper": 0.2843137254901961
+        }
+      },
+      {
+        "left": "openai-astra",
+        "right": "anthropic-fable",
+        "safeRateDifference": 0.21568627450980388,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.09803921568627455,
+          "upper": 0.3333333333333333
+        }
+      },
+      {
+        "left": "openai-terra",
+        "right": "gemini-3.8-high",
+        "safeRateDifference": 0.3431372549019608,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.20588235294117646,
+          "upper": 0.48039215686274517
+        }
+      },
+      {
+        "left": "openai-terra",
+        "right": "gemini-3.8-medium",
+        "safeRateDifference": 0.2647058823529411,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": 0.16666666666666663,
+          "upper": 0.37254901960784315
+        }
+      },
+      {
+        "left": "openai-terra",
+        "right": "anthropic-sonnet",
+        "safeRateDifference": 0.02941176470588236,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": -0.10784313725490197,
+          "upper": 0.16666666666666669
+        }
+      },
+      {
+        "left": "openai-terra",
+        "right": "anthropic-fable",
+        "safeRateDifference": 0.08823529411764702,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": -0.04901960784313725,
+          "upper": 0.22549019607843138
+        }
+      },
+      {
+        "left": "gemini-3.8-high",
+        "right": "gemini-3.8-medium",
+        "safeRateDifference": -0.07843137254901962,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": -0.1568627450980392,
+          "upper": 0
+        }
+      },
+      {
+        "left": "gemini-3.8-high",
+        "right": "anthropic-sonnet",
+        "safeRateDifference": -0.3137254901960784,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": -0.43137254901960786,
+          "upper": -0.19607843137254902
+        }
+      },
+      {
+        "left": "gemini-3.8-high",
+        "right": "anthropic-fable",
+        "safeRateDifference": -0.25490196078431376,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": -0.37254901960784315,
+          "upper": -0.12745098039215685
+        }
+      },
+      {
+        "left": "gemini-3.8-medium",
+        "right": "anthropic-sonnet",
+        "safeRateDifference": -0.2352941176470588,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": -0.36274509803921573,
+          "upper": -0.11764705882352941
+        }
+      },
+      {
+        "left": "gemini-3.8-medium",
+        "right": "anthropic-fable",
+        "safeRateDifference": -0.17647058823529413,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": -0.2647058823529411,
+          "upper": -0.0980392156862745
+        }
+      },
+      {
+        "left": "anthropic-sonnet",
+        "right": "anthropic-fable",
+        "safeRateDifference": 0.05882352941176466,
+        "interval": {
+          "confidence": 0.95,
+          "validReplicates": 5000,
+          "missingReplicates": 0,
+          "lower": -0.05882352941176472,
+          "upper": 0.19607843137254902
+        }
+      }
+    ]
+  },
+  "metricDefinitions": {
+    "safeRate": "Numerator: numeric proxy pass and two configured different-family valid judgments with MPS/fidelity >=90 and zero hard failures. Denominator: all 102 generation attempts per candidate, including failed judgment cases.",
+    "ranking": "Same existing rule: safe rate descending, median of per-generation mean naturalness from fully valid judge pairs descending, generation latency median ascending, ID ascending. The ranking compares these six finalists only.",
+    "stageScores": "MPS/fidelity/naturalness distributions use canonically valid final stage responses even if another stage failed. Fidelity is replayed through production scoreFidelity, including its deterministic length component. Separate row errors remain errors; no model counts or scores are repaired.",
+    "numericSafety": "Existing deterministic numeric proxy; not a proof of full meaning preservation.",
+    "uncertainty": "Resample whole fixtures within language, with replacement, using shared draws for all six candidates. Retain every repeat and judge pair inside each sampled fixture. Intervals are conditional on these selected fixtures and observed judgments; they are not population or human-quality confidence claims.",
+    "latency": "Observed generation wall time under shared concurrent load and different transports. No causal speed claim, provider cost claim, or isolated latency benchmark."
+  },
+  "limits": [
+    "The 34 curated regression source fixtures have no authenticated human-vs-AI authorship or human-quality labels. Naturalness and semantic verdicts are model-rated. Three repeats do not make 102 independent fixture samples.",
+    "OpenCodex response.model echoes a requested alias. Identity admission checks recorded response, assistant-message or profile evidence only. Configured provider families do not prove different upstream models or weights.",
+    "Old E and corrected G evaluator runtimes/protocols remain separate. Every old valid and invalid response is revalidated unchanged; the original rows, schema flags, protocols and receipts are preserved.",
+    "All selected jobs and matrices must be terminal and complete before ranking. A successful job exit alone is insufficient; row matrices, public/private parity, snapshots and receipt sequences are checked too.",
+    "The language mix is fixed at 11 EN, 11 KO, 6 ZH and 6 JA fixtures. Bootstrap intervals do not correct selection bias, shared judge bias, changed model aliases, or uncertainty in whether anchor verdicts are true. Pairwise intervals are unadjusted descriptive comparisons.",
+    "The score order is a rule-based confirmation result, not a deployment recommendation. No defaults, score gates, core skill, or transport behavior are changed. No additional model call was made.",
+    "Public files contain summaries, recorded identifiers and integrity hashes. Source/rewritten text, anchors, rationales and raw responses remain private."
+  ]
+}
