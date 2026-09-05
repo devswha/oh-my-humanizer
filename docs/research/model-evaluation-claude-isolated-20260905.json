@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "study": "patina-claude-isolated-20260905",
+  "recordedAt": "2026-09-05",
+  "geminiPolicy": "Loopback OpenCodex google-antigravity only; no Gemini API key or direct fallback",
+  "scope": "Native Claude models with personal customizations/settings excluded and exact model-identity admission. Not an exhaustive vendor catalog.",
+  "clientVersion": "Claude Code 2.1.261",
+  "candidates": [
+    {
+      "id": "anthropic-fable",
+      "provider": "anthropic",
+      "transport": "claude-cli",
+      "model": "claude-fable-5-1",
+      "effort": "high"
+    },
+    {
+      "id": "anthropic-opus",
+      "provider": "anthropic",
+      "transport": "claude-cli",
+      "model": "claude-opus-5",
+      "effort": "high"
+    },
+    {
+      "id": "anthropic-sonnet",
+      "provider": "anthropic",
+      "transport": "claude-cli",
+      "model": "claude-sonnet-5",
+      "effort": "high"
+    },
+    {
+      "id": "anthropic-sonnet4.6",
+      "provider": "anthropic",
+      "transport": "claude-cli",
+      "model": "claude-sonnet-4-6",
+      "effort": "high"
+    },
+    {
+      "id": "anthropic-haiku",
+      "provider": "anthropic",
+      "transport": "claude-cli",
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "id": "openai-5.5",
+      "provider": "openai",
+      "transport": "opencodex",
+      "baseURL": "http://127.0.0.1:10100/v1",
+      "model": "gpt-5.5",
+      "extraBody": {
+        "reasoning_effort": "low"
+      }
+    },
+    {
+      "id": "gemini-3.7",
+      "provider": "gemini",
+      "transport": "opencodex",
+      "baseURL": "http://127.0.0.1:10100/v1",
+      "model": "google-antigravity/gemini-3.7-flash"
+    }
+  ],
+  "sources": [
+    {
+      "source": "installed Claude Code --help and observed modelUsage identities",
+      "retrieved": "2026-09-05",
+      "evidence": "safe-mode/settings-source controls and Fable advisor identity observed locally; official model overview returned403"
+    }
+  ]
+}
