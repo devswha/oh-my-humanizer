@@ -20,7 +20,7 @@
   <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <a href="#quick-start"><img alt="Skill: Claude Code | Codex | Cursor | OpenCode" src="https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet"></a>
   <a href="https://github.com/devswha/patina"><img alt="Languages: KO | EN | ZH | JA" src="https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green"></a>
-  <a href="CHANGELOG.md"><img alt="Version 8.3.1" src="https://img.shields.io/badge/version-8.3.1-blue"></a>
+  <a href="CHANGELOG.md"><img alt="Version 8.4.0" src="https://img.shields.io/badge/version-8.4.0-blue"></a>
 </p>
 
 <p align="center">
@@ -43,6 +43,8 @@ patina is a deterministic, pattern-based humanizer for Korean, English, Chinese,
 - **Honest about limits** — scores are editing signals, not authorship proof; our own [pre-registered study](docs/research/2026-rewrite-efficacy-study1.md) publishes where rewriting fails alongside where it works.
 
 ## Quick Start
+
+**Source and web version: 8.4.0.** npm publication is pending; the registry currently serves 8.3.0. Use this checkout with `npm ci` and `node bin/patina.js` for the new CLI commands. See [release channels](docs/integrations/release.md).
 
 **Browser — nothing to install.** Open **[patina.vibetip.help](https://patina.vibetip.help/)** and paste text. Rewrites run server-side with the MPS/fidelity gates; API mode forwards your own key per request (never stored or logged).
 
@@ -108,7 +110,7 @@ Model evidence: [writing/scoring guide (Korean)](docs/research/model-guide-20260
 Project config lives in `.patina.yaml`:
 
 ```yaml
-version: "8.3.1"
+version: "8.4.0"
 language: ko              # ko | en | zh | ja
 document-type: default    # genre/purpose + pattern policy
 persona:                  # optional reusable voice; omit to preserve source

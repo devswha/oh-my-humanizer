@@ -2,6 +2,17 @@
 
 All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 
+## 8.4.0 — 2026-09-05
+
+Semver rationale: minor — adds verification of reviewed drafts, protected terms, conversation presets, and a local Aside workflow. Model defaults and the core skill pipeline remain unchanged.
+
+- **Reviewed edits.** Select changes against the original draft and run fresh meaning checks on the selected result. Source hashes, Unicode validation, and protected terms reject stale or ambiguous edits.
+- **Verification evidence.** Validate complete meaning-score evidence and bind acceptance to the exact graded output. A later output change invalidates the result.
+- **Pro workflow.** Reuse public conversation settings and presets while keeping credentials out of saved preferences. License recovery returns to the pending verification action.
+- **Aside CLI.** Save local blog settings through a bounded loopback options session, then rewrite with required meaning checks and no-overwrite output. Saved glossary terms apply only when present in the source.
+- **Dependency security.** Refresh locked YAML, Markdown, link parsing, and brace expansion dependencies to patched versions.
+- **Availability.** This version is prepared for source and web deployment. npm publication is pending; use a source checkout for the new CLI commands until the registry version advances.
+
 ## 8.3.1 — 2026-09-05
 
 Semver rationale: patch — fixes research validation and collection reliability, and publishes measured results without changing runtime model defaults or the core skill pipeline.

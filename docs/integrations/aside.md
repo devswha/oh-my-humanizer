@@ -32,9 +32,10 @@ registration recipe below therefore uses Aside's own custom-skill creator.
 
 ## Prepare the command environment
 
-Use a trusted checkout containing the Aside integration until a release ships
-these commands. An older `npx patina-cli` download is not a substitute. In
-Aside's command environment, check the integration source directly:
+Use a trusted source checkout containing the Aside integration until a version
+with these commands is published to npm. A source or web release does not
+update the package downloaded by `npx patina-cli`. In Aside's command
+environment, check the integration source directly:
 
 ```sh
 node --version
@@ -55,11 +56,11 @@ and [CLI backend behavior](../CLI.md#backend-fallback-chains). Rewriting and
 meaning checks send text to the configured backend; the options page is not a
 place to paste provider credentials.
 
-The commands below use `patina` for readability. Until the integration is
-released and installed, replace that command prefix with `node` and the quoted
-absolute path to this checkout's `bin/patina.js` on every invocation. Confirm
-that `patina aside skill` succeeds before proceeding; do not assume a version string
-alone means the adapter is present.
+The commands below use `patina` for readability. Until a version containing the
+integration is published to npm and installed, replace that command prefix with
+`node` and the quoted absolute path to this checkout's `bin/patina.js` on every
+invocation. Confirm that `patina aside skill` succeeds before proceeding; do not
+assume a version string alone means the adapter is present.
 
 Choose the blog task's working folder in Aside. Keep the source file, output
 file, and settings in that workspace. [Guard mode][security] limits file access
