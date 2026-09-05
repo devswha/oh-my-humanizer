@@ -1,0 +1,923 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-05",
+  "timezone": "Asia/Seoul",
+  "status": "completed-offline-screening-correction",
+  "derivationProtocolHash": "75dc405f5960b9a666ec56d0bf17a31863e029c8e308a3ba0c4e3367040602c9",
+  "protocol": {
+    "schemaVersion": 1,
+    "kind": "canonical-negation-mps-retrospective",
+    "correctionCommit": "5567e4a81fedd6f56cdd518507051c6c0db04f9d",
+    "validatorSha256": "3425c404615ca1fe53a586348c26d1dedd01b27888d8634a40b60038ca4e6e8b",
+    "canonicalSpecSha256": "0100887249e43eccb0d320dc9680d7ec3ade65d83bf24d724a742e222d81275d",
+    "validationSourceManifestHash": "07593ce748d927cbee43e7c8da7314fb9bba07690193e79de71403fd87615b94",
+    "derivationScriptSha256": "3bd298a7b5f6b3d8302ff25f8c2e74fa8ed82e6c4ef7dde1af8a4687900ce977",
+    "joinRuleSha256": "14262d469f3461ebb4531c2d8b807ae063a67183af25221a89b96afdff961a36",
+    "sourceManifests": {
+      "A": {
+        "commit": "66a19b79e68e0e7df00d0c5da0aa94dac3c51e1c",
+        "sha256": "bf25bbb70b3c74c55a69e1f13b5cdec7a9124dcb254a2deb4a8848752b1ee478"
+      },
+      "D": {
+        "commit": "dca3aa1de00bd21594f39e5b3c83614f28f22b85",
+        "sha256": "4292debdb98ecebb143a8b5126c6340b6d81eb4c3692225eed67eb4cb73887cc"
+      },
+      "E": {
+        "commit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+        "sha256": "de9c193ca706a50c6b7cd590ed9f3e63997ae68d3ea980f30423dda675ad2af7"
+      }
+    },
+    "planHashes": {
+      "openai": "d0dcbbdaa1a6f9af3570c89db2ce3f3a5ca8b9563e7bad9849fc3caf3b10af84",
+      "gemini": "4fd83be749fa2e4c48dec9518f2a27dc4bb8bcf1202e627bd754bac50af1cf20",
+      "claude": "925bf4aed683345b4669f79c200a41781f987f0757e5ae46c040f0e40869ec42"
+    },
+    "screens": [
+      {
+        "screen": "openai",
+        "provenance": {
+          "source": "A",
+          "sourceCommit": "66a19b79e68e0e7df00d0c5da0aa94dac3c51e1c",
+          "originalParentProtocolHash": "c2779dde62beec49c198f3faa1be494565de48f147eaf511eacc785ae3b61ef5",
+          "parentSnapshotHash": "90a5395382fb803f4168ac66a243d8250851b9e2dab195ac1efbcd68efa045d2",
+          "generationFileHash": "ae5408c0ddd53b1274897dea9721cb9e34087dc113152c397254b4c3084aa562",
+          "privateGenerationFileHash": "0bbbbea1f689660f3bb43a74ecb6fd9be3918eefd9e699ba3c51f6d52d3cb274",
+          "generationReceiptCount": 72,
+          "generationReceiptManifestHash": "b53b36c06cd34aa562577d2e0725d746926aab89502f2274d6b1add9d91d405b",
+          "rebuiltGenerationPrompts": 72,
+          "baselineSummaryHash": "9ee8f28d2797097a2b2834c1f25311dec0347e3dd33d42d25dc93abbe424360f",
+          "judgments": [
+            {
+              "source": "A",
+              "sourceCommit": "66a19b79e68e0e7df00d0c5da0aa94dac3c51e1c",
+              "judge": "gemini-3.7",
+              "requestedModel": "google-antigravity/gemini-3.7-flash",
+              "transport": "opencodex",
+              "originalProtocolHash": "c2779dde62beec49c198f3faa1be494565de48f147eaf511eacc785ae3b61ef5",
+              "publicFile": "artifacts/model-evaluation-20260904/validated/rewrite-openai/judge-gemini-3.7.jsonl",
+              "publicFileSha256": "efcf6548557d0dce23a99e479938d4b8afa35965be5da7cff9ae5da7e2327387",
+              "privateFile": "artifacts/model-evaluation-20260904/validated/rewrite-openai/judge-gemini-3.7.private.jsonl",
+              "privateFileSha256": "1872e3f606d08dc58a412b4836e6a5934ea7978ec93d5bbda27d584ab3d2d7be",
+              "rows": 72,
+              "originalValid": 72,
+              "receiptCount": 216,
+              "receiptManifestHash": "788d1c796f5db77cf9e536d644b3a6c676ea4be7ca95481669402b16cf8a4a88"
+            },
+            {
+              "source": "E",
+              "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+              "judge": "anthropic-sonnet",
+              "requestedModel": "claude-sonnet-5",
+              "transport": "claude-cli",
+              "originalProtocolHash": "09bc9689f7b6ba4e872d667d6fead52f5e8c173c6aa1c6d42733b15de108cfc9",
+              "publicFile": "artifacts/evaluation-parent-20260905/claude-on-openai/judge-anthropic-sonnet.jsonl",
+              "publicFileSha256": "0c9160d1eb311b485206ff95e389af2fa2771303f56c3de9ea43836bbd51349e",
+              "privateFile": "artifacts/evaluation-parent-20260905/claude-on-openai/judge-anthropic-sonnet.private.jsonl",
+              "privateFileSha256": "2030fa22eb3df4cca8585f07a6c4f59bda66dcf3a660e3629521fc837ec86dce",
+              "rows": 72,
+              "originalValid": 68,
+              "receiptCount": 216,
+              "receiptManifestHash": "4eb1ce7f7854c76dff94f23bb47b4669cb5a8f728640887097b9c9f68423a30b",
+              "provenanceHash": "ebad9bf7e0f200e8f95c2b02bc0353cb456881d22604f0ec7721757bc2d0e55c",
+              "directoryBindingHash": "6349e473e4d37c3c06431204f2d164a72f39d483f4100eda68ef00ba8ab5c704"
+            }
+          ]
+        }
+      },
+      {
+        "screen": "gemini",
+        "provenance": {
+          "source": "A",
+          "sourceCommit": "66a19b79e68e0e7df00d0c5da0aa94dac3c51e1c",
+          "originalParentProtocolHash": "60e90a2d1cb33f02c30bc6eaefcbe2ef8ee19ab862ae969356b44f46b6b5710f",
+          "parentSnapshotHash": "eda02129432097969f964c7915979776889f7c328d8ccc8dc11ccfa46adb792e",
+          "generationFileHash": "aeecd0e91305b6707dd0d0ab60488b673271267eb3dae705bc78e18e94d2b5e7",
+          "privateGenerationFileHash": "ce760096cab1f373e97d681aa58e1c296b4f61ca2cd22bb78b24770bf0b09926",
+          "generationReceiptCount": 60,
+          "generationReceiptManifestHash": "4322ab9857f2d2ad4483faa21d2a1303bac059f0c8f0f9e246612faa33e8a060",
+          "rebuiltGenerationPrompts": 60,
+          "baselineSummaryHash": "9958bb7d39dae39f9b6bcd777942c906c5668532e46949f71245ff61f92e5039",
+          "judgments": [
+            {
+              "source": "A",
+              "sourceCommit": "66a19b79e68e0e7df00d0c5da0aa94dac3c51e1c",
+              "judge": "openai-5.5",
+              "requestedModel": "gpt-5.5",
+              "transport": "opencodex",
+              "originalProtocolHash": "60e90a2d1cb33f02c30bc6eaefcbe2ef8ee19ab862ae969356b44f46b6b5710f",
+              "publicFile": "artifacts/model-evaluation-20260904/validated/rewrite-gemini/judge-openai-5.5.jsonl",
+              "publicFileSha256": "1c5c6d02d7029fea616a0e8fcc1923d1741b73ecdf65e3d1e2c49b6657466d1b",
+              "privateFile": "artifacts/model-evaluation-20260904/validated/rewrite-gemini/judge-openai-5.5.private.jsonl",
+              "privateFileSha256": "9a08a838f76a52a2263c46789b89b260252fd4ce699b1a4ab02e490cfefd3d8d",
+              "rows": 60,
+              "originalValid": 58,
+              "receiptCount": 180,
+              "receiptManifestHash": "a578ddea7e0a419e5b1fa283b41c2b99769fe2475427a71955a755786cb6cad6"
+            },
+            {
+              "source": "E",
+              "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+              "judge": "anthropic-sonnet",
+              "requestedModel": "claude-sonnet-5",
+              "transport": "claude-cli",
+              "originalProtocolHash": "6e0510eef4840768f6c0ee102d0a66c0114025c5102625deca4dfe6190340645",
+              "publicFile": "artifacts/evaluation-parent-20260905/claude-on-gemini/judge-anthropic-sonnet.jsonl",
+              "publicFileSha256": "f49eb5e1e862a59fb4e12667a8ebf1c2852eb75c01b1ace6a5ddf7bdbc1ad5ee",
+              "privateFile": "artifacts/evaluation-parent-20260905/claude-on-gemini/judge-anthropic-sonnet.private.jsonl",
+              "privateFileSha256": "ae0904b9ec86788277aecb7a5c95829dda5dfd167e064a89172a455194003a5b",
+              "rows": 60,
+              "originalValid": 56,
+              "receiptCount": 180,
+              "receiptManifestHash": "67a28fdd595cda623f980b52676daadf169101edcbdd1a6bdfa0b1b19c519f4c",
+              "provenanceHash": "ee80433db1b80774aa1619159840a14f96ec801e4ff93aee3348b3b45f16cb41",
+              "directoryBindingHash": "a596dda2921285a8dfcbad2f99bbf0b167c3e275ef32ea584ddbe55ccfb718e0"
+            }
+          ]
+        }
+      },
+      {
+        "screen": "claude",
+        "provenance": {
+          "source": "D",
+          "sourceCommit": "dca3aa1de00bd21594f39e5b3c83614f28f22b85",
+          "originalParentProtocolHash": "64399c90db9352c305ade1fb23419d30cd1f436a8bb0fff073f9b54765ed34e3",
+          "parentSnapshotHash": "1d8202d5ccdee04e7391398995594e2d9738412c11fcd53c7e1005427298872b",
+          "generationFileHash": "814081b95f65974b4cf69bc90a0341e3a452bcea5ddea7962da8e5ac88166d72",
+          "privateGenerationFileHash": "8a96b2c4506e765af9a16ee23e6c2cacc6a52862d767cdda299b9cfb962fbd92",
+          "generationReceiptCount": 60,
+          "generationReceiptManifestHash": "e621311a1d7bd23c4cd28794d6399a5883aac36c7c68d2b98d21a34ee741c6cc",
+          "rebuiltGenerationPrompts": 60,
+          "baselineSummaryHash": "4a01b28eb84fb1bebddf3075f776f690a73ab2f0ddf10d2a071df285475cbfa5",
+          "judgments": [
+            {
+              "source": "E",
+              "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+              "judge": "openai-5.5",
+              "requestedModel": "gpt-5.5",
+              "transport": "opencodex",
+              "originalProtocolHash": "43045a18cafee832bc2f4679435ad3b147404932b73ae7bac22ebd794a31a185",
+              "publicFile": "artifacts/evaluation-parent-20260905/openai-on-claude/judge-openai-5.5.jsonl",
+              "publicFileSha256": "2807605575be998547a45341ac2a1149d3b0e8bb50fbd947d3a8d607b35f7b78",
+              "privateFile": "artifacts/evaluation-parent-20260905/openai-on-claude/judge-openai-5.5.private.jsonl",
+              "privateFileSha256": "e8bc43957678d21f0c5493e0895ae4818f275998239da3bccc8c508eef355ad5",
+              "rows": 60,
+              "originalValid": 59,
+              "receiptCount": 180,
+              "receiptManifestHash": "071607589fb0913124408572e806b832dc7c12a76fbaf176bbcd217c9762519d",
+              "provenanceHash": "73ec41aeb018c545099a427815be697bdc804803c81bd96c5ca566610b349d46",
+              "directoryBindingHash": "d2b7186742a76728d968914b04e506ab901f757c025368c7d942ee47e3b4a1d2"
+            },
+            {
+              "source": "E",
+              "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+              "judge": "gemini-3.7",
+              "requestedModel": "google-antigravity/gemini-3.7-flash",
+              "transport": "opencodex",
+              "originalProtocolHash": "c50a50e534c177caf2dbb1d9739e80744179c4ffed2da9e5d33052bfc258fa04",
+              "publicFile": "artifacts/evaluation-parent-20260905/gemini-on-claude/judge-gemini-3.7.jsonl",
+              "publicFileSha256": "102cb50abcceec1100584e488a1b590a02dc3bc43c3b508e19febe83822ec69c",
+              "privateFile": "artifacts/evaluation-parent-20260905/gemini-on-claude/judge-gemini-3.7.private.jsonl",
+              "privateFileSha256": "039db0864dbb5e2c7c56161dde2405ec89951dc5b245d62401cf25c8013396c2",
+              "rows": 60,
+              "originalValid": 60,
+              "receiptCount": 180,
+              "receiptManifestHash": "b8edfaf5a3b7a8c8bbc66d21cb61192bd53fa007ea15cd310877faceb67f1dc0",
+              "provenanceHash": "3f686151d3735495a4bc7a0a59ed8f560beace4f89b3a006c45a471cf0ab5d3b",
+              "directoryBindingHash": "ef95a5596c72258394b1ad949944c2bdcbb22028359bf9e33693347c7109b27b"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "privateLedgerSha256": "e3c4613b00e90fc053b05c426420e28e76a429542108bbfb8e8a473db91045e5",
+  "totals": {
+    "generations": 192,
+    "judgments": 384,
+    "originalValid": 373,
+    "correctedValid": 363,
+    "statusTransitions": {
+      "valid->valid": 363,
+      "valid->invalid": 10,
+      "invalid->valid": 0,
+      "invalid->invalid": 11
+    },
+    "mpsResponses": 384,
+    "mpsTransitions": {
+      "valid->valid": 366,
+      "valid->invalid": 10,
+      "invalid->valid": 0,
+      "invalid->invalid": 8
+    },
+    "judgmentReceipts": 1152,
+    "generationReceipts": 192
+  },
+  "method": [
+    "Every judgment in the three declared screening joins is included, regardless of its original valid/invalid status. Public/private parity, full matrix membership, original snapshots/protocols, committed source/fixture bytes and terminal receipt metadata are checked before correction.",
+    "Generation prompts are rebuilt from frozen-source inputs and matched by hash; request identities and delivered rewrites are bound to original receipts. This does not claim recovery of every historical ambient configuration field.",
+    "Both historical and corrected judge pipelines receive only the original private receipt responses through an injected callback. Every MPS, fidelity and naturalness prompt/request hash and receipt ordinal must match. No source journal, lock, row, schema flag or protocol ID is rewritten.",
+    "The canonical polarity group includes polarity and negation anchors. The corrected validator checks the original self-reported pass counts, polarity counts and MPS. Inconsistent responses stay rejected; no counts or model scores are repaired.",
+    "The correction has its own protocol and private ledger. Historical rows/flags remain in original; corrected status and per-receipt flags are separate. Original protocol IDs stay attached to original observations."
+  ],
+  "rankingRule": "Within each screen: safe-output rate descending, model-rated naturalness median descending, generation latency median ascending, candidate ID ascending. Safety requires numeric proxy pass and two configured different-family valid judges with MPS/fidelity >=90 and zero hard failures. All generation attempts remain in the denominator.",
+  "limits": [
+    "Proxy response.model echoes the requested alias. Model identity here is only recorded response/assistant-message/profile evidence, not proof of upstream weights or independent upstream judge families.",
+    "These are one-pass screening results on 12 curated source fixtures per candidate. They do not establish a final winner, default model, human preference or authenticated authorship accuracy.",
+    "MPS arithmetic/schema consistency does not independently certify the truth of the model’s anchor extraction or verdicts. Naturalness remains model-rated.",
+    "Confirmation and other active D/E jobs are outside this derivation. Revalidate completed confirmation evidence under the fix and obtain missing confirmation evidence before any promotion; no paid rerun is performed here.",
+    "Public output contains allowlisted counts, ranks, recorded identifiers and integrity hashes. Source texts, anchors, rationales and raw response/receipt bodies remain private."
+  ],
+  "screens": [
+    {
+      "screen": "openai",
+      "provider": "openai",
+      "generations": 72,
+      "judgments": 144,
+      "originalValid": 140,
+      "correctedValid": 137,
+      "statusTransitions": {
+        "valid->valid": 137,
+        "valid->invalid": 3,
+        "invalid->valid": 0,
+        "invalid->invalid": 4
+      },
+      "mpsTransitions": {
+        "valid->valid": 138,
+        "valid->invalid": 3,
+        "invalid->valid": 0,
+        "invalid->invalid": 3
+      },
+      "oldTopTwo": [
+        "openai-astra",
+        "openai-terra"
+      ],
+      "newTopTwo": [
+        "openai-astra",
+        "openai-terra"
+      ],
+      "oldRanks": [
+        {
+          "rank": 1,
+          "id": "openai-astra",
+          "attempted": 12,
+          "safe": 10,
+          "safeRate": 0.8333333333333334,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 11430.5
+        },
+        {
+          "rank": 2,
+          "id": "openai-terra",
+          "attempted": 12,
+          "safe": 8,
+          "safeRate": 0.6666666666666666,
+          "judgeErrors": 2,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 5485
+        },
+        {
+          "rank": 3,
+          "id": "openai-5.5",
+          "attempted": 12,
+          "safe": 8,
+          "safeRate": 0.6666666666666666,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3.25,
+          "generationMedianMs": 6176
+        },
+        {
+          "rank": 4,
+          "id": "openai-sol",
+          "attempted": 12,
+          "safe": 8,
+          "safeRate": 0.6666666666666666,
+          "judgeErrors": 1,
+          "naturalnessMedian": 2.5,
+          "generationMedianMs": 12791
+        },
+        {
+          "rank": 5,
+          "id": "openai-luna",
+          "attempted": 12,
+          "safe": 6,
+          "safeRate": 0.5,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 6379
+        },
+        {
+          "rank": 6,
+          "id": "openai-mini",
+          "attempted": 12,
+          "safe": 5,
+          "safeRate": 0.4166666666666667,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3.25,
+          "generationMedianMs": 4549
+        }
+      ],
+      "correctedRanks": [
+        {
+          "rank": 1,
+          "id": "openai-astra",
+          "attempted": 12,
+          "safe": 10,
+          "safeRate": 0.8333333333333334,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 11430.5
+        },
+        {
+          "rank": 2,
+          "id": "openai-terra",
+          "attempted": 12,
+          "safe": 8,
+          "safeRate": 0.6666666666666666,
+          "judgeErrors": 2,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 5485
+        },
+        {
+          "rank": 3,
+          "id": "openai-sol",
+          "attempted": 12,
+          "safe": 8,
+          "safeRate": 0.6666666666666666,
+          "judgeErrors": 1,
+          "naturalnessMedian": 2.5,
+          "generationMedianMs": 12791
+        },
+        {
+          "rank": 4,
+          "id": "openai-5.5",
+          "attempted": 12,
+          "safe": 7,
+          "safeRate": 0.5833333333333334,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 6176
+        },
+        {
+          "rank": 5,
+          "id": "openai-luna",
+          "attempted": 12,
+          "safe": 6,
+          "safeRate": 0.5,
+          "judgeErrors": 2,
+          "naturalnessMedian": 3.25,
+          "generationMedianMs": 6379
+        },
+        {
+          "rank": 6,
+          "id": "openai-mini",
+          "attempted": 12,
+          "safe": 5,
+          "safeRate": 0.4166666666666667,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 4549
+        }
+      ],
+      "changes": [
+        {
+          "id": "openai-sol",
+          "oldRank": 4,
+          "newRank": 3,
+          "oldSafe": 8,
+          "newSafe": 8,
+          "oldJudgeErrors": 1,
+          "newJudgeErrors": 1,
+          "enteredTopTwo": false,
+          "leftTopTwo": false
+        },
+        {
+          "id": "openai-5.5",
+          "oldRank": 3,
+          "newRank": 4,
+          "oldSafe": 8,
+          "newSafe": 7,
+          "oldJudgeErrors": 0,
+          "newJudgeErrors": 1,
+          "enteredTopTwo": false,
+          "leftTopTwo": false
+        },
+        {
+          "id": "openai-luna",
+          "oldRank": 5,
+          "newRank": 5,
+          "oldSafe": 6,
+          "newSafe": 6,
+          "oldJudgeErrors": 1,
+          "newJudgeErrors": 2,
+          "enteredTopTwo": false,
+          "leftTopTwo": false
+        },
+        {
+          "id": "openai-mini",
+          "oldRank": 6,
+          "newRank": 6,
+          "oldSafe": 5,
+          "newSafe": 5,
+          "oldJudgeErrors": 0,
+          "newJudgeErrors": 1,
+          "enteredTopTwo": false,
+          "leftTopTwo": false
+        }
+      ],
+      "requiresConfirmation": {
+        "promotedCandidates": [],
+        "correctedTopTwo": [
+          "openai-astra",
+          "openai-terra"
+        ],
+        "action": "Revalidate any completed confirmation receipts with the corrected validator before relying on them. Newly selected candidates require confirmation evidence. No active confirmation dataset was inspected and no paid rerun is authorized by this report."
+      },
+      "provenance": {
+        "source": "A",
+        "sourceCommit": "66a19b79e68e0e7df00d0c5da0aa94dac3c51e1c",
+        "originalParentProtocolHash": "c2779dde62beec49c198f3faa1be494565de48f147eaf511eacc785ae3b61ef5",
+        "parentSnapshotHash": "90a5395382fb803f4168ac66a243d8250851b9e2dab195ac1efbcd68efa045d2",
+        "generationFileHash": "ae5408c0ddd53b1274897dea9721cb9e34087dc113152c397254b4c3084aa562",
+        "privateGenerationFileHash": "0bbbbea1f689660f3bb43a74ecb6fd9be3918eefd9e699ba3c51f6d52d3cb274",
+        "generationReceiptCount": 72,
+        "generationReceiptManifestHash": "b53b36c06cd34aa562577d2e0725d746926aab89502f2274d6b1add9d91d405b",
+        "rebuiltGenerationPrompts": 72,
+        "baselineSummaryHash": "9ee8f28d2797097a2b2834c1f25311dec0347e3dd33d42d25dc93abbe424360f",
+        "judgments": [
+          {
+            "source": "A",
+            "sourceCommit": "66a19b79e68e0e7df00d0c5da0aa94dac3c51e1c",
+            "judge": "gemini-3.7",
+            "requestedModel": "google-antigravity/gemini-3.7-flash",
+            "transport": "opencodex",
+            "originalProtocolHash": "c2779dde62beec49c198f3faa1be494565de48f147eaf511eacc785ae3b61ef5",
+            "publicFile": "artifacts/model-evaluation-20260904/validated/rewrite-openai/judge-gemini-3.7.jsonl",
+            "publicFileSha256": "efcf6548557d0dce23a99e479938d4b8afa35965be5da7cff9ae5da7e2327387",
+            "privateFile": "artifacts/model-evaluation-20260904/validated/rewrite-openai/judge-gemini-3.7.private.jsonl",
+            "privateFileSha256": "1872e3f606d08dc58a412b4836e6a5934ea7978ec93d5bbda27d584ab3d2d7be",
+            "rows": 72,
+            "originalValid": 72,
+            "receiptCount": 216,
+            "receiptManifestHash": "788d1c796f5db77cf9e536d644b3a6c676ea4be7ca95481669402b16cf8a4a88"
+          },
+          {
+            "source": "E",
+            "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+            "judge": "anthropic-sonnet",
+            "requestedModel": "claude-sonnet-5",
+            "transport": "claude-cli",
+            "originalProtocolHash": "09bc9689f7b6ba4e872d667d6fead52f5e8c173c6aa1c6d42733b15de108cfc9",
+            "publicFile": "artifacts/evaluation-parent-20260905/claude-on-openai/judge-anthropic-sonnet.jsonl",
+            "publicFileSha256": "0c9160d1eb311b485206ff95e389af2fa2771303f56c3de9ea43836bbd51349e",
+            "privateFile": "artifacts/evaluation-parent-20260905/claude-on-openai/judge-anthropic-sonnet.private.jsonl",
+            "privateFileSha256": "2030fa22eb3df4cca8585f07a6c4f59bda66dcf3a660e3629521fc837ec86dce",
+            "rows": 72,
+            "originalValid": 68,
+            "receiptCount": 216,
+            "receiptManifestHash": "4eb1ce7f7854c76dff94f23bb47b4669cb5a8f728640887097b9c9f68423a30b",
+            "provenanceHash": "ebad9bf7e0f200e8f95c2b02bc0353cb456881d22604f0ec7721757bc2d0e55c",
+            "directoryBindingHash": "6349e473e4d37c3c06431204f2d164a72f39d483f4100eda68ef00ba8ab5c704"
+          }
+        ]
+      }
+    },
+    {
+      "screen": "gemini",
+      "provider": "gemini",
+      "generations": 60,
+      "judgments": 120,
+      "originalValid": 114,
+      "correctedValid": 110,
+      "statusTransitions": {
+        "valid->valid": 110,
+        "valid->invalid": 4,
+        "invalid->valid": 0,
+        "invalid->invalid": 6
+      },
+      "mpsTransitions": {
+        "valid->valid": 112,
+        "valid->invalid": 4,
+        "invalid->valid": 0,
+        "invalid->invalid": 4
+      },
+      "oldTopTwo": [
+        "gemini-3.8-high",
+        "gemini-3.8-medium"
+      ],
+      "newTopTwo": [
+        "gemini-3.8-high",
+        "gemini-3.8-medium"
+      ],
+      "oldRanks": [
+        {
+          "rank": 1,
+          "id": "gemini-3.8-high",
+          "attempted": 12,
+          "safe": 7,
+          "safeRate": 0.5833333333333334,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 9471
+        },
+        {
+          "rank": 2,
+          "id": "gemini-3.8-medium",
+          "attempted": 12,
+          "safe": 7,
+          "safeRate": 0.5833333333333334,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 10744
+        },
+        {
+          "rank": 3,
+          "id": "gemini-3.7",
+          "attempted": 12,
+          "safe": 6,
+          "safeRate": 0.5,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 6275
+        },
+        {
+          "rank": 4,
+          "id": "gemini-3.8-low",
+          "attempted": 12,
+          "safe": 4,
+          "safeRate": 0.3333333333333333,
+          "judgeErrors": 3,
+          "naturalnessMedian": 2.5,
+          "generationMedianMs": 9836
+        },
+        {
+          "rank": 5,
+          "id": "gemini-pro",
+          "attempted": 12,
+          "safe": 2,
+          "safeRate": 0.16666666666666666,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 22035.5
+        }
+      ],
+      "correctedRanks": [
+        {
+          "rank": 1,
+          "id": "gemini-3.8-high",
+          "attempted": 12,
+          "safe": 7,
+          "safeRate": 0.5833333333333334,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 9471
+        },
+        {
+          "rank": 2,
+          "id": "gemini-3.8-medium",
+          "attempted": 12,
+          "safe": 7,
+          "safeRate": 0.5833333333333334,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 10744
+        },
+        {
+          "rank": 3,
+          "id": "gemini-3.7",
+          "attempted": 12,
+          "safe": 6,
+          "safeRate": 0.5,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 6275
+        },
+        {
+          "rank": 4,
+          "id": "gemini-3.8-low",
+          "attempted": 12,
+          "safe": 3,
+          "safeRate": 0.25,
+          "judgeErrors": 4,
+          "naturalnessMedian": 2.5,
+          "generationMedianMs": 9836
+        },
+        {
+          "rank": 5,
+          "id": "gemini-pro",
+          "attempted": 12,
+          "safe": 2,
+          "safeRate": 0.16666666666666666,
+          "judgeErrors": 2,
+          "naturalnessMedian": 3,
+          "generationMedianMs": 22035.5
+        }
+      ],
+      "changes": [
+        {
+          "id": "gemini-3.8-low",
+          "oldRank": 4,
+          "newRank": 4,
+          "oldSafe": 4,
+          "newSafe": 3,
+          "oldJudgeErrors": 3,
+          "newJudgeErrors": 4,
+          "enteredTopTwo": false,
+          "leftTopTwo": false
+        },
+        {
+          "id": "gemini-pro",
+          "oldRank": 5,
+          "newRank": 5,
+          "oldSafe": 2,
+          "newSafe": 2,
+          "oldJudgeErrors": 1,
+          "newJudgeErrors": 2,
+          "enteredTopTwo": false,
+          "leftTopTwo": false
+        }
+      ],
+      "requiresConfirmation": {
+        "promotedCandidates": [],
+        "correctedTopTwo": [
+          "gemini-3.8-high",
+          "gemini-3.8-medium"
+        ],
+        "action": "Revalidate any completed confirmation receipts with the corrected validator before relying on them. Newly selected candidates require confirmation evidence. No active confirmation dataset was inspected and no paid rerun is authorized by this report."
+      },
+      "provenance": {
+        "source": "A",
+        "sourceCommit": "66a19b79e68e0e7df00d0c5da0aa94dac3c51e1c",
+        "originalParentProtocolHash": "60e90a2d1cb33f02c30bc6eaefcbe2ef8ee19ab862ae969356b44f46b6b5710f",
+        "parentSnapshotHash": "eda02129432097969f964c7915979776889f7c328d8ccc8dc11ccfa46adb792e",
+        "generationFileHash": "aeecd0e91305b6707dd0d0ab60488b673271267eb3dae705bc78e18e94d2b5e7",
+        "privateGenerationFileHash": "ce760096cab1f373e97d681aa58e1c296b4f61ca2cd22bb78b24770bf0b09926",
+        "generationReceiptCount": 60,
+        "generationReceiptManifestHash": "4322ab9857f2d2ad4483faa21d2a1303bac059f0c8f0f9e246612faa33e8a060",
+        "rebuiltGenerationPrompts": 60,
+        "baselineSummaryHash": "9958bb7d39dae39f9b6bcd777942c906c5668532e46949f71245ff61f92e5039",
+        "judgments": [
+          {
+            "source": "A",
+            "sourceCommit": "66a19b79e68e0e7df00d0c5da0aa94dac3c51e1c",
+            "judge": "openai-5.5",
+            "requestedModel": "gpt-5.5",
+            "transport": "opencodex",
+            "originalProtocolHash": "60e90a2d1cb33f02c30bc6eaefcbe2ef8ee19ab862ae969356b44f46b6b5710f",
+            "publicFile": "artifacts/model-evaluation-20260904/validated/rewrite-gemini/judge-openai-5.5.jsonl",
+            "publicFileSha256": "1c5c6d02d7029fea616a0e8fcc1923d1741b73ecdf65e3d1e2c49b6657466d1b",
+            "privateFile": "artifacts/model-evaluation-20260904/validated/rewrite-gemini/judge-openai-5.5.private.jsonl",
+            "privateFileSha256": "9a08a838f76a52a2263c46789b89b260252fd4ce699b1a4ab02e490cfefd3d8d",
+            "rows": 60,
+            "originalValid": 58,
+            "receiptCount": 180,
+            "receiptManifestHash": "a578ddea7e0a419e5b1fa283b41c2b99769fe2475427a71955a755786cb6cad6"
+          },
+          {
+            "source": "E",
+            "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+            "judge": "anthropic-sonnet",
+            "requestedModel": "claude-sonnet-5",
+            "transport": "claude-cli",
+            "originalProtocolHash": "6e0510eef4840768f6c0ee102d0a66c0114025c5102625deca4dfe6190340645",
+            "publicFile": "artifacts/evaluation-parent-20260905/claude-on-gemini/judge-anthropic-sonnet.jsonl",
+            "publicFileSha256": "f49eb5e1e862a59fb4e12667a8ebf1c2852eb75c01b1ace6a5ddf7bdbc1ad5ee",
+            "privateFile": "artifacts/evaluation-parent-20260905/claude-on-gemini/judge-anthropic-sonnet.private.jsonl",
+            "privateFileSha256": "ae0904b9ec86788277aecb7a5c95829dda5dfd167e064a89172a455194003a5b",
+            "rows": 60,
+            "originalValid": 56,
+            "receiptCount": 180,
+            "receiptManifestHash": "67a28fdd595cda623f980b52676daadf169101edcbdd1a6bdfa0b1b19c519f4c",
+            "provenanceHash": "ee80433db1b80774aa1619159840a14f96ec801e4ff93aee3348b3b45f16cb41",
+            "directoryBindingHash": "a596dda2921285a8dfcbad2f99bbf0b167c3e275ef32ea584ddbe55ccfb718e0"
+          }
+        ]
+      }
+    },
+    {
+      "screen": "claude",
+      "provider": "anthropic",
+      "generations": 60,
+      "judgments": 120,
+      "originalValid": 119,
+      "correctedValid": 116,
+      "statusTransitions": {
+        "valid->valid": 116,
+        "valid->invalid": 3,
+        "invalid->valid": 0,
+        "invalid->invalid": 1
+      },
+      "mpsTransitions": {
+        "valid->valid": 116,
+        "valid->invalid": 3,
+        "invalid->valid": 0,
+        "invalid->invalid": 1
+      },
+      "oldTopTwo": [
+        "anthropic-sonnet",
+        "anthropic-fable"
+      ],
+      "newTopTwo": [
+        "anthropic-sonnet",
+        "anthropic-fable"
+      ],
+      "oldRanks": [
+        {
+          "rank": 1,
+          "id": "anthropic-sonnet",
+          "attempted": 12,
+          "safe": 8,
+          "safeRate": 0.6666666666666666,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 8366
+        },
+        {
+          "rank": 2,
+          "id": "anthropic-fable",
+          "attempted": 12,
+          "safe": 8,
+          "safeRate": 0.6666666666666666,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 16877
+        },
+        {
+          "rank": 3,
+          "id": "anthropic-haiku",
+          "attempted": 12,
+          "safe": 5,
+          "safeRate": 0.4166666666666667,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 48565.5
+        },
+        {
+          "rank": 4,
+          "id": "anthropic-opus",
+          "attempted": 12,
+          "safe": 4,
+          "safeRate": 0.3333333333333333,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 24263
+        },
+        {
+          "rank": 5,
+          "id": "anthropic-sonnet4.6",
+          "attempted": 12,
+          "safe": 3,
+          "safeRate": 0.25,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 18205
+        }
+      ],
+      "correctedRanks": [
+        {
+          "rank": 1,
+          "id": "anthropic-sonnet",
+          "attempted": 12,
+          "safe": 8,
+          "safeRate": 0.6666666666666666,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 8366
+        },
+        {
+          "rank": 2,
+          "id": "anthropic-fable",
+          "attempted": 12,
+          "safe": 8,
+          "safeRate": 0.6666666666666666,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 16877
+        },
+        {
+          "rank": 3,
+          "id": "anthropic-haiku",
+          "attempted": 12,
+          "safe": 5,
+          "safeRate": 0.4166666666666667,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 48565.5
+        },
+        {
+          "rank": 4,
+          "id": "anthropic-opus",
+          "attempted": 12,
+          "safe": 4,
+          "safeRate": 0.3333333333333333,
+          "judgeErrors": 1,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 24263
+        },
+        {
+          "rank": 5,
+          "id": "anthropic-sonnet4.6",
+          "attempted": 12,
+          "safe": 3,
+          "safeRate": 0.25,
+          "judgeErrors": 0,
+          "naturalnessMedian": 3.5,
+          "generationMedianMs": 18205
+        }
+      ],
+      "changes": [
+        {
+          "id": "anthropic-sonnet",
+          "oldRank": 1,
+          "newRank": 1,
+          "oldSafe": 8,
+          "newSafe": 8,
+          "oldJudgeErrors": 0,
+          "newJudgeErrors": 1,
+          "enteredTopTwo": false,
+          "leftTopTwo": false
+        },
+        {
+          "id": "anthropic-fable",
+          "oldRank": 2,
+          "newRank": 2,
+          "oldSafe": 8,
+          "newSafe": 8,
+          "oldJudgeErrors": 0,
+          "newJudgeErrors": 1,
+          "enteredTopTwo": false,
+          "leftTopTwo": false
+        },
+        {
+          "id": "anthropic-opus",
+          "oldRank": 4,
+          "newRank": 4,
+          "oldSafe": 4,
+          "newSafe": 4,
+          "oldJudgeErrors": 0,
+          "newJudgeErrors": 1,
+          "enteredTopTwo": false,
+          "leftTopTwo": false
+        }
+      ],
+      "requiresConfirmation": {
+        "promotedCandidates": [],
+        "correctedTopTwo": [
+          "anthropic-sonnet",
+          "anthropic-fable"
+        ],
+        "action": "Revalidate any completed confirmation receipts with the corrected validator before relying on them. Newly selected candidates require confirmation evidence. No active confirmation dataset was inspected and no paid rerun is authorized by this report."
+      },
+      "provenance": {
+        "source": "D",
+        "sourceCommit": "dca3aa1de00bd21594f39e5b3c83614f28f22b85",
+        "originalParentProtocolHash": "64399c90db9352c305ade1fb23419d30cd1f436a8bb0fff073f9b54765ed34e3",
+        "parentSnapshotHash": "1d8202d5ccdee04e7391398995594e2d9738412c11fcd53c7e1005427298872b",
+        "generationFileHash": "814081b95f65974b4cf69bc90a0341e3a452bcea5ddea7962da8e5ac88166d72",
+        "privateGenerationFileHash": "8a96b2c4506e765af9a16ee23e6c2cacc6a52862d767cdda299b9cfb962fbd92",
+        "generationReceiptCount": 60,
+        "generationReceiptManifestHash": "e621311a1d7bd23c4cd28794d6399a5883aac36c7c68d2b98d21a34ee741c6cc",
+        "rebuiltGenerationPrompts": 60,
+        "baselineSummaryHash": "4a01b28eb84fb1bebddf3075f776f690a73ab2f0ddf10d2a071df285475cbfa5",
+        "judgments": [
+          {
+            "source": "E",
+            "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+            "judge": "openai-5.5",
+            "requestedModel": "gpt-5.5",
+            "transport": "opencodex",
+            "originalProtocolHash": "43045a18cafee832bc2f4679435ad3b147404932b73ae7bac22ebd794a31a185",
+            "publicFile": "artifacts/evaluation-parent-20260905/openai-on-claude/judge-openai-5.5.jsonl",
+            "publicFileSha256": "2807605575be998547a45341ac2a1149d3b0e8bb50fbd947d3a8d607b35f7b78",
+            "privateFile": "artifacts/evaluation-parent-20260905/openai-on-claude/judge-openai-5.5.private.jsonl",
+            "privateFileSha256": "e8bc43957678d21f0c5493e0895ae4818f275998239da3bccc8c508eef355ad5",
+            "rows": 60,
+            "originalValid": 59,
+            "receiptCount": 180,
+            "receiptManifestHash": "071607589fb0913124408572e806b832dc7c12a76fbaf176bbcd217c9762519d",
+            "provenanceHash": "73ec41aeb018c545099a427815be697bdc804803c81bd96c5ca566610b349d46",
+            "directoryBindingHash": "d2b7186742a76728d968914b04e506ab901f757c025368c7d942ee47e3b4a1d2"
+          },
+          {
+            "source": "E",
+            "sourceCommit": "8918cd015fc71b35d0b7855cfe7625eb7a050fcf",
+            "judge": "gemini-3.7",
+            "requestedModel": "google-antigravity/gemini-3.7-flash",
+            "transport": "opencodex",
+            "originalProtocolHash": "c50a50e534c177caf2dbb1d9739e80744179c4ffed2da9e5d33052bfc258fa04",
+            "publicFile": "artifacts/evaluation-parent-20260905/gemini-on-claude/judge-gemini-3.7.jsonl",
+            "publicFileSha256": "102cb50abcceec1100584e488a1b590a02dc3bc43c3b508e19febe83822ec69c",
+            "privateFile": "artifacts/evaluation-parent-20260905/gemini-on-claude/judge-gemini-3.7.private.jsonl",
+            "privateFileSha256": "039db0864dbb5e2c7c56161dde2405ec89951dc5b245d62401cf25c8013396c2",
+            "rows": 60,
+            "originalValid": 60,
+            "receiptCount": 180,
+            "receiptManifestHash": "b8edfaf5a3b7a8c8bbc66d21cb61192bd53fa007ea15cd310877faceb67f1dc0",
+            "provenanceHash": "3f686151d3735495a4bc7a0a59ed8f560beace4f89b3a006c45a471cf0ab5d3b",
+            "directoryBindingHash": "ef95a5596c72258394b1ad949944c2bdcbb22028359bf9e33693347c7109b27b"
+          }
+        ]
+      }
+    }
+  ]
+}
