@@ -55,7 +55,7 @@ test('naturalness rubric is model-blind and rejects non-numeric or out-of-range 
 });
 
 test('judging exercises production MPS and fidelity separately from naturalness', async () => {
-  const generation = { candidate_id: candidate.id, repeat: 0, rewrite: text, rewrite_hash: textHash(text) };
+  const generation = { candidate_id: candidate.id, provider: candidate.provider, requested_model: candidate.model, repeat: 0, rewrite: text, rewrite_hash: textHash(text) };
   const prompts = [];
   const result = await judgeRewrite(fixture, generation, judgeCandidates(candidate, protocol)[0], { complete: async (judge, prompt) => {
     prompts.push(prompt);

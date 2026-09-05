@@ -11,6 +11,8 @@ const cancellation = new AbortController();
 const children = new Map();
 let signalsInstalled = false;
 export function assertStudyActive() { if (cancellation.signal.aborted) throw new Error('Study cancelled'); }
+// Consumers may observe cancellation; the controller and abort authority stay here.
+export function getStudyCancellationSignal() { return cancellation.signal; }
 export function abortStudy() {
   cancellation.abort();
   for (const child of children.values()) child.stop(new Error('Study cancelled'));
@@ -76,6 +78,7 @@ export function claudeStudyArgs(candidate) {
 function claudeCompletion(candidate, prompt, timeoutMs) {
   return new Promise((resolve, reject) => {
     if (process.platform === 'win32') return reject(new Error('Native study isolation requires a POSIX shell'));
+    const cliArgs = claudeStudyArgs(candidate);
     const directory = mkdtempSync(join(tmpdir(), 'patina-study-cli-'));
     const statusPath = join(directory, 'status');
     const env = { ...process.env };
@@ -86,7 +89,7 @@ function claudeCompletion(candidate, prompt, timeoutMs) {
     // or allowing its process-group ID to be reused before cleanup.
     const shell = 'exec 3<&0; patina_status=$1; patina_seconds=$2; shift 2; trap ":" TERM; (sleep "$patina_seconds"; /bin/kill -KILL -- -$$) & "$@" <&3 & patina_cli=$!; wait "$patina_cli"; patina_exit=$?; printf "%s" "$patina_exit" > "$patina_status"; while :; do sleep 1; done';
     const child = spawn('/bin/sh', ['-c', shell, 'patina-study', statusPath, String(Math.ceil((timeoutMs + 2000) / 1000)),
-      'claude', ...claudeStudyArgs(candidate)], {
+      'claude', ...cliArgs], {
       cwd: directory, env, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
     });
     let stdout = '';

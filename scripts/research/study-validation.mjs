@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseStrictJson } from '../../src/json-response.js';
 import { createHash } from 'node:crypto';
@@ -29,7 +29,8 @@ export function validateRawMps(text) {
     if (!object(anchor) || !types.has(anchor.type) || !verdicts.has(anchor.verdict) || typeof anchor.content !== 'string' || !anchor.content.trim()) throw new Error('invalid-anchor');
   }
   const passed = value.anchors.filter((anchor) => anchor.verdict === 'PASS').length;
-  const polarity = value.anchors.filter((anchor) => anchor.type === 'polarity');
+  // core/scoring.md defines the weighted polarity group as Polarity + Negation.
+  const polarity = value.anchors.filter((anchor) => ['polarity', 'negation'].includes(anchor.type));
   const polarityPassed = polarity.filter((anchor) => anchor.verdict === 'PASS').length;
   if (value.pass_count !== passed || value.total_count !== value.anchors.length
     || value.polarity_pass_count !== polarityPassed || value.polarity_total_count !== polarity.length) throw new Error('inconsistent-mps-counts');
@@ -51,6 +52,10 @@ export function studySemantics(repoRoot) {
     'scripts/research/model-rewrite-benchmark.mjs', 'scripts/research/model-evaluation-transport.mjs', 'scripts/research/kimi-study-transport.mjs', 'scripts/research/claude-study-stream.mjs', 'scripts/research/evaluate-existing-rewrites.mjs', 'scripts/research/parent-cohort-audit.mjs',
     'scripts/research/study-validation.mjs', 'scripts/research/study-journal.mjs', 'scripts/research/study-job.mjs', 'scripts/research/study-inputs.mjs'];
   const paths = [...fixed];
+  // Historical source snapshots predate family admission. Keep their original
+  // semantics maps intact; every new snapshot binds the family policy bytes.
+  const familyPolicy = 'scripts/research/study-family.mjs';
+  if (existsSync(resolve(repoRoot, familyPolicy))) paths.push(familyPolicy);
   for (const directory of ['src', 'patterns', 'core', 'document-types', 'lexicon', 'personas']) {
     const walk = (path) => {
       for (const item of readdirSync(resolve(repoRoot, path), { withFileTypes: true })) {

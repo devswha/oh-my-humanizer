@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "study": "patina-live-rebaseline-20260905",
+  "asOfDate": "2026-09-05",
+  "candidate": {
+    "id": "gemini-3.7",
+    "model": "google-antigravity/gemini-3.7-flash",
+    "transport": "OpenCodex loopback"
+  },
+  "sourceCommit": "a5bef6d20d4767b54757a4c338276f01ebfa7573",
+  "scope": "Private, nullable-label score distributions; not authorship or human-quality evaluation",
+  "sourceComposition": {
+    "recordedModelOutputs": 35,
+    "publisherExcerptsWithUnverifiedAuthorship": 50,
+    "uniqueTexts": 85
+  },
+  "observations": {
+    "protocolHash": "9a7910f04362a408106e90d319ecb1242dde12b5776789ba7ed1855521e90e09",
+    "fullObservedReplay": true,
+    "schemaVersion": 1,
+    "scope": "unlabelled-score-distributions-only",
+    "candidateId": "gemini-3.7",
+    "denominator": 85,
+    "approved": 85,
+    "excluded": 0,
+    "attempted": 85,
+    "valid": 85,
+    "errors": 0,
+    "errorClasses": {},
+    "distributions": {
+      "overall": {
+        "n": 85,
+        "min": 0,
+        "median": 0,
+        "mean": 1.6148235294117645,
+        "p95": 10.55,
+        "max": 16.95
+      },
+      "rawLlm": {
+        "n": 85,
+        "min": 0,
+        "median": 0,
+        "mean": 1.6148235294117645,
+        "p95": 10.55,
+        "max": 16.95
+      },
+      "deterministic": {
+        "n": 85,
+        "min": 0,
+        "median": 0,
+        "mean": 5.310588235294118,
+        "p95": 50,
+        "max": 100
+      }
+    },
+    "languages": {
+      "ko": {
+        "attempted": 68,
+        "valid": 68,
+        "errors": 0,
+        "overall": {
+          "n": 68,
+          "min": 0,
+          "median": 0,
+          "mean": 1.717205882352941,
+          "p95": 11.11,
+          "max": 16.95
+        },
+        "rawLlm": {
+          "n": 68,
+          "min": 0,
+          "median": 0,
+          "mean": 1.717205882352941,
+          "p95": 11.11,
+          "max": 16.95
+        },
+        "deterministic": {
+          "n": 68,
+          "min": 0,
+          "median": 0,
+          "mean": 5.882352941176471,
+          "p95": 50,
+          "max": 100
+        },
+        "packs": {
+          "communication": {
+            "n": 68,
+            "min": 0,
+            "median": 0,
+            "mean": 0,
+            "p95": 0,
+            "max": 0,
+            "missing": 0
+          },
+          "content": {
+            "n": 68,
+            "min": 0,
+            "median": 0,
+            "mean": 3.7579411764705886,
+            "p95": 27.78,
+            "max": 33.33,
+            "missing": 0
+          },
+          "filler": {
+            "n": 68,
+            "min": 0,
+            "median": 0,
+            "mean": 1.0623529411764707,
+            "p95": 5.56,
+            "max": 16.67,
+            "missing": 0
+          },
+          "language": {
+            "n": 68,
+            "min": 0,
+            "median": 0,
+            "mean": 1.961764705882353,
+            "p95": 16.67,
+            "max": 16.67,
+            "missing": 0
+          },
+          "structure": {
+            "n": 68,
+            "min": 0,
+            "median": 0,
+            "mean": 1.5694117647058825,
+            "p95": 6.7,
+            "max": 26.67,
+            "missing": 0
+          },
+          "style": {
+            "n": 68,
+            "min": 0,
+            "median": 0,
+            "mean": 0.31499999999999995,
+            "p95": 0,
+            "max": 7.14,
+            "missing": 0
+          },
+          "viral-hook": {
+            "n": 68,
+            "min": 0,
+            "median": 0,
+            "mean": 3.1050000000000004,
+            "p95": 22.22,
+            "max": 27.8,
+            "missing": 0
+          }
+        }
+      },
+      "en": {
+        "attempted": 17,
+        "valid": 17,
+        "errors": 0,
+        "overall": {
+          "n": 17,
+          "min": 0,
+          "median": 0,
+          "mean": 1.2052941176470588,
+          "p95": 4.76,
+          "max": 4.76
+        },
+        "rawLlm": {
+          "n": 17,
+          "min": 0,
+          "median": 0,
+          "mean": 1.2052941176470588,
+          "p95": 4.76,
+          "max": 4.76
+        },
+        "deterministic": {
+          "n": 17,
+          "min": 0,
+          "median": 0,
+          "mean": 3.023529411764706,
+          "p95": 50,
+          "max": 50
+        },
+        "packs": {
+          "communication": {
+            "n": 17,
+            "min": 0,
+            "median": 0,
+            "mean": 0,
+            "p95": 0,
+            "max": 0,
+            "missing": 0
+          },
+          "content": {
+            "n": 17,
+            "min": 0,
+            "median": 0,
+            "mean": 2.6147058823529408,
+            "p95": 11.11,
+            "max": 11.11,
+            "missing": 0
+          },
+          "filler": {
+            "n": 17,
+            "min": 0,
+            "median": 0,
+            "mean": 1.308235294117647,
+            "p95": 5.56,
+            "max": 5.56,
+            "missing": 0
+          },
+          "language": {
+            "n": 17,
+            "min": 0,
+            "median": 0,
+            "mean": 0.32705882352941174,
+            "p95": 5.56,
+            "max": 5.56,
+            "missing": 0
+          },
+          "structure": {
+            "n": 17,
+            "min": 0,
+            "median": 0,
+            "mean": 0,
+            "p95": 0,
+            "max": 0,
+            "missing": 0
+          },
+          "style": {
+            "n": 17,
+            "min": 0,
+            "median": 0,
+            "mean": 1.2599999999999998,
+            "p95": 7.14,
+            "max": 7.14,
+            "missing": 0
+          },
+          "viral-hook": {
+            "n": 17,
+            "min": 0,
+            "median": 0,
+            "mean": 2.6147058823529408,
+            "p95": 11.11,
+            "max": 11.11,
+            "missing": 0
+          }
+        }
+      }
+    },
+    "classificationMetrics": null,
+    "humanQualityRatings": null
+  },
+  "commitments": {
+    "snapshot": "ba8ffe2c448b16f1e0e0e3a362717501d3cce5cfb466677701ff578250c15b7d",
+    "progress": "98d0e6d894d7e7c7a29ad355a01f5d2bb18eeb8a9d3dbb7f288d95470e23e844",
+    "summary": "cd4a3906319c2d819b9a08a616f5a55383c07eb5fd99e836ac8ff131ac9e461e",
+    "replayReport": "e6597c1acc64c7c1c9d6d9ea8fe2cc93bb335a082325fb69ade8c76add13fade",
+    "rows": {
+      "files": 85,
+      "sha256": "9765761326c072fa8d0ee6ed4e0b53cfdf1258d5f1969c45768846dfb54367d4"
+    },
+    "wire": {
+      "files": 85,
+      "sha256": "60c59a32b3499459e147a14b6346b98c2e25d64b37eaddf25c23cb9f945ff161"
+    },
+    "journal": {
+      "files": 85,
+      "sha256": "4cc3e5542934849e81daa9269294bd8c3d66a754505deade7b455513a30fa1f6"
+    }
+  },
+  "commitmentEncoding": "SHA-256 of UTF-8 sorted-key compact JSON arrays of relative path and file SHA-256; filenames sorted lexicographically.",
+  "limitations": [
+    "No authenticated human-origin, human polish, meaning-review or tell labels were assigned.",
+    "The source distribution is17 EN and68 KO; repeats/excerpts from shared sources are dependent.",
+    "Approval covers private scoring only, not public text redistribution or a new training job.",
+    "Proxy response model labels and client controls do not independently prove upstream model, effort, retry count or cost.",
+    "Corpus distributions are diagnostics, not FNR/FPR/AUC or CI thresholds.",
+    "Exact replay requires the private frozen bundle and recorded source commit. No new model request is made by replay."
+  ]
+}

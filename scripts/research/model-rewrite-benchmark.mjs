@@ -10,6 +10,7 @@ import { assertStudyActive, installStudySignals, studyCompletion, safeStudyError
 import { acceptedStudyIdentity, acquireStudyWriter, bindStudyProtocol, createCallJournal, readUniqueRows } from './study-journal.mjs';
 import { fixtureIdentity, studySemantics, validateRawFidelity, validateRawMps } from './study-validation.mjs';
 import { createStudyInputs } from './study-inputs.mjs';
+import { resolveStudyFamily, generationFamily, independentJudgeMetadata, validateJudgmentFamilies } from './study-family.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const LOG = { warn() {}, info() {}, debug() {} };
@@ -37,8 +38,10 @@ export function rewriteFixtures(suite = 'screening', repoRoot = ROOT) {
 export function judgeCandidates(candidate, protocol) {
   const seats = ['openai-5.5', 'gemini-3.7', 'anthropic-sonnet'].map((id) => protocol.candidates.find((row) => row.id === id));
   if (seats.some((seat) => !seat)) throw new Error('Protocol is missing a fixed judge seat');
-  const chosen = seats.filter((seat) => seat.provider !== candidate.provider).slice(0, 2);
-  if (chosen.length !== 2 || new Set(chosen.map((seat) => seat.provider)).size !== 2) throw new Error('Two independent judge families are required');
+  const family = resolveStudyFamily(candidate).upstreamFamily;
+  const families = new Map(seats.map((seat) => [seat, resolveStudyFamily(seat).upstreamFamily]));
+  const chosen = seats.filter((seat) => families.get(seat) !== family).slice(0, 2);
+  if (chosen.length !== 2 || new Set(chosen.map((seat) => families.get(seat))).size !== 2) throw new Error('Two independent judge families are required');
   return chosen;
 }
 
@@ -60,7 +63,9 @@ export function parseNaturalness(text) {
 }
 
 export async function generateRewrite(fixture, candidate, prompt, { complete = studyCompletion, envFile, timeoutMs = 180_000, journalDirectory, logicalId } = {}) {
+  const family = resolveStudyFamily(candidate);
   const base = { schemaVersion: 1, candidate_id: candidate.id, provider: candidate.provider, requested_model: candidate.model,
+    upstream_family: family.upstreamFamily, family_evidence: family.familyEvidence,
     transport: candidate.transport, fixture_id: fixture.fixture_id, language: fixture.language,
     register: fixture.register, document_type: fixture.documentType || 'default', text_hash: fixture.text_hash,
     prompt_hash: textHash(prompt) };
@@ -86,6 +91,7 @@ export async function generateRewrite(fixture, candidate, prompt, { complete = s
 }
 
 export async function judgeRewrite(fixture, generation, judge, { complete = studyCompletion, envFile, timeoutMs = 180_000, journalDirectory, logicalId } = {}) {
+  const families = independentJudgeMetadata(generation, judge);
   const calls = [];
   const deadline = Date.now() + timeoutMs;
   let stage = 'mps';
@@ -96,7 +102,7 @@ export async function judgeRewrite(fixture, generation, judge, { complete = stud
     record: (call, raw) => { calls.push({ ...call, stage }); rawStages[stage] = raw; } });
   const base = { schemaVersion: 1, candidate_id: generation.candidate_id, fixture_id: fixture.fixture_id,
     repeat: generation.repeat, text_hash: fixture.text_hash, rewrite_hash: generation.rewrite_hash,
-    judge_id: judge.id, judge_provider: judge.provider, judge_model: judge.model, judge_transport: judge.transport };
+    judge_id: judge.id, judge_provider: judge.provider, judge_model: judge.model, judge_transport: judge.transport, ...families };
   try {
     // The production evaluators remain separate from the naturalness rubric.
     // Sequential calls preserve the one-request-per-judge execution budget.
@@ -123,21 +129,26 @@ export function summarizeRewrites(generations, judgments) {
   const byGeneration = new Map();
   for (const row of judgments) {
     const key = rowKey(row);
+    if (!generations.some((generation) => rowKey(generation) === key)) throw new Error('Unbound judgment has no generation');
     const list = byGeneration.get(key) || [];
     if (list.some((previous) => previous.judge_id === row.judge_id)) throw new Error('Duplicate judge result');
     list.push(row); byGeneration.set(key, list);
   }
   const groups = {};
   for (const row of generations) {
+    generationFamily(row);
     const judges = byGeneration.get(rowKey(row)) || [];
-    if (judges.some((judge) => judge.text_hash !== row.text_hash || judge.rewrite_hash !== row.rewrite_hash || judge.judge_provider === row.provider)) throw new Error('Unbound or same-family judgment');
-    const independent = judges.length === 2 && new Set(judges.map((judge) => judge.judge_provider)).size === 2;
+    if (judges.some((judge) => judge.text_hash !== row.text_hash || judge.rewrite_hash !== row.rewrite_hash)) throw new Error('Unbound judgment');
+    const families = judges.map((judge) => validateJudgmentFamilies(row, judge));
+    const independent = judges.length === 2 && new Set(families).size === 2;
     const judged = independent && judges.every((judge) => judge.status === 'ok' && validJudgeScores(judge));
     const safe = row.status === 'ok' && row.number_safety?.ok === true && judged && judges.every((judge) => judge.mps >= 90 && judge.fidelity >= 90 && judge.hard_fail_count === 0);
+    const prior = groups[row.candidate_id]?.[0]?.row;
+    if (prior && (prior.provider !== row.provider || generationFamily(prior).upstreamFamily !== generationFamily(row).upstreamFamily)) throw new Error('Mixed host/family identity for one candidate');
     (groups[row.candidate_id] ||= []).push({ row, judges, judged, safe, pending: row.status === 'ok' && !independent });
   }
   return Object.fromEntries(Object.entries(groups).map(([id, items]) => [id, {
-    provider: items[0].row.provider, attempted: items.length,
+    provider: items[0].row.provider, upstream_family: generationFamily(items[0].row).upstreamFamily, attempted: items.length,
     generation_errors: items.filter((item) => item.row.status !== 'ok').length,
     pending_judgments: items.filter((item) => item.pending).length,
     judge_errors: items.filter((item) => item.row.status === 'ok' && !item.pending && !item.judged).length,
@@ -192,7 +203,16 @@ export async function main(argv = process.argv.slice(2)) {
   const protocol = JSON.parse(readFileSync(options.candidates, 'utf8'));
   const candidates = protocol.candidates.filter((row) => (!options.provider || row.provider === options.provider) && (!options.candidate || row.id === options.candidate));
   if (!candidates.length) throw new Error('No candidates selected');
-  for (const candidate of candidates) validateTransport(candidate);
+  // Validate the entire selected matrix before the first generation, not only
+  // when a later candidate happens to reach its paid judge pass.
+  const seats = ['openai-5.5', 'gemini-3.7', 'anthropic-sonnet'].map((id) => protocol.candidates.find((candidate) => candidate.id === id)).filter(Boolean);
+  for (const seat of seats) resolveStudyFamily(seat);
+  for (const candidate of candidates) {
+    validateTransport(candidate); resolveStudyFamily(candidate);
+    // Generation-only protocols may contain a single fixed-seat model. A full
+    // panel is validated now; judging/reporting always requires all seats.
+    if (options.phase !== 'rewrite' || seats.length === 3) judgeCandidates(candidate, protocol);
+  }
   const fixtures = rewriteFixtures(options.suite);
   const inputs = createStudyInputs(ROOT, { sourceVoice: true });
   const prompts = new Map();
@@ -212,7 +232,12 @@ export async function main(argv = process.argv.slice(2)) {
   const privatePath = resolve(output, 'rewrites.private.jsonl');
   const generated = readRows(generatedPath);
   const privateRows = readRows(privatePath);
-  for (const row of [...generated, ...privateRows]) if (row.protocol_hash !== protocolHash) throw new Error('Output belongs to a different rewrite protocol');
+  for (const row of [...generated, ...privateRows]) {
+    if (row.protocol_hash !== protocolHash) throw new Error('Output belongs to a different rewrite protocol');
+    const candidate = candidates.find((candidate) => candidate.id === row.candidate_id);
+    if (!candidate) throw new Error('Unknown generation candidate');
+    generationFamily(row, candidate);
+  }
   const done = new Set(generated.map(rowKey));
   // Recover a paid completion written before an interruption between the two
   // journal appends, rather than invoking the model again.
@@ -244,15 +269,26 @@ export async function main(argv = process.argv.slice(2)) {
     const seen = new Set(rows.map(rowKey));
     for (const row of options.phase === 'judge' ? readRows(resolve(output, `judge-${judgeId}.private.jsonl`)) : []) {
       if (row.protocol_hash !== protocolHash || row.judge_id !== judgeId) throw new Error('Unbound private judge journal');
-      if (seen.has(rowKey(row))) continue;
       const generation = generated.find((item) => rowKey(item) === rowKey(row));
       if (!generation || row.text_hash !== generation.text_hash || row.rewrite_hash !== generation.rewrite_hash) throw new Error('Private judge hash mismatch');
+      const candidate = candidates.find((candidate) => candidate.id === generation.candidate_id);
+      const judge = protocol.candidates.find((candidate) => candidate.id === judgeId);
+      if (!judge || !judgeCandidates(candidate, protocol).some((seat) => seat.id === judgeId)) throw new Error('Unbound private judge family');
+      validateJudgmentFamilies(generation, row, { candidate, judge });
+      if (seen.has(rowKey(row))) continue;
       const { private_details: _details, ...safe } = row;
       append(path, safe); rows.push(safe); seen.add(rowKey(row));
     }
     judgments.push(...rows);
   }
-  for (const row of judgments) if (row.protocol_hash !== protocolHash) throw new Error('Judge output belongs to a different protocol');
+  for (const row of judgments) {
+    if (row.protocol_hash !== protocolHash) throw new Error('Judge output belongs to a different protocol');
+    const generation = generated.find((generation) => rowKey(generation) === rowKey(row));
+    const candidate = candidates.find((candidate) => candidate.id === generation?.candidate_id);
+    const judge = protocol.candidates.find((candidate) => candidate.id === row.judge_id);
+    if (!generation || !judge || !judgeCandidates(candidate, protocol).some((seat) => seat.id === judge.id)) throw new Error('Unbound judge family');
+    validateJudgmentFamilies(generation, row, { candidate, judge });
+  }
   if (options.phase === 'judge') {
     if (!options.judge) throw new Error('--judge selects one fixed writer/seat');
     const judge = protocol.candidates.find((row) => row.id === options.judge);

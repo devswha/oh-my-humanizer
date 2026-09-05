@@ -58,7 +58,7 @@ test('MPS anchor/count/score consistency and raw fidelity ranges are mandatory',
 test('a clamped fidelity and fabricated MPS cannot certify a successful judgment', async () => {
   const text = 'We shipped 12 updates.';
   const fixture = { fixture_id: 'test', language: 'en', text, text_hash: textHash(text) };
-  const generation = { candidate_id: candidate.id, repeat: 0, rewrite: text, rewrite_hash: textHash(text) };
+  const generation = { candidate_id: candidate.id, provider: candidate.provider, requested_model: candidate.model, repeat: 0, rewrite: text, rewrite_hash: textHash(text) };
   const judge = judgeCandidates(candidate, protocol)[0];
   const row = await judgeRewrite(fixture, generation, judge, { complete: async (_candidate, prompt) => {
     if (prompt.includes('Meaning Preservation evaluator')) return response('{"anchors":[{"type":"claim","content":"12","verdict":"HARD_FAIL"}],"pass_count":1,"total_count":1,"polarity_pass_count":0,"polarity_total_count":0,"mps":100}', judge.model);
@@ -105,6 +105,11 @@ test('semantic identity binds configuration, pattern contents, language and labe
   try {
     for (const path of Object.keys(original)) { const target = join(dir, path); mkdirSync(dirname(target), { recursive: true }); writeFileSync(target, readFileSync(join(ROOT, path))); }
     assert.deepEqual(studySemantics(dir), original);
+    const familyPolicy = 'scripts/research/study-family.mjs';
+    rmSync(join(dir, familyPolicy));
+    const legacy = { ...original }; delete legacy[familyPolicy];
+    assert.deepEqual(studySemantics(dir), legacy, 'historical snapshots without the helper retain their semantics shape');
+    writeFileSync(join(dir, familyPolicy), readFileSync(join(ROOT, familyPolicy)));
     writeFileSync(join(dir, '.patina.default.yaml'), '# changed configuration');
     assert.notEqual(studySemantics(dir)['.patina.default.yaml'], original['.patina.default.yaml']);
     const pattern = Object.keys(original).find((path) => path.startsWith('patterns/'));
