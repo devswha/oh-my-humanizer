@@ -9,7 +9,7 @@ test('source, prompt, candidate and matrix bindings are checked before collectio
   const seal = (plan) => { const { planHash: _old, ...definition } = plan; return { ...definition, planHash: hash(JSON.stringify(definition, (_key, value) => value && typeof value === 'object' && !Array.isArray(value) ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, value[key]])) : value)) }; };
   const candidate = { id: 'test', provider: 'gemini', transport: 'opencodex', model: 'google-antigravity/gemini-test', baseURL: 'http://127.0.0.1:10100/v1' };
   const fixtures = ['en', 'ko'].flatMap((language) => ['social', 'marketing'].map((register) => {
-    const text = `${language} ${register} fixture.`; return { fixture_id: `${language}-${register}`, language, register, text, text_hash: hash(text) };
+    const text = `${language} ${register} fixture: $& $$ $' $` + '`' + '.'; return { fixture_id: `${language}-${register}`, language, register, text, text_hash: hash(text) };
   }));
   const plan = seal({ status: 'frozen-awaiting-parent-execution', repeats: 3, requiredGenerationCalls: 12, additionalScoreOrJudgeCalls: 0,
     maxTransportAttemptsPerCall: 1, temperature: .2, candidate: { id: candidate.id, model: candidate.model, provider: candidate.provider, transport: candidate.transport },

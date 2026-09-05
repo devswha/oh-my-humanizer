@@ -33,7 +33,7 @@ export function resolveShortPlan(plan, protocol, fixtures) {
     requireThat(fixture && fixture.language === source.language && fixture.register === source.register
       && fixture.text_hash === source.sourceTextHash && textHash(fixture.text) === source.sourceTextHash, 'Short-form source binding differs');
     const prompt = plan.promptTemplate.replace('{register}', fixture.register).replace('{language}', fixture.language)
-      .replace('{sourceJson}', JSON.stringify(fixture.text));
+      .replace('{sourceJson}', () => JSON.stringify(fixture.text));
     requireThat(textHash(prompt) === source.promptHash, 'Short-form prompt binding differs');
     return { fixture, prompt };
   });
