@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Preparation only: no human responses are created or inferred here.
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -12,6 +12,7 @@ import { acquireStudyWriter, bindStudyProtocol, readUniqueRows } from './study-j
 import { createStudyInputs } from './study-inputs.mjs';
 import { studySemantics } from './study-validation.mjs';
 import { assertStudyActive, installStudySignals } from './model-evaluation-transport.mjs';
+import { replayPreparationRow } from './preparation-replay.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const append = (path, row) => appendFileSync(path, JSON.stringify(row) + '\n', { mode: 0o600 });
@@ -47,6 +48,7 @@ export async function main(argv = process.argv.slice(2)) {
     config: inputs.config(), patterns: inputs.patterns(fixture.language) }));
   const definition = { plan, sourceCommit, generator, scorer, parentSnapshotHash: parent.snapshotHash,
     preparationScriptHash: textHash(readFileSync(fileURLToPath(import.meta.url))), runnerSemantics: studySemantics(ROOT),
+    preparationReplayHash: textHash(readFileSync(new URL('./preparation-replay.mjs', import.meta.url))),
     generationInputs: inputs.fingerprint, prompts: Object.fromEntries([...prompts].map(([id, prompt]) => [id, textHash(prompt)])) };
   const protocolHash = textHash(JSON.stringify(definition));
   if (!args.live) { console.log(JSON.stringify({ dryRun: true, protocolHash, reused: plan.existing.length, newGenerations: plan.additional.length, maximumNewScoreObservations: 60 })); return; }
@@ -58,9 +60,6 @@ export async function main(argv = process.argv.slice(2)) {
     writeFileSync(resolve(output, 'definition.private.json'), JSON.stringify(definition, null, 2), { mode: 0o600 });
     const generationFile = resolve(output, 'generations.private.jsonl'), scoreFile = resolve(output, 'scores.private.jsonl');
     const generated = readUniqueRows(generationFile, (row) => row.fixture_id), scores = readUniqueRows(scoreFile, (row) => row.observationKey);
-    const requireReceipts = (row, logicalId) => {
-      if (!Array.isArray(row.calls) || !row.calls.length || row.calls.some((_call, index) => !existsSync(resolve(output, 'calls', textHash(logicalId), `${index + 1}.private.json`)))) throw new Error('Saved preparation row lacks call receipts; do not issue another request');
-    };
     const pairs = [];
     for (const fixture of fixtures) {
       assertStudyActive();
@@ -69,8 +68,8 @@ export async function main(argv = process.argv.slice(2)) {
       const generationLogicalId = `${protocolHash}/generation/${fixture.fixture_id}`;
       if (generation && !plannedOriginal) {
         if (generation.protocol_hash !== protocolHash) throw new Error('Saved generation protocol differs');
-        requireReceipts(generation, generationLogicalId);
-        const replay = await generateRewrite(fixture, generator, prompts.get(fixture.fixture_id), { journalDirectory: output, logicalId: generationLogicalId });
+        const replay = await replayPreparationRow({ directory: output, logicalId: generationLogicalId, row: generation, candidate: generator,
+          run: (complete) => generateRewrite(fixture, generator, prompts.get(fixture.fixture_id), { complete, logicalId: generationLogicalId }) });
         if (replay.status !== generation.status || replay.rewrite_hash !== generation.rewrite_hash) throw new Error('Saved generation differs from its call receipts');
       }
       if (!generation) {
@@ -88,9 +87,9 @@ export async function main(argv = process.argv.slice(2)) {
         const logicalId = `${protocolHash}/score/${observationKey}`;
         let row = scores.find((row) => row.observationKey === observationKey);
         if (row) {
-          requireReceipts(row, logicalId);
-          const replay = await evaluateScorerFixture(input, scorer, { repoRoot: sourceRoot, journalDirectory: output, logicalId });
-          for (const field of ['status', 'overall', 'raw_overall', 'deterministic_overall', 'requested_model', 'text_hash']) if (replay[field] !== row[field]) throw new Error('Saved panel score differs from its call receipts');
+          const replay = await replayPreparationRow({ directory: output, logicalId, row, candidate: scorer,
+            run: (complete) => evaluateScorerFixture(input, scorer, { repoRoot: sourceRoot, complete, logicalId }) });
+          for (const field of ['status', 'error', 'overall', 'raw_overall', 'llm_overall', 'deterministic_overall', 'categories', 'requested_model', 'text_hash']) if (JSON.stringify(replay[field]) !== JSON.stringify(row[field])) throw new Error('Saved panel score differs from its call receipts');
         }
         if (!row) {
           row = { ...await evaluateScorerFixture(input, scorer, { repoRoot: sourceRoot, journalDirectory: output,
