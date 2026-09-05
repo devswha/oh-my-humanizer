@@ -15,7 +15,7 @@ function fixtureRepository() {
     mkdirSync(dirname(join(root, path)), { recursive: true }); cpSync(join(ROOT, path), join(root, path));
   }
   cpSync(join(ROOT, 'tests/fixtures/suspect-zones'), join(root, 'tests/fixtures/suspect-zones'), { recursive: true });
-  const git = (...args) => execFileSync('git', ['-C', root, '-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const git = (...args) => execFileSync('git', ['-C', root, '-c', 'core.hooksPath=/dev/null', '-c', 'maintenance.auto=false', '-c', 'gc.auto=0', '-c', 'commit.gpgsign=false', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   git('init'); git('add', '.'); git('commit', '-m', 'fixture'); git('update-ref', 'refs/remotes/origin/main', 'HEAD');
   return { root, git, output: join(root, 'export') };
 }
@@ -33,7 +33,7 @@ test('export preserves all 49 reviewed fixtures, labels, licensing and provenanc
     assert.equal(new Set(rows.map((row) => row.id)).size, 49);
     for (const row of rows) { assert.equal(row.license, 'MIT'); assert.equal(sha256(row.text), row.text_sha256); }
     assert.match(readFileSync(join(f.output, 'README.md'), 'utf8'), /do not certify who wrote/);
-  } finally { rmSync(f.root, { recursive: true, force: true }); }
+  } finally { rmSync(f.root, { recursive: true, force: true, maxRetries: 3, retryDelay: 20 }); }
 });
 
 test('unreviewed and uncommitted fixture changes cannot be exported', () => {
@@ -45,7 +45,7 @@ test('unreviewed and uncommitted fixture changes cannot be exported', () => {
     assert.throws(() => exportDataset({ repoRoot: f.root, output: f.output }), /changed after license review/);
     row.sha256 = sha256(readFileSync(join(f.root, row.path))); writeFileSync(reviewPath, JSON.stringify(review));
     assert.throws(() => exportDataset({ repoRoot: f.root, output: f.output }), /Uncommitted fixture/);
-  } finally { rmSync(f.root, { recursive: true, force: true }); }
+  } finally { rmSync(f.root, { recursive: true, force: true, maxRetries: 3, retryDelay: 20 }); }
 });
 
 test('exports do not overwrite unmanaged or edited output files', () => {
@@ -56,7 +56,7 @@ test('exports do not overwrite unmanaged or edited output files', () => {
     rmSync(f.output, { recursive: true }); exportDataset({ repoRoot: f.root, output: f.output });
     writeFileSync(join(f.output, 'README.md'), 'user edits');
     assert.throws(() => exportDataset({ repoRoot: f.root, output: f.output }), /edited/);
-  } finally { rmSync(f.root, { recursive: true, force: true }); }
+  } finally { rmSync(f.root, { recursive: true, force: true, maxRetries: 3, retryDelay: 20 }); }
 });
 
 test('dangling output symlinks cannot create files outside the export', () => {
@@ -66,7 +66,7 @@ test('dangling output symlinks cannot create files outside the export', () => {
     symlinkSync(outside, join(f.output, 'README.md'));
     assert.throws(() => exportDataset({ repoRoot: f.root, output: f.output }), /symlink/);
     assert.equal(existsSync(outside), false);
-  } finally { rmSync(f.root, { recursive: true, force: true }); }
+  } finally { rmSync(f.root, { recursive: true, force: true, maxRetries: 3, retryDelay: 20 }); }
 });
 
 test('source version is read from the declared commit, not working-tree edits', () => {
@@ -77,7 +77,7 @@ test('source version is read from the declared commit, not working-tree edits', 
     writeFileSync(join(f.root, 'package.json'), JSON.stringify(pkg));
     const result = exportDataset({ repoRoot: f.root, output: f.output });
     assert.equal(result.manifest.sourceVersion, expected);
-  } finally { rmSync(f.root, { recursive: true, force: true }); }
+  } finally { rmSync(f.root, { recursive: true, force: true, maxRetries: 3, retryDelay: 20 }); }
 });
 
 test('bundle checks refuse tampering and path escapes; dry runs never use the network', async () => {
@@ -90,7 +90,7 @@ test('bundle checks refuse tampering and path escapes; dry runs never use the ne
     assert.throws(() => readDatasetBundle(f.output), /checksum/);
     rmSync(join(f.output, 'data/test.jsonl')); symlinkSync(join(f.root, 'LICENSE'), join(f.output, 'data/test.jsonl'));
     assert.throws(() => readDatasetBundle(f.output), /escaped/);
-  } finally { rmSync(f.root, { recursive: true, force: true }); }
+  } finally { rmSync(f.root, { recursive: true, force: true, maxRetries: 3, retryDelay: 20 }); }
 });
 
 test('publication validates owner, pins parent commit, and uploads only reviewed files', async () => {
@@ -123,5 +123,5 @@ test('publication validates owner, pins parent commit, and uploads only reviewed
     assert.equal(calls.filter((call) => call.options.method === 'POST').length, 2);
     await assert.rejects(publishDataset({ repoRoot: f.root, directory: f.output, repository: 'someone-else/patina-suspect-zones', token: 'test-token', dryRun: false,
       fetchImpl: async () => json({ name: 'devswha', orgs: [] }) }), /namespace differs/);
-  } finally { rmSync(f.root, { recursive: true, force: true }); }
+  } finally { rmSync(f.root, { recursive: true, force: true, maxRetries: 3, retryDelay: 20 }); }
 });
