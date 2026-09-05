@@ -62,3 +62,5 @@
   .edit-review { padding: .75rem; }
   .edit-review__fragments { grid-template-columns: minmax(0, 1fr); }
 }
+.protected-controls { width: 100%; }
+.protected-controls textarea { display: block; width: min(100%, 42rem); max-width: 100%; margin-top: .6rem; resize: vertical; }

@@ -29,13 +29,22 @@ import {
 // handler, the web runner, the browser client, and these tests. It MUST stay
 // isomorphic (no node: imports) and dependency-free.
 test('contract module imports no node: builtins or runtime deps', async () => {
-  const src = await import('node:fs').then((fs) =>
-    fs.readFileSync(new URL('../../src/web-rewrite-contract.js', import.meta.url), 'utf8'),
-  );
-  assert.doesNotMatch(src, /from\s+['"]node:/, 'must not import node: builtins (stays browser-safe)');
-  assert.doesNotMatch(src, /require\s*\(/, 'must stay pure ESM');
-  // Only relative or bare specifiers would appear; there should be no imports at all.
-  assert.doesNotMatch(src, /^\s*import\s+/m, 'contract must be self-contained with no imports');
+  const { readFileSync } = await import('node:fs');
+  const root = new URL('../../src/', import.meta.url);
+  const visited = new Set();
+  const check = (url) => {
+    if (visited.has(url.href)) return;
+    visited.add(url.href);
+    const src = readFileSync(url, 'utf8');
+    assert.doesNotMatch(src, /require\s*\(|\bimport\s*\(/, 'portable contract helpers use static ESM only');
+    for (const [, specifier] of src.matchAll(/\b(?:from|import)\s+['"]([^'"]+)['"]/g)) {
+      assert.ok(specifier.startsWith('./'), `no builtins or dependencies: ${specifier}`);
+      const child = new URL(specifier, url);
+      assert.ok(child.href.startsWith(root.href));
+      check(child);
+    }
+  };
+  check(new URL('web-rewrite-contract.js', root));
 });
 
 test('generated browser contract is byte-identical to the server source of truth', async () => {
@@ -348,7 +357,7 @@ test('evaluateFloors fails closed on missing or non-numeric scores', () => {
 });
 
 test('REWRITE_MODES and WEB_TIERS expose the documented values', () => {
-  assert.deepEqual(REWRITE_MODES, { FIRST: 'first', REFINE: 'refine' });
+  assert.deepEqual(REWRITE_MODES, { FIRST: 'first', REFINE: 'refine', VERIFY: 'verify' });
   assert.deepEqual(WEB_TIERS, { FREE: 'free', BYOK: 'byok', PRO: 'pro' });
 });
 

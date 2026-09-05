@@ -54,6 +54,18 @@ test('cannot reuse scores, receipts, or mutable caller edits in the selected sta
   assert.equal(state.setAccepted(1, false).candidate, 'The cat sat.');
 });
 
+test('restoring a conversation restores the exact unverified selection without reusing approval', async () => {
+  const data = input();
+  const state = await stateFor(data);
+  state.setAccepted(0, false);
+  const restored = await createEditReviewState({ ...data, initialSelection: [...state.getAccepted()], crypto: webcrypto });
+  assert.deepEqual(restored.getSelection(), state.getSelection());
+  assert.equal(restored.getSelection().isAccepted, false);
+  for (const selection of [[true], [true, 'yes'], null]) {
+    await assert.rejects(createEditReviewState({ ...data, initialSelection: selection, crypto: webcrypto }), /edit_review_invalid_selection/);
+  }
+});
+
 test('rejects missing, stale, forged, and incorrectly encoded hashes', async () => {
   for (const field of ['baseHash', 'outputHash']) {
     for (const value of [undefined, '', 'sha256:fake', hash('stale'), `sha256:${'0'.repeat(64)}`]) {

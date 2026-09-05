@@ -22,6 +22,12 @@ export function protectedInputSpans(original, input) {
   return normalizeProtectedSpans(original, spans).map(({ start, end }) => ({ start, end }));
 }
 
+export function mergeProtectedSpans(original, ...groups) {
+  const distinct = new Map();
+  for (const span of groups.flat()) distinct.set(`${span.start}:${span.end}`, span);
+  return normalizeProtectedSpans(original, [...distinct.values()]).map(({ start, end }) => ({ start, end }));
+}
+
 export const PROTECTED_INPUT_COPY = Object.freeze({
   en: { label: 'Keep these phrases unchanged', hint: 'Optional: one product name, quote or phrase per line. Kept in this conversation only.', invalid: 'Use exact phrases from the original, with no overlaps and at most 20 occurrences in total.' },
   ko: { label: '그대로 유지할 문구', hint: '선택 사항: 제품명·인용문 등을 한 줄에 하나씩 입력하세요. 이 대화에서만 유지됩니다.', invalid: '원문에 있는 문구를 입력하세요. 서로 겹치지 않아야 하며 전체 출현 횟수는 20개까지입니다.' },

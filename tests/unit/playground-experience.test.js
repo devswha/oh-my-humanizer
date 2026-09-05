@@ -8,6 +8,8 @@ import * as client from '../../playground/rewrite-client.js';
 import * as preferences from '../../playground/preferences.js';
 import * as copy from '../../playground/experience-copy.js';
 import * as contract from '../../src/web-rewrite-contract.js';
+import * as protection from '../../playground/protected-input.js';
+import { createEditReview } from '../../playground/edit-review.js';
 
 const html = readFileSync(new URL('../../playground/index.html', import.meta.url), 'utf8');
 const controller = readFileSync(new URL('../../playground/chatgpt.js', import.meta.url), 'utf8')
@@ -110,7 +112,7 @@ function app({ response, storage = new Map() } = {}) {
   const document = documentFixture();
   const calls = [];
   const context = vm.createContext({
-    ...contract, ...client, ...preferences, ...copy,
+    ...contract, ...client, ...preferences, ...copy, ...protection, createEditReview,
     launchConfig: { schemaVersion: 1, enabled: false },
     document,
     Option: class extends Element { constructor(label, value) { super('option'); this.textContent = label; this.value = value; } },

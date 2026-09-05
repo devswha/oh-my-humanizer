@@ -4,6 +4,7 @@ import { validateRewriteRequest } from '../../src/web-rewrite-contract.js';
 import { runWebRewriteStream } from '../../src/web-rewrite-stream.js';
 import { sha256 } from '../../src/web-rewrite-receipt.js';
 import { applyTextEdits } from '../../src/edit-controls.js';
+import { mpsResult, fidelityResult } from '../fixtures/verification-results.js';
 
 const original = 'ACME-Pro launches on Monday. Please join us.';
 const source = { mode: 'first', lang: 'en', tier: 'free', text: original };
@@ -15,8 +16,8 @@ function request(overrides = {}) {
 }
 function scores(calls) {
   return {
-    scoreMPS: async (input) => { calls.push(['mps', input.original, input.rewritten]); return { mps: 100 }; },
-    scoreFidelity: async (input) => { calls.push(['fidelity', input.original, input.rewritten]); return { fidelity: 100 }; },
+    scoreMPS: async (input) => { calls.push(['mps', input.original, input.rewritten]); return mpsResult(100); },
+    scoreFidelity: async (input) => { calls.push(['fidelity', input.original, input.rewritten]); return fidelityResult(12); },
     scoreDeterministicSignals: () => ({ overall: 0 }),
   };
 }
@@ -108,7 +109,7 @@ test('selective verification has the same numeric and meaning refusal gates', as
   const frames = [];
   const rejected = await runWebRewriteStream({
     request: request({ mode: 'verify', original, text: original, baseHash: sha256(original) }),
-    scoreFns: { ...scores(calls), scoreMPS: async () => ({ mps: 60 }) },
+    scoreFns: { ...scores(calls), scoreMPS: async () => mpsResult(60) },
     callLLMStream: async () => { throw new Error('unexpected generation'); }, emit: (frame) => frames.push(frame),
   });
   assert.equal(rejected.code, 'floor_failed');

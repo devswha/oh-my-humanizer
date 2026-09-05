@@ -5,6 +5,8 @@
 import { createRewriteThread, streamRewrite, classifyRewriteError, rewriteRecovery, REWRITE_ERROR_KINDS } from './rewrite-client.js';
 import { normalizePreferences, readPresets, writePresets, saveNamedPreset } from './preferences.js';
 import { EXPERIENCE_COPY, experienceCopy, licenseStatusAfter, configuredPortalHref } from './experience-copy.js';
+import { createEditReview } from './edit-review.js';
+import { protectedInputSpans, mergeProtectedSpans, PROTECTED_INPUT_COPY } from './protected-input.js';
 // @ts-expect-error Browser-root generated module is resolved at deployment, not by Node/tsc.
 import launchConfig from '/launch-config.js';
 import {
@@ -15,6 +17,7 @@ import {
   TIER_LIMITS,
   MPS_FLOOR,
   FIDELITY_FLOOR,
+  REWRITE_MODES,
 } from '../src/web-rewrite-contract.js';
 
 // Browser globals (eslint config declares only Node globals; sibling modules use
@@ -74,6 +77,7 @@ const els = {
   documentType: /** @type {HTMLSelectElement} */ ($('#document-type')),
   persona: /** @type {HTMLSelectElement} */ ($('#persona')),
   register: /** @type {HTMLSelectElement} */ ($('#register')),
+  protectedInput: /** @type {HTMLTextAreaElement} */ ($('#protected-text')),
   provider: /** @type {HTMLSelectElement} */ ($('#provider')),
   model: /** @type {HTMLSelectElement} */ ($('#model')),
   apiKey: /** @type {HTMLInputElement} */ ($('#api-key')),
@@ -328,7 +332,8 @@ const EXAMPLES = [
   },
 ];
 
-/** @typedef {{id:string,title:string,messages:Array<{role:string,text:string,meta?:object}>,thread:ReturnType<typeof createRewriteThread>}} Convo */
+/** @typedef {{role:string,text:string,meta?:any,original?:string,receipt?:any,editReview?:any,protectedSpans?:any[],reviewSelection?:boolean[],reviewCandidate?:string}} ChatMessage */
+/** @typedef {{id:string,title:string,messages:ChatMessage[],thread:ReturnType<typeof createRewriteThread>,protectedInput?:string,reviewPending?:boolean}} Convo */
 
 const state = {
   /** @type {Convo[]} */ convos: [],
@@ -341,6 +346,98 @@ const state = {
 
 function uid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function activeConvo() { return state.convos.find((c) => c.id === state.activeId) || null; }
+const reviewControllers = new Set();
+let reviewView = 0;
+const reviewCopy = (lang) => ({
+  en: { pending: 'Selected changes need meaning verification.', original: 'Original text — no edits applied.', unavailable: 'Change review is unavailable for this result.', requested: 'Verify selected changes', failed: 'The selected text was not approved.', protected: 'Protected phrases could not be preserved.', stale: 'The original text has changed. Start a new rewrite.' },
+  ko: { pending: '선택한 변경 내용의 의미 검증이 필요합니다.', original: '원문 — 변경을 적용하지 않았습니다.', unavailable: '이 결과의 변경 목록을 확인할 수 없습니다.', requested: '선택한 변경의 의미 검증', failed: '선택본이 승인되지 않았습니다.', protected: '보호 문구를 그대로 유지하지 못했습니다.', stale: '원문이 달라졌습니다. 새로 다듬어 주세요.' },
+  zh: { pending: '所选修改需要重新验证含义。', original: '原文 — 未应用修改。', unavailable: '无法查看此结果的修改列表。', requested: '验证所选修改', failed: '所选文本未获通过。', protected: '未能保持受保护词句。', stale: '原文已更改，请重新改写。' },
+  ja: { pending: '選択した変更の意味を再検証してください。', original: '原文 — 変更は適用していません。', unavailable: 'この結果の変更一覧は確認できません。', requested: '選択した変更を検証', failed: '選択した文章は承認されませんでした。', protected: '保護した語句を維持できませんでした。', stale: '原文が変わりました。新しく書き直してください。' },
+}[lang] || { pending: 'Selected changes need verification.', original: 'Original text.', unavailable: 'Review unavailable.', requested: 'Verify changes', failed: 'Not approved.', protected: 'Protected text changed.', stale: 'Original changed.' });
+
+function lastAssistant(convo) { return convo.messages.filter((message) => message.role === 'assistant').at(-1); }
+function clearReviewControllers() {
+  reviewView += 1;
+  for (const controller of reviewControllers) controller.dispose();
+  reviewControllers.clear();
+}
+
+async function attachReview(convo, message, body, textEl, statusEl) {
+  if (!message.editReview || message !== lastAssistant(convo)) return;
+  const epoch = state.sessionEpoch, view = reviewView;
+  const current = () => state.sessionEpoch === epoch && reviewView === view && activeConvo() === convo
+    && body.isConnected && message === lastAssistant(convo);
+  const original = message.original;
+  const copy = reviewCopy(convo.thread.preferences.lang);
+  try {
+    const controller = await createEditReview({
+      original, rewrite: message.text, editReview: message.editReview,
+      initialSelection: message.reviewSelection, lang: convo.thread.preferences.lang,
+      onSelectionChange: ({ candidate, isAccepted, isOriginal }, selected) => {
+        if (!current()) return;
+        message.reviewSelection = [...selected];
+        message.reviewCandidate = candidate;
+        convo.reviewPending = !isAccepted && !isOriginal;
+        textEl.textContent = candidate;
+        body.querySelectorAll('.output-actions').forEach((node) => node.remove());
+        const audit = /** @type {HTMLElement} */ (body.querySelector('[data-verification-meta]'));
+        if (audit) audit.hidden = !isAccepted;
+        if (isAccepted) {
+          approveOutput(textEl, statusEl);
+          body.appendChild(buildOutputActions(candidate, message.receipt));
+        } else {
+          markOutputUnapproved(textEl, statusEl);
+          statusEl.textContent = isOriginal ? copy.original : copy.pending;
+          if (isOriginal) {
+            textEl.classList.remove('msg__text--unapproved');
+            textEl.removeAttribute('aria-invalid');
+            textEl.dataset.outputStatus = 'original';
+            statusEl.dataset.outputStatus = 'original';
+            body.appendChild(buildOutputActions(candidate));
+          }
+        }
+        if ((isAccepted || isOriginal) && convo.thread.currentDraft !== candidate) convo.thread.recordTurn('assistant', candidate);
+        updateHeroSend(); updateChatSend(); syncSettingsBusy();
+      },
+      onVerify: async (candidate, baseHash) => {
+        if (!current() || state.busy || !preflight(candidate, 'chat')) return { ok: false };
+        const tier = els.tier.value;
+        const reqBody = convo.thread.buildRequest({ text: candidate, tier, provider: els.provider.value, model: els.model.value,
+          apiKey: tier === WEB_TIERS.BYOK ? els.apiKey.value : undefined });
+        let protectedSpans;
+        try {
+          protectedSpans = mergeProtectedSpans(original, message.protectedSpans || [], protectedInputSpans(original, convo.protectedInput || ''));
+        } catch {
+          showInlineError(inlineErrorNode('chat'), (PROTECTED_INPUT_COPY[els.lang.value] || PROTECTED_INPUT_COPY.en).invalid);
+          return { ok: false };
+        }
+        Object.assign(reqBody, { mode: REWRITE_MODES.VERIFY, original, text: candidate, baseHash, includeEdits: true,
+          protectedSpans });
+        delete reqBody.history;
+        const resultView = buildPatinaMsg();
+        const inner = threadInner();
+        convo.messages.push({ role: 'user', text: copy.requested });
+        inner.appendChild(buildUserMsg(copy.requested));
+        inner.appendChild(resultView.node);
+        const result = await runAttempt({ convo, clean: candidate, reqBody, ...resultView,
+          telemetry: rewriteData('chat', candidate, REWRITE_MODES.VERIFY, convo.thread.preferences.lang),
+          authorization: tier === WEB_TIERS.PRO ? `Bearer ${state.license}` : undefined, epoch });
+        if (result?.ok && state.sessionEpoch === epoch && activeConvo() === convo) {
+          message.reviewSelection = undefined; message.reviewCandidate = undefined;
+          convo.reviewPending = false;
+          renderThread(); updateHeroSend(); updateChatSend();
+        }
+        return { ok: result?.ok === true };
+      },
+    });
+    if (!current()) { controller.dispose(); return; }
+    reviewControllers.add(controller);
+    controller.setBusy(state.busy);
+    body.appendChild(controller.element);
+  } catch {
+    if (current()) body.appendChild(errorNote(copy.unavailable));
+  }
+}
 
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -714,7 +811,9 @@ function renderSidebar() {
   }
 }
 function renderThread() {
+  clearReviewControllers();
   const convo = activeConvo();
+  els.protectedInput.value = convo?.protectedInput || '';
   els.thread.innerHTML = '';
   const inner = el('div', 'thread__inner');
   if (convo && convo.messages.length) {
@@ -726,8 +825,11 @@ function renderThread() {
         textEl.textContent = m.text;
         if (m.meta) {
           approveOutput(textEl, statusEl);
-          body.appendChild(buildMeta(m.meta, lastUserText));
-          body.appendChild(buildOutputActions(m.text));
+          const audit = buildMeta(m.meta, m.original || lastUserText);
+          audit.dataset.verificationMeta = 'true';
+          body.appendChild(audit);
+          body.appendChild(buildOutputActions(m.text, m.receipt));
+          void attachReview(convo, m, body, textEl, statusEl);
         }
         inner.appendChild(node);
       }
@@ -1009,6 +1111,12 @@ function preflight(clean, source) {
     showInlineError(inlineErrorNode(source), tfmt(t.tooLong, { cap, tier: tierLabel(tier) }));
     return false;
   }
+  try {
+    protectedInputSpans(activeConvo()?.thread.original ?? clean, els.protectedInput.value);
+  } catch {
+    showInlineError(inlineErrorNode(source), (PROTECTED_INPUT_COPY[els.lang.value] || PROTECTED_INPUT_COPY.en).invalid);
+    return false;
+  }
   if (tier === WEB_TIERS.BYOK && els.apiKey.value.trim().length === 0) {
     els.apiKey.classList.add('is-invalid');
     showInlineError($('#key-error'), t.keyMissing);
@@ -1027,7 +1135,7 @@ function preflight(clean, source) {
 }
 
 async function submit(text, source = 'hero') {
-  if (state.busy) return;
+  if (state.busy || activeConvo()?.reviewPending) return;
   const clean = String(text || '').trim();
   if (!clean) return;
 
@@ -1071,6 +1179,8 @@ async function submit(text, source = 'hero') {
     provider: els.provider.value, model: els.model.value,
     apiKey: tier === WEB_TIERS.BYOK ? els.apiKey.value : undefined,
   });
+  reqBody.includeEdits = true;
+  reqBody.protectedSpans = protectedInputSpans(convo.thread.original ?? clean, convo.protectedInput || '');
   const telemetry = rewriteData(source, clean, String(reqBody.mode));
   await runAttempt({
     convo, clean, reqBody, body, textEl, statusEl, telemetry,
@@ -1084,6 +1194,7 @@ async function submit(text, source = 'hero') {
 async function runAttempt(attempt) {
   const { convo, clean, reqBody, body, textEl, statusEl, authorization, epoch, telemetry } = attempt;
   const startedAt = Date.now();
+  let approved = false;
   track('Rewrite Requested', telemetry);
   let terminalTracked = false;
   const trackFailed = (outcome) => {
@@ -1102,6 +1213,7 @@ async function runAttempt(attempt) {
     });
   };
   state.busy = true;
+  for (const controller of reviewControllers) controller.setBusy(true);
   if (reqBody.tier === WEB_TIERS.PRO) {
     state.licenseStatus = licenseStatusAfter(state.licenseStatus, 'request');
     syncTier();
@@ -1175,10 +1287,15 @@ async function runAttempt(attempt) {
           ? fidelitySource.fidelity
           : undefined;
         const fidelity = Number(fidelityNested ?? fidelitySource);
-        const rejected = frame.floorFailed || !Number.isFinite(mps) || !Number.isFinite(fidelity) || mps < MPS_FLOOR || fidelity < FIDELITY_FLOOR;
+        const rejected = frame.floorFailed || !Number.isFinite(mps) || !Number.isFinite(fidelity)
+          || mps < MPS_FLOOR || fidelity < FIDELITY_FLOOR || mps > 100 || fidelity > 100
+          || Number(/** @type {any} */ (frame.mps)?.hard_fail_count || 0) > 0;
         const meta = { mps: frame.mps, fidelity: frame.fidelity, signals: frame.signals, diff: frame.diff, floorFailed: rejected };
         textEl.textContent = rewrite; textEl.classList.remove('streaming');
-        body.appendChild(buildMeta(meta, clean));
+        const original = reqBody.original ?? clean;
+        const audit = buildMeta(meta, original);
+        audit.dataset.verificationMeta = 'true';
+        body.appendChild(audit);
         if (rejected) {
           trackFailed(Number.isFinite(mps) && Number.isFinite(fidelity) ? 'floor' : 'scoring');
           textEl.classList.add('msg__text--flagged');
@@ -1187,10 +1304,15 @@ async function runAttempt(attempt) {
           return;
         }
         approveOutput(textEl, statusEl);
+        approved = true;
         trackCompleted(mps, fidelity);
         body.appendChild(buildOutputActions(rewrite, frame.receipt));
-        convo.messages.push({ role: 'assistant', text: rewrite, meta });
+        const message = { role: 'assistant', text: rewrite, meta, original, receipt: frame.receipt,
+          editReview: frame.editReview, protectedSpans: reqBody.protectedSpans || [] };
+        convo.messages.push(message);
+        convo.reviewPending = false;
         convo.thread.commit({ userText: clean, assistantText: rewrite });
+        void attachReview(convo, message, body, textEl, statusEl);
         scrollDown();
       },
     });
@@ -1244,6 +1366,7 @@ async function runAttempt(attempt) {
     if (active === run) {
       active = null;
       state.busy = false;
+      for (const controller of reviewControllers) controller.setBusy(false);
       if (reqBody.tier === WEB_TIERS.PRO) {
         state.licenseStatus = licenseStatusAfter(state.licenseStatus, 'end');
         syncTier();
@@ -1254,11 +1377,15 @@ async function runAttempt(attempt) {
       els.input.focus();
     }
   }
+  return { ok: approved };
 }
 
 // Stable error-kind → localized copy. Classification is centralized in
 // rewrite-client.js#classifyRewriteError (no ad-hoc string matching here).
 function failureMessage(kind, ff, t) {
+  if (ff.code === 'protected_text_failed') return reviewCopy(els.lang.value).protected;
+  if (ff.code === 'source_changed') return reviewCopy(els.lang.value).stale;
+  if (ff.code === 'edit_output_too_long') return reviewCopy(els.lang.value).unavailable;
   const K = REWRITE_ERROR_KINDS;
   switch (kind) {
     case K.AUTH_REQUIRED: return t.authRequired;
@@ -1285,6 +1412,9 @@ function failureMessage(kind, ff, t) {
 
 // Retry a transient failure with current settings: one submission per activation.
 function addRetry(body, attempt) {
+  // The review panel retries verification with current credentials. A generic
+  // submit here would change a verification request into a generated rewrite.
+  if (attempt.reqBody.mode === REWRITE_MODES.VERIFY) return;
   const btn = el('button', 'retrybtn', i18n().retry);
   btn.type = 'button';
   btn.addEventListener('click', () => {
@@ -1325,7 +1455,8 @@ function addRecovery(body, attempt, recovery) {
 // ---------- composer UX ----------
 function autoGrow(node) { node.style.height = 'auto'; node.style.height = Math.min(node.scrollHeight, 200) + 'px'; }
 function tierBlocked() {
-  return (els.tier.value === WEB_TIERS.BYOK && els.apiKey.value.trim().length === 0)
+  return Boolean(activeConvo()?.reviewPending)
+    || (els.tier.value === WEB_TIERS.BYOK && els.apiKey.value.trim().length === 0)
     || (els.tier.value === WEB_TIERS.PRO && !state.license);
 }
 // While streaming, the send buttons become enabled Stop controls (is-stop).
@@ -1342,6 +1473,9 @@ function closeMobileSidebar() { els.chat.classList.remove('sidebar-open'); els.t
 function applyI18n(lang) {
   const t = I18N[lang] || I18N.en;
   const set = (sel, text) => { const n = document.querySelector(sel); if (n) n.textContent = text; };
+  const protection = PROTECTED_INPUT_COPY[lang] || PROTECTED_INPUT_COPY.en;
+  set('#protected-label', protection.label);
+  set('#protected-hint', protection.hint);
   // Structured copy is rendered via DOM nodes (textContent + createElement), so
   // localized strings are never parsed as HTML (no innerHTML injection surface).
   const setTitle = (sel, parts) => {
@@ -1431,6 +1565,7 @@ function syncSettingsBusy() {
     control.toggleAttribute('disabled', state.busy);
   }
   syncPresetButtons();
+  els.protectedInput.disabled = state.busy || Boolean(activeConvo()?.reviewPending);
 }
 
 const storedPresets = readPresets();
@@ -1438,6 +1573,10 @@ let presets = storedPresets.presets;
 let presetStatus = ({ unavailable: 'storageUnavailable', invalid: 'storageInvalid', version: 'storageVersion' })[storedPresets.status] || '';
 const presetSelect = /** @type {HTMLSelectElement} */ ($('#preset-select'));
 const presetName = /** @type {HTMLInputElement} */ ($('#preset-name'));
+els.protectedInput.addEventListener('input', () => {
+  const convo = activeConvo();
+  if (convo && !state.busy && !convo.reviewPending) convo.protectedInput = els.protectedInput.value;
+});
 function renderPresets(selected = presetSelect.value) {
   presetSelect.innerHTML = '';
   presetSelect.appendChild(new Option(experienceCopy(els.lang.value).presetNone, ''));

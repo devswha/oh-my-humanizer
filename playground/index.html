@@ -10,6 +10,7 @@
   <link rel="icon" type="image/svg+xml" href="/assets/brand/patina-icon.svg" />
   <link rel="apple-touch-icon" href="/assets/brand/patina-icon.svg" />
   <link rel="stylesheet" href="/chatgpt.css" />
+  <link rel="stylesheet" href="/edit-review.css" />
 </head>
 <body>
   <div class="app" id="app" data-view="landing">
@@ -98,6 +99,11 @@
         </div>
       </details>
       <p class="ctl__status" id="settings-status" role="status" aria-live="polite"></p>
+      <details class="nav__presets protected-controls">
+        <summary id="protected-label">Keep these phrases unchanged</summary>
+        <textarea id="protected-text" class="ctl__input" rows="2" maxlength="4000" aria-labelledby="protected-label" aria-describedby="protected-hint" autocomplete="off" spellcheck="false"></textarea>
+        <p class="ctl__status" id="protected-hint">Optional: one product name, quote or phrase per line. Kept in this conversation only.</p>
+      </details>
     </header>
 
     <!-- ───────── landing ───────── -->

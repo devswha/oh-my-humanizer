@@ -28,9 +28,9 @@ async function textHash(text, crypto) {
  * `isAccepted` means exact equality with the supplied full rewrite, never a
  * meaning-verification pass. No scores or receipts are carried into selections.
  *
- * @param {{original: string, rewrite: string, editReview: object, crypto?: Crypto}} options
+ * @param {{original: string, rewrite: string, editReview: object, initialSelection?: boolean[], crypto?: Crypto}} options
  */
-export async function createEditReviewState({ original, rewrite, editReview, crypto = globalThis.crypto }) {
+export async function createEditReviewState({ original, rewrite, editReview, initialSelection, crypto = globalThis.crypto }) {
   if (typeof original !== 'string' || typeof rewrite !== 'string'
     || original.length > MAX_TEXT_LENGTH || rewrite.length > MAX_TEXT_LENGTH) {
     throw invalid('edit_review_invalid_text');
@@ -53,6 +53,11 @@ export async function createEditReviewState({ original, rewrite, editReview, cry
 
   let accepted = edits.map(() => true);
   let candidate = rewrite;
+  if (initialSelection !== undefined) {
+    if (!Array.isArray(initialSelection) || initialSelection.length !== edits.length || initialSelection.some((value) => typeof value !== 'boolean')) throw invalid('edit_review_invalid_selection');
+    accepted = [...initialSelection];
+    candidate = applyTextEdits(original, edits.filter((_, index) => accepted[index]));
+  }
   const getSelection = () => Object.freeze({
     candidate,
     isAccepted: candidate === rewrite,
@@ -70,6 +75,7 @@ export async function createEditReviewState({ original, rewrite, editReview, cry
   return Object.freeze({
     edits,
     getSelection,
+    getAccepted: () => Object.freeze([...accepted]),
     isChecked: index => accepted[index] === true,
     getAcceptedCount: () => accepted.reduce((count, checked) => count + Number(checked), 0),
     setAccepted(index, checked) {
@@ -184,7 +190,7 @@ const LABELS = {
  * listeners and ignores pending completions; the parent owns request abortion.
  */
 export async function createEditReview({
-  original, rewrite, editReview, lang = 'en', onSelectionChange, onVerify, onRestore,
+  original, rewrite, editReview, initialSelection = undefined, lang = 'en', onSelectionChange = undefined, onVerify = undefined, onRestore = undefined,
   document = globalThis.document,
 }) {
   if (!document || typeof document.createElement !== 'function') throw invalid('edit_review_document_unavailable');
@@ -192,7 +198,7 @@ export async function createEditReview({
     if (callback !== undefined && typeof callback !== 'function') throw invalid('edit_review_invalid_callback');
   }
   const state = await createEditReviewState({
-    original, rewrite, editReview, crypto: document.defaultView?.crypto ?? globalThis.crypto,
+    original, rewrite, editReview, initialSelection, crypto: document.defaultView?.crypto ?? globalThis.crypto,
   });
   const language = typeof lang === 'string' ? lang.toLowerCase().split('-')[0] : 'en';
   const locale = Object.hasOwn(LABELS, language) ? language : 'en';
@@ -320,7 +326,7 @@ export async function createEditReview({
     selectionReady = false;
     render();
     try {
-      await onSelectionChange?.(selection);
+      await onSelectionChange?.(selection, state.getAccepted());
       if (restored && !disposed) await onRestore?.(selection);
       selectionReady = true;
     } catch {
