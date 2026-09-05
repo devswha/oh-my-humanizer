@@ -23,13 +23,14 @@ alias and `PATINA_VERCEL_LOG_QUERY_URL_SHA256` to the lowercase SHA-256 of that
 exact URL. Both updates succeeded; stdin contained no trailing newline. The
 query token was retained.
 
-## Verification still required
+## Deployment follow-up
 
-The change applies to the next production deployment. After 8.1.2 deploys, read
-the ordinary cron's response status and new diagnostic event. A 401 anonymous
-probe alone does not prove authenticated aggregate queries work. The healthy
-alert/recovery receipt also needs its actual runtime evidence; no production
-traffic or receipt is synthesized for this check.
+The 8.1.2 diagnostics showed all three adapters available but an unacknowledged
+Discord alert. The message-envelope correction in 8.1.3 then restored an ordinary
+cron response to 200 on 2026-09-05 (production deployment
+`dpl_GMm7a7gYWKSZV737kAqyHkJxZ7xa`). The eligible alert/recovery receipt still
+needs its actual runtime evidence; no production traffic or receipt is synthesized
+for this check. See `pro-failure-recovery-20260904.md` for the delivery correction.
 
 Rollback can reactivate the preceding immutable production deployment, which
 retains its captured runtime configuration. Do not infer the old sensitive

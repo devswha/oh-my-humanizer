@@ -2,6 +2,16 @@
 
 All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 
+## 8.2.0 — 2026-09-05
+
+Semver rationale: minor — adds CLI inspection and community pattern management without changing default rewrite policies.
+
+- **Offline editor inspection.** `patina inspect` returns deterministic scores and source-aligned UTF-16 diagnostics for editor integrations.
+- **Community pattern packs.** `patina pattern install|list|remove` manages unsigned GitHub packs with commit pinning, metadata validation and local-file protection. Licensed Pro packs retain their separate command.
+- **Kimi text isolation.** Local Kimi requests disable tools and subagents. Metadata-only output fails safely, and setup failures clean temporary files.
+- **Dataset publication tooling.** Export reviewed public regression fixtures and publish them through a guarded manual workflow. Actual Hugging Face upload remains a separate step.
+- **Live evaluation tooling.** Opt-in scorer and rewrite studies bind sources and private call receipts, stop after storage failures, and require independent judge families. Model comparisons are still in progress; no model default changes are made by this release.
+
 ## 8.1.3 — 2026-09-04
 
 - **Pro failure allowance.** Trusted server-side rewrite failures restore daily/monthly request and character allowance once. Atomic reservations, cancellation fencing and an independent monthly processing budget bound retries; client cancellations after admission remain charged.
