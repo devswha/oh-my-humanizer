@@ -4,6 +4,7 @@ import { textHash } from '../../tests/quality/live-scorer-benchmark.mjs';
 import { deliveredRewrite } from '../../tests/quality/live-quality.mjs';
 import { judgeCandidates, judgeRewrite } from './model-rewrite-benchmark.mjs';
 import { safeCallRecord } from './study-journal.mjs';
+import { generationFamily, validateJudgmentFamilies } from './study-family.mjs';
 
 const key = (row) => `${row.candidate_id}/${row.fixture_id}/${row.repeat}`;
 
@@ -16,8 +17,22 @@ function bindRequest(receipt, logicalId, index, candidate, promptHash, options =
 export async function auditParentReceipts({ directory, generations, privateRows, judgments, candidates, protocol, fixtures, hashes,
   includeGenerations = true, judgmentProtocolHash, judgeIds }) {
   const expectedGroups = new Map();
+  // This exported audit is also called directly by joins. Reject every supplied
+  // judgment up front, including seats the expected-group loop would omit.
+  for (const row of judgments) {
+    const generation = generations.find((generation) => key(generation) === key(row));
+    const candidate = candidates.find((candidate) => candidate.id === generation?.candidate_id);
+    const judge = protocol.candidates.find((candidate) => candidate.id === row.judge_id);
+    if (!generation || !candidate || !judge || !judgeCandidates(candidate, protocol).some((seat) => seat.id === judge.id)) throw new Error('Unbound or same-family parent judgment');
+    validateJudgmentFamilies(generation, row, { candidate, judge });
+  }
   for (const generation of generations) {
     const candidate = candidates.find((candidate) => candidate.id === generation.candidate_id);
+    if (!candidate) throw new Error('Unknown parent generator');
+    generationFamily(generation, candidate);
+    const original = privateRows.find((row) => key(row) === key(generation));
+    if (!original) throw new Error('Missing private parent generation');
+    generationFamily(original, candidate);
     const logical = `${generation.protocol_hash}/${key(generation)}`;
     if (includeGenerations) expectedGroups.set(textHash(`${logical}/rewrite`), { row: generation, candidate, generation, logicalId: `${logical}/rewrite` });
     for (const judge of judgeCandidates(candidate, protocol).filter((judge) => !judgeIds || judgeIds.includes(judge.id))) {
