@@ -1258,8 +1258,8 @@
       ]
     },
     {
-      "claim": "Claude Code's Fable documentation says usage credits are required even within a subscription usage allowance; Opus remains the default on Max/Team Premium/Enterprise. This does not establish this account's plan or actual charge.",
-      "kind": "documented_with_access_limit",
+      "claim": "A retrieved Claude Code model-configuration source states that Fable requires usage credits even within a subscription allowance. Independent verification was inconclusive after direct403 retrieval; treat this statement as unverified, not account-level billing evidence. The same source lists Opus as the default on Max/Team Premium/Enterprise.",
+      "kind": "source_statement_independently_unverified",
       "sourceIds": [
         "A-CODE-MODEL"
       ]
