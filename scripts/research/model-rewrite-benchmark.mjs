@@ -159,7 +159,7 @@ export function renderRewriteReport(generations, judgments, metadata = {}) {
   const complete = Array.isArray(metadata.expectedKeys) && metadata.expectedKeys.length === actualKeys.size
     && new Set(metadata.expectedKeys).size === actualKeys.size && metadata.expectedKeys.every((key) => actualKeys.has(key))
     && ![...generations, ...judgments].some((row) => [row.error, ...(row.calls || []).map((call) => call.error)]
-      .some((error) => ['study-call-unobserved', 'study-call-inflight', 'study-cancelled'].includes(error)))
+      .some((error) => ['study-call-unobserved', 'study-call-inflight', 'study-cancelled', 'study-journal-persistence-failed'].includes(error)))
     && Object.values(summary).every((item) => item.pending_judgments === 0);
   const lines = ['# Model rewrite comparison', '', `Generated: ${new Date().toISOString()}`, '',
     `Collection complete: **${complete ? 'yes' : 'no'}**. Protocol: ${metadata.protocolHash || 'ad-hoc'}.`,

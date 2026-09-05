@@ -130,7 +130,7 @@ export function renderScorerReport(rows, metadata = {}) {
   if (new Set(keys).size !== keys.length) throw new Error('Duplicate scorer result');
   const complete = Array.isArray(metadata.expectedKeys) && metadata.expectedKeys.length === keys.length
     && metadata.expectedKeys.every((key) => keys.includes(key))
-    && !rows.some((row) => row.calls.some((call) => ['study-call-unobserved', 'study-call-inflight', 'study-cancelled'].includes(call.error)));
+    && !rows.some((row) => row.calls.some((call) => ['study-call-unobserved', 'study-call-inflight', 'study-cancelled', 'study-journal-persistence-failed'].includes(call.error)));
   const f = (n) => Number.isFinite(n) ? n.toFixed(2) : 'N/A';
   const lines = ['# Live scorer benchmark', '', `Generated: ${new Date().toISOString()}`, '',
     'Opt-in diagnostics from the production `scoreText` path. No live score is a CI gate.',
