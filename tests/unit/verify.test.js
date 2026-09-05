@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mpsResult, fidelityResult } from '../fixtures/verification-results.js';
 
 import { deterministicMeaningGuard, verifyRewrite } from '../../src/verify.js';
 import { validateVerifyRequest, parseArgs } from '../../src/cli/args.js';
@@ -54,7 +55,7 @@ test('verifyRewrite accepts the first rewrite when both floors pass (no retry)',
     ...baseArgs,
     rewrite: 'good rewrite',
     callLLM: async () => { calls += 1; return 'RETRY'; },
-    scoreFns: { scoreMPS: async () => ({ mps: 90 }), scoreFidelity: async () => ({ fidelity: 85 }) },
+    scoreFns: { scoreMPS: async () => (mpsResult(90)), scoreFidelity: async () => (fidelityResult(10)) },
   });
   assert.equal(result.verified, true);
   assert.equal(result.retried, false);
@@ -69,8 +70,8 @@ test('verifyRewrite retries conservatively and accepts a passing retry', async (
     rewrite: 'first',
     callLLM: async () => { calls += 1; return '[BODY]second[/BODY]'; },
     scoreFns: {
-      scoreMPS: async ({ rewritten }) => ({ mps: rewritten === 'first' ? 50 : 90 }),
-      scoreFidelity: async ({ rewritten }) => ({ fidelity: rewritten === 'first' ? 50 : 88 }),
+      scoreMPS: async ({ rewritten }) => mpsResult(rewritten === 'first' ? 50 : 90),
+      scoreFidelity: async ({ rewritten }) => fidelityResult(rewritten === 'first' ? 6 : 11),
     },
   });
   assert.equal(calls, 1);
@@ -85,14 +86,14 @@ test('verifyRewrite fails closed to the highest-fidelity candidate', async () =>
     rewrite: 'first-rw',
     callLLM: async () => 'retry-rw',
     scoreFns: {
-      scoreMPS: async ({ rewritten }) => ({ mps: rewritten === 'first-rw' ? 40 : 60 }),
-      scoreFidelity: async ({ rewritten }) => ({ fidelity: rewritten === 'first-rw' ? 50 : 65 }),
+      scoreMPS: async ({ rewritten }) => mpsResult(rewritten === 'first-rw' ? 40 : 60),
+      scoreFidelity: async ({ rewritten }) => fidelityResult(rewritten === 'first-rw' ? 6 : 8),
     },
   });
   assert.equal(result.verified, false);
   assert.equal(result.reason, 'floor-not-met');
   assert.equal(result.text, 'retry-rw');
-  assert.equal(result.fidelity, 65);
+  assert.equal(result.fidelity, 66.7);
 });
 
 test('verifyRewrite keeps the first rewrite when the retry call throws', async () => {
@@ -100,7 +101,7 @@ test('verifyRewrite keeps the first rewrite when the retry call throws', async (
     ...baseArgs,
     rewrite: 'first',
     callLLM: async () => { throw new Error('network down'); },
-    scoreFns: { scoreMPS: async () => ({ mps: 40 }), scoreFidelity: async () => ({ fidelity: 40 }) },
+    scoreFns: { scoreMPS: async () => (mpsResult(40)), scoreFidelity: async () => (fidelityResult(5)) },
   });
   assert.equal(result.verified, false);
   assert.equal(result.reason, 'retry-error');
@@ -114,8 +115,8 @@ test('verifyRewrite treats a null MPS as a floor miss (fail closed)', async () =
     rewrite: 'first',
     callLLM: async () => 'retry',
     scoreFns: {
-      scoreMPS: async () => (mpsCalls++ === 0 ? { mps: null } : { mps: 90 }),
-      scoreFidelity: async () => ({ fidelity: 90 }),
+      scoreMPS: async () => (mpsCalls++ === 0 ? { mps: null } : mpsResult(90)),
+      scoreFidelity: async () => (fidelityResult(11)),
     },
   });
   assert.equal(result.retried, true);
@@ -129,8 +130,8 @@ test('verifyRewrite treats a null fidelity as a floor miss (fail closed)', async
     rewrite: 'first',
     callLLM: async () => 'retry',
     scoreFns: {
-      scoreMPS: async () => ({ mps: 90 }),
-      scoreFidelity: async () => (fidelityCalls++ === 0 ? { fidelity: null } : { fidelity: 90 }),
+      scoreMPS: async () => (mpsResult(90)),
+      scoreFidelity: async () => (fidelityCalls++ === 0 ? { fidelity: null } : fidelityResult(11)),
     },
   });
   assert.equal(result.retried, true);
@@ -148,8 +149,8 @@ test('verifyRewrite honors configured floors', async () => {
     rewrite: 'first',
     callLLM: async () => { calls += 1; return 'retry'; },
     scoreFns: {
-      scoreMPS: async ({ rewritten }) => ({ mps: rewritten === 'first' ? 75 : 90 }),
-      scoreFidelity: async ({ rewritten }) => ({ fidelity: rewritten === 'first' ? 75 : 90 }),
+      scoreMPS: async ({ rewritten }) => mpsResult(rewritten === 'first' ? 75 : 90),
+      scoreFidelity: async ({ rewritten }) => fidelityResult(rewritten === 'first' ? 9 : 11),
     },
   });
   assert.equal(calls, 1);
@@ -167,8 +168,8 @@ test('verifyRewrite keeps persona thresholds isolated from verification floors',
     rewrite: 'first',
     callLLM: async () => { calls += 1; return 'retry'; },
     scoreFns: {
-      scoreMPS: async () => ({ mps: 85 }),
-      scoreFidelity: async () => ({ fidelity: 85 }),
+      scoreMPS: async () => (mpsResult(85)),
+      scoreFidelity: async () => (fidelityResult(10)),
     },
   });
   assert.equal(calls, 0);

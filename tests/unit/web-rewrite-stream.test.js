@@ -1,6 +1,7 @@
 // @ts-check
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mpsResult, fidelityResult } from '../fixtures/verification-results.js';
 import { rewriteExtraBody, runWebRewriteStream, scoringExtraBody } from '../../src/web-rewrite-stream.js';
 import { buildWebRewriteReceipt, canonicalJson, sha256 } from '../../src/web-rewrite-receipt.js';
 import { loadWebConfig, resolveBundleRoot } from '../../src/web-config.js';
@@ -86,12 +87,12 @@ function scoring({ mps = 95, fidelity = 92, calls = [] } = {}) {
     scoreMPS: async (input) => {
       input.onAttempt(privateAttempt());
       calls.push(['mps', input.original, input.rewritten]);
-      return { mps };
+      return mpsResult(mps);
     },
     scoreFidelity: async (input) => {
       input.onAttempt(privateAttempt());
       calls.push(['fidelity', input.original, input.rewritten]);
-      return { fidelity };
+      return fidelityResult(Math.round(fidelity * 12 / 100));
     },
     scoreDeterministicSignals: ({ text }) => ({ overall: text.length, text }),
   };
@@ -115,8 +116,8 @@ test('runWebRewriteStream emits start, deltas, and done with scores/signals/diff
   assert.equal(frames[1].text, 'human');
   const done = frames[3];
   assert.equal(done.rewrite, 'human text');
-  assert.deepEqual(done.mps, { mps: 95 });
-  assert.deepEqual(done.fidelity, { fidelity: 92 });
+  assert.deepEqual(done.mps, mpsResult(95));
+  assert.deepEqual(done.fidelity, fidelityResult(11));
   assert.equal(done.signals.before.text, 'original anchor');
   assert.equal(done.signals.after.text, 'human text');
   assert.equal(done.diff.beforeChars, 'original anchor'.length);
@@ -228,11 +229,11 @@ test('runWebRewriteStream privately aggregates exact one-based attempts for ever
   const scoreFns = {
     scoreMPS: async ({ onAttempt }) => {
       onAttempt(attempt);
-      return { mps: 95 };
+      return mpsResult(95);
     },
     scoreFidelity: async ({ onAttempt }) => {
       onAttempt({ ...attempt, effectiveModel: 'fidelity-model', usage: { prompt_tokens: 4 } });
-      return { fidelity: 92 };
+      return fidelityResult(11);
     },
     scoreDeterministicSignals: () => ({}),
   };
@@ -302,11 +303,11 @@ test('runWebRewriteStream marks local attempt index starts, gaps, and reordering
       scoreFns: {
         scoreMPS: async ({ onAttempt }) => {
           for (const attempt of sequence) onAttempt(attempt);
-          return { mps: 95 };
+          return mpsResult(95);
         },
         scoreFidelity: async ({ onAttempt }) => {
           onAttempt(privateAttempt());
-          return { fidelity: 92 };
+          return fidelityResult(11);
         },
         scoreDeterministicSignals: () => ({}),
       },
@@ -324,11 +325,11 @@ test('runWebRewriteStream marks isolated invalid score evidence without exposing
     scoreMPS: async ({ onAttempt, onAttemptInvalid }) => {
       onAttemptInvalid({ customerFrame: 'private-provider' });
       onAttempt(privateAttempt());
-      return { mps: 95 };
+      return mpsResult(95);
     },
     scoreFidelity: async ({ onAttempt }) => {
       onAttempt(privateAttempt());
-      return { fidelity: 92 };
+      return fidelityResult(11);
     },
     scoreDeterministicSignals: ({ text }) => ({ text }),
   };
@@ -353,8 +354,8 @@ test('runWebRewriteStream rejects changed numeric claims before paid scoring', a
   const frames = [];
   let scorerCalls = 0;
   const scoreFns = {
-    scoreMPS: async () => { scorerCalls += 1; return { mps: 95 }; },
-    scoreFidelity: async () => { scorerCalls += 1; return { fidelity: 92 }; },
+    scoreMPS: async () => { scorerCalls += 1; return mpsResult(95); },
+    scoreFidelity: async () => { scorerCalls += 1; return fidelityResult(11); },
     scoreDeterministicSignals: () => {
       throw new Error('deterministic scoring must not run after number safety failure');
     },
@@ -403,8 +404,8 @@ test('runWebRewriteStream retries a number-safety failure without re-emitting de
       return { text: 'We shipped 3 units, done.' };
     },
     scoreFns: {
-      scoreMPS: async () => ({ mps: 95 }),
-      scoreFidelity: async () => ({ fidelity: 92 }),
+      scoreMPS: async () => (mpsResult(95)),
+      scoreFidelity: async () => (fidelityResult(11)),
       scoreDeterministicSignals: () => ({ signalScore: 0 }),
     },
     emit: (frame) => frames.push(frame),
@@ -470,8 +471,8 @@ test('runWebRewriteStream keeps heuristic Korean invariants advisory', async () 
     env: { PATINA_KO_DIAGNOSIS_RESEARCH: '1' },
     callLLMStream: async () => ({ text: '운영팀은 배포를 승인했다. 결과는 담당자에 의해 검토된다. 일정은 운영팀에 의해 조정된다.' }),
     scoreFns: {
-      scoreMPS: async () => { scorerCalls += 1; return { mps: 95 }; },
-      scoreFidelity: async () => { scorerCalls += 1; return { fidelity: 95 }; },
+      scoreMPS: async () => { scorerCalls += 1; return mpsResult(95); },
+      scoreFidelity: async () => { scorerCalls += 1; return fidelityResult(11); },
       scoreDeterministicSignals: () => ({}),
     },
     emit: (frame) => frames.push(frame),
@@ -507,8 +508,8 @@ test('runWebRewriteStream does not bypass detector-clean Korean prose', async ()
       return { text: '창문을 여니 빗소리가 한층 가까워졌다. 이내 골목은 다시 조용해졌다.' };
     },
     scoreFns: {
-      scoreMPS: async () => ({ mps: 95 }),
-      scoreFidelity: async () => ({ fidelity: 95 }),
+      scoreMPS: async () => (mpsResult(95)),
+      scoreFidelity: async () => (fidelityResult(11)),
       scoreDeterministicSignals: () => ({}),
     },
     emit: (frame) => frames.push(frame),
@@ -540,8 +541,8 @@ test('runWebRewriteStream enables diagnosed structure guidance only behind the r
       return { text };
     },
     scoreFns: {
-      scoreMPS: async () => ({ mps: 100 }),
-      scoreFidelity: async () => ({ fidelity: 100 }),
+      scoreMPS: async () => (mpsResult(100)),
+      scoreFidelity: async () => (fidelityResult(12)),
       scoreDeterministicSignals: () => ({}),
     },
     emit() {},
@@ -592,8 +593,8 @@ test('runWebRewriteStream forwards scoring reasoning control to both scorers, ne
       return { text: 'We shipped 3 units.' };
     },
     scoreFns: {
-      scoreMPS: async (args) => { seen.mps = args.extraBody; return { mps: 95 }; },
-      scoreFidelity: async (args) => { seen.fidelity = args.extraBody; return { fidelity: 92 }; },
+      scoreMPS: async (args) => { seen.mps = args.extraBody; return mpsResult(95); },
+      scoreFidelity: async (args) => { seen.fidelity = args.extraBody; return fidelityResult(11); },
       scoreDeterministicSignals: () => ({ signalScore: 0 }),
     },
     emit() {},
@@ -614,8 +615,8 @@ test('runWebRewriteStream sends the free-tier deepseek rewrite its reasoning cut
       return { text: 'We shipped 3 units.' };
     },
     scoreFns: {
-      scoreMPS: async (args) => { seen.mps = args.extraBody; return { mps: 95 }; },
-      scoreFidelity: async () => ({ fidelity: 92 }),
+      scoreMPS: async (args) => { seen.mps = args.extraBody; return mpsResult(95); },
+      scoreFidelity: async () => (fidelityResult(11)),
       scoreDeterministicSignals: () => ({ signalScore: 0 }),
     },
     emit() {},
@@ -649,8 +650,8 @@ test('runWebRewriteStream fail-closes floor failures with error and no done', as
   // Floor failures keep the flagged attempt auditable: the already-computed
   // deterministic signals and length diff must ride on the error frame.
   assert.equal(terminal.rewrite, 'bad rewrite');
-  assert.deepEqual(terminal.mps, { mps: 50 });
-  assert.deepEqual(terminal.fidelity, { fidelity: 95 });
+  assert.deepEqual(terminal.mps, mpsResult(50));
+  assert.deepEqual(terminal.fidelity, fidelityResult(11));
   assert.equal(terminal.signals.before.text, 'original anchor');
   assert.equal(terminal.signals.after.text, 'bad rewrite');
   assert.equal(terminal.diff.beforeChars, 'original anchor'.length);
@@ -702,12 +703,12 @@ test('runWebRewriteStream forwards the abort signal and timeout to the LLM strea
     scoreMPS: async ({ signal, timeout, onAttempt }) => {
       seen.scorers.push({ signal, timeout });
       onAttempt(privateAttempt());
-      return { mps: 95 };
+      return mpsResult(95);
     },
     scoreFidelity: async ({ signal, timeout, onAttempt }) => {
       seen.scorers.push({ signal, timeout });
       onAttempt(privateAttempt());
-      return { fidelity: 92 };
+      return fidelityResult(11);
     },
     scoreDeterministicSignals: ({ text }) => ({ text }),
   };
@@ -809,7 +810,7 @@ test('runWebRewriteStream waits for a started scorer before returning a scoring 
       await new Promise((resolve) => setTimeout(resolve, 10));
       onAttempt(privateAttempt({ effectiveModel: 'delayed-fidelity-model' }));
       fidelityFinished = true;
-      return { fidelity: 92 };
+      return fidelityResult(11);
     },
     scoreDeterministicSignals: ({ text }) => ({ text }),
   };
@@ -843,8 +844,8 @@ test('runWebRewriteStream fails closed for unchanged ambiguous dates before scor
       return { text: 'Report date: 01/02/2024.' };
     },
     scoreFns: {
-      scoreMPS: async () => { scorerCalls += 1; return { mps: 95 }; },
-      scoreFidelity: async () => { scorerCalls += 1; return { fidelity: 92 }; },
+      scoreMPS: async () => { scorerCalls += 1; return mpsResult(95); },
+      scoreFidelity: async () => { scorerCalls += 1; return fidelityResult(11); },
       scoreDeterministicSignals: () => {
         throw new Error('deterministic scoring must not run after ambiguous date failure');
       },

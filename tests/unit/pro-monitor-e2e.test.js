@@ -1,6 +1,7 @@
 // @ts-check
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mpsResult, fidelityResult } from '../fixtures/verification-results.js';
 import { createHash } from 'node:crypto';
 import { createRewriteApiHandler } from '../../api/rewrite.js';
 import { createProMonitorApiHandler } from '../../api/pro-monitor.js';
@@ -36,7 +37,7 @@ test('real rewrite aggregates flow through protected cron, pending Discord alert
     set() { directAggregateSeed += 1; throw new Error('aggregate evidence must come from rewrite observers'); },
   };
   const logger = { info(value) { if (value?.schema === 'patina.web.v2') observerEvents.push({ at: clock.ms, event: value }); }, warn() {}, error() {}, debug() {} };
-  const runner = async ({ request, emit, signal, timeout, observe }) => runWebRewriteStream({ request, emit, signal, timeout, observe, now: () => clock.ms, callLLMStream: async ({ onDelta }) => { clock.ms += request.text === 'Patina monitor health check.' ? 0 : latencyIndex < 0 ? 10_000 : [10_000, 40_000, 90_000, 130_000, 130_000, 130_000, 130_000, 130_000, 130_000, 130_000][latencyIndex]; const value = request.text === 'Patina monitor health check.' ? request.text : request.text.includes('mismatch') ? 'Order 8 units.' : 'Order 7 units.'; onDelta(value); return { text: value }; }, scoreFns: { scoreMPS: async () => ({ mps: 95 }), scoreFidelity: async () => ({ fidelity: 95 }), scoreDeterministicSignals: () => ({}) } });
+  const runner = async ({ request, emit, signal, timeout, observe }) => runWebRewriteStream({ request, emit, signal, timeout, observe, now: () => clock.ms, callLLMStream: async ({ onDelta }) => { clock.ms += request.text === 'Patina monitor health check.' ? 0 : latencyIndex < 0 ? 10_000 : [10_000, 40_000, 90_000, 130_000, 130_000, 130_000, 130_000, 130_000, 130_000, 130_000][latencyIndex]; const value = request.text === 'Patina monitor health check.' ? request.text : request.text.includes('mismatch') ? 'Order 8 units.' : 'Order 7 units.'; onDelta(value); return { text: value }; }, scoreFns: { scoreMPS: async () => (mpsResult(95)), scoreFidelity: async () => (fidelityResult(11)), scoreDeterministicSignals: () => ({}) } });
   const originalFetch = globalThis.fetch; const RealDate = Date;
   globalThis.fetch = /** @type {any} */ (async () => ({ ok: true, status: 200, json: async () => ({ organization_id: 'org-uuid', benefit_id: 'benefit-uuid', status: 'granted', expires_at: null }) }));
   try {

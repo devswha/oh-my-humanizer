@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseStrictJson } from '../../src/json-response.js';
+import { validateMps, validateFidelityCriteria } from '../../src/verification-schema.js';
 import { createHash } from 'node:crypto';
 const textHash = (value) => createHash('sha256').update(value).digest('hex');
 
@@ -22,28 +23,15 @@ export function validateRawScore(text, patterns) {
 
 export function validateRawMps(text) {
   const value = parseStrictJson(text);
-  const types = new Set(['claim', 'polarity', 'causation', 'quantifier', 'negation']);
-  const verdicts = new Set(['PASS', 'SOFT_FAIL', 'HARD_FAIL']);
-  if (!Array.isArray(value.anchors) || !bounded(value.mps, 100)) throw new Error('invalid-mps-schema');
-  for (const anchor of value.anchors) {
-    if (!object(anchor) || !types.has(anchor.type) || !verdicts.has(anchor.verdict) || typeof anchor.content !== 'string' || !anchor.content.trim()) throw new Error('invalid-anchor');
-  }
-  const passed = value.anchors.filter((anchor) => anchor.verdict === 'PASS').length;
-  // core/scoring.md defines the weighted polarity group as Polarity + Negation.
-  const polarity = value.anchors.filter((anchor) => ['polarity', 'negation'].includes(anchor.type));
-  const polarityPassed = polarity.filter((anchor) => anchor.verdict === 'PASS').length;
-  if (value.pass_count !== passed || value.total_count !== value.anchors.length
-    || value.polarity_pass_count !== polarityPassed || value.polarity_total_count !== polarity.length) throw new Error('inconsistent-mps-counts');
-  const passRate = value.anchors.length ? passed / value.anchors.length : 1;
-  const expected = polarity.length ? (passRate * .6 + polarityPassed / polarity.length * .4) * 100 : passRate * 100;
-  if (Math.abs(value.mps - expected) > .11) throw new Error('inconsistent-mps-score');
-  return { ...value, hard_fail_count: value.anchors.filter((anchor) => anchor.verdict === 'HARD_FAIL').length };
+  // Historical evidence derives this count from anchors, even if the provider
+  // supplied a count of its own. Keep that wrapper behavior; runtime inputs
+  // validate a supplied hard_fail_count too. No score is repaired or clamped.
+  const { hard_fail_count: _providerCount, ...raw } = value;
+  return validateMps(raw);
 }
 
 export function validateRawFidelity(text) {
-  const value = parseStrictJson(text);
-  if (!['claims_preserved', 'no_fabrication', 'audience_register_match'].every((key) => integer(value[key], 3))) throw new Error('invalid-fidelity-schema');
-  return value;
+  return validateFidelityCriteria(parseStrictJson(text));
 }
 
 export function studySemantics(repoRoot) {

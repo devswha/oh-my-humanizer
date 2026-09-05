@@ -239,8 +239,8 @@ test('classifyRewriteError maps every server reason string to a stable kind', ()
 
 test('classifyRewriteError falls back conservatively for unrecognized failures', () => {
   const K = REWRITE_ERROR_KINDS;
-  // Unknown quota reason → retry-shortly copy beats a wrong "come back tomorrow".
-  assert.equal(classifyRewriteError({ status: 429, error: 'rate limited' }), K.QUOTA_HOURLY);
+  // Unknown quota reasons must not invent a quota window or reset time.
+  assert.equal(classifyRewriteError({ status: 429, error: 'rate limited' }), K.QUOTA_UNKNOWN);
   assert.equal(classifyRewriteError({ status: 503, error: 'upstream exploded' }), K.SERVICE_UNAVAILABLE);
   assert.equal(classifyRewriteError({ status: 502 }), K.SERVICE_UNAVAILABLE);
   assert.equal(classifyRewriteError({ status: 500, error: 'internal error' }), K.UNKNOWN);

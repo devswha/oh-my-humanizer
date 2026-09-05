@@ -459,7 +459,9 @@ export function createRewriteApiHandler({ env = /** @type {Record<string,string|
               ? result.code
               : ([...bufferedFrames].reverse().find((frame) => frame.type === 'error')?.code ?? 'rewrite_failed');
             const errorFrame = bufferedFrames.find((frame) => frame.type === 'error' && typeof frame.error === 'string');
-            res.statusCode = code === 'floor_failed' || code === 'number_safety_failed' ? 422 : 500;
+            res.statusCode = code === 'source_changed' ? 409
+              : code === 'invalid_unicode' ? 400
+                : ['floor_failed', 'number_safety_failed', 'protected_text_failed', 'edit_output_too_long', 'output_invalid_unicode'].includes(code) ? 422 : 500;
             bufferedBody = JSON.stringify({ ok: false, code, error: errorFrame?.error ?? code });
           }
         }

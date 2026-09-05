@@ -55,7 +55,10 @@ patina --verify --lang ko --backend codex-cli draft.md
 ```
 
 - It is a rewrite modifier, not a separate mode: combining it with `--score`, `--audit`, `--diff`, or `--preview` is an input error (those do not rewrite).
-- The MPS/fidelity scorers run through the **selected backend**, so `--verify` works with HTTP and local CLI backends alike. It adds up to four extra model calls (two scorers, plus a retry that re-scores), so the plain rewrite stays the fast/cheap default.
+- The MPS/fidelity scorers run through the **selected backend**, so `--verify` works with HTTP and local CLI backends alike. Each candidate needs two scoring calls; a conservative rewrite retry adds another rewrite and two scorers. Each scorer can retry an invalid response once at temperature 0.
+
+Verification checks anchor counts, the weighted Polarity + Negation group, and score arithmetic. Fidelity criteria must be integers from 0 to 3; malformed values are rejected without clamping. Any `HARD_FAIL` prevents verification even when both scores exceed 70. Valid zero-anchor MPS remains 100. If verification still fails after the rewrite retry, stdout keeps the closest candidate and the CLI exits 4.
+
 The Node CLI keeps Persona quality and verification separate. `--verify` uses
 `verification.{mps-floor,fidelity-floor}`; `personas.thresholds` contains only
 advisory voice-match and surface-churn thresholds.
