@@ -166,7 +166,7 @@ export function safeStudyError(error) {
   // Store a bounded classification, never a fragment of the upstream body.
   const message = String(error?.message || '');
   if (/study.cancelled|aborted/i.test(message)) return 'study-cancelled';
-  if (/journal persistence failed/i.test(message)) return 'study-journal-persistence-failed';
+  if (/journal[- ]persistence[- ]failed/i.test(message)) return 'study-journal-persistence-failed';
   if (/outcome unobserved|study-call-unobserved/i.test(message)) return 'study-call-unobserved';
   if (/still in flight|study-call-inflight/i.test(message)) return 'study-call-inflight';
   const status = message.match(/HTTP (\d{3})/)?.[1];

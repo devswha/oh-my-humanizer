@@ -89,6 +89,20 @@ export function safeCallRecord(record, candidate) {
 }
 
 export function createCallJournal({ directory, logicalId, candidate, complete = studyCompletion, envFile, validate, record = () => {}, persist = atomicJson }) {
+  const save = (path, receipt) => {
+    if (!path) return;
+    try { persist(path, receipt); }
+    catch {
+      abortStudy();
+      // An attempt observer is handled by the terminal receipt below. Other
+      // failed writes must still expose the unresolved call to the row/report.
+      if (receipt.state !== 'started' || receipt.transportAttempts.length === 0) {
+        record(safeCallRecord({ ...receipt, state: 'error', error: 'study-journal-persistence-failed',
+          notStarted: receipt.notStarted || (receipt.state === 'started' && receipt.transportAttempts.length === 0) }, candidate), null);
+      }
+      throw new Error('Study journal persistence failed');
+    }
+  };
   let index = 0;
   let replayedBudgetMs = 0;
   const group = directory ? resolve(directory, 'calls', hash(logicalId)) : null;
@@ -118,20 +132,20 @@ export function createCallJournal({ directory, logicalId, candidate, complete = 
       if (remaining <= 0) {
         receipt = { schemaVersion: 1, state: 'error', requestHash, promptHash: identity.promptHash, temperature: identity.temperature,
           error: 'request-timeout', durationMs: 0, transportAttempts: [], startedAt: null, endedAt: new Date().toISOString(), notStarted: true };
-        if (path) persist(path, receipt);
+        save(path, receipt);
         record(safeCallRecord(receipt, candidate), null);
         throw new Error('Study deadline reached before transport');
       }
       receipt = { schemaVersion: 1, state: 'started', requestHash, promptHash: identity.promptHash, temperature: identity.temperature,
         owner: processIdentity(process.pid) || { pid: process.pid }, startedAt: new Date().toISOString(), transportAttempts: [] };
-      if (path) persist(path, receipt);
+      save(path, receipt);
       let persistenceFailure = null;
       try {
         const response = await complete(candidate, args.prompt, { envFile, timeoutMs: remaining,
           temperature: identity.temperature, responseFormat: args.responseFormat, extraBody: args.extraBody,
           onAttempt: (attempt) => {
             receipt.transportAttempts.push(attempt);
-            try { if (path) persist(path, receipt); }
+            try { save(path, receipt); }
             catch {
               persistenceFailure = new Error('Study journal persistence failed');
               // The production API intentionally isolates observer exceptions.
@@ -147,14 +161,14 @@ export function createCallJournal({ directory, logicalId, candidate, complete = 
           durationMs: Date.now() - started, endedAt: new Date().toISOString() };
       }
       // Persist immediately after this call, before any parsing or later call.
-      if (path) persist(path, receipt);
+      save(path, receipt);
     }
     if (receipt.replayed) for (const attempt of receipt.transportAttempts || []) args.onAttempt?.(attempt);
     let parsed = null;
     if (receipt.state === 'completed') {
       try { parsed = validate ? validate(receipt.response.text, args) : null; receipt.schemaValid = true; }
       catch { receipt.schemaValid = false; }
-      if (path) persist(path, receipt);
+      save(path, receipt);
     }
     record(safeCallRecord(receipt, candidate), parsed);
     if (receipt.state !== 'completed') throw new Error(receipt.error);
