@@ -58,6 +58,29 @@ test('opaque hosted models need an explicit recognized family; contradictory and
   assert.equal(resolveStudyFamily({ ...google, upstreamFamily: 'gemini' }).upstreamFamily, 'google');
 });
 
+test('opaque generation evidence stays declared without an admitted definition', async (t) => {
+  const candidate = { ...hosted, model: 'private-deployment-id', upstreamFamily: 'qwen' };
+  const source = generation(candidate), forged = { ...source, family_evidence: 'model-id' };
+  assert.deepEqual(generationFamily(source), { upstreamFamily: 'qwen', familyEvidence: 'declared' });
+  assert.equal(summarizeRewrites([source], [judgment(source, openai), judgment(source, google)])[candidate.id].safe, 1);
+  assert.throws(() => generationFamily(forged), /model-id.*evidence/);
+  assert.throws(() => summarizeRewrites([forged], []), /model-id.*evidence/);
+  const root = mkdtempSync(join(tmpdir(), 'patina-family-evidence-')); t.after(() => rmSync(root, { recursive: true, force: true }));
+  let calls = 0;
+  const output = join(root, 'blocked');
+  await assert.rejects(judgeRewrite(fixture, forged, openai, { journalDirectory: output,
+    complete: async () => { calls++; throw new Error('Injected evaluator reached'); } }), /model-id.*evidence/);
+  assert.equal(calls, 0); assert.equal(existsSync(output), false);
+});
+
+test('opaque judge evidence cannot claim model-id in saved results', () => {
+  const source = generation(), judge = { ...hosted, id: 'opaque-judge', model: 'private-deployment-id', upstreamFamily: 'qwen' };
+  const good = judgment(source, judge), forged = { ...good, judge_family_evidence: 'model-id' };
+  assert.equal(validateJudgmentFamilies(source, good), 'qwen');
+  assert.throws(() => validateJudgmentFamilies(source, forged), /model-id.*evidence/);
+  assert.throws(() => summarizeRewrites([source], [judgment(source, google), forged]), /model-id.*evidence/);
+});
+
 test('all original admitted first-party protocols keep their seats and remain byte-for-byte unchanged', () => {
   for (const name of ['model-evaluation-20260904.json', 'model-evaluation-kimi-code-20260905.json', 'model-evaluation-claude-isolated-20260905.json']) {
     const path = join(ROOT, 'docs/research', name), bytes = readFileSync(path, 'utf8'), original = JSON.parse(bytes);
@@ -137,11 +160,39 @@ test('existing evaluation rejects hosted self-family and unresolved definitions 
   assert.equal(calls, 0); assert.equal(existsSync(join(root, 'blocked')), false);
 });
 
+test('existing evaluation validates every saved judgment before output or injected evaluator calls', async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'patina-family-parent-')); t.after(() => rmSync(root, { recursive: true, force: true }));
+  const source = { ...generation(), protocol_hash: textHash('parent-protocol') };
+  const { rewrite: _rewrite, ...publicSource } = source;
+  const good = judgment(source, anthropic);
+  const bad = { ...good, judge_id: openai.id, judge_provider: openai.provider, judge_model: openai.model,
+    judge_transport: openai.transport, judge_upstream_family: 'openai' };
+  const cases = [
+    ['same-family', [good, bad], /same-family/],
+    ['generator-family', [{ ...good, generator_upstream_family: 'qwen' }], /generator family/],
+    ['judge-family', [{ ...good, judge_upstream_family: 'qwen' }], /Contradictory/],
+    ['opaque-evidence', [{ ...good, judge_provider: 'together', judge_model: 'opaque', judge_upstream_family: 'qwen' }], /model-id.*evidence/],
+    ['source-hash', [{ ...good, rewrite_hash: textHash('different rewrite') }], /Unbound/],
+    ['orphan', [{ ...good, fixture_id: 'missing' }], /Unbound/],
+    ['duplicate', [good, good], /Duplicate/],
+  ];
+  for (const [name, judgments, error] of cases) await t.test(name, async () => {
+    let calls = 0;
+    const output = join(root, name), parent = { candidates: [hosted], generations: [publicSource], privateRows: [source], judgments,
+      fixtures: [fixture], snapshotHash: textHash('parent-snapshot'), provenance: { parentProtocolHashes: [source.protocol_hash] },
+      expectedKeys: [`${hosted.id}/${fixture.fixture_id}/0`] };
+    await assert.rejects(evaluateExisting({ parent, judge: google, output, protocolHash: textHash('evaluation-protocol'), live: true,
+      evaluate: async () => { calls++; throw new Error('Injected evaluator reached'); } }), error);
+    assert.equal(calls, 0); assert.equal(existsSync(output), false);
+  });
+});
+
 test('exported receipt audit and join reject self-family parent rows even without evaluation directories', async () => {
   const source = generation();
+  const { rewrite: _rewrite, ...publicSource } = source;
   const bad = { ...judgment(source, google), judge_id: openai.id, judge_provider: openai.provider, judge_model: openai.model,
     judge_upstream_family: 'openai' };
-  const parent = { generations: [source], privateRows: [source], candidates: [hosted], judgments: [bad] };
+  const parent = { generations: [publicSource], privateRows: [source], candidates: [hosted], judgments: [bad] };
   await assert.rejects(auditParentReceipts({ ...parent, protocol, fixtures: [fixture], directory: '/unused', hashes: {} }), /same-family/);
   await assert.rejects(joinEvaluations({ parent, protocol, fixtures: [fixture], directories: [], evaluationSemantics: {} }), /same-family/);
 });

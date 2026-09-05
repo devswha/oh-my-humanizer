@@ -65,6 +65,43 @@ test('hosted OpenAI cohort joins using different upstream judges and keeps the b
   await assert.rejects(joinEvaluations(args), /generator family/);
 });
 
+test('joins without evaluation directories still validate every private generation', async (t) => {
+  const args = await fixture(t, true);
+  const judgments = args.directories.map((directory) => {
+    const judge = JSON.parse(readFileSync(join(directory, 'provenance.json'), 'utf8')).judge;
+    return JSON.parse(readFileSync(join(directory, `judge-${judge.id}.jsonl`), 'utf8'));
+  });
+  const parent = { ...args.parent, judgments }, original = parent.privateRows[0];
+  const before = JSON.stringify(parent);
+  const result = await joinEvaluations({ ...args, parent, directories: [] });
+  assert.equal(result.summary.generator.safe, 1); assert.match(result.report, /complete: \*\*yes/);
+  const cases = [
+    ['contradictory-family', [{ ...original, upstream_family: 'qwen' }], /Contradictory/],
+    ['evidence', [{ ...original, family_evidence: 'model-id' }], /admitted definition/],
+    ['model', [{ ...original, requested_model: 'openai/gpt-oss-20b' }], /admitted definition/],
+    ['host', [{ ...original, provider: 'groq' }], /admitted definition/],
+    ['missing', [], /private.*generation/],
+    ['extra', [original, { ...original, fixture_id: 'extra' }], /private.*generation/],
+    ['unbound', [{ ...original, fixture_id: 'missing' }], /private.*generation/],
+    ['metadata-parity', [{ ...original, text_hash: textHash('other source') }], /metadata differs/],
+    ['rewrite-binding', [{ ...original, rewrite: 'We shipped 13 fixes.' }], /rewrite.*hash/],
+  ];
+  for (const [name, privateRows, error] of cases) await t.test(name, async () => {
+    await assert.rejects(joinEvaluations({ ...args, parent: { ...parent, privateRows }, directories: [] }), error);
+  });
+  await t.test('duplicate private keys cannot replace a missing generation', async () => {
+    const second = { ...parent.generations[0], repeat: 1 };
+    await assert.rejects(joinEvaluations({ ...args, parent: { ...parent,
+      generations: [...parent.generations, second], privateRows: [original, original] }, directories: [] }), /private.*generation/);
+  });
+  await t.test('matching public/private transport still must bind to the definition', async () => {
+    await assert.rejects(joinEvaluations({ ...args, parent: { ...parent,
+      generations: [{ ...parent.generations[0], transport: 'opencodex' }],
+      privateRows: [{ ...original, transport: 'opencodex' }] }, directories: [] }), /generation.*definition/);
+  });
+  assert.equal(JSON.stringify(parent), before);
+});
+
 test('wrong snapshots and altered public/private scores cannot certify joined results', async (t) => {
   const args = await fixture(t);
   const provenancePath = join(args.directories[0], 'provenance.json'), original = readFileSync(provenancePath, 'utf8');

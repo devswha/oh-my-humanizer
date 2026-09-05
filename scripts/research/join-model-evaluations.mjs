@@ -17,10 +17,20 @@ const same = (a, b) => JSON.stringify(canonical(a)) === JSON.stringify(canonical
 
 export async function joinEvaluations({ parent, fixtures, directories, protocol, evaluationSemantics }) {
   for (const candidate of parent.candidates) judgeCandidates(candidate, protocol);
+  const privateByKey = new Map(parent.privateRows.map((row) => [key(row), row]));
+  if (parent.privateRows.length !== parent.generations.length || privateByKey.size !== parent.privateRows.length
+    || new Set(parent.generations.map(key)).size !== parent.generations.length) throw new Error('Parent public/private generation matrix differs');
   for (const generation of parent.generations) {
     const candidate = parent.candidates.find((candidate) => candidate.id === generation.candidate_id);
     if (!candidate) throw new Error('Unknown joined generator');
     generationFamily(generation, candidate);
+    const original = privateByKey.get(key(generation));
+    if (!original) throw new Error('Missing private parent generation');
+    generationFamily(original, candidate);
+    if (original.transport !== candidate.transport) throw new Error('Parent generation transport differs from admitted definition');
+    const { rewrite: _rewrite, ...publicPart } = original;
+    if (!same(generation, publicPart)) throw new Error('Parent public/private generation metadata differs');
+    if (generation.status === 'ok' && (typeof original.rewrite !== 'string' || textHash(original.rewrite) !== generation.rewrite_hash)) throw new Error('Parent rewrite content/hash mismatch');
   }
   for (const row of parent.judgments) {
     const generation = parent.generations.find((generation) => key(generation) === key(row));

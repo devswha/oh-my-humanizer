@@ -56,6 +56,7 @@ function rowFamily(row, judge = false, admitted) {
   if (row[evidenceField] === 'legacy-first-party' && !own(FIRST_PARTY, provider)) throw new Error('Hosted rows cannot claim legacy first-party evidence');
   const identity = { provider, model, ...(own(row, field) ? { upstreamFamily: row[field] } : {}) };
   const resolved = resolveStudyFamily(identity, { legacy: true });
+  if (row[evidenceField] === 'model-id' && modelFamily(model) !== resolved.upstreamFamily) throw new Error('Row model-id family evidence requires a recognized model identity');
   if (admitted) {
     const expected = resolveStudyFamily(admitted);
     if (provider !== admitted.provider || model !== admitted.model || resolved.upstreamFamily !== expected.upstreamFamily

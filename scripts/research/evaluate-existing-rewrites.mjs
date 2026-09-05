@@ -133,6 +133,9 @@ export async function evaluateExisting({ parent, judge, output, protocolHash, li
     if (!candidate) throw new Error('Unknown evaluation generator');
     independentJudgeMetadata(generation, judge, candidate);
   }
+  // Apply the report's binding and family checks to every saved judgment before
+  // acquiring an output writer or allowing any new evaluator calls.
+  summarizeRewrites(parent.generations, parent.judgments);
   const release = acquireStudyWriter(output, `judge-${judge.id}`);
   try {
     bindStudyProtocol(output, protocolHash);
