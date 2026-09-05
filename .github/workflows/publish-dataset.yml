@@ -1,0 +1,44 @@
+name: Publish benchmark dataset
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the reviewed export to the configured Hugging Face dataset
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  dataset:
+    if: github.repository == 'devswha/patina' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: hf-dataset-production
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Export hash-reviewed public fixtures
+        run: node scripts/export-hf-dataset.mjs --output artifacts/hf-export
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patina-hf-dataset
+          path: artifacts/hf-export
+      - name: Publish reviewed main history
+        if: inputs.publish == true
+        env:
+          HF_TOKEN: ${{ secrets.HF_DATASET_WRITE_TOKEN }}
+          HF_DATASET_REPO: ${{ vars.HF_DATASET_REPO }}
+        run: |
+          test -n "$HF_TOKEN"
+          test -n "$HF_DATASET_REPO"
+          git fetch origin main
+          node scripts/publish-hf-dataset.mjs --directory artifacts/hf-export --repository "$HF_DATASET_REPO" --publish

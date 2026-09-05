@@ -4,8 +4,9 @@ A public image is published at `ghcr.io/devswha/patina` (tag `latest`, verified
 2026-09-02). Publishing is **manual**: the `ghcr` job in `release.yml` runs only
 on `workflow_dispatch` with `publish_ghcr=true`, after the same release-ready
 authorization as the npm publish. Tag pushes publish npm and the GitHub Release
-but do not rebuild the image, so `latest` can lag the npm version; the job also
-emits a `<version>` tag only when it runs on a version tag ref.
+but do not rebuild the image, so `latest` can lag the npm version. Manual
+publication must run from `main`. This authorized path publishes `latest`;
+the current workflow does not emit a separate version tag from that branch.
 
 ```bash
 docker pull ghcr.io/devswha/patina:latest
@@ -24,7 +25,7 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 Maintainers publish a new image with:
 
 ```bash
-gh workflow run release.yml -f publish=false -f publish_ghcr=true
+gh workflow run release.yml --ref main -f publish=false -f publish_ghcr=true
 ```
 
 The image uses `node:22-alpine`. It does **not** include codex, claude, or gemini CLI binaries, and it never carries local login state. For container runs, use an API-backed provider or mount your own authenticated tools explicitly.

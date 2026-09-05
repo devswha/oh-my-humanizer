@@ -139,12 +139,14 @@ export async function buildPatinaRewritePrompt(fixture, {
   promptMode,
   minimalStructureGuidance,
   documentSignals,
+  config: providedConfig,
+  patterns: providedPatterns,
 } = {}) {
-  const config = loadConfig();
+  const config = providedConfig ? globalThis.structuredClone(providedConfig) : loadConfig();
   config.language = fixture.language;
   if (fixture.documentType) config.documentType = fixture.documentType;
 
-  const patterns = loadPatterns(repoRoot, fixture.language);
+  const patterns = providedPatterns || loadPatterns(repoRoot, fixture.language);
   const documentType = loadDocumentType(repoRoot, config.documentType || 'default');
   const voice = loadCoreFile(repoRoot, 'voice.md');
   // The benchmark must use the same optional-Persona resolution as shipping

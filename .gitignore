@@ -14,6 +14,7 @@ custom/
 
 # Ops / runtime logs
 node_modules
+artifacts/hf-export/
 .env
 .gjc/
 plans/
@@ -82,6 +83,21 @@ artifacts/rewrite-efficacy-study1/
 artifacts/rewrite-efficacy-study2/
 artifacts/rewrite-efficacy-study3/
 artifacts/rewrite-efficacy-study4/
+
+# Private model-study rewrites and judge rationales; publish sanitized rows only.
+artifacts/model-evaluation-*/*.private.jsonl
+artifacts/model-evaluation-*/**/*.private.jsonl
+artifacts/model-evaluation-*/**/*.log
+artifacts/model-evaluation-*/**/job.json
+artifacts/model-evaluation-*/**/job.json.*.tmp
+artifacts/model-evaluation-*/**/start.lock*
+artifacts/model-evaluation-*/**/*.private.json*
+artifacts/model-evaluation-*/**/.writer-*.lock
+artifacts/model-evaluation-*/**/.writer.lock
+# Invalidated pilot is retained locally; only validated measurements are published.
+artifacts/model-evaluation-20260904/scorer-*/
+artifacts/model-evaluation-20260904/smoke-gemini/
+artifacts/model-evaluation-20260904/jobs/
 
 # Judge-calibration side study raw outputs (same policy: raw text never committed)
 artifacts/judge-calibration-2026/
