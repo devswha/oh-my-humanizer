@@ -5,7 +5,8 @@ import { evaluateNumberSafety } from './features/meaning-proxy.js';
 import { formatRewriteBodyForBrowser } from './output.js';
 import { loadWebConfig, resolveBundleRoot } from './web-config.js';
 import { buildWebRewritePrompt, loadWebAssets } from './web-rewrite.js';
-import { evaluateFloors, redactSecrets, REWRITE_MODES, STREAM_FRAME_TYPES, WEB_TIERS } from './web-rewrite-contract.js';
+import { MPS_FLOOR, FIDELITY_FLOOR, redactSecrets, REWRITE_MODES, STREAM_FRAME_TYPES, WEB_TIERS } from './web-rewrite-contract.js';
+import { evaluateVerification } from './verification-schema.js';
 import { buildWebRewriteReceipt, sha256 } from './web-rewrite-receipt.js';
 import { createTextEdits, normalizeProtectedSpans, validateProtectedText } from './edit-controls.js';
 import { fenceReferenceText } from './prompt-builder.js';
@@ -20,16 +21,6 @@ import { evaluateKoreanInvariants } from './features/korean-invariants.js';
  * @typedef {{signal: AbortSignal|null, remainingMs: () => number|undefined, race: (promise: Promise<any>|any) => Promise<any>, dispose: () => void}} DeadlineScope
  */
 
-/**
- * Extract a score field RAW (no coercion) so evaluateFloors can strictly reject
- * non-numbers. evaluateFloors requires a finite number >= floor, so a string,
- * object, array, or missing value fails closed — "95" must NOT become 95.
- * @param {unknown} score
- * @param {string} field
- */
-function rawScore(score, field) {
-  return /** @type {any} */ (score)?.[field];
-}
 const ATTEMPT_RETRY_REASONS = new Set([
   'initial',
   'transport',
@@ -553,9 +544,9 @@ async function runWebRewriteStreamUnscoped({
     return { ok: false, code: 'scoring_failed', error, attempts, observed: observeTerminal('terminal_failed', 500) };
   }
 
-  // Pass the raw score values to evaluateFloors, which strictly requires a
-  // finite number >= floor (a non-number fails closed). No Number() coercion.
-  const floors = evaluateFloors({ mps: rawScore(mps, 'mps'), fidelity: rawScore(fidelity, 'fidelity') });
+  // Verify full evidence before success: high numeric scores alone cannot
+  // bypass malformed counts, invalid criteria, or a consistent HARD_FAIL.
+  const floors = evaluateVerification({ mps, fidelity }, { mpsFloor: MPS_FLOOR, fidelityFloor: FIDELITY_FLOOR });
   if (!floors.ok) {
     // Keep the already-computed audit metadata (deterministic signals + length
     // diff) on floor failures so a flagged attempt stays auditable in the UI.

@@ -1,3 +1,4 @@
+import { mpsResult, zeroAnchorMps } from '../fixtures/verification-results.js';
 import test from 'node:test';
 import assert from 'node:assert';
 import {
@@ -157,7 +158,7 @@ test('score helpers accept an injected callLLM implementation', async () => {
       return '{ "overall": 22, "interpretation": "mostly human" }';
     }
     if (args.prompt.includes('Meaning Preservation evaluator')) {
-      return '{ "anchors": [], "pass_count": 1, "total_count": 1, "polarity_pass_count": 0, "polarity_total_count": 0, "mps": 91 }';
+      return JSON.stringify(mpsResult(90));
     }
     return '{ "claims_preserved": 3, "no_fabrication": 3, "audience_register_match": 3, "rationale": "ok" }';
   };
@@ -192,7 +193,7 @@ test('score helpers accept an injected callLLM implementation', async () => {
   assert.strictEqual(score.overall, 22);
   assert.strictEqual(score.llmScore.overall, 22);
   assert.equal(typeof score.deterministicScore.overall, 'number');
-  assert.strictEqual(mps.mps, 91);
+  assert.strictEqual(mps.mps, 90);
   assert.strictEqual(fidelity.fidelity, 100);
   assert.strictEqual(seen.length, 3);
 });
@@ -1017,7 +1018,7 @@ test('meaning scorers fence untrusted source and rewrite text', async () => {
     rewritten: '안전한 문장',
     callLLM: async (args) => {
       prompt = args.prompt;
-      return '{ "anchors": [], "pass_count": 1, "total_count": 1, "polarity_pass_count": 0, "polarity_total_count": 0, "mps": 100 }';
+      return JSON.stringify(zeroAnchorMps());
     },
     logger: { warn() {} },
   });

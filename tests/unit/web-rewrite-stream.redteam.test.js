@@ -3,6 +3,7 @@
 // type-checking is disabled here on purpose (the shapes are the test inputs).
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mpsResult, fidelityResult } from '../fixtures/verification-results.js';
 import { callLLMStream } from '../../src/streaming-api.js';
 import { runWebRewriteStream } from '../../src/web-rewrite-stream.js';
 import { redactSecrets } from '../../src/web-rewrite-contract.js';
@@ -35,7 +36,9 @@ function okResponse(chunks) {
   return new Response(streamFrom(chunks), { status: 200, headers: new globalThis.Headers() });
 }
 
-function scoreFns({ mps = 95, fidelity = 95 } = {}) {
+function scoreFns(scores = {}) {
+  const mps = Object.hasOwn(scores, 'mps') ? scores.mps : mpsResult(95);
+  const fidelity = Object.hasOwn(scores, 'fidelity') ? scores.fidelity : fidelityResult();
   return {
     scoreMPS: async () => mps,
     scoreFidelity: async () => fidelity,
@@ -108,12 +111,12 @@ function assertNoSecretFields(value) {
 
 test('redteam floor fail-closed rejects dangerous score shapes and only accepts both floors >=70', async () => {
   const badShapes = [
-    ['mps undefined', undefined, { fidelity: 95 }],
-    ['mps NaN', { mps: Number.NaN }, { fidelity: 95 }],
-    ['mps 69', { mps: 69 }, { fidelity: 95 }],
-    ['fidelity 69', { mps: 95 }, { fidelity: 69 }],
-    ['mps string 95', { mps: '95' }, { fidelity: 95 }],
-    ['missing fidelity', { mps: 95 }, {}],
+    ['mps undefined', undefined, fidelityResult()],
+    ['mps NaN', { ...mpsResult(95), mps: Number.NaN }, fidelityResult()],
+    ['mps 69', mpsResult(69), fidelityResult()],
+    ['fidelity below floor', mpsResult(95), fidelityResult(8)],
+    ['mps string 95', { ...mpsResult(95), mps: '95' }, fidelityResult()],
+    ['missing fidelity', mpsResult(95), {}],
     ['both missing', {}, {}],
   ];
 
@@ -132,7 +135,7 @@ test('redteam floor fail-closed rejects dangerous score shapes and only accepts 
   }
   assert.deepEqual(failures, [], 'dangerous floor shapes must all fail closed');
 
-  const { frames, result } = await runStream({ scores: scoreFns({ mps: { mps: 70 }, fidelity: { fidelity: 70 } }) });
+  const { frames, result } = await runStream({ scores: scoreFns({ mps: mpsResult(70), fidelity: fidelityResult(9) }) });
   assert.equal(result.ok, true);
   assert.equal(frames.at(-1)?.type, 'done');
 });

@@ -1678,7 +1678,7 @@ Score meaning preservation between original and rewritten text.
 
 **Example**
 ```js
-const mps = await scoreMPS({ original: 'A', rewritten: 'A', callLLM: async () => '{"mps":100,"anchors":[]}' });
+const mps = await scoreMPS({ original: 'A', rewritten: 'A', callLLM: async () => '{"mps":100,"anchors":[],"pass_count":0,"total_count":0,"polarity_pass_count":0,"polarity_total_count":0}' });
 ```
 <a name="interpretScore"></a>
 

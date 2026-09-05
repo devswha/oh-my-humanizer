@@ -7,6 +7,7 @@ import { summarizeSignalStrength } from './features/signal-strength.js';
 import { buildScoreMathCore, fenceReferenceText, resolveSeverityPoints } from './prompt-builder.js';
 import { createLogger } from './logger.js';
 import { parseStrictJson } from './json-response.js';
+import { validateMps, validateFidelityCriteria } from './verification-schema.js';
 
 /**
  * Default maximum delta before deterministic and LLM scores are reconciled upward.
@@ -73,6 +74,7 @@ async function callAndParseJson({
   extraBody = undefined,
   onAttempt,
   onAttemptInvalid,
+  validate = (value) => value,
 }) {
   let lastError;
   let attemptIndex = 1;
@@ -106,8 +108,11 @@ async function callAndParseJson({
     }
     let parsed;
     try {
-      parsed = parseStrictJson(result);
+      parsed = validate(parseStrictJson(result));
     } catch (e) {
+      // Semantic JSON errors use the same single correction retry and retain
+      // the original response as evidence; never normalize malformed scores.
+      e.raw = result;
       lastError = e;
       dispatchAttempts(onAttempt, onAttemptInvalid, reportedAttempts, {
         attemptIndex: () => attemptIndex++,
@@ -672,7 +677,7 @@ export function reconcileScoreOverall({
  * @returns {Promise<Object>} MPS result.
  * @throws {Error} When the operation is aborted.
  * @example
- * const mps = await scoreMPS({ original: 'A', rewritten: 'A', callLLM: async () => '{"mps":100,"anchors":[]}' });
+ * const mps = await scoreMPS({ original: 'A', rewritten: 'A', callLLM: async () => '{"mps":100,"anchors":[],"pass_count":0,"total_count":0,"polarity_pass_count":0,"polarity_total_count":0}' });
  */
 export async function scoreMPS({
   original,
@@ -730,15 +735,16 @@ Return ONLY a JSON object:
   "anchors": [
     {"type": "claim", "content": "...", "verdict": "PASS"}
   ],
-  "pass_count": 0,
-  "total_count": 0,
+  "pass_count": 1,
+  "total_count": 1,
   "polarity_pass_count": 0,
   "polarity_total_count": 0,
-  "mps": 0.0
+  "mps": 100.0
 }
 
 MPS formula: (pass_rate × 0.6 + polarity_preserved × 0.4) × 100
-If no polarity anchors: MPS = pass_rate × 100
+The polarity group includes BOTH polarity and negation anchors. Count both types in polarity_pass_count and polarity_total_count.
+If no polarity or negation anchors: MPS = pass_rate × 100
 
 ${fenceReferenceText(original, { label: '## Original reference' })}
 ${fenceReferenceText(rewritten, { label: '## Rewritten reference' })}
@@ -761,6 +767,7 @@ ${fenceReferenceText(rewritten, { label: '## Rewritten reference' })}
       extraBody,
       onAttempt,
       onAttemptInvalid,
+      validate: validateMps,
     });
     return parsed;
   } catch (e) {
@@ -906,6 +913,7 @@ ${fenceReferenceText(rewritten, { label: '## Rewritten reference' })}
       extraBody,
       onAttempt,
       onAttemptInvalid,
+      validate: validateFidelityCriteria,
     });
     parsed = result.parsed;
   } catch (e) {
@@ -916,10 +924,10 @@ ${fenceReferenceText(rewritten, { label: '## Rewritten reference' })}
     schemaError = e;
   }
 
-  const claims = clamp03(parsed?.claims_preserved);
-  const noFab = clamp03(parsed?.no_fabrication);
-  const registerMatch = clamp03(parsed?.audience_register_match);
-  const fidelity = ((claims + noFab + registerMatch + lengthPoints) / 12) * 100;
+  const claims = parsed?.claims_preserved ?? null;
+  const noFab = parsed?.no_fabrication ?? null;
+  const registerMatch = parsed?.audience_register_match ?? null;
+  const fidelity = schemaError ? null : ((claims + noFab + registerMatch + lengthPoints) / 12) * 100;
 
   return {
     criteria: {
@@ -930,7 +938,7 @@ ${fenceReferenceText(rewritten, { label: '## Rewritten reference' })}
     },
     length_ratio_pct: lengthRatio,
     rationale: parsed?.rationale ?? null,
-    fidelity: Math.round(fidelity * 10) / 10,
+    fidelity: fidelity === null ? null : Math.round(fidelity * 10) / 10,
     ...(schemaError ? { error: 'schema-failure', raw: schemaError.raw } : {}),
   };
 }

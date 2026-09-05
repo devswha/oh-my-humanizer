@@ -4,6 +4,7 @@ import { scoreMPS as defaultScoreMPS, scoreFidelity as defaultScoreFidelity } fr
 import { buildPrompt } from './prompt-builder.js';
 import { cleanRewriteOutput } from './output.js';
 import { createLogger } from './logger.js';
+import { evaluateVerification, validateMps, validateFidelityResult } from './verification-schema.js';
 
 // Numeric tokens (integers, decimals, grouped numbers). Used by the cheap,
 // LLM-free meaning guard to catch numbers that silently vanish in a rewrite.
@@ -124,11 +125,15 @@ export async function verifyRewrite({
       scoreMPS({ original, rewritten: text, apiKey, baseURL, model, callLLM, signal, timeout, logger }),
       scoreFidelity({ original, rewritten: text, apiKey, baseURL, model, callLLM, signal, timeout, logger }),
     ]);
-    // Fail closed: a missing MPS stays null (treated as a floor miss); a missing
-    // fidelity clamps to 0, matching scoreFidelity's own behavior.
-    return { mps: mpsResult?.mps ?? null, fidelity: fidelityResult?.fidelity ?? 0 };
+    const gate = evaluateVerification({ mps: mpsResult, fidelity: fidelityResult }, { mpsFloor, fidelityFloor });
+    // Keep the existing numeric CLI result and candidate-selection behavior.
+    // Invalid evidence is missing, never a coercible or out-of-range score.
+    let mps = null, fidelity = 0;
+    try { if (mpsResult?.error == null) mps = validateMps(mpsResult).mps; } catch {}
+    try { if (fidelityResult?.error == null) fidelity = validateFidelityResult(fidelityResult).fidelity; } catch {}
+    return { mps, fidelity, verified: gate.ok };
   };
-  const passes = (s) => s.mps !== null && s.mps >= mpsFloor && s.fidelity >= fidelityFloor;
+  const passes = (s) => s.verified;
 
   const first = await grade(rewrite);
   if (passes(first)) {

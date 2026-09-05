@@ -613,14 +613,15 @@ export function parseStreamFrame(line) {
 
 /**
  * Fail-closed floor check for a completed rewrite. A score that is missing,
- * non-finite, or below its floor fails — there is no "assume pass on missing".
+ * non-finite, outside 0–100, or below its floor fails. This numeric helper does
+ * not certify semantic evidence; runtime callers use evaluateVerification.
  *
  * @param {{mps?:unknown, fidelity?:unknown}} scores
  * @returns {{ok:boolean, failed:string[]}}
  */
 export function evaluateFloors({ mps, fidelity } = {}) {
   const failed = [];
-  if (!Number.isFinite(mps) || /** @type {number} */ (mps) < MPS_FLOOR) failed.push('mps');
-  if (!Number.isFinite(fidelity) || /** @type {number} */ (fidelity) < FIDELITY_FLOOR) failed.push('fidelity');
+  if (!Number.isFinite(mps) || /** @type {number} */ (mps) < MPS_FLOOR || /** @type {number} */ (mps) > 100) failed.push('mps');
+  if (!Number.isFinite(fidelity) || /** @type {number} */ (fidelity) < FIDELITY_FLOOR || /** @type {number} */ (fidelity) > 100) failed.push('fidelity');
   return { ok: failed.length === 0, failed };
 }
