@@ -1,3 +1,4 @@
+import { mpsResult } from '../fixtures/verification-results.js';
 import test from 'node:test';
 import assert from 'node:assert';
 
@@ -54,14 +55,8 @@ function createLLMFixture({
 
     if (prompt.includes('Meaning Preservation evaluator')) {
       calls.mps.push(prompt);
-      return JSON.stringify({
-        anchors: [],
-        pass_count: 1,
-        total_count: 1,
-        polarity_pass_count: 0,
-        polarity_total_count: 0,
-        mps: next(mps, 'MPS'),
-      });
+      const score = next(mps, 'MPS');
+      return JSON.stringify(score === null ? { mps: null } : mpsResult(score));
     }
 
     if (prompt.includes('Fidelity evaluator')) {

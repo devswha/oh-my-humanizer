@@ -4,9 +4,9 @@ export const FUNNEL_SCHEMA_VERSION = 'v1';
 
 const eventSchemas = Object.freeze({
   'Input Started': Object.freeze({ surface: ['hero', 'chat'], lang: ['en', 'ko', 'zh', 'ja'] }),
-  'Rewrite Requested': Object.freeze({ surface: ['hero', 'chat'], lang: ['en', 'ko', 'zh', 'ja'], tier: ['free', 'pro', 'byok'], mode: ['first', 'refine'], inputBucket: ['0-99', '100-499', '500-1999', '2000+'] }),
-  'Rewrite Completed': Object.freeze({ surface: ['hero', 'chat'], lang: ['en', 'ko', 'zh', 'ja'], tier: ['free', 'pro', 'byok'], mode: ['first', 'refine'], inputBucket: ['0-99', '100-499', '500-1999', '2000+'], latencyBucket: ['<5s', '5-10s', '10-30s', '30s+'], mpsBand: ['failed', '70-79', '80-89', '90-100'], fidelityBand: ['failed', '70-79', '80-89', '90-100'] }),
-  'Rewrite Failed': Object.freeze({ surface: ['hero', 'chat'], lang: ['en', 'ko', 'zh', 'ja'], tier: ['free', 'pro', 'byok'], mode: ['first', 'refine'], inputBucket: ['0-99', '100-499', '500-1999', '2000+'], latencyBucket: ['<5s', '5-10s', '10-30s', '30s+'], outcome: ['preflight', 'stream', 'number-safety', 'scoring', 'floor', 'cancelled', 'quota', 'concurrency', 'service', 'input', 'auth', 'unknown'] }),
+  'Rewrite Requested': Object.freeze({ surface: ['hero', 'chat'], lang: ['en', 'ko', 'zh', 'ja'], tier: ['free', 'pro', 'byok'], mode: ['first', 'refine', 'verify'], inputBucket: ['0-99', '100-499', '500-1999', '2000+'] }),
+  'Rewrite Completed': Object.freeze({ surface: ['hero', 'chat'], lang: ['en', 'ko', 'zh', 'ja'], tier: ['free', 'pro', 'byok'], mode: ['first', 'refine', 'verify'], inputBucket: ['0-99', '100-499', '500-1999', '2000+'], latencyBucket: ['<5s', '5-10s', '10-30s', '30s+'], mpsBand: ['failed', '70-79', '80-89', '90-100'], fidelityBand: ['failed', '70-79', '80-89', '90-100'] }),
+  'Rewrite Failed': Object.freeze({ surface: ['hero', 'chat'], lang: ['en', 'ko', 'zh', 'ja'], tier: ['free', 'pro', 'byok'], mode: ['first', 'refine', 'verify'], inputBucket: ['0-99', '100-499', '500-1999', '2000+'], latencyBucket: ['<5s', '5-10s', '10-30s', '30s+'], outcome: ['preflight', 'stream', 'number-safety', 'scoring', 'floor', 'cancelled', 'quota', 'concurrency', 'service', 'input', 'auth', 'unknown'] }),
   'Result Action': Object.freeze({ action: ['copy', 'download', 'export', 'audit'] }),
   'Checkout Started': Object.freeze({ surface: ['pricing', 'quota'], lang: ['en', 'ko', 'zh', 'ja'] }),
   'Tier Selected': Object.freeze({ tier: ['free', 'pro', 'byok'], surface: ['pricing', 'controls'] }),

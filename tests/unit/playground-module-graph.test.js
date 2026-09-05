@@ -20,6 +20,11 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const playground = join(root, 'playground');
 
+test('the browser edit controls are the same portable implementation used by the server', () => {
+  assert.equal(readFileSync(join(playground, 'src/edit-controls.js'), 'utf8'),
+    readFileSync(join(root, 'src/edit-controls.js'), 'utf8'));
+});
+
 test('the served contract artifact is byte-identical to src/web-rewrite-contract.js', () => {
   const source = readFileSync(join(root, 'src', 'web-rewrite-contract.js'), 'utf8');
   const artifact = readFileSync(join(playground, 'src', 'web-rewrite-contract.js'), 'utf8');

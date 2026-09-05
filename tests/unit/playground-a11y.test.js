@@ -34,7 +34,7 @@ test('Pro license entry is private and its controls have accessible names', () =
   const proControls = html.match(/<div[^>]*id="pro-row"[^>]*>[\s\S]*?<\/div>/);
   assert.ok(proControls, 'expected the Pro license control row');
   assert.match(proControls[0], /<label\b[\s\S]*id="license-key"/);
-  for (const [id, name] of [['license-sign-in', 'Sign in'], ['license-sign-out', 'Sign out']]) {
+  for (const [id, name] of [['license-sign-in', 'Apply key'], ['license-sign-out', 'Clear key and chats']]) {
     const control = openingTag(html, id);
     assert.match(control, /type="button"/);
     assert.match(proControls[0], new RegExp(`<button[^>]*id="${id}"[^>]*>${name}</button>`));

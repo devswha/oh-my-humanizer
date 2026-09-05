@@ -1,3 +1,4 @@
+import { mpsResult } from '../fixtures/verification-results.js';
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -293,7 +294,7 @@ test('repeat samples each fixture and records the spread', async () => {
   const varying = (args) => {
     if (args.prompt.includes('Meaning Preservation evaluator')) {
       call += 1;
-      return JSON.stringify({ anchors: [], mps: call === 1 ? 100 : 40 });
+      return JSON.stringify(mpsResult(call === 1 ? 100 : 40));
     }
     return fakeQualityModel(args);
   };
@@ -544,18 +545,7 @@ async function fakeQualityModel({ prompt }) {
     });
   }
   if (prompt.includes('Meaning Preservation evaluator')) {
-    return JSON.stringify({
-      anchors: [
-        { type: 'claim', content: 'coffee', verdict: 'PASS' },
-        { type: 'claim', content: 'Paris', verdict: 'PASS' },
-        { type: 'claim', content: 'Tokyo', verdict: 'PASS' },
-      ],
-      pass_count: 3,
-      total_count: 3,
-      polarity_pass_count: 1,
-      polarity_total_count: 1,
-      mps: 95,
-    });
+    return JSON.stringify(mpsResult(95));
   }
   if (prompt.includes('Fidelity evaluator')) {
     return JSON.stringify({

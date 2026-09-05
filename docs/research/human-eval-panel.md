@@ -34,7 +34,7 @@ For each pair, ask:
 | naturalness preference | Patina / original / tie counts with confidence interval |
 | meaning concern | rate of reported fact/caveat loss |
 | register split | results by language and register |
-| rater agreement | kappa or raw agreement, depending on labels |
+| rater agreement | Krippendorff's nominal alpha for preferences; interval alpha for naturalness ratings |
 | exclusions | samples removed and why |
 
 ## Privacy rule

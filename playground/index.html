@@ -10,6 +10,7 @@
   <link rel="icon" type="image/svg+xml" href="/assets/brand/patina-icon.svg" />
   <link rel="apple-touch-icon" href="/assets/brand/patina-icon.svg" />
   <link rel="stylesheet" href="/chatgpt.css" />
+  <link rel="stylesheet" href="/edit-review.css" />
 </head>
 <body>
   <div class="app" id="app" data-view="landing">
@@ -53,7 +54,7 @@
           <span class="ctl__label">Mode</span>
           <select id="tier" class="ctl__select">
             <option value="free">Free</option>
-            <option value="byok">API</option>
+            <option value="byok">BYOK</option>
             <option value="pro">Pro</option>
           </select>
         </label>
@@ -76,12 +77,33 @@
       <div class="nav__pro" id="pro-row" hidden>
         <label class="ctl ctl--pro">
           <span class="ctl__label" id="license-label">License key</span>
-          <input id="license-key" class="ctl__input" type="password" autocomplete="off" placeholder="License key (kept in memory)" aria-label="License key (kept in memory)" />
+          <input id="license-key" aria-describedby="license-status" class="ctl__input" type="password" autocomplete="off" placeholder="License key (kept in memory)" aria-label="License key (kept in memory)" />
         </label>
-        <button class="ctl__action" id="license-sign-in" type="button">Sign in</button>
-        <button class="ctl__action" id="license-sign-out" type="button" hidden>Sign out</button>
+        <button class="ctl__action" id="license-sign-in" type="button">Apply key</button>
+        <button class="ctl__action" id="license-sign-out" type="button" hidden>Clear key and chats</button>
+        <span class="ctl__status" id="license-status" role="status" aria-live="polite"></span>
+        <a class="ctl__link" id="pro-docs" href="https://github.com/devswha/patina/blob/main/docs/HTTP-API.md" target="_blank" rel="noopener noreferrer">Hosted API docs and limits</a>
+        <a class="ctl__link" id="pro-portal" hidden target="_blank" rel="noopener noreferrer">Manage subscription in Polar</a>
         <span class="ctl__err" id="license-error" role="alert" hidden></span>
       </div>
+      <details class="nav__presets" id="presets-panel">
+        <summary id="presets-label">Local presets</summary>
+        <div class="preset-controls">
+          <label class="ctl"><span class="ctl__label" id="preset-select-label">Saved preset</span><select id="preset-select" class="ctl__select"></select></label>
+          <button class="ctl__action" id="preset-apply" type="button">Apply preset</button>
+          <button class="ctl__action" id="preset-delete" type="button">Delete preset</button>
+          <label class="ctl"><span class="ctl__label" id="preset-name-label">Preset name</span><input id="preset-name" class="ctl__input" type="text" maxlength="40" autocomplete="off" aria-describedby="preset-hint" /></label>
+          <button class="ctl__action" id="preset-save" type="button">Save / replace</button>
+          <p class="ctl__status" id="preset-hint">Saved only in this browser: language, document type, persona, and register. Do not put keys or private text in the name. Up to 20 names, 40 characters each.</p>
+          <p class="ctl__status" id="preset-status" role="status" aria-live="polite"></p>
+        </div>
+      </details>
+      <p class="ctl__status" id="settings-status" role="status" aria-live="polite"></p>
+      <details class="nav__presets protected-controls">
+        <summary id="protected-label">Keep these phrases unchanged</summary>
+        <textarea id="protected-text" class="ctl__input" rows="2" maxlength="4000" aria-labelledby="protected-label" aria-describedby="protected-hint" autocomplete="off" spellcheck="false"></textarea>
+        <p class="ctl__status" id="protected-hint">Optional: one product name, quote or phrase per line. Kept in this conversation only.</p>
+      </details>
     </header>
 
     <!-- ───────── landing ───────── -->
@@ -174,7 +196,7 @@
         <div class="sec__head">
           <p class="eyebrow"><span>pricing</span></p>
           <h2 class="sec__title">Simple pricing</h2>
-          <p class="sec__lede">Try it free in the browser, bring your own key, or go Pro for higher limits.</p>
+          <p class="sec__lede">Free, BYOK, and Pro use the same rewrite pipeline and quality gates. Paid access adds programmatic access and higher limits.</p>
           <p class="sec__note">patina is an editing tool for writing you are allowed to produce with AI assistance: it changes wording, never your claims, numbers, or causation. It is not an authorship detector and not a tool for evading one — see the <a href="https://github.com/devswha/patina/blob/main/docs/ETHICS.md">ethics policy</a>.</p>
         </div>
         <div class="pricing__grid">
@@ -190,30 +212,31 @@
             <button class="price__cta" type="button" id="price-free">Try it now ↑</button>
           </div>
           <div class="price">
-            <h3 class="price__name">API</h3>
-            <p class="price__cost">Your key</p>
+            <h3 class="price__name">BYOK</h3>
+            <p class="price__cost">Your provider key</p>
             <ul class="price__feats">
               <li>Bring your own provider key</li>
               <li>Up to 20,000 characters</li>
-              <li>Sent only with your requests</li>
-              <li>Never stored or logged</li>
+              <li>120 requests/hour · 480/day</li>
+              <li>Provider usage is billed by your provider</li>
             </ul>
-            <button class="price__cta" type="button" id="price-byok">Use API mode</button>
+            <button class="price__cta" type="button" id="price-byok">Use BYOK mode</button>
           </div>
           <div class="price price--pro">
-            <div class="price__badge">Most capable</div>
-            <h3 class="price__name">Pro</h3>
+            <div class="price__badge">Hosted API access</div>
+            <h3 class="price__name">Pro · Hosted API</h3>
             <p class="price__cost">$9.99<span>/mo</span></p>
             <ul class="price__feats">
-              <li>Premium AI engine</li>
+              <li>Programmatic access · same quality gates</li>
               <li>100 rewrites / month</li>
               <li>Up to 20,000 characters each</li>
               <li>50,000 characters / month total</li>
             </ul>
             <a class="price__cta price__cta--pro is-soon" id="pro-buy" role="button" aria-disabled="true" rel="noopener">Pro — coming soon</a>
+            <button class="price__existing" id="pro-existing" type="button">Already purchased? Apply your license key</button>
           </div>
         </div>
-        <p class="pricing__note">Pro is a licensed hosted tier. Enter your license key in Pro mode to use it in this browser session; it is never saved. The monthly rewrite count and the monthly character total are separate budgets — whichever runs out first ends the month, so long documents consume the character budget well before 100 rewrites.</p>
+        <p class="pricing__note">Your Polar license key also works as the Hosted API key. Apply it in Pro mode; the first rewrite validates it. It is never saved. Monthly request and character allowances are separate; either can limit usage. Deployment limits may vary.</p>
       </section>
 
       <section class="cta">
@@ -225,7 +248,7 @@
       </section>
 
       <footer class="foot">
-        <div class="foot__brand"><img class="foot__icon" src="/assets/brand/patina-mark.svg" alt="" width="20" height="20" /> patina <span class="ver-badge">v8.3.1</span></div>
+        <div class="foot__brand"><img class="foot__icon" src="/assets/brand/patina-mark.svg" alt="" width="20" height="20" /> patina <span class="ver-badge">v8.4.0</span></div>
         <nav class="foot__links" aria-label="Footer">
           <a href="https://github.com/devswha/patina">GitHub</a>
           <a href="#pricing">Pricing</a>
@@ -248,7 +271,7 @@
         </div>
         <nav class="sidebar__history" id="history" aria-label="Conversations"></nav>
         <div class="sidebar__foot">
-          <div class="brandmark"><img class="brandmark__icon" src="/assets/brand/patina-mark.svg" alt="" width="22" height="22" /> patina <span class="ver-badge">v8.3.1</span></div>
+          <div class="brandmark"><img class="brandmark__icon" src="/assets/brand/patina-mark.svg" alt="" width="22" height="22" /> patina <span class="ver-badge">v8.4.0</span></div>
           <div class="sidebar__note">Deterministic humanizer —<br />same claim, numbers, voice.</div>
         </div>
       </aside>

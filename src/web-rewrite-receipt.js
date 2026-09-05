@@ -159,6 +159,9 @@ export function buildWebRewriteReceipt({
       diff: publicVerification(diff, sourceValues),
     },
     promptBudget: publicPromptBudget(budget),
+    ...(Array.isArray(request?.protectedSpans) && request.protectedSpans.length
+      ? { constraints: { protectedSpans: request.protectedSpans.map(({ start, end }) => ({ start, end })) } }
+      : {}),
   };
   return { ...receipt, receiptHash: sha256(canonicalJson(receipt)) };
 }

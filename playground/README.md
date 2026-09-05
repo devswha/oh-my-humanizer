@@ -10,6 +10,8 @@ that **rewrites** AI-sounding text into something more natural for `ko`, `en`,
 - Styles: [`chatgpt.css`](chatgpt.css).
 - Controller: [`chatgpt.js`](chatgpt.js) — conversation store, streaming, safe DOM rendering.
 - Streaming client: [`rewrite-client.js`](rewrite-client.js) — isomorphic NDJSON client + client-held thread (one-shot → conversational refine).
+- Conversation settings and local presets: [`preferences.js`](preferences.js).
+- Pro recovery, pricing, and settings copy in four languages: [`experience-copy.js`](experience-copy.js).
 - Contract: [`../src/web-rewrite-contract.js`](../src/web-rewrite-contract.js) — the single source of truth shared by the serverless handler, the web runner, the browser client, and the tests.
 - Vercel routes: [`../vercel.json`](../vercel.json).
 - Analytics shim: [`analytics.js`](analytics.js).
@@ -36,6 +38,38 @@ server-side and streams a humanized rewrite back. Invariants (pinned by
   `connect-src 'self'` — the browser never talks directly to a provider in v1.
 - **Floors**: a rewrite below the MPS or fidelity floor (or with a missing
   score) fails closed with a warning rather than shipping a bad rewrite.
+
+## Conversation settings and Pro access
+
+Language, document type, persona, and register belong to each conversation.
+Switching conversations restores the controls and the next request's settings.
+The first source can set the language automatically unless the user selected it
+explicitly. Once a rewrite is accepted, that conversation keeps its original
+language; changing languages requires a new chat. Persona and register are
+omitted by default to preserve the source. An explicit change to either applies
+to the next request in that conversation.
+
+Local presets store only a name and those four settings in this browser. They
+never capture text, transcripts, license keys, provider keys, or model choices.
+Names are limited to 40 characters and the list to 20 presets; saving an existing
+name replaces it. A preset with a conflicting language is rejected without
+partially changing an anchored conversation. Missing or unsupported voice choices
+fall back to preserving the source. Corrupt or unsupported storage is ignored;
+if browser storage is unavailable, presets remain usable for the current session.
+
+“Already purchased?” opens the Pro license controls. “Apply key” keeps the key
+in memory and marks validation as pending. The first rewrite request validates
+it; only an admitted stream marks the key accepted for that request. A 401 or
+403 clears the rejected Pro key and offers credential recovery instead of
+replaying it. A 403 does not identify the underlying subscription issue.
+Monthly request, character, and processing-attempt limits have separate messages
+and do not promise a reset date or offer immediate replay. See the
+[Hosted API contract](../docs/HTTP-API.md) for limits and authentication.
+
+The subscription-management link is hidden unless the public launch config
+explicitly supplies a safe Polar `portalUrl`. No URL is derived from checkout.
+The current launch-config generator does not emit that optional field, so the
+public documentation link remains the available recovery reference.
 
 ## Local preview
 
@@ -73,7 +107,7 @@ provider call).
 | Tier | Auth | Metering | Provider key |
 |---|---|---|---|
 | `free` | none | IP quota (KV + HMAC) | `PATINA_FREE_API_KEY` |
-| `byok` | caller's own provider key (per request) | unmetered shared quota | caller key |
+| `byok` | caller's own provider key (per request) | 120/hour, 480/day per IP; provider quota also applies | caller key |
 | `pro` | `Authorization: Bearer <license_key>` | per-license quota (HMAC subject) | `PATINA_PRO_API_KEY` |
 
 **Pro tier ($9.99/mo USD)** is gated by a Polar license key. The server

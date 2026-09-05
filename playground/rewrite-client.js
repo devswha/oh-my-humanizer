@@ -1,5 +1,6 @@
 // @ts-check
 // Browser-pure rewrite client helpers. No DOM, no Node imports.
+import { createThreadPreferences } from './preferences.js';
 
 import {
   CONTEXT_LIMITS,
@@ -22,9 +23,10 @@ function capTurns(turns) {
  * Create a client-held rewrite thread. The server is no-store, so refinement
  * context is carried by the browser on each request.
  *
- * @param {{lang:string}} options
+ * @param {{lang:string, documentType?:string, persona?:string, register?:string, languageExplicit?:boolean}} options
  */
-export function createRewriteThread({ lang }) {
+export function createRewriteThread(options) {
+  const preferences = createThreadPreferences(options, options.languageExplicit);
   /** @type {string|undefined} */
   let original;
   let currentDraft = '';
@@ -32,6 +34,10 @@ export function createRewriteThread({ lang }) {
   let turns = [];
 
   return {
+    get preferences() { return preferences.value; },
+    get languageExplicit() { return preferences.languageExplicit; },
+    updatePreferences: preferences.update,
+    detectLanguage: preferences.detect,
     get original() {
       return original;
     },
@@ -58,14 +64,17 @@ export function createRewriteThread({ lang }) {
       const isRefine = original != null;
       const body = {
         mode: isRefine ? REWRITE_MODES.REFINE : REWRITE_MODES.FIRST,
-        lang,
+        lang: preferences.value.lang,
         tier,
         text: cleanText,
       };
 
-      if (documentType) body.documentType = documentType;
-      if (persona) body.persona = persona;
-      if (register) body.register = register;
+      const settings = { ...preferences.value, ...Object.fromEntries(
+        Object.entries({ documentType, persona, register }).filter(([, value]) => value !== undefined),
+      ) };
+      if (settings.documentType !== 'default') body.documentType = settings.documentType;
+      if (settings.persona) body.persona = settings.persona;
+      if (settings.register) body.register = settings.register;
 
       if (isRefine) {
         Object.assign(body, { original, history: capTurns(turns) });
@@ -87,6 +96,7 @@ export function createRewriteThread({ lang }) {
      */
     commit({ userText, assistantText }) {
       if (original == null) original = String(userText ?? '');
+      preferences.anchor();
       turns = capTurns([
         ...turns,
         { role: 'user', content: String(userText ?? '') },
@@ -105,6 +115,7 @@ export function createRewriteThread({ lang }) {
     },
 
     reset() {
+      preferences.reset();
       original = undefined;
       currentDraft = '';
       turns = [];
@@ -234,6 +245,12 @@ export const REWRITE_ERROR_KINDS = Object.freeze({
   QUOTA_DAILY: 'quota_daily',
   QUOTA_HOURLY: 'quota_hourly',
   QUOTA_CONCURRENT: 'quota_concurrent',
+  QUOTA_MONTHLY_REQUESTS: 'quota_monthly_requests',
+  QUOTA_MONTHLY_CHARS: 'quota_monthly_chars',
+  QUOTA_MONTHLY_PROCESSING: 'quota_monthly_processing',
+  QUOTA_UNKNOWN: 'quota_unknown',
+  AUTH_REQUIRED: 'auth_required',
+  AUTH_DENIED: 'auth_denied',
   IP_UNAVAILABLE: 'ip_unavailable',
   QUOTA_STORAGE: 'quota_storage',
   QUOTA_SECRET: 'quota_secret',
@@ -249,8 +266,8 @@ export const REWRITE_ERROR_KINDS = Object.freeze({
  * REWRITE_ERROR_KINDS value. Reason strings come from the shared contract's
  * QUOTA_REASONS (single source of truth for src/rate-limit.js, api/rewrite.js,
  * and this classifier) plus validateRewriteRequest's 413
- * 'text exceeds N characters for tier T'. Unrecognized 429s fall back to
- * QUOTA_HOURLY (retry-shortly copy is the least misleading), unrecognized
+ * 'text exceeds N characters for tier T'. Unrecognized 429s use neutral
+ * quota copy without inventing a reset time or window, unrecognized
  * 5xx to SERVICE_UNAVAILABLE.
  *
  * @param {Record<string, unknown>|null|undefined} frame
@@ -262,8 +279,13 @@ export function classifyRewriteError(frame) {
   const status = Number(frame?.status);
   const code = typeof frame?.code === 'string' ? frame.code : '';
   const reason = typeof frame?.error === 'string' ? frame.error.toLowerCase() : '';
+  if (status === 401) return K.AUTH_REQUIRED;
+  if (status === 403) return K.AUTH_DENIED;
   if (code === 'floor_failed') return K.FLOOR_FAILED;
   if (code === 'number_safety_failed') return K.NUMBER_SAFETY;
+  if (reason.includes(R.MONTHLY_REQUESTS)) return K.QUOTA_MONTHLY_REQUESTS;
+  if (reason.includes(R.MONTHLY_CHARS)) return K.QUOTA_MONTHLY_CHARS;
+  if (reason.includes('monthly processing attempt limit reached')) return K.QUOTA_MONTHLY_PROCESSING;
   if (reason.includes(R.DAILY)) return K.QUOTA_DAILY;
   if (reason.includes(R.HOURLY)) return K.QUOTA_HOURLY;
   if (reason.includes(R.CONCURRENT)) return K.QUOTA_CONCURRENT;
@@ -271,8 +293,19 @@ export function classifyRewriteError(frame) {
   if (reason.includes(R.STORAGE_UNAVAILABLE)) return K.QUOTA_STORAGE;
   if (reason.includes(R.SECRET_UNAVAILABLE)) return K.QUOTA_SECRET;
   if (reason.includes(R.SERVICE_UNAVAILABLE)) return K.SERVICE_UNAVAILABLE;
+  if (reason.includes(R.LICENSE_UNAVAILABLE)) return K.SERVICE_UNAVAILABLE;
   if (status === 413 || (reason.includes('exceeds') && reason.includes('characters'))) return K.TEXT_TOO_LONG;
-  if (status === 429) return K.QUOTA_HOURLY;
+  if (status === 429) return K.QUOTA_UNKNOWN;
   if (status === 502 || status === 503 || status === 504) return K.SERVICE_UNAVAILABLE;
   return K.UNKNOWN;
+}
+
+/** UI recovery actions, shared with executable tests. Never replay rejected credentials. */
+export function rewriteRecovery(kind) {
+  const K = REWRITE_ERROR_KINDS;
+  if (kind === K.AUTH_REQUIRED || kind === K.AUTH_DENIED) return 'credentials';
+  if ([K.QUOTA_MONTHLY_REQUESTS, K.QUOTA_MONTHLY_CHARS, K.QUOTA_MONTHLY_PROCESSING,
+    K.QUOTA_DAILY, K.QUOTA_UNKNOWN].includes(kind)) return 'limits';
+  if ([K.NUMBER_SAFETY, K.FLOOR_FAILED, K.TEXT_TOO_LONG].includes(kind)) return 'edit';
+  return 'retry';
 }

@@ -77,3 +77,31 @@ test('a CLI leader exiting on TERM cannot leave an independent-stdio descendant 
     rmSync(fake.directory, { recursive: true, force: true });
   }
 });
+
+test('successful CLI completion also waits for independent-stdio descendants to terminate', { skip: process.platform !== 'linux' }, async () => {
+  const fake = fakeCli();
+  const oldPath = process.env.PATH; const oldPidPath = process.env.PATINA_TEST_CLI_PID;
+  writeFileSync(join(fake.directory, 'claude'), `#!/usr/bin/env node
+const { spawn } = require('node:child_process');
+const { existsSync } = require('node:fs');
+const helper = spawn('/bin/sh', ['-c', 'trap "" TERM; printf "%s" "$$" > "$PATINA_TEST_CLI_PID"; while :; do sleep 1; done'], { stdio: 'ignore' });
+helper.unref();
+const ready = setInterval(() => {
+  if (!existsSync(process.env.PATINA_TEST_CLI_PID)) return;
+  clearInterval(ready);
+  console.log(JSON.stringify({type:'assistant',parent_tool_use_id:null,message:{model:'claude-test',content:[{type:'text',text:'ready'}]}}));
+  console.log(JSON.stringify({type:'result',result:'ready',is_error:false,modelUsage:{'claude-test':{inputTokens:1,outputTokens:1,cacheReadInputTokens:0,cacheCreationInputTokens:0}},usage:{input_tokens:1,output_tokens:1}}));
+}, 10);
+`);
+  chmodSync(join(fake.directory, 'claude'), 0o700);
+  process.env.PATH = fake.env.PATH; process.env.PATINA_TEST_CLI_PID = fake.pidPath;
+  try {
+    const result = await studyCompletion({ id: 'fake', provider: 'anthropic', transport: 'claude-cli', model: 'claude-test' }, 'test', { timeoutMs: 3000 });
+    assert.equal(result.text, 'ready');
+    assert.equal(processIdentity(Number(readFileSync(fake.pidPath, 'utf8'))), null);
+  } finally {
+    process.env.PATH = oldPath;
+    if (oldPidPath === undefined) delete process.env.PATINA_TEST_CLI_PID; else process.env.PATINA_TEST_CLI_PID = oldPidPath;
+    rmSync(fake.directory, { recursive: true, force: true });
+  }
+});

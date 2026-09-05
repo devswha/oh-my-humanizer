@@ -8,6 +8,7 @@ extension preview. Scores are writing hints, not authorship probabilities.
 | [VS Code](https://github.com/devswha/patina-vscode) | Download the VSIX from Releases; run **Extensions: Install from VSIX** | VS Code 1.85+, Node.js/npm, Patina CLI 8.3+ for sentence and audit diagnostics | VSIX installation; no Marketplace listing claimed |
 | [Obsidian](https://github.com/devswha/patina-obsidian) | Copy release files into the vault plugin directory | Obsidian 1.13.7+, desktop vault, Node.js/npm, Patina CLI 8.2+ | Manual installation; directory review is separate |
 | [Gmail preview](https://github.com/devswha/patina-extension) | Unzip the preview release and load the directory in Chrome developer mode | Desktop Chrome with Manifest V3 support | Preview; no Chrome Web Store listing or signed-in Gmail validation claimed |
+| [Aside CLI integration](aside.md) | Load the bundled skill through Aside's custom-skill creator; open `patina aside options` | Node.js 18.1+, a configured rewrite backend, Aside command/workspace permissions | Integration preview; native Aside desktop validation is separate |
 
 ## VS Code
 
