@@ -15,7 +15,7 @@ import { scoreDeterministicSignals, scoreText } from '../../src/scoring.js';
 import { studySemantics } from './study-validation.mjs';
 import { acquireStudyWriter, bindStudyProtocol, safeCallRecord } from './study-journal.mjs';
 import { replayPreparationRow } from './preparation-replay.mjs';
-import { studyCompletion, validateTransport, readCredential, safeStudyError, installStudySignals } from './model-evaluation-transport.mjs';
+import { studyCompletion, validateTransport, readCredential, safeStudyError, installStudySignals, getStudyCancellationSignal } from './model-evaluation-transport.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const SELF = 'scripts/research/collect-rebaseline-scores.mjs';
@@ -249,7 +249,16 @@ function normalizedObservation(row) {
 
 // Exact credential-free HTTP body, one fetch only: no automatic temperature
 // fallback, HTTP retry, redirect, alternate provider or environment-file lookup.
+function interruptedRequest(kind, dispatched, started) {
+  const message = kind === 'operator-cancelled' ? 'Study cancelled' : kind === 'deadline' ? 'LLM request timed out' : 'Network transport interrupted';
+  const error = new Error(message);
+  error.studyResult = { interruption: kind, attempts: dispatched ? 1 : 0, effectiveModels: [], usage: null, identityEvidence: 'unverified', durationMs: Date.now() - started };
+  return error;
+}
 export async function boundedCompletion(candidate, prompt, options, observe) {
+  const studySignal = getStudyCancellationSignal();
+  const started = Date.now();
+  if (studySignal.aborted) throw interruptedRequest('operator-cancelled', false, started);
   if (['claude-cli', 'kimi-cli'].includes(candidate.transport)) {
     try {
       const result = await studyCompletion(candidate, prompt, { ...options, maxRetries: 0 });
@@ -260,22 +269,39 @@ export async function boundedCompletion(candidate, prompt, options, observe) {
       throw error;
     }
   }
-  const apiKey = candidate.transport === 'opencodex' ? 'opencodex-local' : readCredential(candidate.apiKeyEnv);
-  if (!apiKey) throw new Error('Required transport credential unavailable');
-  const body = { ...(candidate.extraBody || {}), model: candidate.model, messages: [{ role: 'user', content: prompt }], temperature: options.temperature };
-  if (options.responseFormat) body.response_format = options.responseFormat;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), options.timeoutMs);
-  const started = Date.now();
+  let timer, reader, timedOut = false, dispatched = false;
+  const onStudyAbort = () => controller.abort(new Error('Study cancelled'));
+  const checkInterruption = () => {
+    if (studySignal.aborted) throw interruptedRequest('operator-cancelled', dispatched, started);
+    if (timedOut) throw interruptedRequest('deadline', dispatched, started);
+  };
   try {
+    studySignal.addEventListener('abort', onStudyAbort, { once: true });
+    // addEventListener does not notify a listener added after the abort event.
+    if (studySignal.aborted) onStudyAbort();
+    checkInterruption();
+    timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort(new Error('Request deadline expired'));
+    }, options.timeoutMs);
+    const apiKey = candidate.transport === 'opencodex' ? 'opencodex-local' : readCredential(candidate.apiKeyEnv);
+    if (!apiKey) throw new Error('Required transport credential unavailable');
+    const body = { ...(candidate.extraBody || {}), model: candidate.model, messages: [{ role: 'user', content: prompt }], temperature: options.temperature };
+    if (options.responseFormat) body.response_format = options.responseFormat;
+    checkInterruption();
+    dispatched = true;
     const response = await fetch(`${candidate.baseURL}/chat/completions`, { method: 'POST', redirect: 'error', signal: controller.signal,
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    checkInterruption();
     let raw = '', size = 0;
-    const reader = response.body.getReader(); const decoder = new globalThis.TextDecoder();
+    reader = response.body.getReader(); const decoder = new globalThis.TextDecoder();
     for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
-      size += chunk.value.byteLength; if (size > 4 * 1024 * 1024) { controller.abort(); throw new Error('Response size bound exceeded'); }
+      checkInterruption();
+      size += chunk.value.byteLength; if (size > 4 * 1024 * 1024) { controller.abort(new Error('Response size bound exceeded')); throw new Error('Response size bound exceeded'); }
       raw += decoder.decode(chunk.value, { stream: true });
     }
+    checkInterruption();
     raw += decoder.decode();
     observe({ scope: 'http-body', requestBody: body, responseBody: raw, httpStatus: response.status });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -285,8 +311,21 @@ export async function boundedCompletion(candidate, prompt, options, observe) {
     const result = { text, effectiveModels: typeof data.model === 'string' ? [data.model] : [], usage: data.usage ?? null, attempts: 1,
       durationMs: Date.now() - started, requestedTemperature: options.temperature, effectiveTemperature: body.temperature };
     options.onAttempt?.({ attemptIndex: 1, requestedModel: candidate.model, effectiveModel: data.model ?? null, usage: result.usage, outcome: 'success', retryReason: 'initial' });
+    checkInterruption();
     return result;
-  } finally { clearTimeout(timer); }
+  } catch (error) {
+    // Fetch implementations may reject with AbortError, the supplied reason,
+    // or a network error. Classification follows our controls, not that name.
+    checkInterruption();
+    if (error?.name === 'AbortError' || error?.cause?.name === 'AbortError' || /aborted/i.test(error?.message || '')) {
+      throw interruptedRequest('network', dispatched, started);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    studySignal.removeEventListener('abort', onStudyAbort);
+    reader?.releaseLock();
+  }
 }
 function credentialFreeRequest(candidate, prompt, options) {
   return { candidate, prompt, temperature: options.temperature ?? .2, responseFormat: options.responseFormat ?? null, extraBody: options.extraBody ?? null,

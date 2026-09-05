@@ -1,6 +1,8 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { getEventListeners } from 'node:events';
 import { tmpdir } from 'node:os';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -17,6 +19,7 @@ fs.symlinkSync(resolve(SOURCE_ROOT, 'node_modules'), resolve(ROOT, 'node_modules
 after(() => fs.rmSync(ROOT, { recursive: true, force: true }));
 const { hash, collectRebaselineScores, replayCollection, loadNullableIntake, loadProcessingApproval, validateApprovals, persistPrivate, boundedCompletion, main } =
   await import(pathToFileURL(resolve(ROOT, 'scripts/research/collect-rebaseline-scores.mjs')).href);
+const { getStudyCancellationSignal } = await import(pathToFileURL(resolve(ROOT, 'scripts/research/model-evaluation-transport.mjs')).href);
 const sort = value => Array.isArray(value) ? value.map(sort) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(key => [key, sort(value[key])])) : value;
 const canonical = value => hash(sort(value));
 const read = path => JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -430,4 +433,116 @@ test('offline replay still rejects actual scorer code changes in the isolated so
     await assert.rejects(replayCollection(options.output), /collector source changed/);
     await assert.rejects(collectRebaselineScores(resume(options), { complete: async () => assert.fail('changed source cannot dispatch') }), /collector source changed/);
   } finally { fs.writeFileSync(path, before); }
+});
+
+// abortStudy is deliberately irreversible. Test real programmatic and process
+// cancellation in child processes, without resetting the production controller.
+const cancellationProgram = String.raw`
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { getEventListeners } from 'node:events';
+import { pathToFileURL } from 'node:url';
+const [root, serializedOptions, mode] = process.argv.slice(1);
+const options = JSON.parse(serializedOptions);
+const collector = await import(pathToFileURL(root + '/scripts/research/collect-rebaseline-scores.mjs').href);
+const transport = await import(pathToFileURL(root + '/scripts/research/model-evaluation-transport.mjs').href);
+const candidate = JSON.parse(fs.readFileSync(options.protocol)).candidates[0];
+const signal = transport.getStudyCancellationSignal();
+let fetchCalls = 0, activeSignal;
+if (mode === 'already' || mode === 'attach-race') {
+  globalThis.fetch = async () => { fetchCalls++; assert.fail('cancelled before dispatch'); };
+  if (mode === 'already') transport.abortStudy();
+  else {
+    const add = signal.addEventListener.bind(signal);
+    signal.addEventListener = (...args) => { transport.abortStudy(); return add(...args); };
+  }
+  await assert.rejects(collector.boundedCompletion(candidate, 'unit prompt', { temperature: .1, timeoutMs: 1000 }, () => {}),
+    error => transport.safeStudyError(error) === 'study-cancelled');
+  assert.equal(fetchCalls, 0);
+} else {
+  transport.installStudySignals();
+  let ready;
+  const fetchStarted = new Promise(resolve => { ready = resolve; });
+  globalThis.fetch = async (_url, request) => {
+    fetchCalls++; activeSignal = request.signal;
+    return new Promise((_resolve, reject) => {
+      const stop = () => reject(Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }));
+      activeSignal.addEventListener('abort', stop, { once: true });
+      if (activeSignal.aborted) stop();
+      ready();
+    });
+  };
+  const collection = collector.collectRebaselineScores(options);
+  const stopped = assert.rejects(collection, /unresolved journal/);
+  await fetchStarted;
+  if (mode === 'programmatic') transport.abortStudy();
+  else {
+    const cancelled = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
+    process.kill(process.pid, 'SIGTERM');
+    await cancelled;
+  }
+  assert.equal(signal.aborted, true);
+  assert.equal(activeSignal.aborted, true, 'study cancellation must synchronously reach active fetch');
+  await stopped;
+  assert.equal(fetchCalls, 1, 'no later text may dispatch after cancellation');
+  const progress = JSON.parse(fs.readFileSync(options.output + '/progress.private.json'));
+  assert.equal(Object.keys(progress.entries).length, 1);
+  assert.equal(fs.existsSync(options.output + '/rows'), false);
+  const group = fs.readdirSync(options.output + '/wire')[0];
+  const wire = JSON.parse(fs.readFileSync(options.output + '/wire/' + group + '/1.private.json'));
+  assert.equal(wire.state, 'error'); assert.equal(wire.error, 'study-cancelled');
+  assert.equal(wire.errorMetadata.interruption, 'operator-cancelled');
+}
+assert.equal(getEventListeners(signal, 'abort').length, 0, 'per-call cancellation listener must be removed');
+console.log(JSON.stringify({ mode, fetchCalls, globalAborted: signal.aborted, activeFetchAborted: activeSignal?.aborted ?? null }));
+`;
+
+test('programmatic abortStudy and real SIGTERM abort active HTTP fetch and stop later texts', t => {
+  for (const mode of ['programmatic', 'sigterm']) {
+    const { options } = setup(t, 2); options.timeoutMs = 5000;
+    const result = execFileSync(process.execPath, ['--input-type=module', '-e', cancellationProgram, ROOT, JSON.stringify(options), mode], { encoding: 'utf8', timeout: 15000 });
+    const evidence = JSON.parse(result);
+    assert.equal(evidence.fetchCalls, 1); assert.equal(evidence.globalAborted, true); assert.equal(evidence.activeFetchAborted, true);
+  }
+});
+
+test('already-aborted and listener-installation races dispatch zero HTTP requests', t => {
+  for (const mode of ['already', 'attach-race']) {
+    const { options } = setup(t);
+    const result = execFileSync(process.execPath, ['--input-type=module', '-e', cancellationProgram, ROOT, JSON.stringify(options), mode], { encoding: 'utf8', timeout: 10000 });
+    assert.equal(JSON.parse(result).fetchCalls, 0);
+  }
+});
+
+test('ordinary deadlines and network AbortError are recorded errors and the cohort continues', async t => {
+  const previous = globalThis.fetch; t.after(() => { globalThis.fetch = previous; });
+  const signal = getStudyCancellationSignal();
+  const baseline = getEventListeners(signal, 'abort').length;
+  for (const cause of ['deadline', 'network']) {
+    const { options, records } = setup(t, 2); options.timeoutMs = 1000;
+    let calls = 0, firstSignal;
+    globalThis.fetch = async (_url, request) => {
+      calls++;
+      if (calls === 1) {
+        firstSignal = request.signal;
+        if (cause === 'network') throw Object.assign(new Error('The operation was aborted'), { name: 'AbortError' });
+        return new Promise((_resolve, reject) => firstSignal.addEventListener('abort', () => {
+          reject(Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }));
+        }, { once: true }));
+      }
+      return new Response(JSON.stringify({ model: candidate.model, choices: [{ message: { content: valid().text } }] }), { status: 200 });
+    };
+    const report = await collectRebaselineScores(options);
+    assert.equal(calls, 2); assert.equal(report.attempted, 2); assert.equal(report.errors, 1); assert.equal(report.valid, 1);
+    assert.equal(signal.aborted, false);
+    assert.equal(firstSignal.aborted, cause === 'deadline');
+    assert.equal(getEventListeners(signal, 'abort').length, baseline);
+    const row = read(resolve(options.output, 'rows', `${records[0].textHash}.private.json`));
+    assert.equal(row.error, cause === 'deadline' ? 'request-timeout' : 'study-call-failed');
+    assert.equal(row.overall, null);
+    const wire = paths(resolve(options.output, 'wire')).map(read).find(entry => entry.textHash === records[0].textHash);
+    assert.equal(wire.state, 'error'); assert.equal(wire.errorMetadata.interruption, cause);
+    assert.equal(read(resolve(options.output, 'rows', `${records[1].textHash}.private.json`)).status, 'ok');
+    assert.equal((await replayCollection(options.output)).fullObservedReplay, true);
+  }
 });

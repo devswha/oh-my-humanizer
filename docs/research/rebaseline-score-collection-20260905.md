@@ -201,6 +201,31 @@ scorer execution, not an independently reconstructed upstream inference.
 
 **Interruption and reporting**
 
+Each HTTP request links its private controller to the read-only study cancellation
+signal. `abortStudy()`, SIGTERM, and SIGINT therefore interrupt the active fetch
+and stop later texts. An already-cancelled study is checked before dispatch and
+again after listener registration to close the missed-event race. The global
+listener, deadline timer, and response-reader lock are cleaned up on every exit.
+
+Cancellation cause is explicit in private error metadata:
+
+| Cause | Recorded error | Collection behavior |
+| --- | --- | --- |
+| Study-wide cancellation | `study-cancelled`; interruption `operator-cancelled` | Stop further work; retain the call receipt and reservation |
+| Per-request deadline | `request-timeout`; interruption `deadline` | Persist a missing-score/error row and continue within the bound |
+| Network abort without either control firing | `study-call-failed`; interruption `network` | Persist an error row and continue within the bound |
+
+The name `AbortError` alone never establishes operator cancellation. The deadline
+controller is separate from study-wide cancellation, so a timed-out request does
+not cancel the whole cohort. Regression tests exercise active-fetch programmatic
+cancellation, real SIGTERM, already-aborted/listener-installation races, listener
+cleanup, and deadline/network-error rows followed by a successful next text.
+
+The earlier zero-call preparation beginning `c6a599` must remain unchanged. These
+collector/transport code changes require a new prepared snapshot after the fix
+commit, with the same approval bytes, exact texts, and candidate. Turing's
+independent re-review remains required before any live execution.
+
 Every evaluation is reserved before its first call. Completed receipts can recover
 a row that failed to persist, entirely offline. Missing, extra, altered, or started
 receipts stop resume. A missing parser-retry receipt cannot cause a replacement
