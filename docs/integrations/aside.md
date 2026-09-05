@@ -44,8 +44,9 @@ node '/absolute/path/to/patina/bin/patina.js' aside skill
 
 Replace the example path with the checkout's actual path. Node.js **18.1 or
 later** is required. Prepare the checkout with `npm ci` if needed. `doctor`
-checks backend availability; `aside skill` prints the bundled skill's location
-and loading instructions. It does not register a skill in Aside.
+checks backend availability; `patina aside skill` prints the bundled skill's
+location, complete `content`, and loading instructions. It does not register a
+skill in Aside.
 
 Configure the selected LLM backend in the environment used by Aside's commands.
 A logged-in CLI or API configuration on a separate Linux development host is
@@ -57,7 +58,7 @@ place to paste provider credentials.
 The commands below use `patina` for readability. Until the integration is
 released and installed, replace that command prefix with `node` and the quoted
 absolute path to this checkout's `bin/patina.js` on every invocation. Confirm
-that `aside skill` succeeds before proceeding; do not assume a version string
+that `patina aside skill` succeeds before proceeding; do not assume a version string
 alone means the adapter is present.
 
 Choose the blog task's working folder in Aside. Keep the source file, output
@@ -69,12 +70,12 @@ global configuration to bypass it.
 
 ## Register and activate the skill
 
-1. Run `patina aside skill` in Aside's command environment. Read the returned
-   file using Aside's available file-reading capability. The repository copy is
+1. Run `patina aside skill` in Aside's command environment. Use the returned
+   `content`; no separate read permission for the package folder is needed.
+   The repository copy is
    [integrations/aside/SKILL.md](../../integrations/aside/SKILL.md).
 2. In Aside chat, ask its built-in custom-skill creator to create `patina-aside`
-   from the complete contents of that file. If the creator cannot read the
-   path, paste the contents into chat. The file is instruction material for the
+   from the complete returned `content`. The text is instruction material for the
    creator; copying it into a guessed global directory is not an install step.
 3. Review the created skill: it must retain the configured command prefix,
    settings reuse, default-without-setup behavior, verified-output gate, and
@@ -129,7 +130,12 @@ the user's preferences. The current options page and installed command define
 the accepted choices. [Rewrite axes](../CLI.md#three-independent-rewrite-axes)
 explains document type, Persona, and register.
 
-For an explicit change to one post, `aside rewrite` accepts `--lang`,
+Protected terms form a reusable glossary. Only exact terms present in the
+current source are protected; absent terms are neither required nor inserted.
+The result reports applied and absent term counts. A present term that changes
+still rejects the output.
+
+For an explicit change to one post, `patina aside rewrite` accepts `--lang`,
 `--document-type`, `--persona`, `--register`, `--backend`, and `--model`.
 These overrides do not change the saved workspace settings. Use `preserve`
 for Persona/register or `configured` for backend/model to clear a saved choice

@@ -121,6 +121,28 @@ test('Aside unconfigured runs use blog/source defaults and a distinct default ou
   await assert.rejects(stat(join(f.workspace, '.patina')), { code: 'ENOENT' });
 });
 
+test('a saved glossary protects matching terms across different posts without requiring absent terms', async t => {
+  const f = await fixture(t, { settings: { protectedTerms: ['Patina', 'Aside'] } });
+  const settingsBefore = await readFile(join(f.workspace, '.patina/aside.json'), 'utf8');
+  const posts = [
+    [SOURCE, REWRITE, 1, 1],
+    [SOURCE.replaceAll('Patina', 'Aside'), REWRITE.replaceAll('Patina', 'Aside'), 1, 1],
+    ['The team reviews every draft.', 'The team checks every draft.', 0, 2],
+  ];
+  for (const [index, [source, rewrite, applied, absent]] of posts.entries()) {
+    const inputPath = join(f.workspace, `post-${index}.md`);
+    const outputPath = join(f.workspace, `result-${index}.md`);
+    await writeFile(inputPath, source);
+    const result = await runAsideRewrite({ workspace: f.workspace, inputPath, outputPath,
+      tempRoot: f.temporary, spawnImpl: fakeCli({ output: rewrite }) });
+    assert.equal(result.status, 'verified', JSON.stringify(result));
+    assert.equal(result.verification.protectedTermsApplied, applied);
+    assert.equal(result.verification.protectedTermsAbsent, absent);
+    assert.equal(await readFile(outputPath, 'utf8'), rewrite);
+  }
+  assert.equal(await readFile(join(f.workspace, '.patina/aside.json'), 'utf8'), settingsBefore);
+});
+
 test('Aside exit 4 rejects a nonempty closest candidate and never exposes it', async t => {
   const f = await fixture(t);
   const result = await runAsideRewrite({ ...f, tempRoot: f.temporary, spawnImpl: fakeCli({ exitCode: 4 }) });
@@ -360,9 +382,8 @@ test('Aside protected terms require exact global counts and order, with no repai
   }
 });
 
-test('Aside missing/ambiguous protected terms fail before spawning', async t => {
+test('Aside ambiguous protected terms fail before spawning', async t => {
   for (const [source, settings, code] of [
-    [SOURCE, { protectedTerms: ['Missing'] }, 'protected_term_missing'],
     [SOURCE, { protectedTerms: ['Patina', 'Pat'] }, 'protected_text_ambiguous'],
     ['banana 12', { protectedTerms: ['ana'] }, 'protected_text_ambiguous'],
   ]) {

@@ -36,8 +36,10 @@ Read the JSON fields `configured`, `settings`, and `settingsHash`. A status
 error is not an absent configuration: report it and stop the Patina step.
 Reuse saved settings. If unconfigured, continue with the adapter defaults: automatic
 language selection, blog document type, and source-preserving voice/register.
+Saved protected terms apply only when they occur in the draft; do not add
+glossary entries to a post just to make them appear.
 Unattended writing must not wait for someone to complete setup. Honor explicit
-task overrides through options supported by the installed `aside rewrite`
+task overrides through options supported by the installed `patina aside rewrite`
 command; do not silently change saved preferences or weaken verification.
 
 When the user asks to choose or change Patina options, run:
@@ -49,7 +51,7 @@ patina aside options --workspace '/absolute/path/to/blog-workspace'
 The command starts a managed loopback settings server and returns JSON with a
 `url` immediately. Open that exact URL inside Aside using its current browser
 capabilities. No shell background flag is needed. Let the user change controls
-and select **Save**, then call `aside status` again to confirm the saved settings
+and select **Save**, then call `patina aside status` again to confirm the saved settings
 and hash. Do not infer a save from typing or elapsed time. Reuse that workspace's
 settings on later tasks without repeating the options question. If the page
 cannot load or save, report that failure; do not claim the requested change took

@@ -1,5 +1,5 @@
 import { fork } from 'node:child_process';
-import { existsSync, realpathSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getRepoRoot } from '../config.js';
@@ -15,7 +15,7 @@ patina aside skill
 Rewrite overrides: --lang, --document-type, --persona, --register, --backend, --model.
 Use "preserve" for source persona/register, "configured" for backend/model.
 
-Options opens a short-lived loopback settings page: use the returned URL in Aside.
+Options starts a short-lived loopback settings page: use the returned URL in Aside.
 Settings are local to the workspace. The command returns immediately.
 Rewrite requires meaning verification and only writes a verified, unchanged-source result.
 Every subcommand returns JSON. No content is published by these commands.
@@ -96,7 +96,7 @@ export async function runAside(args, { output = (value) => console.log(value) } 
     if (options.command === 'skill') {
       const path = resolve(getRepoRoot(), 'integrations/aside/SKILL.md');
       if (!existsSync(path)) throw new Error('aside_skill_missing');
-      output(JSON.stringify({ schemaVersion: 1, name: 'patina-aside', path,
+      output(JSON.stringify({ schemaVersion: 1, name: 'patina-aside', path, content: readFileSync(path, 'utf8'),
         instructions: 'Read this file and use Aside\'s custom-skill creator to register it. This command does not change Aside configuration.' }));
       return;
     }

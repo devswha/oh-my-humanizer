@@ -50,10 +50,10 @@ function cliVerification(value) {
 }
 
 function bindTerms(original, terms) {
-  const spans = terms.map(text => {
+  const spans = terms.flatMap(text => {
     const start = original.indexOf(text);
-    if (start < 0) throw new AsideError('protected_term_missing');
-    return { start, end: start + text.length, text };
+    // Workspace terms are a reusable glossary, not mandatory draft content.
+    return start < 0 ? [] : [{ start, end: start + text.length, text }];
   });
   try {
     const normalized = normalizeProtectedSpans(original, spans);
@@ -189,6 +189,8 @@ export async function runAsideRewrite({
     if (settings.persona !== null && !isWebPersonaAllowed(language, settings.persona)) throw new AsideError('persona_language_mismatch');
     if (settings.documentType === 'namuwiki' && language !== 'ko') throw new AsideError('document_type_language_mismatch');
     const spans = bindTerms(original, settings.protectedTerms);
+    result.verification.protectedTermsApplied = spans.length;
+    result.verification.protectedTermsAbsent = settings.protectedTerms.length - spans.length;
     result.effectiveOptions = { ...settings, language, verify: true, format: 'json' };
     checkAbort(signal, deadline);
     temporary = await mkdtemp(join(tempRoot, 'patina-aside-run-'));

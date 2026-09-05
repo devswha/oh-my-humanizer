@@ -30,7 +30,9 @@ test('aside CLI discovers its skill and detached options session persists to sta
   const dir = await workspace(t);
   const skill = await command(['skill'], dir);
   assert.equal(skill.code, 0);
-  assert.match(await readFile(JSON.parse(skill.stdout).path, 'utf8'), /name: patina-aside/);
+  const bundle = JSON.parse(skill.stdout);
+  assert.equal(bundle.content, await readFile(bundle.path, 'utf8'));
+  assert.match(bundle.content, /name: patina-aside/);
   const initial = await command(['status', '--workspace', dir], dir);
   assert.equal(JSON.parse(initial.stdout).configured, false);
   const launched = await command(['options', '--workspace', dir], dir);
