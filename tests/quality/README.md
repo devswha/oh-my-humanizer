@@ -51,6 +51,15 @@ analyzer). They only affect the hot/cold decision through the conservative
 
 Per-language metrics use `expected_hot=true` as the positive class.
 
+## Opt-in live scoring
+
+The [live scorer report](../../docs/benchmarks/live-scorer-20260905.md) covers
+931 observations on 49 curated fixtures. The [private rebaseline report](../../docs/benchmarks/live-rebaseline-20260905.md) adds 85 nullable-label
+observations with captured-input replay. Both report language and pattern-pack
+distributions; they do not establish human-authorship accuracy or add a CI gate.
+See the [collection runbook](../../docs/research/rebaseline-score-collection-20260905.md)
+for explicit preparation, approval, execution and receipt-only replay.
+
 ## Opt-in live rewrite quality
 
 `npm run quality:live` runs the live-quality runner without calling a model by
