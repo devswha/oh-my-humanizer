@@ -8,6 +8,7 @@ import { judgeCandidates, judgeRewrite, renderRewriteReport, rewriteFixtures, su
 import { acceptedStudyIdentity, acquireStudyWriter, bindStudyProtocol, readUniqueRows } from './study-journal.mjs';
 import { assertStudyActive, installStudySignals, safeStudyError, validateTransport } from './model-evaluation-transport.mjs';
 import { fixtureIdentity, studySemantics } from './study-validation.mjs';
+import { resolveStudyFamily, generationFamily, independentJudgeMetadata, validateJudgmentFamilies } from './study-family.mjs';
 import { auditParentReceipts } from './parent-cohort-audit.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -29,7 +30,7 @@ export async function loadParentCohort({ directory, protocolFile, fixtures, prov
     const protocol = JSON.parse(protocolBytes);
     const candidates = protocol.candidates.filter((candidate) => candidate.provider === provider && (!candidateId || candidate.id === candidateId));
     if (!candidates.length || candidates.some((candidate) => !/^[a-z0-9.-]{1,80}$/i.test(candidate.id))) throw new Error('Invalid parent candidate scope');
-    for (const candidate of candidates) validateTransport(candidate);
+    for (const candidate of candidates) { validateTransport(candidate); resolveStudyFamily(candidate); }
     const hashes = { protocol: textHash(protocolBytes) };
     const read = (name) => {
       const path = resolve(directory, name); const bytes = readFileSync(path, 'utf8'); hashes[name] = textHash(bytes);
@@ -46,6 +47,7 @@ export async function loadParentCohort({ directory, protocolFile, fixtures, prov
       if (!same(row, publicPart)) throw new Error('Parent public/private generation metadata differs');
       const fixture = fixtures.find((fixture) => fixture.fixture_id === row.fixture_id);
       const candidate = candidates.find((candidate) => candidate.id === row.candidate_id);
+      generationFamily(row, candidate);
       if (!/^[a-f0-9]{64}$/.test(row.protocol_hash) || row.text_hash !== fixture.text_hash || row.language !== fixture.language
         || row.provider !== candidate.provider || row.requested_model !== candidate.model || row.transport !== candidate.transport || unresolved(row)) throw new Error('Unbound parent generation');
       protocols.add(row.protocol_hash);
@@ -86,6 +88,7 @@ export async function loadParentCohort({ directory, protocolFile, fixtures, prov
         if (!generation || row.judge_id !== id || row.judge_model !== judge.model || row.judge_provider !== judge.provider || row.judge_transport !== judge.transport
           || row.protocol_hash !== generation.protocol_hash || row.text_hash !== generation.text_hash || row.rewrite_hash !== generation.rewrite_hash
           || !judgeCandidates(candidate, protocol).some((seat) => seat.id === id) || unresolved(row)) throw new Error('Unbound parent judgment');
+        validateJudgmentFamilies(generation, row, { candidate, judge });
         if (row.status === 'ok' && !['mps', 'fidelity', 'naturalness'].every((stage) => {
           const call = row.calls?.filter((call) => call.stage === stage).at(-1);
           return call?.schema_valid === true && acceptedStudyIdentity(call, judge);
@@ -105,6 +108,9 @@ function validateJudgment(row, parent, judge, protocolHash) {
   if (!generation || row.protocol_hash !== protocolHash || row.parent_snapshot_hash !== parent.snapshotHash
     || row.parent_protocol_hash !== generation.protocol_hash || row.text_hash !== generation.text_hash || row.rewrite_hash !== generation.rewrite_hash
     || row.judge_id !== judge.id || row.judge_model !== judge.model || row.judge_provider !== judge.provider || row.judge_transport !== judge.transport) throw new Error('Unbound evaluation row');
+  const candidate = parent.candidates.find((candidate) => candidate.id === generation.candidate_id);
+  if (!candidate) throw new Error('Unknown evaluation generator');
+  validateJudgmentFamilies(generation, row, { candidate, judge });
   if (!['ok', 'error'].includes(row.status)) throw new Error('Unknown evaluation status');
   if (row.status === 'ok' && (!Number.isFinite(row.mps) || row.mps < 0 || row.mps > 100
     || !Number.isFinite(row.fidelity) || row.fidelity < 0 || row.fidelity > 100
@@ -119,11 +125,18 @@ function validateJudgment(row, parent, judge, protocolHash) {
 export async function evaluateExisting({ parent, judge, output, protocolHash, live = false, report = false, evaluate = judgeRewrite }) {
   if (parent.judgments.some((row) => row.judge_id === judge.id)) throw new Error('Selected seat already has parent observations; do not silently re-evaluate it');
   validateTransport(judge);
-  for (const candidate of parent.candidates) if (candidate.provider === judge.provider) throw new Error('A judge cannot evaluate its own family');
+  for (const candidate of parent.candidates) {
+    if (resolveStudyFamily(candidate).upstreamFamily === resolveStudyFamily(judge).upstreamFamily) throw new Error('A judge cannot evaluate its own family');
+  }
+  for (const generation of [...parent.generations, ...parent.privateRows]) {
+    const candidate = parent.candidates.find((candidate) => candidate.id === generation.candidate_id);
+    if (!candidate) throw new Error('Unknown evaluation generator');
+    independentJudgeMetadata(generation, judge, candidate);
+  }
   const release = acquireStudyWriter(output, `judge-${judge.id}`);
   try {
     bindStudyProtocol(output, protocolHash);
-    const judgeIdentity = { id: judge.id, provider: judge.provider, model: judge.model, transport: judge.transport, effort: judge.effort ?? null };
+    const judgeIdentity = { id: judge.id, provider: judge.provider, model: judge.model, transport: judge.transport, effort: judge.effort ?? null, ...resolveStudyFamily(judge) };
     writeFileSync(resolve(output, 'provenance.json'), `${JSON.stringify({ ...parent.provenance, parentSnapshotHash: parent.snapshotHash, evaluationProtocolHash: protocolHash, judge: judgeIdentity }, null, 2)}\n`);
     const publicPath = resolve(output, `judge-${judge.id}.jsonl`), privatePath = resolve(output, `judge-${judge.id}.private.jsonl`);
     const rows = readUniqueRows(publicPath, key), done = new Set(rows.map(key));
@@ -142,8 +155,12 @@ export async function evaluateExisting({ parent, judge, output, protocolHash, li
     if (live && !report) for (const generation of parent.privateRows) {
       assertStudyActive(); if (generation.status !== 'ok' || done.has(key(generation))) continue;
       const fixture = parent.fixtures.find((fixture) => fixture.fixture_id === generation.fixture_id);
-      const row = { ...await evaluate(fixture, generation, judge, { journalDirectory: output,
-        logicalId: `${protocolHash}/${key(generation)}/judge/${judge.id}` }),
+      const evaluated = await evaluate(fixture, generation, judge, { journalDirectory: output,
+        logicalId: `${protocolHash}/${key(generation)}/judge/${judge.id}` });
+      // Validate supplied metadata before adding the new row's explicit family
+      // fields. Existing first-party evaluators may still omit those fields.
+      validateJudgmentFamilies(generation, evaluated, { judge });
+      const row = { ...evaluated, ...independentJudgeMetadata(generation, judge),
         protocol_hash: protocolHash, parent_protocol_hash: generation.protocol_hash, parent_snapshot_hash: parent.snapshotHash, recorded_at: new Date().toISOString() };
       validateJudgment(row, parent, judge, protocolHash);
       append(privatePath, row); const { private_details: _details, ...safe } = row; append(publicPath, safe); rows.push(safe); done.add(key(row));

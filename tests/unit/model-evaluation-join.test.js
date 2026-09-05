@@ -8,10 +8,12 @@ import { generateRewrite, judgeRewrite } from '../../scripts/research/model-rewr
 import { loadParentCohort, evaluateExisting } from '../../scripts/research/evaluate-existing-rewrites.mjs';
 import { joinEvaluations, selectRewriteFinalists } from '../../scripts/research/join-model-evaluations.mjs';
 
-async function fixture(t) {
+async function fixture(t, hosted = false) {
   const root = mkdtempSync(join(tmpdir(), 'patina-evaluation-join-')); t.after(() => rmSync(root, { recursive: true, force: true }));
-  const generator = { id: 'generator', provider: 'openai', model: 'gpt-test', transport: 'opencodex', baseURL: 'http://127.0.0.1:10100/v1' };
-  const gemini = { id: 'gemini-3.7', provider: 'gemini', model: 'google-antigravity/gemini-test', transport: 'opencodex', baseURL: generator.baseURL };
+  const generator = hosted
+    ? { id: 'generator', provider: 'together', model: 'openai/gpt-oss-120b', upstreamFamily: 'openai', transport: 'http', baseURL: 'https://api.together.ai/v1' }
+    : { id: 'generator', provider: 'openai', model: 'gpt-test', transport: 'opencodex', baseURL: 'http://127.0.0.1:10100/v1' };
+  const gemini = { id: 'gemini-3.7', provider: 'gemini', model: 'google-antigravity/gemini-test', transport: 'opencodex', baseURL: 'http://127.0.0.1:10100/v1' };
   const claude = { id: 'anthropic-sonnet', provider: 'anthropic', model: 'claude-sonnet-5', transport: 'claude-cli' };
   const protocol = { candidates: [generator, { ...generator, id: 'openai-5.5' }, gemini, claude] };
   const source = { fixture_id: 'one', text: 'We shipped 12 fixes.', language: 'en', text_hash: textHash('We shipped 12 fixes.') };
@@ -23,7 +25,7 @@ async function fixture(t) {
   const { rewrite: _text, ...publicGeneration } = generation;
   writeFileSync(join(root, 'rewrite-rows.jsonl'), JSON.stringify(publicGeneration) + '\n');
   writeFileSync(join(root, 'rewrites.private.jsonl'), JSON.stringify(generation) + '\n');
-  const parent = await loadParentCohort({ directory: root, protocolFile, fixtures: [source], provider: 'openai', candidateId: generator.id });
+  const parent = await loadParentCohort({ directory: root, protocolFile, fixtures: [source], provider: generator.provider, candidateId: generator.id });
   const directories = [];
   for (const judge of [gemini, claude]) {
     const output = join(root, judge.id); directories.push(output);
@@ -42,6 +44,25 @@ test('two independently bound evaluation directories join without relabeling par
   assert.match(result.report, /complete: \*\*yes/);
   assert.equal(args.parent.generations[0].protocol_hash, 'a'.repeat(64));
   await assert.rejects(joinEvaluations({ ...args, directories: [args.directories[0]] }), /missing or unresolved/);
+});
+
+test('hosted OpenAI cohort joins using different upstream judges and keeps the billing host', async (t) => {
+  const args = await fixture(t, true);
+  const before = readFileSync(join(args.root, 'protocol.json'), 'utf8');
+  const result = await joinEvaluations(args);
+  assert.equal(result.summary.generator.safe, 1);
+  assert.equal(result.summary.generator.provider, 'together');
+  assert.equal(result.summary.generator.upstream_family, 'openai');
+  const rowPath = join(args.directories[0], 'judge-gemini-3.7.jsonl');
+  const row = JSON.parse(readFileSync(rowPath, 'utf8'));
+  assert.equal(row.generator_upstream_family, 'openai'); assert.equal(row.judge_upstream_family, 'google');
+  assert.equal(args.parent.generations[0].protocol_hash, 'a'.repeat(64));
+  assert.equal(readFileSync(join(args.root, 'protocol.json'), 'utf8'), before);
+  for (const suffix of ['jsonl', 'private.jsonl']) {
+    const path = join(args.directories[0], `judge-gemini-3.7.${suffix}`), stored = JSON.parse(readFileSync(path, 'utf8'));
+    stored.generator_upstream_family = 'qwen'; writeFileSync(path, JSON.stringify(stored) + '\n');
+  }
+  await assert.rejects(joinEvaluations(args), /generator family/);
 });
 
 test('wrong snapshots and altered public/private scores cannot certify joined results', async (t) => {

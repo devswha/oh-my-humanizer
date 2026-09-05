@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseStrictJson } from '../../src/json-response.js';
 import { createHash } from 'node:crypto';
@@ -52,6 +52,10 @@ export function studySemantics(repoRoot) {
     'scripts/research/model-rewrite-benchmark.mjs', 'scripts/research/model-evaluation-transport.mjs', 'scripts/research/kimi-study-transport.mjs', 'scripts/research/claude-study-stream.mjs', 'scripts/research/evaluate-existing-rewrites.mjs', 'scripts/research/parent-cohort-audit.mjs',
     'scripts/research/study-validation.mjs', 'scripts/research/study-journal.mjs', 'scripts/research/study-job.mjs', 'scripts/research/study-inputs.mjs'];
   const paths = [...fixed];
+  // Historical source snapshots predate family admission. Keep their original
+  // semantics maps intact; every new snapshot binds the family policy bytes.
+  const familyPolicy = 'scripts/research/study-family.mjs';
+  if (existsSync(resolve(repoRoot, familyPolicy))) paths.push(familyPolicy);
   for (const directory of ['src', 'patterns', 'core', 'document-types', 'lexicon', 'personas']) {
     const walk = (path) => {
       for (const item of readdirSync(resolve(repoRoot, path), { withFileTypes: true })) {
