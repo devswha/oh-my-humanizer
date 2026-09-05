@@ -6,6 +6,7 @@ import { LEAKAGE_SCORE_FLOOR } from './features/markup-leakage.js';
 import { summarizeSignalStrength } from './features/signal-strength.js';
 import { buildScoreMathCore, fenceReferenceText, resolveSeverityPoints } from './prompt-builder.js';
 import { createLogger } from './logger.js';
+import { parseStrictJson } from './json-response.js';
 
 /**
  * Default maximum delta before deterministic and LLM scores are reconciled upward.
@@ -46,89 +47,6 @@ export const SCORE_INTERPRETATION_BANDS = Object.freeze([
  * @type {number}
  */
 export const STRUCTURAL_CLASSIFIER_MIN_FLOOR = 70;
-
-class SchemaError extends Error {
-  constructor(message, raw) {
-    super(message);
-    this.name = 'SchemaError';
-    this.raw = raw;
-  }
-}
-
-function tryParseJson(s) {
-  try {
-    return { ok: true, value: JSON.parse(s) };
-  } catch {
-    return { ok: false, value: null };
-  }
-}
-
-function isJsonObject(value) {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-// Index of the `}` that closes the `{` at `open`, ignoring braces inside JSON
-// string literals (and their escapes). Returns -1 when unbalanced.
-function matchingBraceEnd(str, open) {
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  for (let i = open; i < str.length; i++) {
-    const ch = str[i];
-    if (inString) {
-      if (escaped) escaped = false;
-      else if (ch === '\\') escaped = true;
-      else if (ch === '"') inString = false;
-      continue;
-    }
-    if (ch === '"') inString = true;
-    else if (ch === '{') depth++;
-    else if (ch === '}' && --depth === 0) return i;
-  }
-  return -1;
-}
-
-function parseStrictJson(text) {
-  if (!text) throw new SchemaError('Empty response', text);
-
-  let body = text;
-  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (codeBlockMatch) body = codeBlockMatch[1];
-  body = body.trim();
-
-  // Common case: the body is exactly one JSON object.
-  const whole = tryParseJson(body);
-  if (whole.ok && isJsonObject(whole.value)) return whole.value;
-
-  // Otherwise scan every balanced {...} span and keep the RICHEST object. A
-  // naive indexOf('{')..lastIndexOf('}') slice breaks when prose carries stray
-  // braces, e.g. "result for {A}: {\"overall\":20}" slices from `{A}` (#508 G2).
-  // Returning the FIRST parseable object is also wrong when a chatty model
-  // emits a stray/echoed object (or an empty `{}`) before the real score —
-  // that nulls a valid score without a retry (#527 H8). And a lone unbalanced
-  // '{' must skip, not abandon the scan, or a later valid object is missed
-  // (#527 H9). Picking the object with the most keys favors the score object
-  // (many keys) over a small echo while leaving the single-object case exact.
-  let best = null;
-  let bestKeys = -1;
-  for (let i = 0; i < body.length; i++) {
-    if (body[i] !== '{') continue;
-    const end = matchingBraceEnd(body, i);
-    if (end === -1) continue; // this '{' never balances; a later one might
-    const candidate = tryParseJson(body.slice(i, end + 1));
-    if (candidate.ok && isJsonObject(candidate.value)) {
-      const keys = Object.keys(candidate.value).length;
-      if (keys >= 1 && keys > bestKeys) {
-        best = candidate.value;
-        bestKeys = keys;
-      }
-    }
-    i = end; // skip past this span
-  }
-  if (best !== null) return best;
-
-  throw new SchemaError('No JSON object found', text);
-}
 
 // Call LLM and parse strict JSON. On schema failure, retry once at temperature 0.
 // Attempt indices are one-based across all transport and schema retries in one score.
@@ -321,6 +239,7 @@ function notifyInvalidAttempt(onAttemptInvalid) {
  * @param {object} [options.extraBody] Opt-in provider-specific request fields (e.g. reasoning control) spread into the request body.
  * @param {Function} [options.onAttempt] Safe callback for one-based paid-attempt metadata records.
  * @param {Function} [options.onAttemptInvalid] Safe callback when transport evidence is malformed; receives no provider metadata.
+ * @param {object|null} [options.deterministicScore] Optional frozen analysis for this exact text/config; omitted callers compute it normally.
  * @returns {Promise<object>} Score payload with overall, interpretation, llmScore, and deterministicScore.
  * @throws {Error} When the operation is aborted.
  * @example
@@ -343,9 +262,11 @@ export async function scoreText({
   responseFormat,
   onAttempt,
   onAttemptInvalid,
+  deterministicScore: preparedDeterministicScore,
 }) {
   const lang = config.language || 'ko';
-  const deterministicScore = scoreDeterministicSignals({ text, config, patterns, logger });
+  const deterministicScore = preparedDeterministicScore === undefined
+    ? scoreDeterministicSignals({ text, config, patterns, logger }) : preparedDeterministicScore;
 
   // buildScoreMathCore carries the shared scoring math (weights, severity
   // scale, denominators, catalog digest) but no output contract; the strict
