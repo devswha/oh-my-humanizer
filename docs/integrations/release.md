@@ -15,7 +15,7 @@ The dry run (`verify` job) runs, in order: `npm run lint`, `npm run release:chec
 Publishing the npm packages is intended for `v*.*.*` tags:
 
 ```bash
-VERSION=v8.1.1
+VERSION=v8.2.0
 git tag "$VERSION"
 git push origin "$VERSION"
 ```
@@ -34,6 +34,6 @@ on `workflow_dispatch` with `publish_ghcr=true` and pushes `latest` plus the
 semver tag when run on a version ref (see [docker.md](docker.md)):
 
 ```bash
-VERSION=v8.1.1
+VERSION=v8.2.0
 gh workflow run release.yml --ref "$VERSION" -f publish=false -f publish_ghcr=true
 ```
