@@ -4,6 +4,12 @@ import { strict as assert } from 'node:assert';
 import { stripGeminiNoise } from '../../src/backends/gemini-cli.js';
 import { extractKimiFinalMessage, stripKimiNoise } from '../../src/backends/kimi-cli.js';
 
+test('Kimi metadata without assistant output cannot become a public rewrite', () => {
+  const metadata = JSON.stringify({ role: 'meta', type: 'session.resume_hint', session_id: 'private-session' });
+  assert.throws(() => extractKimiFinalMessage(metadata), /no assistant text/);
+  assert.throws(() => extractKimiFinalMessage(`${metadata}\n{"role":"assistant","content":""}`), /no assistant text/);
+});
+
 test('stripGeminiNoise strips known leading banners but keeps a "Warning:" response (#446)', () => {
   const noisy = 'Loaded cached credentials\nRipgrep is not available. Falling back to GrepTool.\n\nThe real rewritten text.';
   assert.equal(stripGeminiNoise(noisy), 'The real rewritten text.');
