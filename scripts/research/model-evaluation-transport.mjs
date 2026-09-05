@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { callLLM } from '../../src/api.js';
+import { KIMI_PROFILE_MODELS, kimiStudyCompletion } from './kimi-study-transport.mjs';
 
 const cancellation = new AbortController();
 const children = new Map();
@@ -40,6 +41,10 @@ export function validateTransport(candidate) {
   if (!candidate?.id || !candidate.model || !candidate.provider) throw new Error('candidate id, model and provider are required');
   const gemini = candidate.provider === 'gemini' || /gemini/i.test(candidate.model);
   if (gemini && candidate.transport !== 'opencodex') throw new Error('Gemini requires the OpenCodex proxy');
+  if (candidate.transport === 'kimi-cli') {
+    if (candidate.provider !== 'kimi' || !Object.hasOwn(KIMI_PROFILE_MODELS, candidate.model)) throw new Error('kimi-cli requires an explicitly admitted Kimi coding profile');
+    return;
+  }
   if (candidate.transport === 'claude-cli') {
     if (candidate.provider !== 'anthropic' || !/^claude-[a-z0-9.-]+$/i.test(candidate.model)) throw new Error('claude-cli is restricted to explicit Anthropic candidates');
     return;
@@ -130,6 +135,10 @@ export async function studyCompletion(candidate, prompt, { envFile, timeoutMs = 
   assertStudyActive();
   validateTransport(candidate);
   const start = Date.now();
+  if (candidate.transport === 'kimi-cli') {
+    const result = await kimiStudyCompletion(candidate, prompt, { timeoutMs, signal: cancellation.signal });
+    return { ...result, durationMs: Date.now() - start, requestedTemperature: temperature, effectiveTemperature: null };
+  }
   if (candidate.transport === 'claude-cli') {
     const result = await claudeCompletion(candidate, prompt, timeoutMs);
     return { ...result, durationMs: Date.now() - start, attempts: 1, requestedTemperature: temperature, effectiveTemperature: null };
