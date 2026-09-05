@@ -30,10 +30,33 @@ including inactive fields, before dispatch.
 **Admission and bounds**
 
 Supply an existing candidate protocol, its exact file SHA-256, and one candidate
-ID. The selected definition is copied unchanged. Supply a separate approval file
-whose header binds the intake and candidate, and whose decisions bind exact text
-hashes and inherited origin evidence. Approved entries require all fields below.
-These placeholders illustrate the schema; they grant no processing permission.
+ID. The selected definition is copied unchanged. Two approval schemas are supported.
+
+The parent approval dated September 5 is consumed directly through `--approvals`;
+no rewritten approval file is needed. Its `parentApproved`, scope, exact Gemini 3.7
+OpenCodex candidate, `reviewPath`/`reviewHash`, `approvedTextHashes`, one repeat,
+and logical-observation limit must agree. Every approved hash must have an
+`approve` decision, verified bindings, and unchanged provenance in the bound
+review. The reviewed bundle's three exact file hashes and semantic hashes are
+checked too. Duplicate, deferred, substituted, or missing hashes reject the run.
+The parent-selected order is retained, so this grant fixes one pass of 85 targets.
+
+The original approval and review bytes and their SHA-256 values are stored in
+`approvalSource` inside the private snapshot. The review's pending status is left
+unchanged; the separate parent approval supplies the execution gate. Its authority,
+unknowns, payload restriction, and exclusions are preserved verbatim. This does
+not certify publication rights, human authorship, or quality. Both source files
+remain untouched, and replay reads their frozen copies without rereading them.
+
+The supplied approval was validated read-only: approval SHA-256
+`8f31c1b5cbcf43af58a254cbc27f03b1ebab7378582fffe3614afdad3bb67c00`,
+review SHA-256
+`24d3403dc3f422291d5c087b9a19241ed828f774175dbdf337edfd62b3596f89`,
+and all 85 approved hashes matched. No live calls were made.
+
+The earlier per-text decision schema is also supported. Approved entries require
+all fields below. These placeholders illustrate its schema and grant no processing
+permission.
 
 ```json
 {
@@ -116,6 +139,21 @@ frozen code, and feeds recorded completions through the scorer. It verifies exac
 prompts, request hashes, call sequence, schema outcome, the full production score
 object, and observed collector fields. It writes nothing and has no live fallback.
 Only a complete observed matrix can return `fullObservedReplay: true`.
+
+**Outbound payload boundary**
+
+The HTTP body contains the selected model, one user message, and supported scoring
+request controls. The message is derived only from the exact approved text and
+necessary scoring instructions: weights, severity rules, pack counts, and pattern
+catalog. The intake, source index, source URLs, generator/quality labels, previous
+prompts or receipts, and full source documents stay in the private snapshot.
+Unrelated config fields are not included. Tests intercept the outbound body and
+check these boundaries using distinct metadata markers.
+
+If production fencing would alter the approved text, preparation stops. There is
+no silent edit or replacement text. Scores do not trigger a replacement run:
+only the existing bounded JSON-parse retry is permitted, within the fixed call
+budget. The worker has not executed the parent's approved live pass.
 
 **Private evidence**
 

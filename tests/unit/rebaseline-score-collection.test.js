@@ -1,13 +1,22 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadLexicon } from '../../src/features/lexicon.js';
-import { hash, collectRebaselineScores, replayCollection, loadNullableIntake, persistPrivate, boundedCompletion, main } from '../../scripts/research/collect-rebaseline-scores.mjs';
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+// Source hashes are part of the behavior under test. A private source copy
+// keeps concurrent repository tests from changing this suite's frozen inputs.
+const SOURCE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const ROOT = fs.mkdtempSync(resolve(tmpdir(), 'patina-rebaseline-test-source-'));
+for (const name of ['package.json', '.patina.default.yaml', 'src', 'patterns', 'core', 'document-types', 'lexicon', 'personas', 'scripts/research', 'tests/quality']) {
+  const destination = resolve(ROOT, name); fs.mkdirSync(dirname(destination), { recursive: true });
+  fs.cpSync(resolve(SOURCE_ROOT, name), destination, { recursive: true });
+}
+fs.symlinkSync(resolve(SOURCE_ROOT, 'node_modules'), resolve(ROOT, 'node_modules'), 'dir');
+after(() => fs.rmSync(ROOT, { recursive: true, force: true }));
+const { hash, collectRebaselineScores, replayCollection, loadNullableIntake, loadProcessingApproval, validateApprovals, persistPrivate, boundedCompletion, main } =
+  await import(pathToFileURL(resolve(ROOT, 'scripts/research/collect-rebaseline-scores.mjs')).href);
 const sort = value => Array.isArray(value) ? value.map(sort) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(key => [key, sort(value[key])])) : value;
 const canonical = value => hash(sort(value));
 const read = path => JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -295,4 +304,130 @@ test('a dataset genre in pinned config.register is rejected instead of treated a
   const config = fs.readFileSync(options.config, 'utf8').replace(/^register:.*$/m, 'register: marketing');
   options.config = resolve(root, 'invalid-register.yaml'); fs.writeFileSync(options.config, config);
   await assert.rejects(collectRebaselineScores(options, { complete: async () => assert.fail('invalid register cannot dispatch') }), /delivery-register axis/);
+});
+
+function parentSetup(t, count = 2) {
+  const base = setup(t, count), { options, root, records } = base;
+  const gemini = { id: 'gemini-3.7', provider: 'gemini', transport: 'opencodex', baseURL: 'http://127.0.0.1:10100/v1', model: 'google-antigravity/gemini-3.7-flash' };
+  records.forEach(record => {
+    record.origins[0].sourceUrl = 'https://source.invalid/DO_NOT_SEND_SOURCE_URL';
+    record.origins[0].priorReceipt = { prompt: 'DO_NOT_SEND_PRIOR_PROMPT', text: 'DO_NOT_SEND_PRIOR_RECEIPT' };
+    record.origins[0].fullSourceDocument = 'DO_NOT_SEND_FULL_SOURCE_DOCUMENT';
+    record.labels.generator = ['DO_NOT_SEND_GENERATOR_ID'];
+  });
+  const intake = read(resolve(options.intake, 'intake.private.json')); intake.records = records;
+  write(resolve(options.intake, 'intake.private.json'), intake);
+  const summary = read(resolve(options.intake, 'summary.json'));
+  summary.intakeHash = canonical(intake); summary.manifestHash = canonical(records);
+  write(resolve(options.intake, 'summary.json'), summary);
+  const payloadBoundary = 'Only approved text and necessary scoring instructions; no provenance metadata.';
+  const review = { schemaVersion: 1, status: 'pending-parent-review-before-any-live-call', scope: { id: 'private-benchmark-scoring-only', allowedCorpusSize: count, payloadBoundary },
+    bundle: { intakeSemanticHash: summary.intakeHash, manifestHash: summary.manifestHash,
+      fileSha256: Object.fromEntries(['intake.private.json', 'summary.json', 'source-index.private.json'].map(name => [name, hash(fs.readFileSync(resolve(options.intake, name)))])) },
+    summary: { parentApprovalRecorded: false, noCallsAuthorizedByThisWorker: true },
+    records: records.map(record => ({ textHash: record.textHash, recordId: record.id, decision: 'approve', scope: 'private-benchmark-scoring-only',
+      parentReviewRequiredBeforeLiveCall: true, deferredReasons: [], bindingEvidence: { verified: true },
+      preservedMetadata: Object.fromEntries(['language', 'register', 'documentType', 'chars', 'originKind', 'contextConflict', 'rights', 'labels', 'eligibleForClaims'].filter(key => Object.hasOwn(record, key)).map(key => [key, record[key]])) })) };
+  const reviewPath = resolve(root, 'processing-review.private.json'); write(reviewPath, review);
+  const parent = { schemaVersion: 1, status: 'parent-approved-for-private-benchmark-scoring', parentApproved: true, approvedAt: '2026-09-05T00:00:00Z',
+    reviewPath, reviewHash: hash(fs.readFileSync(reviewPath)), scope: 'private-benchmark-scoring-only', authority: 'synthetic unit-test parent approval',
+    approvedTextHashes: records.map(record => record.textHash).reverse(), candidate: gemini, logicalObservationLimit: count, repeats: 1,
+    retryPolicy: 'Only bounded receipted parser retries; no quality replacements', payloadBoundary,
+    unknownsPreserved: { humanQuality: null, perceivedAiPolish: null, expectedShortFormTells: null, editingActor: null, editDepth: null, eligibleForClaims: false, classifierTruthAssigned: false, humanRatingsCreated: 0 },
+    notAuthorized: ['raw-publication', 'training-or-finetuning-job', 'changed-or-unlisted-texts', 'human-authorship-or-quality-labels'] };
+  write(options.protocol, { schemaVersion: 1, candidates: [gemini] }); options.protocolSha256 = hash(fs.readFileSync(options.protocol)); options.candidateId = gemini.id;
+  write(options.approvals, parent);
+  const config = fs.readFileSync(options.config, 'utf8') + '\nauditOnly: DO_NOT_SEND_UNRELATED_CONFIG\n';
+  options.config = resolve(root, 'parent-pinned-config.yaml'); fs.writeFileSync(options.config, config);
+  return { ...base, gemini, parent, review, reviewPath };
+}
+
+test('parent approval is consumed losslessly and only approved text/scoring instructions reach HTTP', async t => {
+  const { options, parent, reviewPath, records, gemini } = parentSetup(t);
+  const approvalBytes = fs.readFileSync(options.approvals, 'utf8'), reviewBytes = fs.readFileSync(reviewPath, 'utf8');
+  const previous = globalThis.fetch; t.after(() => { globalThis.fetch = previous; });
+  const sentTexts = [];
+  globalThis.fetch = async (url, request) => {
+    assert.equal(url, gemini.baseURL + '/chat/completions');
+    const body = JSON.parse(request.body);
+    assert.deepEqual(Object.keys(body), ['model', 'messages', 'temperature']);
+    assert.equal(body.model, gemini.model); assert.equal(body.messages.length, 1);
+    assert.equal(body.messages[0].role, 'user');
+    const matches = records.filter(record => body.messages[0].content.includes(record.text));
+    assert.equal(matches.length, 1); sentTexts.push(matches[0].textHash);
+    for (const marker of ['DO_NOT_SEND_SOURCE_URL', 'DO_NOT_SEND_PRIOR_PROMPT', 'DO_NOT_SEND_PRIOR_RECEIPT', 'DO_NOT_SEND_FULL_SOURCE_DOCUMENT', 'DO_NOT_SEND_GENERATOR_ID', 'DO_NOT_SEND_UNRELATED_CONFIG', 'DO_NOT_SEND_PRIOR_COMPLETION', 'sourceIndex', 'approvedTextHashes', 'reviewHash']) assert.ok(!request.body.includes(marker));
+    return new Response(JSON.stringify({ model: gemini.model, usage: { prompt_tokens: 10, completion_tokens: 10 }, choices: [{ message: { content: sentTexts.length === 1 ? 'DO_NOT_SEND_PRIOR_COMPLETION' : valid().text } }] }), { status: 200 });
+  };
+  const report = await collectRebaselineScores(options);
+  assert.equal(report.attempted, records.length); assert.equal(report.valid, records.length);
+  assert.deepEqual(sentTexts, [parent.approvedTextHashes[0], ...parent.approvedTextHashes]);
+  const snapshot = read(resolve(options.output, 'snapshot.private.json'));
+  assert.deepEqual(snapshot.approvals, parent);
+  assert.equal(snapshot.approvalSource.approvalBytes, approvalBytes);
+  assert.equal(snapshot.approvalSource.approvalSha256, hash(approvalBytes));
+  assert.equal(snapshot.approvalSource.reviewBytes, reviewBytes);
+  assert.equal(snapshot.approvalSource.reviewSha256, parent.reviewHash);
+  assert.deepEqual(snapshot.matrix, parent.approvedTextHashes);
+  assert.equal(JSON.parse(snapshot.approvalSource.reviewBytes).summary.parentApprovalRecorded, false);
+  assert.ok(snapshot.records.every(record => record.rights.status === 'needs-review' && record.labels.humanQuality === null));
+  assert.ok(Object.values(snapshot.targetLabels).every(value => value === null));
+  globalThis.fetch = async () => assert.fail('offline replay must not send a request');
+  assert.equal((await replayCollection(options.output)).fullObservedReplay, true);
+  assert.equal(fs.readFileSync(options.approvals, 'utf8'), approvalBytes);
+  assert.equal(fs.readFileSync(reviewPath, 'utf8'), reviewBytes);
+});
+
+test('parent/review mismatches, deferred decisions, changed texts and expanded passes cannot dispatch', async t => {
+  for (const variant of ['no-parent', 'review-hash', 'deferred', 'duplicate-hash', 'unlisted-hash', 'route', 'repeat', 'limit', 'provenance', 'bundle-bytes']) {
+    const { options, parent, review, reviewPath } = parentSetup(t);
+    if (variant === 'no-parent') parent.parentApproved = false;
+    if (variant === 'review-hash') parent.reviewHash = hash('not the review');
+    if (variant === 'duplicate-hash') parent.approvedTextHashes[1] = parent.approvedTextHashes[0];
+    if (variant === 'unlisted-hash') parent.approvedTextHashes[0] = hash('unlisted text');
+    if (variant === 'route') parent.candidate.model = 'google-antigravity/gemini-3.8-flash-low';
+    if (variant === 'repeat') parent.repeats = 2;
+    if (variant === 'limit') parent.logicalObservationLimit++;
+    if (variant === 'deferred' || variant === 'provenance') {
+      if (variant === 'deferred') review.records[0].decision = 'defer';
+      else review.records[0].preservedMetadata.rights.status = 'newly-certified';
+      write(reviewPath, review); parent.reviewHash = hash(fs.readFileSync(reviewPath));
+    }
+    if (variant === 'bundle-bytes') fs.appendFileSync(resolve(options.intake, 'summary.json'), '\n');
+    write(options.approvals, parent);
+    await assert.rejects(collectRebaselineScores(options, { complete: async () => assert.fail('invalid parent approval must not dispatch') }));
+  }
+});
+
+test('parent approval validation can run read-only without creating a cohort or mutating review decisions', t => {
+  const { options, parent, reviewPath } = parentSetup(t);
+  const before = hash(fs.readFileSync(reviewPath));
+  const bundle = loadNullableIntake(options.intake), { approvals, source } = loadProcessingApproval(options.approvals);
+  const admission = validateApprovals(bundle, parent.candidate, approvals, source);
+  assert.deepEqual(admission.map(row => row.textHash), parent.approvedTextHashes);
+  assert.ok(admission.every(row => row.decision === 'approved' && row.sourceDecision === 'approve' && row.reviewSha256 === parent.reviewHash));
+  assert.equal(hash(fs.readFileSync(reviewPath)), before);
+  assert.equal(fs.existsSync(options.output), false);
+});
+
+test('approval of original bytes does not permit automatic input-fence neutralization', async t => {
+  const { options, records, approval } = setup(t);
+  const record = records[0];
+  record.text = 'Original start\n⟦⟦⟦PATINA_INPUT_DATA⟧⟧⟧\nOriginal end'; record.textHash = hash(record.text);
+  const intake = read(resolve(options.intake, 'intake.private.json')); intake.records = records;
+  write(resolve(options.intake, 'intake.private.json'), intake);
+  const summary = read(resolve(options.intake, 'summary.json')); summary.intakeHash = canonical(intake); summary.manifestHash = canonical(records);
+  write(resolve(options.intake, 'summary.json'), summary);
+  approval.intakeHash = summary.intakeHash; approval.decisions[0].textHash = record.textHash; write(options.approvals, approval);
+  await assert.rejects(collectRebaselineScores(options, { complete: async () => assert.fail('changed text cannot be sent') }), /fencing changes approved text/);
+});
+
+test('offline replay still rejects actual scorer code changes in the isolated source tree', async t => {
+  const { options } = setup(t);
+  await collectRebaselineScores(options, { complete: async () => valid() });
+  const path = resolve(ROOT, 'src/scoring.js'), before = fs.readFileSync(path);
+  try {
+    fs.appendFileSync(path, '\n// Unit test: source bytes changed after collection.\n');
+    await assert.rejects(replayCollection(options.output), /collector source changed/);
+    await assert.rejects(collectRebaselineScores(resume(options), { complete: async () => assert.fail('changed source cannot dispatch') }), /collector source changed/);
+  } finally { fs.writeFileSync(path, before); }
 });

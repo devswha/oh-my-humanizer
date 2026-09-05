@@ -102,7 +102,13 @@ export function loadNullableIntake(directory) {
     ids.add(record.id); hashes.add(record.textHash);
   }
   assertSecretFree(intake);
-  return { intake, sourceIndex, intakeHash: summary.intakeHash, manifestHash: summary.manifestHash, sourceIndexHash: canonicalHash(sourceIndex) };
+  const originals = { 'intake.private.json': intake, 'summary.json': summary, 'source-index.private.json': sourceIndex };
+  const fileHashes = Object.fromEntries(Object.entries(originals).map(([name, value]) => {
+    const bytes = fs.readFileSync(resolve(directory, name));
+    if (encode(decode(bytes.toString('utf8'))) !== encode(value)) fail('bundle changed while reading');
+    return [name, hash(bytes)];
+  }));
+  return { intake, sourceIndex, fileHashes, intakeHash: summary.intakeHash, manifestHash: summary.manifestHash, sourceIndexHash: canonicalHash(sourceIndex) };
 }
 function selectCandidate(protocolFile, protocolSha256, candidateId) {
   const bytes = fs.readFileSync(protocolFile);
@@ -117,7 +123,63 @@ function selectCandidate(protocolFile, protocolSha256, candidateId) {
   if (candidate.transport === 'http' && (!/^[A-Z][A-Z0-9_]*$/.test(candidate.apiKeyEnv) || /GEMINI|GOOGLE/.test(candidate.apiKeyEnv))) fail('invalid transport credential variable');
   return { protocol, candidate };
 }
-export function validateApprovals(bundle, candidate, approvals) {
+export function loadProcessingApproval(path) {
+  noLinks(path);
+  const approvalBytes = fs.readFileSync(path, 'utf8');
+  let approvals; try { approvals = decode(approvalBytes); } catch { fail('invalid approval JSON'); }
+  const source = { approvalBytes, approvalSha256: hash(approvalBytes), reviewBytes: null, reviewSha256: null };
+  if (Object.hasOwn(approvals, 'parentApproved')) {
+    if (typeof approvals.reviewPath !== 'string' || !HEX.test(approvals.reviewHash)) fail('parent approval requires a bound review');
+    noLinks(approvals.reviewPath);
+    source.reviewBytes = fs.readFileSync(approvals.reviewPath, 'utf8'); source.reviewSha256 = hash(source.reviewBytes);
+    if (source.reviewSha256 !== approvals.reviewHash) fail('parent review hash mismatch');
+  }
+  assertSecretFree({ approvals, source });
+  return { approvals, source };
+}
+function validateParentApproval(bundle, candidate, approvals, source) {
+  const scope = 'private-benchmark-scoring-only';
+  if (approvals.schemaVersion !== 1 || approvals.status !== 'parent-approved-for-private-benchmark-scoring' || approvals.parentApproved !== true
+    || approvals.scope !== scope || approvals.repeats !== 1 || !Number.isFinite(Date.parse(approvals.approvedAt))
+    || canonicalHash(approvals.candidate) !== canonicalHash(candidate)
+    || candidate.id !== 'gemini-3.7' || candidate.provider !== 'gemini' || candidate.transport !== 'opencodex'
+    || candidate.model !== 'google-antigravity/gemini-3.7-flash') fail('parent approval candidate/scope mismatch');
+  validateTransport(candidate);
+  if (typeof source?.reviewBytes !== 'string' || hash(source.reviewBytes) !== approvals.reviewHash || source.reviewSha256 !== approvals.reviewHash) fail('parent review bytes/hash required');
+  let review; try { review = decode(source.reviewBytes); } catch { fail('invalid bound review'); }
+  const records = new Map(bundle.intake.records.map(record => [record.textHash, record]));
+  const hashes = approvals.approvedTextHashes;
+  if (!Array.isArray(hashes) || new Set(hashes).size !== hashes.length || hashes.length !== records.size
+    || approvals.logicalObservationLimit !== hashes.length || hashes.some(textHash => !records.has(textHash))) fail('parent-approved exact matrix mismatch');
+  if (review.schemaVersion !== 1 || review.scope?.id !== scope || review.scope.allowedCorpusSize !== records.size
+    || review.bundle?.intakeSemanticHash !== bundle.intakeHash || review.bundle?.manifestHash !== bundle.manifestHash
+    || !Array.isArray(review.records) || review.records.length !== records.size
+    || typeof approvals.payloadBoundary !== 'string' || approvals.payloadBoundary !== review.scope.payloadBoundary
+    || typeof approvals.retryPolicy !== 'string' || !approvals.retryPolicy.trim()) fail('parent review scope/intake mismatch');
+  for (const name of ['intake.private.json', 'summary.json', 'source-index.private.json']) {
+    if (!HEX.test(bundle.fileHashes?.[name]) || bundle.fileHashes[name] !== review.bundle.fileSha256?.[name]) fail('parent-reviewed bundle file hash mismatch');
+  }
+  const unknowns = approvals.unknownsPreserved;
+  if (!unknowns || unknowns.eligibleForClaims !== false || unknowns.classifierTruthAssigned !== false || unknowns.humanRatingsCreated !== 0
+    || ['humanQuality', 'perceivedAiPolish', 'expectedShortFormTells', 'editingActor', 'editDepth'].some(key => unknowns[key] !== null)) fail('parent approval must preserve unknown labels');
+  const reviewed = new Map();
+  for (const row of review.records) {
+    const record = records.get(row.textHash);
+    if (!record || reviewed.has(row.textHash) || row.decision !== 'approve' || row.scope !== scope || row.bindingEvidence?.verified !== true
+      || !Array.isArray(row.deferredReasons) || row.deferredReasons.length || row.recordId !== record.id) fail('unmatched, deferred or unverified reviewed text');
+    for (const key of ['language', 'register', 'documentType', 'chars', 'originKind', 'contextConflict', 'rights', 'labels', 'eligibleForClaims']) {
+      if (encode(row.preservedMetadata?.[key]) !== encode(record[key])) fail('reviewed provenance/unknowns mismatch');
+    }
+    reviewed.set(row.textHash, row);
+  }
+  // Direct consumption preserves both source documents, their decisions, and
+  // parent-selected order. It never rewrites the pending content-review file.
+  return hashes.map(textHash => ({ textHash, decision: 'approved', sourceDecision: reviewed.get(textHash).decision,
+    parentApprovalSha256: source.approvalSha256, reviewSha256: source.reviewSha256 }));
+}
+export function validateApprovals(bundle, candidate, approvals, source) {
+  if (source && (hash(source.approvalBytes) !== source.approvalSha256 || encode(decode(source.approvalBytes)) !== encode(approvals))) fail('approval source bytes/hash mismatch');
+  if (approvals && Object.hasOwn(approvals, 'parentApproved')) return validateParentApproval(bundle, candidate, approvals, source);
   const records = new Map(bundle.intake.records.map(row => [row.textHash, row]));
   if (approvals?.schemaVersion !== 1 || approvals.intakeHash !== bundle.intakeHash || approvals.candidateHash !== hash(candidate) || !Array.isArray(approvals.decisions)) fail('separate processing-approval manifest required');
   const decisions = new Map();
@@ -249,7 +311,7 @@ function savedSnapshot(output) {
   assertSecretFree(snapshot); validateTransport(snapshot.candidate);
   if (hash(snapshot.candidateProtocolBytes) !== snapshot.candidateProtocolHash || encode(JSON.parse(snapshot.candidateProtocolBytes)) !== encode(snapshot.protocol)
     || snapshot.protocol.candidates.filter(candidate => encode(candidate) === encode(snapshot.candidate)).length !== 1) fail('frozen candidate protocol mismatch');
-  const admission = validateApprovals({ intake: { records: snapshot.records }, intakeHash: snapshot.intakeHash }, snapshot.candidate, snapshot.approvals);
+  const admission = validateApprovals({ intake: { records: snapshot.records }, intakeHash: snapshot.intakeHash, manifestHash: snapshot.manifestHash, fileHashes: snapshot.bundleFileHashes }, snapshot.candidate, snapshot.approvals, snapshot.approvalSource);
   if (encode(admission.filter(row => row.decision === 'approved').map(row => row.textHash)) !== encode(snapshot.matrix)) fail('saved approval matrix mismatch');
   return { snapshot, protocolHash: binding.protocolHash };
 }
@@ -354,7 +416,8 @@ export async function collectRebaselineScores(options, { complete = boundedCompl
     if ([resolve(options.intake, 'intake.private.json'), resolve(options.protocol), resolve(options.config)].includes(resolve(options.approvals))) fail('approval must be a separate manifest');
     const bundle = loadNullableIntake(options.intake);
     const { protocol, candidate } = selectCandidate(options.protocol, options.protocolSha256, options.candidateId);
-    const approvals = readJson(options.approvals), admission = validateApprovals(bundle, candidate, approvals);
+    const { approvals, source: approvalSource } = loadProcessingApproval(options.approvals);
+    const admission = validateApprovals(bundle, candidate, approvals, approvalSource);
     const matrix = admission.filter(row => row.decision === 'approved').map(row => row.textHash);
     if (!Number.isSafeInteger(options.maxCalls) || options.maxCalls < 0 || options.maxCalls > matrix.length * 2 || (matrix.length && !options.maxCalls)) fail('explicit call bound must be 1..2*approved (zero for empty admission)');
     const timeoutMs = options.timeoutMs ?? 60000;
@@ -365,11 +428,12 @@ export async function collectRebaselineScores(options, { complete = boundedCompl
       await scoreText({ ...inputs.prepared[record.textHash], text: record.text, model: candidate.model, logger: { warn() {}, info() {}, debug() {} },
         callLLM: async args => { prompts[record.textHash] = args.prompt; throw new Error('prompt capture only'); } });
       if (typeof prompts[record.textHash] !== 'string') fail('scorer prompt capture failed');
+      if (!prompts[record.textHash].includes(record.text)) fail('scorer fencing changes approved text; new review required');
     }
     snapshot = { schemaVersion: 1, kind: 'nullable-rebaseline-score-collection', candidate, protocol, candidateProtocolHash: options.protocolSha256, candidateProtocolBytes: fs.readFileSync(options.protocol, 'utf8'),
-      intakeHash: bundle.intakeHash, manifestHash: bundle.manifestHash, sourceIndexHash: bundle.sourceIndexHash, sourceIndex: bundle.sourceIndex, records: bundle.intake.records,
+      intakeHash: bundle.intakeHash, manifestHash: bundle.manifestHash, sourceIndexHash: bundle.sourceIndexHash, sourceIndex: bundle.sourceIndex, bundleFileHashes: bundle.fileHashes, records: bundle.intake.records,
       targetLabels: { expected_hot: null, class: null, authorship: null, humanQuality: null, expected_short_form_tells: null, perceived_ai_polish: null },
-      approvals, admission, matrix, maxCalls: options.maxCalls, timeoutMs, repeats: 1, parserInvocationsPerText: 2, transportRetries: 0,
+      approvals, approvalSource, admission, matrix, maxCalls: options.maxCalls, timeoutMs, repeats: 1, parserInvocationsPerText: 2, transportRetries: 0,
       budgetUnit: ['http', 'opencodex'].includes(candidate.transport) ? 'HTTP-request' : 'CLI-invocation',
       nativeUpstreamAttemptCountVerified: false, runtime: { node: process.version, platform: process.platform, arch: process.arch },
       inputs, prompts, codeHashes: currentCodeHashes() };
