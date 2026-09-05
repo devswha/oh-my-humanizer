@@ -13,6 +13,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY bin ./bin
 COPY src ./src
+COPY scripts ./scripts
 COPY core ./core
 COPY patterns ./patterns
 COPY document-types ./document-types

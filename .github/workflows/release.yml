@@ -185,10 +185,34 @@ jobs:
             type=raw,value=latest
             type=semver,pattern={{version}}
 
-      - name: Build and publish image
+      - name: Build image for runtime verification
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          load: true
+          push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Verify container startup and offline inspection
+        run: |
+          expected="patina $(node -p 'require("./package.json").version')"
+          actual="$(docker run --rm ghcr.io/devswha/patina:latest --version)"
+          test "$actual" = "$expected"
+          printf '%s' 'The meeting starts at noon.' > container-smoke-input.txt
+          docker run --rm -i ghcr.io/devswha/patina:latest inspect --lang en < container-smoke-input.txt > container-smoke-result.json
+          node --input-type=module <<'EOF'
+          import { readFileSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          const result = JSON.parse(readFileSync('container-smoke-result.json', 'utf8'));
+          const sourceHash = createHash('sha256').update(readFileSync('container-smoke-input.txt')).digest('hex');
+          if (result.schemaVersion !== 1 || result.deterministicOnly !== true || result.sourceHash !== sourceHash || !Number.isFinite(result.score)) process.exit(1);
+          EOF
+
+      - name: Publish verified image
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while IFS= read -r image_tag; do
+            if [ -n "$image_tag" ]; then docker push "$image_tag"; fi
+          done <<< "$IMAGE_TAGS"

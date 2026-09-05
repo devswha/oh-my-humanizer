@@ -15,7 +15,7 @@ The dry run (`verify` job) runs, in order: `npm run lint`, `npm run release:chec
 Publishing the npm packages is intended for `v*.*.*` tags:
 
 ```bash
-VERSION=v8.2.0
+VERSION=v8.2.1
 git tag "$VERSION"
 git push origin "$VERSION"
 ```
