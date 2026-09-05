@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { parseKimiTrace } from '../../scripts/research/kimi-study-transport.mjs';
+import { readFileSync } from 'node:fs';
+import { parseKimiTrace, kimiStudyCompletion, runKimiTraceCommand } from '../../scripts/research/kimi-study-transport.mjs';
 import { acceptedStudyIdentity, safeCallRecord } from '../../scripts/research/study-journal.mjs';
-import { validateTransport } from '../../scripts/research/model-evaluation-transport.mjs';
+import { safeStudyError, validateTransport } from '../../scripts/research/model-evaluation-transport.mjs';
 import { evaluateScorerFixture, loadScorerFixtures } from '../quality/live-scorer-benchmark.mjs';
-import { generateRewrite } from '../../scripts/research/model-rewrite-benchmark.mjs';
+import { generateRewrite, judgeCandidates } from '../../scripts/research/model-rewrite-benchmark.mjs';
+import { processIdentity } from '../../scripts/research/study-job.mjs';
 
 const candidate = { id: 'kimi-code-k3', provider: 'kimi', transport: 'kimi-cli', model: 'kimi-code/k3' };
 const request = { type: 'llm.request', model: 'k3', modelAlias: candidate.model, toolsHash: createHash('sha256').update('[]').digest('hex'), toolSelect: false };
@@ -43,4 +45,34 @@ test('Kimi trace rejects fallback models, tool access, ambiguous calls and missi
   assert.doesNotThrow(() => validateTransport(candidate));
   assert.throws(() => validateTransport({ ...candidate, provider: 'gemini' }), /Gemini/);
   assert.throws(() => validateTransport({ ...candidate, model: 'kimi-code/unadmitted' }), /admitted/);
+});
+
+test('Kimi cohort selects its two cross-family judge seats', () => {
+  const protocol = JSON.parse(readFileSync(new URL('../../docs/research/model-evaluation-kimi-code-20260905.json', import.meta.url), 'utf8'));
+  assert.deepEqual(judgeCandidates(candidate, protocol).map((row) => row.id), ['openai-5.5', 'gemini-3.7']);
+});
+
+test('Kimi metadata setup failures preserve known completed invocation accounting', async () => {
+  for (const options of [
+    { invoke: async () => ({ text: 'READY', sessionId: null }) },
+    { invoke: async () => ({ text: 'READY', sessionId: 'session-owned' }), prepareDirectory: () => { throw new Error('simulated setup failure'); } },
+  ]) await assert.rejects(kimiStudyCompletion(candidate, 'READY', options), (error) => error.studyResult?.attempts === 1);
+  await assert.rejects(kimiStudyCompletion(candidate, 'READY', { invoke: async () => { throw new Error('unknown invocation outcome'); } }), (error) => error.studyResult?.attempts === null);
+});
+
+test('trace commands terminate descendants holding stdout and settle within the deadline', { skip: process.platform === 'win32' }, async () => {
+  const program = `const {spawn}=require('node:child_process');const p=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:['ignore',process.stdout,'ignore']});console.log(p.pid);setTimeout(()=>process.exit(0),50);`;
+  const started = Date.now();
+  const text = await runKimiTraceCommand(process.execPath, ['-e', program], { deadline: Date.now() + 2000 });
+  const pid = Number(text.trim()); assert.ok(Number.isSafeInteger(pid) && pid > 0);
+  assert.ok(Date.now() - started < 2500);
+  for (let i = 0; i < 20 && processIdentity(pid); i++) await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(processIdentity(pid), null);
+});
+
+test('trace cancellation remains cancellation in the public journal', { skip: process.platform === 'win32' }, async () => {
+  const controller = new AbortController();
+  const pending = runKimiTraceCommand(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { deadline: Date.now() + 5000, signal: controller.signal });
+  setTimeout(() => controller.abort(), 40);
+  await assert.rejects(pending, (error) => safeStudyError(error) === 'study-cancelled');
 });

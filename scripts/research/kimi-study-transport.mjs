@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmodSync, mkdtempSync, rmSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setInterval, clearInterval } from 'node:timers';
 import { invokeDetailed } from '../../src/backends/kimi-cli.js';
 
 export const KIMI_PROFILE_MODELS = Object.freeze({
@@ -32,40 +33,66 @@ export function parseKimiTrace(text, candidate) {
       completion_tokens: usage.output, cached_read_tokens: usage.inputCacheRead, cache_write_tokens: usage.inputCacheCreation } };
 }
 
-function commandText(command, args, { deadline, signal }) {
-  if (signal?.aborted || Date.now() >= deadline) return Promise.reject(new Error('Kimi trace deadline or cancellation'));
+function cancelled() { const error = new Error('Kimi trace aborted'); error.name = 'AbortError'; return error; }
+
+export function runKimiTraceCommand(command, args, { deadline, signal }) {
+  if (signal?.aborted) return Promise.reject(cancelled());
+  if (Date.now() >= deadline) return Promise.reject(new Error('Kimi trace deadline exceeded'));
+  if (process.platform === 'win32') return Promise.reject(new Error('Kimi trace isolation requires POSIX'));
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'ignore'] });
-    let text = '', bytes = 0, failure = null;
-    const stop = () => { failure ||= new Error('Kimi trace deadline or cancellation'); child.kill('SIGKILL'); };
-    const timer = setTimeout(stop, Math.max(1, deadline - Date.now()));
-    signal?.addEventListener('abort', stop, { once: true });
-    const cleanup = () => { clearTimeout(timer); signal?.removeEventListener('abort', stop); };
+    const directory = mkdtempSync(join(tmpdir(), 'patina-kimi-command-'));
+    const status = join(directory, 'status');
+    // A live group leader prevents PID reuse while inherited pipes remain open.
+    const shell = 'patina_status=$1; patina_seconds=$2; shift 2; trap ":" TERM; (sleep "$patina_seconds"; /bin/kill -KILL -- -$$) & "$@" & patina_cli=$!; wait "$patina_cli"; patina_exit=$?; printf "%s" "$patina_exit" > "$patina_status"; while :; do sleep 1; done';
+    let child;
+    try { child = spawn('/bin/sh', ['-c', shell, 'patina-kimi-export', status, String(Math.ceil((deadline - Date.now() + 1000) / 1000)), command, ...args], { stdio: ['ignore', 'pipe', 'ignore'], detached: true }); }
+    catch (error) { rmSync(directory, { recursive: true, force: true }); reject(error); return; }
+    let text = '', bytes = 0, settled = false, exitCode = null, grace;
+    const kill = () => { if (child.pid) { try { process.kill(-child.pid, 'SIGKILL'); } catch { child.kill('SIGKILL'); } } };
+    const finish = (error) => {
+      if (settled) return;
+      settled = true; clearTimeout(timer); clearTimeout(grace); clearInterval(poll);
+      signal?.removeEventListener('abort', onAbort); kill(); child.stdout.destroy();
+      rmSync(directory, { recursive: true, force: true });
+      if (error) reject(error); else resolve(text);
+    };
+    const onAbort = () => finish(cancelled());
+    const timer = setTimeout(() => finish(new Error('Kimi trace deadline exceeded')), Math.max(1, deadline - Date.now()));
+    const poll = setInterval(() => {
+      if (exitCode !== null || !existsSync(status)) return;
+      const value = readFileSync(status, 'utf8'); if (!/^\d{1,3}$/.test(value)) return;
+      exitCode = Number(value); kill();
+      grace = setTimeout(() => finish(new Error('Kimi trace pipes did not close')), 200);
+    }, 10);
+    signal?.addEventListener('abort', onAbort, { once: true });
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', (chunk) => {
       bytes += Buffer.byteLength(chunk);
-      if (bytes > 8 * 1024 * 1024) { failure = new Error('Kimi trace exceeds size limit'); stop(); return; }
+      if (bytes > 8 * 1024 * 1024) { finish(new Error('Kimi trace exceeds size limit')); return; }
       text += chunk;
     });
-    child.on('error', () => { cleanup(); reject(new Error('Kimi trace export requires kimi and unzip executables')); });
-    child.on('close', (code) => { cleanup(); if (failure || code !== 0) reject(failure || new Error('Kimi trace export failed')); else resolve(text); });
+    child.on('error', () => finish(new Error('Kimi trace export requires kimi and unzip executables')));
+    child.on('close', () => finish(exitCode === 0 ? null : new Error('Kimi trace export failed')));
   });
 }
 
-export async function kimiStudyCompletion(candidate, prompt, { timeoutMs = 180000, signal } = {}) {
+export async function kimiStudyCompletion(candidate, prompt, { timeoutMs = 180000, signal, invoke = invokeDetailed,
+  prepareDirectory = () => mkdtempSync(join(tmpdir(), 'patina-kimi-study-trace-')) } = {}) {
   const deadline = Date.now() + timeoutMs;
-  const response = await invokeDetailed({ prompt, model: candidate.model, modelSource: 'flag', signal,
-    timeout: Math.max(1, timeoutMs - Math.min(20000, timeoutMs / 4)) });
-  if (!response.sessionId) throw new Error('Kimi trace session identity missing');
-  const directory = mkdtempSync(join(tmpdir(), 'patina-kimi-study-trace-'));
-  const archive = join(directory, 'session.private.zip');
+  let response, directory;
   try {
-    await commandText('kimi', ['export', response.sessionId, '--output', archive, '--yes', '--no-include-global-log'], { deadline, signal });
+    if (signal?.aborted) throw cancelled();
+    response = await invoke({ prompt, model: candidate.model, modelSource: 'flag', signal,
+      timeout: Math.max(1, timeoutMs - Math.min(20000, timeoutMs / 4)) });
+    if (!response.sessionId) throw new Error('Kimi trace session identity missing');
+    directory = prepareDirectory();
+    const archive = join(directory, 'session.private.zip');
+    await runKimiTraceCommand('kimi', ['export', response.sessionId, '--output', archive, '--yes', '--no-include-global-log'], { deadline, signal });
     chmodSync(archive, 0o600);
-    const trace = await commandText('unzip', ['-p', archive, 'agents/main/wire.jsonl'], { deadline, signal });
+    const trace = await runKimiTraceCommand('unzip', ['-p', archive, 'agents/main/wire.jsonl'], { deadline, signal });
     return { text: response.text, ...parseKimiTrace(trace, candidate), attempts: 1 };
   } catch (error) {
-    error.studyResult = { attempts: 1, usage: null, effectiveModels: [], identityEvidence: 'unverified' };
+    error.studyResult = { attempts: response ? 1 : null, usage: null, effectiveModels: [], identityEvidence: 'unverified' };
     throw error;
-  } finally { rmSync(directory, { recursive: true, force: true }); }
+  } finally { if (directory) rmSync(directory, { recursive: true, force: true }); }
 }

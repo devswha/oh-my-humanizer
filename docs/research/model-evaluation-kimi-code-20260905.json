@@ -45,6 +45,12 @@
       "transport": "opencodex",
       "baseURL": "http://127.0.0.1:10100/v1",
       "model": "google-antigravity/gemini-3.7-flash"
+    },
+    {
+      "id": "anthropic-sonnet",
+      "provider": "anthropic",
+      "transport": "claude-cli",
+      "model": "claude-sonnet-5"
     }
   ],
   "sources": [
