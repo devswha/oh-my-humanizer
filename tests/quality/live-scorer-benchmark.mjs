@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import { scoreText } from '../../src/scoring.js';
 import { assertStudyActive, installStudySignals, studyCompletion, safeStudyError, validateTransport } from '../../scripts/research/model-evaluation-transport.mjs';
-import { acquireStudyWriter, bindStudyProtocol, createCallJournal, readUniqueRows } from '../../scripts/research/study-journal.mjs';
+import { acceptedStudyIdentity, acquireStudyWriter, bindStudyProtocol, createCallJournal, readUniqueRows } from '../../scripts/research/study-journal.mjs';
 import { fixtureIdentity, studySemantics, validateRawScore } from '../../scripts/research/study-validation.mjs';
 import { createStudyInputs } from '../../scripts/research/study-inputs.mjs';
 import { summarizeRanking } from './ranking-metrics.mjs';
@@ -84,7 +84,7 @@ export async function evaluateScorerFixture(fixture, candidate, { repoRoot = ROO
     logger: quietLogger, callLLM,
   });
   const validScore = calls.at(-1)?.schema_valid === true && Number.isFinite(rawScore?.overall)
-    && calls.at(-1)?.modelIdentityVerified === true
+    && acceptedStudyIdentity(calls.at(-1), candidate)
     && Number.isFinite(result.overall) && result.overall >= 0 && result.overall <= 100 && !result.error;
   // Do not retain raw provider text, matched phrases, anchors, or private inputs.
   const allowedPacks = new Set(patterns.map((pack) => pack.frontmatter.pack.replace(/^[a-z]{2}-/, '')));

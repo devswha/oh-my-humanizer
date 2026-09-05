@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { parseKimiTrace } from '../../scripts/research/kimi-study-transport.mjs';
-import { safeCallRecord } from '../../scripts/research/study-journal.mjs';
+import { acceptedStudyIdentity, safeCallRecord } from '../../scripts/research/study-journal.mjs';
 import { validateTransport } from '../../scripts/research/model-evaluation-transport.mjs';
+import { evaluateScorerFixture, loadScorerFixtures } from '../quality/live-scorer-benchmark.mjs';
+import { generateRewrite } from '../../scripts/research/model-rewrite-benchmark.mjs';
 
 const candidate = { id: 'kimi-code-k3', provider: 'kimi', transport: 'kimi-cli', model: 'kimi-code/k3' };
 const request = { type: 'llm.request', model: 'k3', modelAlias: candidate.model, toolsHash: createHash('sha256').update('[]').digest('hex'), toolSelect: false };
@@ -16,9 +18,24 @@ test('Kimi study accounting distinguishes request trace from server identity', (
   assert.equal(result.usage.completion_tokens, 20);
   const safe = safeCallRecord({ state: 'completed', response: result }, candidate);
   assert.equal(safe.modelIdentityVerified, false);
+  assert.equal(safe.profileIdentityVerified, true);
+  assert.equal(acceptedStudyIdentity(safe, candidate), true);
+  assert.equal(acceptedStudyIdentity(safe, { transport: 'opencodex' }), false);
   assert.equal(safe.identityEvidence, 'cli-request-trace');
   assert.equal(safe.usageEvidence, 'cli-session-trace');
   assert.equal(safe.temperature_control, 'unsupported-by-cli');
+});
+
+test('valid Kimi profile observations reach scoring and rewriting without a server identity claim', async () => {
+  const metadata = parseKimiTrace(trace(request, usage), candidate);
+  const fixture = loadScorerFixtures().find((row) => row.language === 'en');
+  const completion = (text) => async () => ({ text, ...metadata, durationMs: 1, attempts: 1 });
+  const score = await evaluateScorerFixture(fixture, candidate, { complete: completion('{"categories":{"content":{"detected":0,"sum":0,"max":18,"score":0,"weighted":0}},"overall":0,"interpretation":"test"}') });
+  assert.equal(score.status, 'ok');
+  assert.equal(score.calls[0].modelIdentityVerified, false);
+  const generation = await generateRewrite(fixture, candidate, 'Rewrite this fixture.', { complete: completion('A clear rewrite.') });
+  assert.equal(generation.status, 'ok');
+  assert.equal(generation.calls[0].profileIdentityVerified, true);
 });
 
 test('Kimi trace rejects fallback models, tool access, ambiguous calls and missing usage', () => {

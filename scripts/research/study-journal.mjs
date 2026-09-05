@@ -75,6 +75,7 @@ export function safeCallRecord(record, candidate) {
   return { durationMs: Number.isFinite(response?.durationMs) ? response.durationMs : record.durationMs || 0,
     effectiveModels: identities.filter((model) => model === candidate.model),
     modelIdentityVerified: response?.identityEvidence !== 'cli-request-trace' && distinct.length === 1 && distinct[0] === candidate.model,
+    profileIdentityVerified: candidate.transport === 'kimi-cli' && response?.identityEvidence === 'cli-request-trace' && distinct.length === 1 && distinct[0] === candidate.model,
     identityEvidence: response?.identityEvidence === 'cli-request-trace' ? 'cli-request-trace' : 'response-metadata',
     usageEvidence: response?.usageEvidence === 'cli-session-trace' ? 'cli-session-trace' : 'response-metadata',
     mixedOrUnexpectedModel: distinct.length > 1 || distinct.some((model) => model !== candidate.model),
@@ -86,6 +87,12 @@ export function safeCallRecord(record, candidate) {
     temperature: record.temperature ?? null,
     temperature_control: ['claude-cli', 'kimi-cli'].includes(candidate.transport) ? 'unsupported-by-cli' : 'requested',
     recovered_from_journal: record.replayed === true };
+}
+
+export function acceptedStudyIdentity(call, candidate) {
+  return candidate.transport === 'kimi-cli'
+    ? call?.identityEvidence === 'cli-request-trace' && call?.profileIdentityVerified === true
+    : call?.modelIdentityVerified === true;
 }
 
 export function createCallJournal({ directory, logicalId, candidate, complete = studyCompletion, envFile, validate, record = () => {}, persist = atomicJson }) {
