@@ -11,6 +11,7 @@ Semver rationale: minor — adds verification of reviewed drafts, protected term
 - **Pro workflow.** Reuse public conversation settings and presets while keeping credentials out of saved preferences. License recovery returns to the pending verification action.
 - **Aside CLI.** Save local blog settings through a bounded loopback options session, then rewrite with required meaning checks and no-overwrite output. Saved glossary terms apply only when present in the source.
 - **Dependency security.** Refresh locked YAML, Markdown, link parsing, and brace expansion dependencies to patched versions.
+- **Claude study cleanup.** Wait for the process group to terminate before returning a result or failure, including helpers with independent streams.
 - **Availability.** This version is prepared for source and web deployment. npm publication is pending; use a source checkout for the new CLI commands until the registry version advances.
 
 ## 8.3.1 — 2026-09-05

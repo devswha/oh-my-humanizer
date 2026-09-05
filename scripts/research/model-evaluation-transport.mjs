@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process';
 import { setInterval, clearInterval } from 'node:timers';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { performance } from 'node:perf_hooks';
+import { setTimeout as delay } from 'node:timers/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { callLLM } from '../../src/api.js';
@@ -75,6 +77,36 @@ export function claudeStudyArgs(candidate) {
   return args;
 }
 
+function processGroupIsActive(pid) {
+  if (process.platform !== 'linux') {
+    try { process.kill(-pid, 0); return true; }
+    catch (error) { if (error.code === 'ESRCH') return false; throw error; }
+  }
+  for (const entry of readdirSync('/proc')) {
+    if (!/^\d+$/.test(entry)) continue;
+    let stat;
+    try { stat = readFileSync(`/proc/${entry}/stat`, 'utf8'); }
+    catch (error) {
+      if (error.code === 'ENOENT' || error.code === 'ESRCH') continue;
+      throw error;
+    }
+    const fields = stat.slice(stat.lastIndexOf(')') + 2).split(' ');
+    if (Number(fields[2]) === pid && !['Z', 'X'].includes(fields[0])) return true;
+  }
+  return false;
+}
+
+async function waitForProcessGroupExit(pid) {
+  if (!pid) return;
+  const deadline = performance.now() + 2000;
+  while (processGroupIsActive(pid)) {
+    if (performance.now() >= deadline) throw new Error('Claude study process-group outcome unobserved after termination');
+    // close only observes the leader and its pipes; independently redirected
+    // descendants can still be processing the already-sent SIGKILL.
+    await delay(10);
+  }
+}
+
 function claudeCompletion(candidate, prompt, timeoutMs) {
   return new Promise((resolve, reject) => {
     if (process.platform === 'win32') return reject(new Error('Native study isolation requires a POSIX shell'));
@@ -123,13 +155,21 @@ function claudeCompletion(candidate, prompt, timeoutMs) {
     // Drain stderr without retaining provider/account diagnostics in artifacts.
     child.stderr.resume();
     child.on('error', (error) => { failure = error; });
-    child.on('close', (code) => {
+    child.on('close', async (code) => {
       if (settled) return;
-      settled = true; clearTimeout(timer); clearTimeout(escalation); clearInterval(statusPoll); children.delete(child.pid);
-      rmSync(directory, { recursive: true, force: true });
+      settled = true; clearTimeout(timer); clearTimeout(escalation); clearInterval(statusPoll);
+      let cleanupFailure = null;
+      try {
+        // Do not signal a possibly reused group after the leader has closed.
+        // Keep the call pending until the owned group's termination is observed.
+        await waitForProcessGroupExit(child.pid);
+        rmSync(directory, { recursive: true, force: true });
+      } catch (error) { cleanupFailure = error; }
+      children.delete(child.pid);
       let payload = null;
       try { payload = decodeClaudeStudyStream(stdout); } catch { /* No complete, attributable provider result. */ }
       try {
+        if (cleanupFailure) throw cleanupFailure;
         if (failure) throw failure;
         if (cliExitCode !== 0) throw new Error(`Claude study process exited ${cliExitCode ?? code}`);
         const result = payload;
