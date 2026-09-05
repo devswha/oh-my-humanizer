@@ -12,14 +12,17 @@ import { DEFAULT_BEST_MODELS, resolveLocalCliModel } from '../../src/model-defau
 
 const FAKE_CLI = [
   '#!/usr/bin/env node',
-  "import { writeFileSync } from 'node:fs';",
+  "import { writeFileSync, readFileSync, readdirSync } from 'node:fs';",
   "import { basename } from 'node:path';",
   'const args = process.argv.slice(2);',
   "if (args.includes('--version')) process.exit(0);",
   "let stdin = '';",
   "process.stdin.on('data', (chunk) => { stdin += chunk; });",
   "process.stdin.on('end', () => {",
-  "  const payload = JSON.stringify({ command: basename(process.argv[1]), args, stdin });",
+  "  const agentIndex = args.indexOf('--agent-file');",
+  "  const skillIndex = args.indexOf('--skills-dir');",
+  "  const isolation = agentIndex >= 0 ? {profile:readFileSync(args[agentIndex+1],'utf8'),skills:readdirSync(args[skillIndex+1]),engine:process.env.KIMI_CODE_EXPERIMENTAL_FLAG} : null;",
+  "  const payload = JSON.stringify({ command: basename(process.argv[1]), args, stdin, isolation });",
   "  const outIndex = args.indexOf('--output-last-message');",
   '  if (outIndex !== -1) writeFileSync(args[outIndex + 1], payload);',
   '  else process.stdout.write(payload);',
@@ -27,13 +30,13 @@ const FAKE_CLI = [
   '',
 ].join('\n');
 
-async function withFakeCli(fn) {
+async function withFakeCli(fn, script = FAKE_CLI) {
   const binDir = mkdtempSync(join(tmpdir(), 'patina-model-cli-'));
   const oldPath = process.env.PATH;
   try {
     for (const command of ['claude', 'codex', 'gemini', 'kimi']) {
       const path = join(binDir, command);
-      writeFileSync(path, FAKE_CLI);
+      writeFileSync(path, script);
       chmodSync(path, 0o755);
     }
     process.env.PATH = `${binDir}:${oldPath || ''}`;
@@ -132,6 +135,10 @@ test('local CLI backends pass default best-model flags to child processes', asyn
     // Kimi Code >= 0.28 takes the one-shot prompt as an argv value, not stdin.
     assertArgValue(kimi.args, '--prompt', 'rewrite this');
     assert.strictEqual(kimi.stdin, '');
+    assert.match(kimi.isolation.profile, /tools: \[\]/);
+    assert.match(kimi.isolation.profile, /subagents: \[\]/);
+    assert.deepEqual(kimi.isolation.skills, []);
+    assert.equal(kimi.isolation.engine, '1');
   });
 });
 
@@ -158,4 +165,38 @@ test('local CLI backends pass explicit non-alias model ids', async () => {
     }));
     assertArgValue(kimi.args, '--model', 'kimi-k2.5');
   });
+});
+
+test('Kimi detailed output preserves validated private session identities', async () => {
+  const uuid = '04698749-1e50-4b73-a5a8-6d3f3c61f4c9';
+  const script = `#!/usr/bin/env node
+const args = process.argv.slice(2);
+const session = args[args.indexOf('--prompt') + 1];
+console.log(JSON.stringify({ role: 'assistant', content: 'Rewritten text.' }));
+console.log(JSON.stringify({ role: 'meta', type: 'session.resume_hint', session_id: session }));
+`;
+  await withFakeCli(async () => {
+    for (const session of [uuid, `session_${uuid}`]) {
+      const result = await kimiCli.invokeDetailed({ prompt: session });
+      assert.equal(result.text, 'Rewritten text.');
+      assert.equal(result.sessionId, session);
+      assert.equal(Object.hasOwn(result, 'rawOutput'), false);
+    }
+    const invalid = await kimiCli.invokeDetailed({ prompt: '../../untrusted-session' });
+    assert.equal(invalid.sessionId, null);
+    assert.equal(await kimiCli.invoke({ prompt: uuid }), 'Rewritten text.');
+  }, script);
+});
+
+test('Kimi clients lacking explicit tool restrictions never fall back to unrestricted mode', async () => {
+  const script = `#!/usr/bin/env node
+if (process.argv.includes('--agent-file')) {
+  process.stderr.write('unknown option: --agent-file');
+  process.exit(2);
+}
+console.log('Unrestricted legacy mode');
+`;
+  await withFakeCli(async () => {
+    await assert.rejects(kimiCli.invoke({ prompt: 'Source text' }), /0\.29\+.*tool restrictions.*Upgrade/);
+  }, script);
 });
