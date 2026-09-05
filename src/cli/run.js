@@ -37,6 +37,7 @@ import { evaluatePersonaGate } from '../personas/gates.js';
 import { personaMatchScore } from '../features/persona-match.js';
 import { pathToFileURL } from 'node:url';
 import { humanizeXliffDocument, resolveUniqueCap } from './xliff.js';
+import { inspectAuditSource } from '../inspection.js';
 
 /**
  * Run the default patina pipeline for an already-parsed CLI invocation:
@@ -345,7 +346,8 @@ export async function runDefault(parsed, logger) {
 
         let output;
         let scoreValidationOutput = null;
-        output = formatOutput(result, mode, parsed, { register: registerResolution, logger, auditBackstop, persona: personaReport });
+        const inspection = mode === 'audit' && parsed.format === 'json' ? inspectAuditSource(text, { language: lang, config, repoRoot }) : null;
+        output = formatOutput(result, mode, parsed, { register: registerResolution, logger, auditBackstop, persona: personaReport, inspection });
         if (mode === 'score') {
           scoreValidationOutput = formatOutput(result, mode, { ...parsed, format: 'markdown' }, { logger });
         }
