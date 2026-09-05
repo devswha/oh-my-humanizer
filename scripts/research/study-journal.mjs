@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { processIdentity, isSameProcess } from './study-job.mjs';
-import { assertStudyActive, safeStudyError, studyCompletion } from './model-evaluation-transport.mjs';
+import { abortStudy, assertStudyActive, safeStudyError, studyCompletion } from './model-evaluation-transport.mjs';
 
 const hash = (value) => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex');
 function atomicJson(path, value) {
@@ -25,6 +25,20 @@ export function acquireStudyWriter(output, name) {
     if (owner.nonce !== nonce) throw new Error('Study writer ownership changed');
     unlinkSync(path);
   };
+}
+
+// Called under the dataset writer lock, before any paid call or receipt group
+// is selected. Existing unbound directories require a separate audited migration.
+export function bindStudyProtocol(output, protocolHash) {
+  if (!/^[a-f0-9]{64}$/.test(protocolHash)) throw new Error('Invalid study protocol hash');
+  const path = resolve(output, 'study-protocol.json');
+  if (existsSync(path)) {
+    const binding = JSON.parse(readFileSync(path, 'utf8'));
+    if (binding.schemaVersion !== 1 || binding.protocolHash !== protocolHash) throw new Error('Study directory belongs to a different protocol');
+    return;
+  }
+  if (readdirSync(output).some((name) => name !== '.writer.lock')) throw new Error('Existing study directory has no protocol binding; use a new directory or audited migration');
+  writeFileSync(path, `${JSON.stringify({ schemaVersion: 1, protocolHash })}\n`, { flag: 'wx', mode: 0o600 });
 }
 
 export function readUniqueRows(path, key) {
@@ -72,7 +86,7 @@ export function safeCallRecord(record, candidate) {
     recovered_from_journal: record.replayed === true };
 }
 
-export function createCallJournal({ directory, logicalId, candidate, complete = studyCompletion, envFile, validate, record = () => {} }) {
+export function createCallJournal({ directory, logicalId, candidate, complete = studyCompletion, envFile, validate, record = () => {}, persist = atomicJson }) {
   let index = 0;
   let replayedBudgetMs = 0;
   const group = directory ? resolve(directory, 'calls', hash(logicalId)) : null;
@@ -102,31 +116,43 @@ export function createCallJournal({ directory, logicalId, candidate, complete = 
       if (remaining <= 0) {
         receipt = { schemaVersion: 1, state: 'error', requestHash, promptHash: identity.promptHash, temperature: identity.temperature,
           error: 'request-timeout', durationMs: 0, transportAttempts: [], startedAt: null, endedAt: new Date().toISOString(), notStarted: true };
-        if (path) atomicJson(path, receipt);
+        if (path) persist(path, receipt);
         record(safeCallRecord(receipt, candidate), null);
         throw new Error('Study deadline reached before transport');
       }
       receipt = { schemaVersion: 1, state: 'started', requestHash, promptHash: identity.promptHash, temperature: identity.temperature,
         owner: processIdentity(process.pid) || { pid: process.pid }, startedAt: new Date().toISOString(), transportAttempts: [] };
-      if (path) atomicJson(path, receipt);
+      if (path) persist(path, receipt);
+      let persistenceFailure = null;
       try {
         const response = await complete(candidate, args.prompt, { envFile, timeoutMs: remaining,
           temperature: identity.temperature, responseFormat: args.responseFormat, extraBody: args.extraBody,
-          onAttempt: (attempt) => { receipt.transportAttempts.push(attempt); if (path) atomicJson(path, receipt); args.onAttempt?.(attempt); } });
+          onAttempt: (attempt) => {
+            receipt.transportAttempts.push(attempt);
+            try { if (path) persist(path, receipt); }
+            catch {
+              persistenceFailure = new Error('Study journal persistence failed');
+              // The production API intentionally isolates observer exceptions.
+              // Abort its signal so no transport retry can precede persistence.
+              abortStudy(); throw persistenceFailure;
+            }
+            args.onAttempt?.(attempt);
+          } });
+        if (persistenceFailure) throw persistenceFailure;
         receipt = { ...receipt, state: 'completed', response, endedAt: new Date().toISOString() };
       } catch (error) {
-        receipt = { ...receipt, state: 'error', error: safeStudyError(error), errorMetadata: error.studyResult || null,
+        receipt = { ...receipt, state: 'error', error: safeStudyError(persistenceFailure || error), errorMetadata: error.studyResult || null,
           durationMs: Date.now() - started, endedAt: new Date().toISOString() };
       }
       // Persist immediately after this call, before any parsing or later call.
-      if (path) atomicJson(path, receipt);
+      if (path) persist(path, receipt);
     }
     if (receipt.replayed) for (const attempt of receipt.transportAttempts || []) args.onAttempt?.(attempt);
     let parsed = null;
     if (receipt.state === 'completed') {
       try { parsed = validate ? validate(receipt.response.text, args) : null; receipt.schemaValid = true; }
       catch { receipt.schemaValid = false; }
-      if (path) atomicJson(path, receipt);
+      if (path) persist(path, receipt);
     }
     record(safeCallRecord(receipt, candidate), parsed);
     if (receipt.state !== 'completed') throw new Error(receipt.error);

@@ -7,7 +7,7 @@ import { distribution, loadScorerFixtures, textHash } from '../../tests/quality/
 import { evaluateNumberSafety } from '../../src/features/meaning-proxy.js';
 import { scoreFidelity, scoreMPS } from '../../src/scoring.js';
 import { assertStudyActive, installStudySignals, studyCompletion, safeStudyError, validateTransport } from './model-evaluation-transport.mjs';
-import { acquireStudyWriter, createCallJournal, readUniqueRows } from './study-journal.mjs';
+import { acquireStudyWriter, bindStudyProtocol, createCallJournal, readUniqueRows } from './study-journal.mjs';
 import { fixtureIdentity, studySemantics, validateRawFidelity, validateRawMps } from './study-validation.mjs';
 import { createStudyInputs } from './study-inputs.mjs';
 
@@ -206,6 +206,7 @@ export async function main(argv = process.argv.slice(2)) {
   const writerName = options.phase === 'judge' ? `judge-${options.judge}` : options.phase;
   const releaseWriter = acquireStudyWriter(output, writerName);
   try {
+  bindStudyProtocol(output, protocolHash);
   // Every phase shares the dataset lock, including report snapshots.
   const generatedPath = resolve(output, 'rewrite-rows.jsonl');
   const privatePath = resolve(output, 'rewrites.private.jsonl');

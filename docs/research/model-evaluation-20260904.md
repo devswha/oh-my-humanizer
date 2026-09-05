@@ -83,3 +83,11 @@ Report each provider's rewrite choice, scorer choice, fast alternative, exact
 model and transport, measured quality/latency/usage, evidence limits, and any
 unresolved comparison. Groq, Together and MiniMax need account access before an
 experimental recommendation can be made for them.
+
+Storage amendment (2026-09-05): bind a new output directory to its protocol before
+the first request. A failed attempt-receipt write aborts transport retries and
+the worker. Existing unbound directories require an explicit receipt audit;
+they are never silently rebound. Already-running frozen collectors retain their
+source snapshot. Audit their terminal receipts before using their results, and
+record the source/protocol boundary for later cohorts. These storage guards do
+not change scoring, rewrite prompts, judge rubrics or finalist selection rules.

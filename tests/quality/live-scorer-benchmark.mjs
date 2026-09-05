@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import { scoreText } from '../../src/scoring.js';
 import { assertStudyActive, installStudySignals, studyCompletion, safeStudyError, validateTransport } from '../../scripts/research/model-evaluation-transport.mjs';
-import { acquireStudyWriter, createCallJournal, readUniqueRows } from '../../scripts/research/study-journal.mjs';
+import { acquireStudyWriter, bindStudyProtocol, createCallJournal, readUniqueRows } from '../../scripts/research/study-journal.mjs';
 import { fixtureIdentity, studySemantics, validateRawScore } from '../../scripts/research/study-validation.mjs';
 import { createStudyInputs } from '../../scripts/research/study-inputs.mjs';
 import { summarizeRanking } from './ranking-metrics.mjs';
@@ -178,6 +178,7 @@ export async function main(argv = process.argv.slice(2)) {
   const output = resolve(options.output); mkdirSync(output, { recursive: true });
   const releaseWriter = acquireStudyWriter(output, 'scorer');
   try {
+  bindStudyProtocol(output, protocolHash);
   const path = resolve(output, 'scorer-rows.jsonl');
   const key = (row) => `${row.candidate_id}/${row.fixture_id}/${row.repeat}`;
   const rows = readUniqueRows(path, key);
