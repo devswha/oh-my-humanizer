@@ -48,7 +48,7 @@ export function validateRawFidelity(text) {
 export function studySemantics(repoRoot) {
   const fixed = ['.patina.default.yaml', 'package.json', 'src/scoring.js', 'src/json-response.js', 'src/prompt-builder.js',
     'src/features/meaning-proxy.js', 'tests/quality/live-quality.mjs', 'tests/quality/live-scorer-benchmark.mjs',
-    'scripts/research/model-rewrite-benchmark.mjs', 'scripts/research/model-evaluation-transport.mjs',
+    'scripts/research/model-rewrite-benchmark.mjs', 'scripts/research/model-evaluation-transport.mjs', 'scripts/research/kimi-study-transport.mjs',
     'scripts/research/study-validation.mjs', 'scripts/research/study-journal.mjs', 'scripts/research/study-job.mjs', 'scripts/research/study-inputs.mjs'];
   const paths = [...fixed];
   for (const directory of ['src', 'patterns', 'core', 'document-types', 'lexicon', 'personas']) {

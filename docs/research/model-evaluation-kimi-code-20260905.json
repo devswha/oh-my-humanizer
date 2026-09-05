@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "study": "patina-kimi-code-evaluation-20260905",
+  "recordedAt": "2026-09-05",
+  "scope": "Four configured Kimi Code subscription profiles. Separate source snapshot/cohort; not Moonshot API billing evidence.",
+  "geminiPolicy": "Loopback OpenCodex google-antigravity only; no Gemini API key or direct fallback",
+  "candidates": [
+    {
+      "id": "kimi-code-k3",
+      "provider": "kimi",
+      "transport": "kimi-cli",
+      "model": "kimi-code/k3"
+    },
+    {
+      "id": "kimi-code-k3-256k",
+      "provider": "kimi",
+      "transport": "kimi-cli",
+      "model": "kimi-code/k3-256k"
+    },
+    {
+      "id": "kimi-code-standard",
+      "provider": "kimi",
+      "transport": "kimi-cli",
+      "model": "kimi-code/kimi-for-coding"
+    },
+    {
+      "id": "kimi-code-highspeed",
+      "provider": "kimi",
+      "transport": "kimi-cli",
+      "model": "kimi-code/kimi-for-coding-highspeed"
+    },
+    {
+      "id": "openai-5.5",
+      "provider": "openai",
+      "transport": "opencodex",
+      "baseURL": "http://127.0.0.1:10100/v1",
+      "model": "gpt-5.5",
+      "extraBody": {
+        "reasoning_effort": "low"
+      }
+    },
+    {
+      "id": "gemini-3.7",
+      "provider": "gemini",
+      "transport": "opencodex",
+      "baseURL": "http://127.0.0.1:10100/v1",
+      "model": "google-antigravity/gemini-3.7-flash"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://moonshotai.github.io/kimi-code/en/customization/agents",
+      "retrieved": "2026-09-05",
+      "evidence": "Explicit zero-tool/subagent agent profile; installed Kimi Code0.29.1. Model profiles observed in local configuration; admission checked before collection."
+    }
+  ],
+  "accounting": "Usage from one CLI session trace, selected model from request metadata; server model identity not independently disclosed. Latency includes export/trace verification. No temperature control."
+}
