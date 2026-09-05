@@ -2,7 +2,9 @@
 // patina — Lovable-composition controller: landing (hero prompt + sections) that
 // transitions into a chat view. Reuses the isomorphic streaming client + contract;
 // renders via safe DOM APIs.
-import { createRewriteThread, streamRewrite, classifyRewriteError, REWRITE_ERROR_KINDS } from './rewrite-client.js';
+import { createRewriteThread, streamRewrite, classifyRewriteError, rewriteRecovery, REWRITE_ERROR_KINDS } from './rewrite-client.js';
+import { normalizePreferences, readPresets, writePresets, saveNamedPreset } from './preferences.js';
+import { EXPERIENCE_COPY, experienceCopy, licenseStatusAfter, configuredPortalHref } from './experience-copy.js';
 // @ts-expect-error Browser-root generated module is resolved at deployment, not by Node/tsc.
 import launchConfig from '/launch-config.js';
 import {
@@ -55,7 +57,7 @@ function failureOutcome(frame, kind, hasScores) {
   const code = typeof frame?.code === 'string' ? frame.code : '';
   if (kind === K.NUMBER_SAFETY) return 'number-safety';
   if (kind === K.FLOOR_FAILED) return 'floor';
-  if (kind === K.QUOTA_DAILY || kind === K.QUOTA_HOURLY) return 'quota';
+  if (kind.startsWith('quota_') && kind !== K.QUOTA_CONCURRENT && kind !== K.QUOTA_STORAGE && kind !== K.QUOTA_SECRET) return 'quota';
   if (kind === K.QUOTA_CONCURRENT) return 'concurrency';
   if (kind === K.TEXT_TOO_LONG) return 'input';
   if (status === 401 || status === 403) return 'auth';
@@ -135,8 +137,6 @@ const I18N = {
     reportFp: 'Flagged your own writing? Report a false positive →',
     failNote: 'Rewrite failed. Try again, or check the mode/key.',
     numberSafetyNote: 'The rewrite didn’t keep the numbers/times exactly as written, so patina discarded it for safety. Try again.',
-    quotaDaily: 'You’ve used today’s free quota. Try again tomorrow, or switch to BYOK mode with your own API key for unlimited use.',
-    quotaHourly: 'Free quota is full for now. Try again shortly, or use BYOK mode with your own API key.',
     proUpsell: 'Get API access — $9.99/mo',
     proBuy: 'Get API access — $9.99/mo',
     proSoon: 'Pro — coming soon',
@@ -180,8 +180,6 @@ const I18N = {
     reportFp: '직접 쓴 글인데 잡혔나요? 오탐 신고 →',
     failNote: '리라이트 실패. 다시 시도하거나 모드·키를 확인해 주세요.',
     numberSafetyNote: '리라이트가 숫자·시간 표기를 원문 그대로 보존하지 못해 안전을 위해 결과를 폐기했어요. 다시 시도해 주세요.',
-    quotaDaily: '오늘 무료 사용량을 다 쓰셨어요. 내일 다시 시도하거나, 본인 API 키로 BYOK 모드를 쓰면 제한 없이 이용할 수 있어요.',
-    quotaHourly: '무료 사용량이 잠시 가득 찼어요. 잠시 후 다시 시도하거나, 본인 API 키로 BYOK 모드를 쓰면 바로 이용할 수 있어요.',
     proUpsell: 'API 액세스 받기 — $9.99/월',
     proBuy: 'API 액세스 받기 — $9.99/월',
     proSoon: 'Pro — 곧 공개',
@@ -225,8 +223,6 @@ const I18N = {
     reportFp: '人工撰写却被标记？反馈误报 →',
     failNote: '改写失败。请重试，或检查模式 / 密钥。',
     numberSafetyNote: '改写未能原样保留数字 / 时间，为安全起见已丢弃结果。请重试。',
-    quotaDaily: '今天的免费额度已用完。请明天再试，或切换到 BYOK 模式使用自己的 API 密钥，即可无限制使用。',
-    quotaHourly: '免费额度暂时已满。请稍后再试，或使用 BYOK 模式和自己的 API 密钥。',
     proUpsell: '获取 API 访问权限 — 每月 $9.99',
     proBuy: '获取 API 访问权限 — 每月 $9.99',
     proSoon: 'Pro — 即将推出',
@@ -270,8 +266,6 @@ const I18N = {
     reportFp: '自分で書いた文章なのに検出？誤検出を報告 →',
     failNote: '書き換えに失敗しました。再試行するか、モード・キーを確認してください。',
     numberSafetyNote: '書き換えが数値・時刻を原文どおりに保持できなかったため、安全のため結果を破棄しました。もう一度お試しください。',
-    quotaDaily: '本日の無料利用枠を使い切りました。明日また試すか、ご自身のAPIキーでBYOKモードに切り替えると無制限で使えます。',
-    quotaHourly: '無料利用枠が一時的にいっぱいです。しばらくして再試行するか、ご自身のAPIキーでBYOKモードをお使いください。',
     proUpsell: 'APIアクセスを取得 — 月額$9.99',
     proBuy: 'APIアクセスを取得 — 月額$9.99',
     proSoon: 'Pro — 近日公開',
@@ -286,12 +280,7 @@ const I18N = {
     stopLabel: '停止',
   },
 };
-const PRO_I18N = {
-  en: { license: 'License key', placeholder: 'License key (kept in memory)', signIn: 'Sign in', signOut: 'Sign out', missing: 'Enter your license key to use Pro mode.' },
-  ko: { license: '라이선스 키', placeholder: '라이선스 키 (메모리에만 보관)', signIn: '로그인', signOut: '로그아웃', missing: 'Pro 모드를 사용하려면 라이선스 키를 입력해 주세요.' },
-  zh: { license: '许可证密钥', placeholder: '许可证密钥（仅保存在内存中）', signIn: '登录', signOut: '退出登录', missing: '使用 Pro 模式请输入许可证密钥。' },
-  ja: { license: 'ライセンスキー', placeholder: 'ライセンスキー（メモリ内のみ保持）', signIn: 'サインイン', signOut: 'サインアウト', missing: 'Proモードを使うにはライセンスキーを入力してください。' },
-};
+const PRO_I18N = EXPERIENCE_COPY;
 
 // Suggestion pills (label + text the pill loads into the prompt).
 const SAMPLES = {
@@ -346,6 +335,7 @@ const state = {
   /** @type {string|null} */ activeId: null,
   busy: false,
   license: '',
+  licenseStatus: 'empty',
   sessionEpoch: 0,
 };
 
@@ -450,6 +440,9 @@ function quotaUpsell() {
 }
 
 function wirePricingCtas() {
+  $('#pro-existing')?.addEventListener('click', openLicenseControls);
+  const portal = configuredPortalHref(launchConfig);
+  if (portal) { $('#pro-portal').setAttribute('href', portal); $('#pro-portal').hidden = false; }
   const free = $('#price-free');
   if (free) free.addEventListener('click', () => {
     track('Tier Selected', { tier: 'free', surface: 'pricing' });
@@ -487,17 +480,16 @@ function syncTier() {
   els.licenseKey.disabled = signedIn;
   els.licenseSignIn.hidden = signedIn;
   els.licenseSignOut.hidden = !signedIn;
+  $('#license-status').textContent = experienceCopy(els.lang.value).licenseStates[state.licenseStatus];
 }
 
 // Populate opt-in voices. The empty option preserves the source voice.
 function populateDocumentTypes() {
   const prev = els.documentType.value;
   els.documentType.innerHTML = '';
-  for (const id of WEB_DOCUMENT_TYPES) {
+  for (const [index, id] of WEB_DOCUMENT_TYPES.entries()) {
     if (id === 'namuwiki' && els.lang.value !== 'ko') continue;
-    const label = id === 'default'
-      ? 'Default'
-      : id.split('-').map((word) => word[0].toUpperCase() + word.slice(1)).join(' ');
+    const label = experienceCopy(els.lang.value).documents[index];
     els.documentType.appendChild(new Option(label, id));
   }
   els.documentType.value = Array.from(els.documentType.options).some((option) => option.value === prev)
@@ -508,9 +500,11 @@ function populateDocumentTypes() {
 function populatePersonas() {
   const prev = els.persona.value;
   els.persona.innerHTML = '';
-  els.persona.appendChild(new Option('Preserve source', ''));
+  const copy = experienceCopy(els.lang.value);
+  els.persona.appendChild(new Option(copy.preserve, ''));
   for (const p of (WEB_PERSONAS[els.lang.value] || [])) {
-    els.persona.appendChild(new Option(p.label, p.id));
+    const voiceIndex = p.id.startsWith('natural-') ? 0 : ['blog-essay', 'technical-explainer', 'soft-professional', 'pragmatic-founder'].indexOf(p.id) + 1;
+    els.persona.appendChild(new Option(copy.voices[voiceIndex] || p.label, p.id));
   }
   // Personas are per-language; keep a prior pick only if the new language offers it.
   els.persona.value = Array.from(els.persona.options).some((o) => o.value === prev) ? prev : '';
@@ -657,6 +651,8 @@ function renderExamples() {
   }
   replay.addEventListener('click', reveal);
   tryIt.addEventListener('click', () => {
+    stopActive();
+    newConvo();
     els.lang.value = active.lang; onLangChange();
     loadIntoPrompt(active.before);
     globalThis.scrollTo({ top: 0, behavior: 'smooth' });
@@ -693,18 +689,27 @@ function showChat() { els.app.setAttribute('data-view', 'chat'); }
 
 // ---------- conversation lifecycle ----------
 function newConvo() {
-  const convo = { id: uid(), title: 'New chat', messages: [], thread: createRewriteThread({ lang: els.lang.value }) };
+  const settings = readControls();
+  const languageExplicit = activeConvo()?.thread.languageExplicit || false;
+  const convo = { id: uid(), title: 'New chat', messages: [], thread: createRewriteThread({ ...settings, languageExplicit }) };
   state.convos.unshift(convo);
   state.activeId = convo.id;
+  restoreControls(convo);
   renderSidebar();
   renderThread();
+}
+function selectConvo(convo) {
+  if (state.busy) stopActive();
+  state.activeId = convo.id;
+  restoreControls(convo);
+  renderSidebar(); renderThread(); showChat(); closeMobileSidebar();
 }
 function renderSidebar() {
   els.history.innerHTML = '';
   for (const c of state.convos) {
     const item = el('button', 'histitem' + (c.id === state.activeId ? ' active' : ''), c.title);
     item.type = 'button';
-    item.addEventListener('click', () => { state.activeId = c.id; renderSidebar(); renderThread(); showChat(); closeMobileSidebar(); });
+    item.addEventListener('click', () => selectConvo(c));
     els.history.appendChild(item);
   }
 }
@@ -926,19 +931,18 @@ function detectLang(text) {
   return null;
 }
 
-// Always start the public playground in English. An explicit language pick lives
-// in the select for the rest of the session, while pasted text still re-routes
-// via detectLang on the first turn.
+// Start in English. Detection can adjust an unanchored conversation's language
+// until the user explicitly selects a language or applies a preset.
 const DEFAULT_LANG = 'en';
 
 // ---------- unified submit ----------
 /** In-flight rewrite attempt: { controller, cancelled }. One at a time (busy gate). */
 let active = null;
 
-function i18n() { return I18N[els.lang.value] || I18N.en; }
+function i18n() { return { ...(I18N[els.lang.value] || I18N.en), ...experienceCopy(els.lang.value) }; }
 function tfmt(template, vars) { return String(template).replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? '')); }
 function tierLabel(tier) {
-  if (tier === WEB_TIERS.BYOK) return 'API';
+  if (tier === WEB_TIERS.BYOK) return 'BYOK';
   if (tier === WEB_TIERS.PRO) return 'Pro';
   return 'Free';
 }
@@ -956,6 +960,7 @@ function signOutLicense() {
   if (active) { active.trackCancelled?.(); active.cancelled = true; active.controller.abort(); active = null; }
   state.busy = false;
   state.license = '';
+  state.licenseStatus = licenseStatusAfter(state.licenseStatus, 'clear');
   els.licenseKey.value = '';
   state.convos = [];
   newConvo();
@@ -972,10 +977,19 @@ function signInLicense() {
     return;
   }
   state.license = license;
+  state.licenseStatus = licenseStatusAfter(state.licenseStatus, 'apply');
   els.licenseKey.value = '';
   if (error) { error.hidden = true; error.textContent = ''; }
   syncTier();
   updateHeroSend(); updateChatSend();
+}
+
+function openLicenseControls() {
+  els.tier.value = WEB_TIERS.PRO;
+  syncTier(); updateHeroSend(); updateChatSend();
+  globalThis.scrollTo({ top: 0, behavior: 'smooth' });
+  if (state.license) els.licenseSignOut.focus();
+  else els.licenseKey.focus();
 }
 
 function inlineErrorNode(source) { return source === 'chat' ? $('#composer-error') : $('#hero-error'); }
@@ -1020,7 +1034,7 @@ async function submit(text, source = 'hero') {
   clearInlineErrors();
   const currentConvo = activeConvo();
   const initialTurn = currentConvo?.thread.original == null;
-  const preflightLang = initialTurn ? (detectLang(clean) || els.lang.value) : els.lang.value;
+  const preflightLang = initialTurn && !currentConvo?.thread.languageExplicit ? (detectLang(clean) || els.lang.value) : els.lang.value;
   const preflightMode = initialTurn ? 'first' : 'refine';
   if (!preflight(clean, source)) {
     const data = rewriteData(source, clean, preflightMode, preflightLang);
@@ -1033,17 +1047,8 @@ async function submit(text, source = 'hero') {
   if (!convo) { newConvo(); convo = activeConvo(); }
   if (!convo) return;
 
-  // Match the language to the pasted text's script on the first turn so non-English
-  // input is not silently rewritten under the English default. Refine turns keep
-  // the conversation's language.
-  const detected = convo.thread.original == null ? detectLang(clean) : null;
-  if (detected && detected !== els.lang.value) {
-    els.lang.value = detected;
-    applyI18n(detected);
-    renderSuggest();
-    populatePersonas();
-    convo.thread = createRewriteThread({ lang: detected });
-  }
+  convo.thread.detectLanguage(detectLang(clean));
+  restoreControls(convo);
 
   showChat();
 
@@ -1065,9 +1070,6 @@ async function submit(text, source = 'hero') {
     text: clean, tier,
     provider: els.provider.value, model: els.model.value,
     apiKey: tier === WEB_TIERS.BYOK ? els.apiKey.value : undefined,
-    persona: els.persona.value || undefined,
-    documentType: els.documentType.value,
-    register: els.register.value || undefined,
   });
   const telemetry = rewriteData(source, clean, String(reqBody.mode));
   await runAttempt({
@@ -1077,9 +1079,8 @@ async function submit(text, source = 'hero') {
   });
 }
 
-// One streaming attempt against /api/rewrite. Retry re-invokes this with the
-// same request context; the thread only commits on a done frame, so a failed
-// or cancelled attempt never poisons the conversation state.
+// One streaming attempt against /api/rewrite. The thread only commits on a
+// done frame, so a failed or cancelled attempt never poisons conversation state.
 async function runAttempt(attempt) {
   const { convo, clean, reqBody, body, textEl, statusEl, authorization, epoch, telemetry } = attempt;
   const startedAt = Date.now();
@@ -1101,6 +1102,11 @@ async function runAttempt(attempt) {
     });
   };
   state.busy = true;
+  if (reqBody.tier === WEB_TIERS.PRO) {
+    state.licenseStatus = licenseStatusAfter(state.licenseStatus, 'request');
+    syncTier();
+  }
+  syncSettingsBusy();
   updateHeroSend(); updateChatSend();
   els.thread.setAttribute('aria-busy', 'true');
 
@@ -1145,7 +1151,14 @@ async function runAttempt(attempt) {
       body: reqBody,
       authorization,
       signal: controller.signal,
-      onStart: () => { if (current()) armIdle(); },
+      onStart: () => {
+        if (!current()) return;
+        armIdle();
+        if (reqBody.tier === WEB_TIERS.PRO) {
+          state.licenseStatus = licenseStatusAfter(state.licenseStatus, 'accepted');
+          syncTier();
+        }
+      },
       onDelta: (_t, acc) => { if (current()) { armIdle(); start(); textEl.textContent = cleanStream(acc); scrollDown(); } },
       onDone: (frame) => {
         if (!current()) return;
@@ -1204,8 +1217,15 @@ async function runAttempt(attempt) {
       } else {
         textEl.style.display = 'none';
         body.appendChild(errorNote(failureMessage(kind, ff, t)));
-        if (els.tier.value === WEB_TIERS.FREE && (kind === K.QUOTA_DAILY || kind === K.QUOTA_HOURLY)) body.appendChild(quotaUpsell());
-        addRetry(body, attempt);
+        if (reqBody.tier === WEB_TIERS.FREE && (kind === K.QUOTA_DAILY || kind === K.QUOTA_HOURLY)) body.appendChild(quotaUpsell());
+        const recovery = rewriteRecovery(kind);
+        if (recovery === 'credentials' && reqBody.tier === WEB_TIERS.PRO) {
+          state.license = '';
+          state.licenseStatus = licenseStatusAfter(state.licenseStatus, 'denied');
+          syncTier();
+        }
+        if (recovery === 'retry') addRetry(body, attempt);
+        else addRecovery(body, attempt, recovery);
       }
     }
   } catch (e) {
@@ -1224,6 +1244,11 @@ async function runAttempt(attempt) {
     if (active === run) {
       active = null;
       state.busy = false;
+      if (reqBody.tier === WEB_TIERS.PRO) {
+        state.licenseStatus = licenseStatusAfter(state.licenseStatus, 'end');
+        syncTier();
+      }
+      syncSettingsBusy();
       els.thread.setAttribute('aria-busy', 'false');
       updateHeroSend(); updateChatSend();
       els.input.focus();
@@ -1236,6 +1261,12 @@ async function runAttempt(attempt) {
 function failureMessage(kind, ff, t) {
   const K = REWRITE_ERROR_KINDS;
   switch (kind) {
+    case K.AUTH_REQUIRED: return t.authRequired;
+    case K.AUTH_DENIED: return t.authDenied;
+    case K.QUOTA_MONTHLY_REQUESTS: return t.monthlyRequests;
+    case K.QUOTA_MONTHLY_CHARS: return t.monthlyChars;
+    case K.QUOTA_MONTHLY_PROCESSING: return t.monthlyProcessing;
+    case K.QUOTA_UNKNOWN: return t.quotaUnknown;
     case K.QUOTA_DAILY: return t.quotaDaily;
     case K.QUOTA_HOURLY: return t.quotaHourly;
     case K.QUOTA_CONCURRENT: return t.quotaConcurrent;
@@ -1252,18 +1283,43 @@ function failureMessage(kind, ff, t) {
   }
 }
 
-// Retry a failed (non-floor) attempt: one resubmission per user activation.
-// Prior error UI is cleared; the thread still only commits on a done frame.
+// Retry a transient failure with current settings: one submission per activation.
 function addRetry(body, attempt) {
   const btn = el('button', 'retrybtn', i18n().retry);
   btn.type = 'button';
   btn.addEventListener('click', () => {
-    if (state.busy || attempt.epoch !== state.sessionEpoch) return;
-    body.querySelectorAll('.error-note, .retrybtn, .pro-upsell').forEach((n) => n.remove());
-    runAttempt(attempt);
+    if (state.busy || attempt.epoch !== state.sessionEpoch || activeConvo() !== attempt.convo) return;
+    // Resubmit through preflight using this conversation's current settings and credentials.
+    // An old retry button must never replay a cleared key or superseded preferences.
+    btn.disabled = true;
+    submit(attempt.clean, 'chat').finally(() => { btn.disabled = false; });
   });
   body.appendChild(btn);
   scrollDown();
+}
+
+function addRecovery(body, attempt, recovery) {
+  const copy = experienceCopy(els.lang.value);
+  const btn = el('button', 'retrybtn', recovery === 'credentials' ? copy.recover : copy.revise);
+  btn.type = 'button';
+  btn.addEventListener('click', () => {
+    if (state.busy || attempt.epoch !== state.sessionEpoch) return;
+    selectConvo(attempt.convo);
+    if (!els.input.value.trim()) els.input.value = attempt.clean;
+    autoGrow(els.input);
+    if (recovery === 'credentials') {
+      els.tier.value = String(attempt.reqBody.tier);
+      syncTier();
+      if (els.tier.value === WEB_TIERS.PRO) openLicenseControls();
+      else els.apiKey.focus();
+    } else els.input.focus();
+    updateChatSend();
+  });
+  body.appendChild(btn);
+  const docs = el('a', 'ctl__link', copy.docs);
+  docs.href = $('#pro-docs').getAttribute('href');
+  docs.target = '_blank'; docs.rel = 'noopener noreferrer';
+  body.appendChild(docs);
 }
 
 // ---------- composer UX ----------
@@ -1275,7 +1331,7 @@ function tierBlocked() {
 // While streaming, the send buttons become enabled Stop controls (is-stop).
 function syncSendButton(btn, input) {
   btn.classList.toggle('is-stop', state.busy);
-  btn.setAttribute('aria-label', state.busy ? i18n().stopLabel : 'Send');
+  btn.setAttribute('aria-label', state.busy ? i18n().stopLabel : experienceCopy(els.lang.value).send);
   btn.disabled = state.busy ? false : (input.value.trim().length === 0 || tierBlocked());
 }
 function updateHeroSend() { syncSendButton(els.heroSend, els.heroInput); }
@@ -1335,21 +1391,111 @@ function applyI18n(lang) {
   els.licenseKey.setAttribute('aria-label', pro.placeholder);
   set('#license-sign-in', pro.signIn);
   set('#license-sign-out', pro.signOut);
+  applyExperienceCopy(lang, set);
   const ex = EXAMPLES.find((e) => e.lang === lang) || EXAMPLES[0];
   const setPreview = (sel, tag, text) => { const n = document.querySelector(sel); if (!n) return; n.textContent = ''; n.appendChild(el('span', 'hp-tag', tag)); n.appendChild(document.createTextNode(text)); };
   setPreview('.hp-before', 'before', ex.before);
   setPreview('.hp-after', 'after', ex.after);
 }
 
+function readControls() {
+  return normalizePreferences({ lang: els.lang.value, documentType: els.documentType.value, persona: els.persona.value, register: els.register.value });
+}
+function restoreControls(convo) {
+  const settings = convo.thread.preferences;
+  els.lang.value = settings.lang;
+  applyI18n(settings.lang);
+  populatePersonas(); populateDocumentTypes();
+  els.persona.value = settings.persona;
+  els.documentType.value = settings.documentType;
+  els.register.value = settings.register;
+  $('#settings-status').textContent = '';
+  renderSuggest(); syncTier(); syncSettingsBusy(); updateHeroSend(); updateChatSend();
+}
 function onLangChange() {
-  applyI18n(els.lang.value);
-  renderSuggest();
-  populatePersonas();
-  populateDocumentTypes();
-  // Re-localize stateful button labels (e.g. an active Stop control's aria-label).
-  updateHeroSend(); updateChatSend();
   const convo = activeConvo();
-  if (convo && convo.messages.length === 0) convo.thread = createRewriteThread({ lang: els.lang.value });
+  if (convo) {
+    const accepted = convo.thread.updatePreferences(readControls(), { explicitLanguage: true });
+    restoreControls(convo);
+    if (!accepted) $('#settings-status').textContent = experienceCopy(els.lang.value).languageLocked;
+  } else {
+    applyI18n(els.lang.value); populatePersonas(); populateDocumentTypes(); renderSuggest();
+  }
+}
+function onPreferencesChange() {
+  const convo = activeConvo();
+  if (convo) convo.thread.updatePreferences(readControls());
+}
+function syncSettingsBusy() {
+  for (const control of [els.lang, els.persona, els.documentType, els.register, $('#preset-apply')]) {
+    control.toggleAttribute('disabled', state.busy);
+  }
+  syncPresetButtons();
+}
+
+const storedPresets = readPresets();
+let presets = storedPresets.presets;
+let presetStatus = ({ unavailable: 'storageUnavailable', invalid: 'storageInvalid', version: 'storageVersion' })[storedPresets.status] || '';
+const presetSelect = /** @type {HTMLSelectElement} */ ($('#preset-select'));
+const presetName = /** @type {HTMLInputElement} */ ($('#preset-name'));
+function renderPresets(selected = presetSelect.value) {
+  presetSelect.innerHTML = '';
+  presetSelect.appendChild(new Option(experienceCopy(els.lang.value).presetNone, ''));
+  presets.forEach((p) => presetSelect.appendChild(new Option(p.name, p.name)));
+  presetSelect.value = presets.some((p) => p.name === selected) ? selected : '';
+  $('#preset-status').textContent = experienceCopy(els.lang.value)[presetStatus] || '';
+  syncPresetButtons();
+}
+function syncPresetButtons() {
+  $('#preset-apply').toggleAttribute('disabled', state.busy || !presetSelect.value);
+  $('#preset-delete').toggleAttribute('disabled', !presetSelect.value);
+}
+function persistPresets(success) {
+  presetStatus = writePresets(presets) ? success : 'storageUnavailable';
+}
+function savePreset() {
+  const result = saveNamedPreset(presets, presetName.value, readControls());
+  if (result.ok) { presets = result.presets; persistPresets('presetSaved'); }
+  else presetStatus = result.reason === 'limit' ? 'presetLimit' : 'presetNameError';
+  renderPresets(result.ok ? presetName.value.trim() : presetSelect.value);
+}
+function applyPreset() {
+  if (state.busy) return;
+  const preset = presets.find((p) => p.name === presetSelect.value);
+  const convo = activeConvo();
+  if (!preset || !convo) return;
+  const accepted = convo.thread.updatePreferences(preset.settings, { explicitLanguage: true });
+  restoreControls(convo);
+  presetStatus = accepted ? 'presetApplied' : 'languageLocked';
+  renderPresets();
+}
+function deletePreset() {
+  presets = presets.filter((p) => p.name !== presetSelect.value);
+  persistPresets('presetDeleted');
+  renderPresets('');
+}
+function applyExperienceCopy(lang, set) {
+  const copy = experienceCopy(lang);
+  const cards = document.querySelectorAll('.price');
+  const renderCard = (card, name, features) => {
+    if (!card) return;
+    card.querySelector('.price__name').textContent = name;
+    card.querySelectorAll('.price__feats li').forEach((li, i) => { li.textContent = features[i]; });
+  };
+  renderCard(cards[1], copy.byokName, copy.byokFeatures);
+  renderCard(cards[2], copy.proName, copy.proFeatures);
+  if (cards[1]) cards[1].querySelector('.price__cost').textContent = copy.byokCost;
+  set('.price__badge', copy.proBadge);
+  set('.pricing .sec__title', copy.pricingTitle); set('.pricing .sec__lede', copy.pricingLede);
+  set('.pricing__note', copy.pricingNote); set('#price-byok', copy.byokCta);
+  set('#pro-existing', copy.already); set('#pro-docs', copy.docs); set('#pro-portal', copy.portal);
+  document.querySelectorAll('.nav__end .ctl__label').forEach((label, i) => { label.textContent = copy.labels[i]; });
+  for (const [value, label] of [['', copy.preserve], ['casual', copy.casual], ['professional', copy.professional]]) {
+    set(`#register option[value="${value}"]`, label);
+  }
+  for (const [id, key] of [['presets-label', 'presets'], ['preset-select-label', 'presetSelect'], ['preset-name-label', 'presetName'],
+    ['preset-apply', 'presetApply'], ['preset-save', 'presetSave'], ['preset-delete', 'presetDelete'], ['preset-hint', 'presetHint']]) set(`#${id}`, copy[key]);
+  renderPresets(); syncTier();
 }
 
 // ---------- events ----------
@@ -1377,6 +1523,12 @@ els.homeLink.addEventListener('click', (e) => { e.preventDefault(); showLanding(
 els.ctaStart && els.ctaStart.addEventListener('click', () => { globalThis.scrollTo({ top: 0, behavior: 'smooth' }); els.heroInput.focus(); });
 
 els.lang.addEventListener('change', onLangChange);
+for (const control of [els.documentType, els.persona, els.register]) control.addEventListener('change', onPreferencesChange);
+$('#preset-save').addEventListener('click', savePreset);
+$('#preset-apply').addEventListener('click', applyPreset);
+$('#preset-delete').addEventListener('click', deletePreset);
+presetSelect.addEventListener('change', () => { presetName.value = presetSelect.value; syncPresetButtons(); });
+presetName.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); savePreset(); } });
 els.tier.addEventListener('change', () => {
   track('Tier Selected', { tier: els.tier.value, surface: 'controls' });
   syncTier(); clearInlineErrors(); updateHeroSend(); updateChatSend();

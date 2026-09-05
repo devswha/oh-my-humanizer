@@ -80,6 +80,17 @@ a { color: inherit; }
 .nav__byok[hidden] { display: none; }
 .nav__pro { flex-basis: 100%; display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
 .nav__pro[hidden] { display: none; }
+.nav__presets { flex-basis: 100%; font-size: 13px; }
+.nav__presets summary { cursor: pointer; width: fit-content; }
+.preset-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding-top: 10px; }
+.ctl__status { flex-basis: 100%; color: var(--text-dim); font-size: 13px; line-height: 1.5; margin: 0; }
+.ctl__status:empty { display: none; }
+.ctl__link, .price__existing { color: var(--text-dim); font-size: 13px; text-decoration: underline; }
+.ctl__link[hidden] { display: none; }
+.price__existing { background: none; border: 0; cursor: pointer; font-family: inherit; margin-top: 12px; padding: 8px 0; }
+.ctl__action:disabled { opacity: .5; cursor: default; }
+.nav__presets summary:focus-visible, .ctl__action:focus-visible, .ctl__link:focus-visible,
+.price__existing:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 .ctl { display: flex; align-items: center; gap: 6px; }
 .ctl[hidden] { display: none; }
@@ -489,4 +500,3 @@ details.foldout > summary:focus-visible,
   .editor__gutter { padding: 16px 10px; }
   .bench__cards { grid-template-columns: 1fr; }
 }
-
