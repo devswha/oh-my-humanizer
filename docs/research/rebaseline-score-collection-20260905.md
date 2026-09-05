@@ -7,10 +7,20 @@ The parent owns processing-approval review and live execution.
 
 The collector uses `evaluateScorerFixture` with prepared inputs and its existing
 call journal. It has its own intake adapter because `loadScorerManifest` requires
-boolean labels. Unknown `expected_hot` stays `null`; source origin, rights,
-quality labels, register claims, and dependency links remain in the private
-snapshot. A model-generated origin does not assign a tell label, and a publisher
-page does not establish human authorship.
+boolean labels. Every collected target has `expected_hot: null` and `class: null`,
+even if source metadata contains a fixture label. Source origin, rights, quality
+labels, genre declarations, and dependency links remain in the private snapshot.
+A model-generated origin does not assign a tell label, and a publisher page does
+not establish human authorship.
+
+Intake `register` means dataset genre: `social`, `marketing`, or `chat-update`.
+It is retained as `datasetGenre`, with its declared review status. The scorer's
+`config.register` and observed row `register` use only the pinned delivery axis,
+`casual` or `professional` (or null). Genre is never copied into that setting.
+Document type comes from an explicit intake `documentType` declaration or the
+pinned config; the collector does not infer it from genre. Each row records which
+source supplied document type. Unreviewed declarations do not become human-verified
+labels, and original-fixture labels never become rewritten-text target labels.
 
 The supplemental replay-gap audit showed why config fingerprints alone are
 insufficient: observed scores could be reproduced without recovering the full

@@ -250,3 +250,49 @@ test('native profile admission remains distinct from server model verification',
   assert.equal(snapshot.nativeUpstreamAttemptCountVerified, false);
   assert.equal((await replayCollection(options.output)).fullObservedReplay, true);
 });
+
+test('dataset genre and delivery register remain separate; source labels never label new targets', async t => {
+  const { options, records, approval, root } = setup(t, 4);
+  const genres = ['social', 'marketing', 'chat-update', 'chat-update'];
+  const documentTypes = ['social', 'marketing', undefined, 'casual-conversation'];
+  records.forEach((record, i) => {
+    record.register = genres[i];
+    if (documentTypes[i]) record.documentType = documentTypes[i]; else delete record.documentType;
+    record.labels.registerStatus = 'source-declared-unreviewed';
+    record.expected_hot = i % 2 === 0; record.class = i % 2 === 0 ? 'ai' : 'natural';
+    record.origins[0].originalFixtureExpectedHot = true;
+    approval.decisions[i].sourceEvidenceHash = canonical(record.origins);
+  });
+  const intake = read(resolve(options.intake, 'intake.private.json')); intake.records = records;
+  write(resolve(options.intake, 'intake.private.json'), intake);
+  const summary = read(resolve(options.intake, 'summary.json'));
+  summary.intakeHash = canonical(intake); summary.manifestHash = canonical(records);
+  write(resolve(options.intake, 'summary.json'), summary);
+  approval.intakeHash = summary.intakeHash; write(options.approvals, approval);
+  const config = fs.readFileSync(options.config, 'utf8').replace(/^register:.*$/m, 'register: professional');
+  options.config = resolve(root, 'pinned-delivery-register.yaml'); fs.writeFileSync(options.config, config);
+  const report = await collectRebaselineScores(options, { complete: async () => valid() });
+  assert.equal(report.valid, 4); assert.equal(report.classificationMetrics, null);
+  const snapshot = read(resolve(options.output, 'snapshot.private.json'));
+  assert.ok(Object.values(snapshot.targetLabels).every(value => value === null));
+  assert.deepEqual(snapshot.records.map(record => record.expected_hot), [true, false, true, false]);
+  records.forEach((record, i) => {
+    const row = read(resolve(options.output, 'rows', `${record.textHash}.private.json`));
+    assert.equal(row.register, 'professional');
+    assert.equal(row.datasetGenre.value, genres[i]);
+    assert.equal(row.datasetGenre.reviewStatus, 'source-declared-unreviewed');
+    assert.equal(row.expected_hot, null); assert.equal(row.class, null);
+    assert.equal(row.documentTypeSelection.value, documentTypes[i] ?? 'default');
+    assert.equal(row.documentTypeSelection.source, documentTypes[i] ? 'intake.documentType' : 'pinned-config');
+    assert.equal(row.documentTypeSelection.inferredFromGenreByCollector, false);
+    assert.equal(snapshot.inputs.prepared[record.textHash].config.register, 'professional');
+  });
+  assert.equal((await replayCollection(options.output)).fullObservedReplay, true);
+});
+
+test('a dataset genre in pinned config.register is rejected instead of treated as delivery register', async t => {
+  const { options, root } = setup(t);
+  const config = fs.readFileSync(options.config, 'utf8').replace(/^register:.*$/m, 'register: marketing');
+  options.config = resolve(root, 'invalid-register.yaml'); fs.writeFileSync(options.config, config);
+  await assert.rejects(collectRebaselineScores(options, { complete: async () => assert.fail('invalid register cannot dispatch') }), /delivery-register axis/);
+});

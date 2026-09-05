@@ -150,6 +150,7 @@ export function prepareInputs(records, configFile) {
   let config; try { config = yaml.load(configBytes); } catch { fail('invalid pinned config'); }
   if (!config || Array.isArray(config) || typeof config !== 'object') fail('config must be a mapping');
   assertSecretFree(config);
+  if (config.register != null && !['casual', 'professional'].includes(config.register)) fail('pinned register must use the delivery-register axis');
   if (['profile', 'tone', 'formality'].some(key => Object.hasOwn(config, key))) fail('retired configuration field');
   if (config.stylometry?.structural_model?.path || config.stylometry?.classifier?.model_path || config.private_model?.path) fail('explicit structural model unsupported by this absence-frozen collector');
   config.documentType = config['document-type'] || config.documentType || 'default'; delete config['document-type'];
@@ -173,8 +174,12 @@ export function prepareInputs(records, configFile) {
   assertSecretFree(result); return result;
 }
 function currentCodeHashes() { return { ...studySemantics(ROOT), [SELF]: hash(fs.readFileSync(resolve(ROOT, SELF))), 'scripts/research/preparation-replay.mjs': hash(fs.readFileSync(resolve(ROOT, 'scripts/research/preparation-replay.mjs'))) }; }
-function fixture(record) { return { fixture_id: record.id, text_hash: record.textHash, text: record.text, language: record.language, documentType: record.documentType,
-  register: record.register ?? null, class: record.class ?? null, expected_hot: record.expected_hot ?? null, source: null }; }
+function fixture(record, prepared) { return { fixture_id: record.id, text_hash: record.textHash, text: record.text, language: record.language, documentType: prepared.config.documentType,
+  register: prepared.config.register ?? null, class: null, expected_hot: null, source: null }; }
+function annotateObservation(row, record, prepared) {
+  row.datasetGenre = { value: record.register ?? null, reviewStatus: record.labels?.registerStatus ?? null, source: 'intake.register' };
+  row.documentTypeSelection = { value: prepared.config.documentType, source: record.documentType ? 'intake.documentType' : 'pinned-config', inferredFromGenreByCollector: false };
+}
 const logical = (protocolHash, candidate, record) => `${protocolHash}/${candidate.id}/${record.id}/0/score`;
 function normalizedObservation(row) {
   const value = clone(row); delete value.productionResult; value.calls.forEach(call => { delete call.recovered_from_journal; }); return value;
@@ -273,13 +278,14 @@ async function replayOne(output, snapshot, protocolHash, record, stored) {
   const receiptRow = checkWire(output, id, snapshot.candidate, record, snapshot, protocolHash);
   let consumed = 0;
   const replay = await replayPreparationRow({ directory: output, logicalId: id, row: stored || receiptRow, candidate: snapshot.candidate,
-    run: complete => evaluateScorerFixture(fixture(record), snapshot.candidate, {
+    run: complete => evaluateScorerFixture(fixture(record, snapshot.inputs.prepared[record.textHash]), snapshot.candidate, {
       complete: async (...args) => {
         const ordinal = consumed++;
         try { return await complete(...args); } catch (error) {
           error.studyResult = { ...(error.studyResult || {}), durationMs: receiptRow.calls[ordinal]?.durationMs }; throw error;
         }
       }, preparedInputs: snapshot.inputs.prepared[record.textHash], logicalId: id, timeoutMs: snapshot.timeoutMs }) });
+  annotateObservation(replay, record, snapshot.inputs.prepared[record.textHash]);
   if (stored && encode(normalizedObservation(stored)) !== encode(normalizedObservation(replay))) fail('observed replay mismatch');
   replay.productionResult = await replayPreparationRow({ directory: output, logicalId: id, row: receiptRow, candidate: snapshot.candidate,
     run: complete => scoreText({ ...snapshot.inputs.prepared[record.textHash], text: record.text, model: snapshot.candidate.model, logger: { warn() {}, info() {}, debug() {} },
@@ -362,6 +368,7 @@ export async function collectRebaselineScores(options, { complete = boundedCompl
     }
     snapshot = { schemaVersion: 1, kind: 'nullable-rebaseline-score-collection', candidate, protocol, candidateProtocolHash: options.protocolSha256, candidateProtocolBytes: fs.readFileSync(options.protocol, 'utf8'),
       intakeHash: bundle.intakeHash, manifestHash: bundle.manifestHash, sourceIndexHash: bundle.sourceIndexHash, sourceIndex: bundle.sourceIndex, records: bundle.intake.records,
+      targetLabels: { expected_hot: null, class: null, authorship: null, humanQuality: null, expected_short_form_tells: null, perceived_ai_polish: null },
       approvals, admission, matrix, maxCalls: options.maxCalls, timeoutMs, repeats: 1, parserInvocationsPerText: 2, transportRetries: 0,
       budgetUnit: ['http', 'opencodex'].includes(candidate.transport) ? 'HTTP-request' : 'CLI-invocation',
       nativeUpstreamAttemptCountVerified: false, runtime: { node: process.version, platform: process.platform, arch: process.arch },
@@ -407,7 +414,7 @@ export async function collectRebaselineScores(options, { complete = boundedCompl
       const record = snapshot.records.find(row => row.textHash === textHash), id = logical(protocolHash, snapshot.candidate, record);
       progress.entries[textHash] = { state: 'started' }; save(progressPath, progress);
       let ordinal = 0;
-      const observation = await evaluateScorerFixture(fixture(record), snapshot.candidate, { preparedInputs: snapshot.inputs.prepared[textHash], journalDirectory: output, logicalId: id, timeoutMs: snapshot.timeoutMs,
+      const observation = await evaluateScorerFixture(fixture(record, snapshot.inputs.prepared[record.textHash]), snapshot.candidate, { preparedInputs: snapshot.inputs.prepared[textHash], journalDirectory: output, logicalId: id, timeoutMs: snapshot.timeoutMs,
         complete: async (candidate, prompt, args) => {
           if (fatal) throw fatal;
           if (++ordinal > 2 || invocations >= snapshot.maxCalls) { fatal = new Error('rebaseline: call budget exhausted'); throw fatal; }
@@ -434,6 +441,7 @@ export async function collectRebaselineScores(options, { complete = boundedCompl
         } });
       if (fatal) throw fatal;
       if (observation.calls.some(call => ['study-journal-persistence-failed', 'study-call-unobserved', 'study-call-inflight', 'study-cancelled'].includes(call.error))) fail('unresolved journal; collection stopped');
+      annotateObservation(observation, record, snapshot.inputs.prepared[textHash]);
       const recovered = await replayOne(output, snapshot, protocolHash, record, null);
       if (encode(normalizedObservation(observation)) !== encode(normalizedObservation(recovered))) fail('fresh receipt replay mismatch');
       observation.productionResult = recovered.productionResult;
