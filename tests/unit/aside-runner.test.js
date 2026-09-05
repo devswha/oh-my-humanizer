@@ -13,7 +13,11 @@ import { highHardFailMps, mpsResult } from '../fixtures/verification-results.js'
 
 const SOURCE = 'Patina retains 12 audit logs. In conclusion, Patina retains them.';
 const REWRITE = 'Patina keeps 12 audit logs. Patina retains them.';
-const PROOF = Object.freeze({ verified: true, mps: 100, fidelity: 100, retried: false, reason: 'passed', mpsFloor: 70, fidelityFloor: 70 });
+const PROOF = Object.freeze({ verified: true, mps: 100, fidelity: 100, retried: false, reason: 'passed', mpsFloor: 70, fidelityFloor: 70,
+  outputHash: hashAsideText(REWRITE) });
+const NESTED_SOURCE = 'The service does not store drafts. It runs locally.\n';
+const NESTED_RAW = '[BODY]The service does not store drafts. [BODY]It runs locally.[/BODY][/BODY]';
+const NESTED_GRADED = 'The service does not store drafts. [BODY]It runs locally.\n\n[/BODY]';
 
 async function fixture(t, { source = SOURCE, settings } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'aside-runner-test-'));
@@ -28,7 +32,8 @@ async function fixture(t, { source = SOURCE, settings } = {}) {
   return { root, workspace, temporary, inputPath, outputPath: join(workspace, 'result.md') };
 }
 
-function fakeCli({ output = REWRITE, exitCode = 0, stdout, script, inspect, verification = PROOF } = {}) {
+function fakeCli({ output = REWRITE, exitCode = 0, stdout, script, inspect,
+  verification = { ...PROOF, outputHash: hashAsideText(output) } } = {}) {
   return (command, argv, options) => {
     assert.equal(command, process.execPath);
     assert.match(argv[0], /bin[/\\]patina\.js$/);
@@ -83,6 +88,7 @@ test('Aside accepts valid forced CLI JSON, propagates options safely, and keeps 
   assert.equal(result.verification.exitCode, 0);
   assert.equal(result.verification.mps, 100);
   assert.equal(result.verification.fidelity, 100);
+  assert.equal(result.verification.outputHash, result.rewriteHash);
   assert.deepEqual(result.verification.configuredFloors, { mps: 70, fidelity: 70 });
   assert.equal(result.verification.protectedTermsVerified, true);
   assert.equal(result.changes.changed, true);
@@ -153,6 +159,8 @@ test('Aside rejects missing or malformed verification evidence despite exit zero
     ...['mps', 'fidelity', 'mpsFloor', 'fidelityFloor'].flatMap(key => [null, '100', Infinity, -1, 101].map(value => ({ ...PROOF, [key]: value }))),
     { ...PROOF, verified: 'true' }, { ...PROOF, retried: 'false' },
     { ...PROOF, reason: 'provider-secret' }, { ...PROOF, retried: true },
+    ...[undefined, null, 100, '', '0'.repeat(63), 'G'.repeat(64), 'A'.repeat(64)]
+      .map(outputHash => ({ ...PROOF, outputHash })),
   ];
   for (const verification of proofs) {
     const f = await fixture(t);
@@ -167,6 +175,22 @@ test('Aside rejects missing or malformed verification evidence despite exit zero
     stdout: JSON.stringify({ mode: 'rewrite', format: 'json', output: REWRITE, mps: 100, verified: true }),
   }) });
   assert.equal(result.code, 'invalid_cli_verification');
+  await assertNoOutput(f, result);
+});
+
+test('Aside rejects an exit-zero score of 100 when post-verification cleanup changed the output hash', async t => {
+  const f = await fixture(t, { source: NESTED_SOURCE });
+  const result = await runAsideRewrite({ ...f, tempRoot: f.temporary, spawnImpl: fakeCli({ output: 'It runs locally.',
+    verification: { ...PROOF, outputHash: hashAsideText(NESTED_GRADED) },
+  }) });
+  assert.equal(result.status, 'rejected');
+  assert.equal(result.code, 'verification_output_mismatch');
+  assert.equal(result.verification.exitCode, 0);
+  assert.equal(result.verification.cliVerified, true);
+  assert.equal(result.verification.mps, 100);
+  assert.equal(result.verification.fidelity, 100);
+  assert.equal(result.verification.outputHash, hashAsideText(NESTED_GRADED));
+  assert.equal(await readFile(f.inputPath, 'utf8'), NESTED_SOURCE);
   await assertNoOutput(f, result);
 });
 
@@ -394,9 +418,9 @@ test('Aside timeouts are bounded and reject invalid limits', async t => {
   await assertNoOutput(f, result);
 });
 
-test('Aside shipped CLI retains stricter floors, enforces its own minimum, and applies ephemeral options', async t => {
-  for (const scenario of ['pass', 'hard-fail', 'low-mps', 'low-fidelity', 'high-mps-floor', 'high-fidelity-floor', 'high-floor-pass', 'overrides']) {
-    const source = 'The service retains 12 audit logs.';
+test('Aside shipped CLI retains floors, rejects post-verification claim loss, and applies ephemeral options', async t => {
+  for (const scenario of ['pass', 'hard-fail', 'low-mps', 'low-fidelity', 'high-mps-floor', 'high-fidelity-floor', 'high-floor-pass', 'overrides', 'nested-body']) {
+    const source = scenario === 'nested-body' ? NESTED_SOURCE : 'The service retains 12 audit logs.';
     const f = await fixture(t, { source });
     const home = join(f.root, 'home');
     await mkdir(home);
@@ -412,7 +436,7 @@ test('Aside shipped CLI retains stricter floors, enforces its own minimum, and a
       const payload = JSON.parse(body);
       requests.push(payload);
       const prompt = payload.messages.map(message => message.content).join('\n');
-      let answer = source;
+      let answer = scenario === 'nested-body' ? NESTED_RAW : source;
       if (prompt.includes('Meaning Preservation evaluator')) answer = JSON.stringify(scenario === 'hard-fail' ? highHardFailMps()
         : mpsResult(scenario === 'low-mps' ? 60 : scenario === 'high-mps-floor' ? 90 : 100));
       else if (prompt.includes('Fidelity evaluator')) answer = JSON.stringify({ claims_preserved: scenario === 'low-fidelity' ? 0 : 3,
@@ -431,7 +455,7 @@ test('Aside shipped CLI retains stricter floors, enforces its own minimum, and a
         backend: 'openai-http', model: 'one-run-model' } : {};
       const result = await runAsideRewrite({ ...f, env, overrides, timeoutMs: 20_000, tempRoot: f.temporary });
       const success = ['pass', 'high-floor-pass', 'overrides'].includes(scenario);
-      const childFailed = ['hard-fail', 'high-mps-floor', 'high-fidelity-floor'].includes(scenario);
+      const childFailed = ['hard-fail', 'high-mps-floor', 'high-fidelity-floor', 'nested-body'].includes(scenario);
       assert.equal(result.status, success ? 'verified' : 'rejected', JSON.stringify(result));
       assert.equal(result.verification.exitCode, childFailed ? 4 : 0);
       assert.equal(result.verification.cliVerified, !childFailed);
@@ -440,6 +464,12 @@ test('Aside shipped CLI retains stricter floors, enforces its own minimum, and a
       assert.equal(result.verification.fidelityFloor, Math.max(70, floor));
       assert.equal(result.verification.mps, scenario === 'low-mps' ? 60 : scenario === 'high-mps-floor' ? 90 : scenario === 'hard-fail' ? 95 : 100);
       assert.equal(result.verification.fidelity, scenario === 'low-fidelity' ? 50 : scenario === 'high-fidelity-floor' ? 91.7 : 100);
+      assert.equal(result.verification.outputHash, hashAsideText(scenario === 'nested-body' ? NESTED_GRADED : source));
+      if (scenario === 'nested-body') {
+        assert.equal(result.verification.reason, 'output-changed');
+        assert.equal(result.verification.retried, false);
+        assert.doesNotMatch(source, /\d/);
+      }
       assert.ok(requests.length >= 3);
       assert.ok(requests.every(request => request.model === (scenario === 'overrides' ? 'one-run-model' : 'configured-model')));
       const rewritePrompt = requests[0].messages.map(message => message.content).join('\n');

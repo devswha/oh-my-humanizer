@@ -36,15 +36,17 @@ function mergeOverrides(settings, overrides) {
 
 function cliVerification(value) {
   const bounded = number => typeof number === 'number' && Number.isFinite(number) && number >= 0 && number <= 100;
-  const reasons = ['passed', 'passed-on-retry', 'floor-not-met', 'retry-error', 'dropped-numbers'];
+  const reasons = ['passed', 'passed-on-retry', 'floor-not-met', 'retry-error', 'dropped-numbers', 'output-changed'];
   if (!value || typeof value !== 'object' || Array.isArray(value)
     || typeof value.verified !== 'boolean' || typeof value.retried !== 'boolean'
     || !bounded(value.mps) || !bounded(value.fidelity)
-    || !bounded(value.mpsFloor) || !bounded(value.fidelityFloor) || !reasons.includes(value.reason)) return null;
+    || !bounded(value.mpsFloor) || !bounded(value.fidelityFloor) || !reasons.includes(value.reason)
+    || typeof value.outputHash !== 'string' || !/^[a-f0-9]{64}$/.test(value.outputHash)) return null;
   if (value.verified && value.reason !== (value.retried ? 'passed-on-retry' : 'passed')) return null;
   // Whitelist scalar evidence only; never reflect arbitrary child JSON or text.
   return { verified: value.verified, mps: value.mps, fidelity: value.fidelity,
-    retried: value.retried, reason: value.reason, mpsFloor: value.mpsFloor, fidelityFloor: value.fidelityFloor };
+    retried: value.retried, reason: value.reason, mpsFloor: value.mpsFloor, fidelityFloor: value.fidelityFloor,
+    outputHash: value.outputHash };
 }
 
 function bindTerms(original, terms) {
@@ -146,7 +148,8 @@ function invokeCli(args, { cwd, env, signal, timeoutMs, spawnImpl }) {
  * options. Saved settings come from workspace/.patina/aside.json; `overrides`
  * accepts the same validated, nonsecret fields for this invocation only.
  *
- * Forced CLI --verify must supply valid JSON evidence and exit zero. Both
+ * Forced CLI --verify must supply valid JSON evidence bound to the output's
+ * exact UTF-8 SHA-256 hash and exit zero. Both
  * scores must meet the configured floors AND Aside's 70/70 minimum. The
  * temporary config never lowers an ambient floor. Exit 4 always rejects,
  * even when stdout contains the CLI's closest candidate.
@@ -163,7 +166,7 @@ export async function runAsideRewrite({
     inputPath: null, outputPath: null, sourceHash: null, rewriteHash: null,
     effectiveOptions: null, changes: null,
     verification: { enforced: true, verified: false, evidence: 'cli-verify-json', exitCode: null, cliVerified: null,
-      mps: null, fidelity: null, retried: null, reason: null, configuredFloors: null,
+      mps: null, fidelity: null, retried: null, reason: null, configuredFloors: null, outputHash: null,
       mpsFloor: MPS_FLOOR, fidelityFloor: FIDELITY_FLOOR, protectedTermsVerified: false },
   };
   let temporary;
@@ -215,12 +218,17 @@ export async function runAsideRewrite({
     const proof = cliVerification(payload?.verification);
     if (proof) Object.assign(result.verification, {
       cliVerified: proof.verified, mps: proof.mps, fidelity: proof.fidelity, retried: proof.retried, reason: proof.reason,
+      outputHash: proof.outputHash,
       configuredFloors: { mps: proof.mpsFloor, fidelity: proof.fidelityFloor },
       mpsFloor: Math.max(MPS_FLOOR, proof.mpsFloor), fidelityFloor: Math.max(FIDELITY_FLOOR, proof.fidelityFloor),
     });
     if (child.exitCode === 4) return { ...result, status: 'rejected', code: 'verification_rejected', exitCode: 4 };
     if (!payload || payload.mode !== 'rewrite' || payload.format !== 'json' || !validText(payload.output)) throw new AsideError('invalid_cli_output');
     if (!proof) throw new AsideError('invalid_cli_verification');
+    const rewriteHash = hashAsideText(payload.output);
+    if (proof.outputHash !== rewriteHash) {
+      return { ...result, status: 'rejected', code: 'verification_output_mismatch', exitCode: 4 };
+    }
     if (!proof.verified || proof.mps < result.verification.mpsFloor || proof.fidelity < result.verification.fidelityFloor) {
       return { ...result, status: 'rejected', code: 'verification_rejected', exitCode: 4 };
     }
@@ -229,7 +237,6 @@ export async function runAsideRewrite({
     const protectedCheck = validateProtectedText(original, rewritten, spans);
     if (!protectedCheck.ok) return { ...result, status: 'rejected', code: protectedCheck.reason, exitCode: 4 };
     const edits = createTextEdits(original, rewritten);
-    const rewriteHash = hashAsideText(rewritten);
     const changes = { changed: original !== rewritten, editCount: edits.length,
       originalLength: original.length, rewriteLength: rewritten.length,
       removedLength: edits.reduce((sum, edit) => sum + edit.end - edit.start, 0),

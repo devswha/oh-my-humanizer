@@ -69,22 +69,28 @@ Verification checks anchor counts, the weighted Polarity + Negation group, and s
   "retried": false,
   "reason": "passed",
   "mpsFloor": 95,
-  "fidelityFloor": 95
+  "fidelityFloor": 95,
+  "outputHash": "4be7a7d2111c4062b90b0dc75898ae8e8772325e15cb67488ef651f9e3d179b3"
 }
 ```
 
 `mpsFloor` and `fidelityFloor` report the configured thresholds (95 in this
-example). Scores describe the emitted candidate; an unparseable MPS is `null`.
-`reason` is `passed`, `passed-on-retry`, `floor-not-met`, `retry-error`, or
-`dropped-numbers`. The numeric guard sets `verified:false` and
+example). Scores describe the exact graded text, identified by `outputHash`:
+SHA-256 of its UTF-8 bytes, with no whitespace or Unicode normalization. The
+example hash is for `The service retains 12 audit logs.` without a newline.
+An unparseable MPS is `null`. `reason` is `passed`, `passed-on-retry`,
+`floor-not-met`, `retry-error`, `dropped-numbers`, or `output-changed`.
+If cleanup changes the graded text, the CLI sets `verified:false`, reports
+`output-changed`, and exits 4. The numeric guard sets `verified:false` and
 `reason:"dropped-numbers"` even if the scorers passed. The draft appears only in
-the existing `output` field. Plain output and exit behavior stay the same;
+the existing `output` field. Plain output retains its existing body;
 JSON without `--verify` has no `verification` field. Automation must check exit
-0, `verification.verified === true`, and finite scores meeting its required
-floors. A nonempty `output` or the envelope's legacy `mps` field is not proof.
+0, `verification.verified === true`, finite scores meeting its required
+floors, and `verification.outputHash` matching the exact `output` bytes.
+A nonempty `output` or the envelope's legacy `mps` field is not proof.
 
-The Aside adapter requires valid verification metadata and at least 70 for
-both scores. It retains stricter configured floors. Its optional programmatic
+The Aside adapter requires matching output hashes, valid verification metadata,
+and at least 70 for both scores. It retains stricter configured floors. Its optional programmatic
 `overrides` object uses the saved settings field names, validates the merged
 selection, and applies it to one rewrite. `settings` and `settingsHash` identify
 the saved preferences; `effectiveOptions` records the merged invocation and

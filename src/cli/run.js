@@ -21,6 +21,7 @@ import {
 import { fetchPreviewPage, prepareSnapshotHtml, freezeSnapshotAssets, extractProseBlocks, alignRewrites, buildPreviewHtml, buildContextCardHtml } from '../preview.js';
 import { collectImageCandidates, stageOcrImages, ocrStagedImages, describeImage, hasOcrRunnerOverride } from '../ocr.js';
 import { rmSync, readFileSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 import { verifyRewrite, deterministicMeaningGuard, droppedNumbers } from '../verify.js';
 import { interpretScore, reconcileScoreOverall, scoreDeterministicSignals } from '../scoring.js';
@@ -294,6 +295,7 @@ export async function runDefault(parsed, logger) {
               retried: verification.retried, reason: verification.reason,
               mpsFloor: config.verification?.['mps-floor'] ?? 70,
               fidelityFloor: config.verification?.['fidelity-floor'] ?? 70,
+              outputHash: createHash('sha256').update(verification.text, 'utf8').digest('hex'),
             };
             logger.info('verify.result', {
               message: `[patina] verify: MPS ${verification.mps ?? 'n/a'}, fidelity ${verification.fidelity}${verification.verified ? ' (passed)' : ' (below floor)'}${verification.retried ? ' [retried]' : ''}`,
@@ -304,6 +306,14 @@ export async function runDefault(parsed, logger) {
           }
 
           const finalText = cleanRewriteOutput(result, { logger: stripQuiet });
+          if (verificationReport?.verified && finalText !== result) {
+            verificationReport.verified = false;
+            verificationReport.reason = 'output-changed';
+            process.exitCode = Math.max(Number(process.exitCode) || 0, 4);
+            logger.warn('verify.output_changed', {
+              message: '[patina] verify: cleanup changed the graded text; verification does not cover the emitted output.',
+            });
+          }
           for (const warning of deterministicMeaningGuard(text, finalText)) {
             logger.warn('rewrite.meaning_guard', { message: `[patina] ${warning}` });
           }

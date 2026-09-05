@@ -353,6 +353,7 @@ function formatJsonOutput({ result, mode, body, register, gate, persona, inspect
       verified: verification.verified, mps: verification.mps, fidelity: verification.fidelity,
       retried: verification.retried, reason: verification.reason,
       mpsFloor: verification.mpsFloor, fidelityFloor: verification.fidelityFloor,
+      outputHash: verification.outputHash,
     } } : {}),
     ...(mode === 'audit' && inspection ? { inspection } : {}),
     ...(scoreDetails ? { scores: scoreDetails } : {}),
