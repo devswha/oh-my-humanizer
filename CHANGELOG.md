@@ -2,6 +2,11 @@
 
 All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 
+## 8.2.1 — 2026-09-05
+
+- **Container startup.** Include the shared scoring scripts required by editor inspection and CLI module loading.
+- **Container publication.** Run version and offline-inspection checks against the built image before pushing it to GHCR.
+
 ## 8.2.0 — 2026-09-05
 
 Semver rationale: minor — adds CLI inspection and community pattern management without changing default rewrite policies.
