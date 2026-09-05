@@ -19,7 +19,7 @@ function fakeCli() {
 test('native CLI receives the complete UTF-8 prompt and returns its JSON result', { skip: process.platform !== 'linux' }, async () => {
   const fake = fakeCli();
   const executable = join(fake.directory, 'claude');
-  writeFileSync(executable, '#!/usr/bin/env node\nlet input="";process.stdin.setEncoding("utf8");process.stdin.on("data",part=>input+=part);process.stdin.on("end",()=>console.log(JSON.stringify({result:input,is_error:false,modelUsage:{"claude-test":{}},usage:{input_tokens:1,output_tokens:1}})));\n');
+  writeFileSync(executable, '#!/usr/bin/env node\nlet input="";process.stdin.setEncoding("utf8");process.stdin.on("data",part=>input+=part);process.stdin.on("end",()=>{console.log(JSON.stringify({type:"assistant",parent_tool_use_id:null,message:{model:"claude-test",content:[{type:"text",text:input}]}}));console.log(JSON.stringify({type:"result",result:input,is_error:false,modelUsage:{"claude-test":{inputTokens:1,outputTokens:1,cacheReadInputTokens:0,cacheCreationInputTokens:0}},usage:{input_tokens:1,output_tokens:1}}));});\n');
   chmodSync(executable, 0o700);
   const oldPath = process.env.PATH; process.env.PATH = fake.env.PATH;
   try {

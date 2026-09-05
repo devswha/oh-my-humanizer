@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { callLLM } from '../../src/api.js';
 import { KIMI_PROFILE_MODELS, kimiStudyCompletion } from './kimi-study-transport.mjs';
+import { decodeClaudeStudyStream } from './claude-study-stream.mjs';
 
 const cancellation = new AbortController();
 const children = new Map();
@@ -62,6 +63,16 @@ export function validateTransport(candidate) {
   if (!['opencodex', 'http'].includes(candidate.transport)) throw new Error('unsupported study transport');
 }
 
+export function claudeStudyArgs(candidate) {
+  const args = ['-p', '--model', candidate.model, '--output-format', 'stream-json', '--verbose', '--tools', '', '--strict-mcp-config',
+    '--safe-mode', '--setting-sources', '', '--disable-slash-commands', '--no-session-persistence'];
+  if (candidate.effort !== undefined) {
+    if (!['low', 'medium', 'high', 'xhigh', 'max'].includes(candidate.effort)) throw new Error('Invalid Claude study effort');
+    args.push('--effort', candidate.effort);
+  }
+  return args;
+}
+
 function claudeCompletion(candidate, prompt, timeoutMs) {
   return new Promise((resolve, reject) => {
     if (process.platform === 'win32') return reject(new Error('Native study isolation requires a POSIX shell'));
@@ -75,7 +86,7 @@ function claudeCompletion(candidate, prompt, timeoutMs) {
     // or allowing its process-group ID to be reused before cleanup.
     const shell = 'exec 3<&0; patina_status=$1; patina_seconds=$2; shift 2; trap ":" TERM; (sleep "$patina_seconds"; /bin/kill -KILL -- -$$) & "$@" <&3 & patina_cli=$!; wait "$patina_cli"; patina_exit=$?; printf "%s" "$patina_exit" > "$patina_status"; while :; do sleep 1; done';
     const child = spawn('/bin/sh', ['-c', shell, 'patina-study', statusPath, String(Math.ceil((timeoutMs + 2000) / 1000)),
-      'claude', '-p', '--model', candidate.model, '--output-format', 'json', '--tools', '', '--strict-mcp-config'], {
+      'claude', ...claudeStudyArgs(candidate)], {
       cwd: directory, env, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
     });
     let stdout = '';
@@ -114,15 +125,16 @@ function claudeCompletion(candidate, prompt, timeoutMs) {
       settled = true; clearTimeout(timer); clearTimeout(escalation); clearInterval(statusPoll); children.delete(child.pid);
       rmSync(directory, { recursive: true, force: true });
       let payload = null;
-      try { payload = JSON.parse(stdout); } catch { /* No complete provider result. */ }
+      try { payload = decodeClaudeStudyStream(stdout); } catch { /* No complete, attributable provider result. */ }
       try {
         if (failure) throw failure;
         if (cliExitCode !== 0) throw new Error(`Claude study process exited ${cliExitCode ?? code}`);
         const result = payload;
-        if (result.is_error || typeof result.result !== 'string' || !result.result.trim()) throw new Error('Claude study returned no successful text');
-        resolve({ text: result.result, effectiveModels: Object.keys(result.modelUsage || {}), usage: result.usage || null });
+        if (!result || result.isError || !result.text.trim()) throw new Error('Claude study returned no successful text');
+        if (!result.outputBound) throw new Error('Claude study response is not bound to an assistant message');
+        resolve(result);
       } catch (error) {
-        if (payload?.usage) error.studyResult = { usage: payload.usage, effectiveModels: Object.keys(payload.modelUsage || {}), attempts: 1 };
+        if (payload) error.studyResult = { ...payload, text: undefined, attempts: 1 };
         reject(error);
       }
     });
