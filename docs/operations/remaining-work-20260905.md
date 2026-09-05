@@ -13,18 +13,19 @@ An implementation alone does not close those requirements.
 
 | Item | Required evidence | State |
 |---|---|---|
-| Pro monitor 503 | Diagnose production aggregate/log adapters; verified healthy monitor and recovery receipt | Diagnostics shipped in 8.1.2 (#723–725); stable log-query alias pinned; observing cron |
-| Failed rewrite allowance | Bounded, idempotent recovery of charged requests/characters; concurrency and storage-failure tests | Implemented in isolated worktree; real Redis tests passed; final review |
+| Pro monitor 503 | Diagnose production aggregate/log adapters; verified healthy monitor and recovery receipt | Discord envelope fix shipped in 8.1.3; ordinary cron returned 200; eligible alert/recovery receipt still pending |
+| Failed rewrite allowance | Bounded, idempotent recovery of charged requests/characters; concurrency and storage-failure tests | Shipped in 8.1.3 (#726, #728–729); independent review, real Redis and full gates passed |
 | Model comparison | Available-model inventory, fixed protocol, repeated live runs, cross-family judges, per-provider recommendations | In progress |
-| #412 live scorer benchmark | Run `src/scoring.js` against real fixture/rebaseline texts; distributions by pattern pack, recorded model/usage/errors | Harness reviewed and tested; initial pilot invalidated; validated collection next |
+| #412 live scorer benchmark | Run `src/scoring.js` against real fixture/rebaseline texts; distributions by pattern pack, recorded model/usage/errors | Validated first pass: OpenAI 293/294 valid, Gemini 245/245; finalist repeats and cross-family rewrite judging in progress |
 | #643 short-form corpus | Real human/AI sources, human labels, all requested slices and counterfactual pairs, FNR/exact-zero gates | Needs human labels |
 | #159 human evaluation | 30 randomized pairs × 5 actual human raters, agreement and score/rating association | Needs raters |
-| #206 VS Code | Separate repository; status score, diagnostics, selection rewrite with diff confirmation, settings, editor verification | Open |
-| #207 Obsidian | Separate repository; note score/audit, selection rewrite, settings/status bar, registry submission | Open |
-| #211 community packs | Starter-pack repository/schema, install/list/remove CLI, documentation and untrusted-pack tests | Open |
-| #212 HF dataset | Fixture licensing review, published dataset/card, release upload workflow, links | Open |
+| #206 VS Code | Separate repository; status score, diagnostics, selection rewrite with diff confirmation, settings, editor verification | Public repository, independent review and dev integration done; packaging/release awaits the inspect CLI release |
+| #207 Obsidian | Separate repository; note score/audit, selection rewrite, settings/status bar, registry submission | Public repository, reviewed dev integration and isolated host checks done; live backend/release/registry follow-up remains |
+| #211 community packs | Starter-pack repository/schema, install/list/remove CLI, documentation and untrusted-pack tests | Implementation and starter pack under independent review in isolated worktrees |
+| #212 HF dataset | Fixture licensing review, published dataset/card, release upload workflow, links | Tools and reviewed fixture licensing merged into dev (#727); namespace decision, publication and links pending |
 | #284 browser extension | Separate MV3 repository; Gmail badge, local-only scoring, parity/network checks, bundled lexicons, integration docs | Open |
-| Branch synchronization | Merge `main` history into `dev`, preserve research commits, delete merged work branches | Remote main/dev synchronized at 8.1.2; merged-branch cleanup in progress |
+| Kimi text isolation | Zero-tool/subagent profile, private metadata, cleanup and live admission | Merged into dev (#731); full tests/lint and independent review passed |
+| Branch synchronization | Merge `main` history into `dev`, preserve research commits, delete merged work branches | Main is 8.1.3; dev contains main plus unreleased HF/inspect/Kimi changes; merged-branch cleanup in progress |
 | Public benchmark/docs | Current reports, accurate versions/statuses, source-linked public claims | Open |
 | GitHub cache removal | Confirm support submission/reply and inaccessible removed objects | Unverified |
 | Paid conversion | Verify provider-confirmed aggregate and first paid sale without exposing customer data | Unverified |
@@ -43,8 +44,12 @@ An implementation alone does not close those requirements.
   review found measurement defects. Corrected tests cover raw schemas, private
   metadata, fingerprints, concurrency, timeout/shutdown, stdin, and replay.
 - Actual human raters/labels and funded API access remain requested inputs.
-  The local Kimi coding configuration and Hugging Face login are being checked
-  for additional usable routes; neither is a completed experiment/publication.
+  Kimi's local coding route passed a tool-free live admission probe. The separate
+  coding-model experiment is still pending; API billing results cannot be inferred
+  from a subscription. Hugging Face namespace/publication remains unresolved.
+
+The issue ledger contains eight GitHub issues. Provider model comparison and
+operational follow-ups are additional tasks, not extra open issue numbers.
 
 ## Research sequence carried forward
 
