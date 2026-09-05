@@ -6,13 +6,14 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
-import { hashAsideText, saveAsideSettings } from '../../src/aside/options.js';
+import { hashAsideText, readAsideSettings, saveAsideSettings } from '../../src/aside/options.js';
 import { runAsideRewrite } from '../../src/aside/runner.js';
 import { parseArgs } from '../../src/cli/args.js';
 import { highHardFailMps, mpsResult } from '../fixtures/verification-results.js';
 
 const SOURCE = 'Patina retains 12 audit logs. In conclusion, Patina retains them.';
 const REWRITE = 'Patina keeps 12 audit logs. Patina retains them.';
+const PROOF = Object.freeze({ verified: true, mps: 100, fidelity: 100, retried: false, reason: 'passed', mpsFloor: 70, fidelityFloor: 70 });
 
 async function fixture(t, { source = SOURCE, settings } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'aside-runner-test-'));
@@ -27,7 +28,7 @@ async function fixture(t, { source = SOURCE, settings } = {}) {
   return { root, workspace, temporary, inputPath, outputPath: join(workspace, 'result.md') };
 }
 
-function fakeCli({ output = REWRITE, exitCode = 0, stdout, script, inspect } = {}) {
+function fakeCli({ output = REWRITE, exitCode = 0, stdout, script, inspect, verification = PROOF } = {}) {
   return (command, argv, options) => {
     assert.equal(command, process.execPath);
     assert.match(argv[0], /bin[/\\]patina\.js$/);
@@ -40,7 +41,7 @@ function fakeCli({ output = REWRITE, exitCode = 0, stdout, script, inspect } = {
     assert.equal(parsed.inPlace, undefined);
     assert.equal(parsed.quiet, true);
     inspect?.({ argv, options, parsed, config: JSON.parse(readFileSync(parsed.config, 'utf8')), source: readFileSync(parsed.files[0], 'utf8') });
-    const body = stdout === undefined ? JSON.stringify({ mode: 'rewrite', format: 'json', output }) : stdout;
+    const body = stdout === undefined ? JSON.stringify({ mode: 'rewrite', format: 'json', output, verification }) : stdout;
     const program = script ?? `process.stderr.write('provider-secret raw-draft'); process.stdout.write(${JSON.stringify(body)}); process.exitCode = ${exitCode};`;
     return spawn(command, ['--input-type=module', '-e', program], options);
   };
@@ -69,7 +70,7 @@ test('Aside accepts valid forced CLI JSON, propagates options safely, and keeps 
     assert.equal(argv.some(arg => arg.includes(SOURCE)), false);
     assert.equal(argv.some(arg => arg.includes('provider-secret')), false);
     assert.deepEqual(config, { language: 'en', 'document-type': 'technical', persona: 'technical-explainer', register: 'professional',
-      backend: 'codex-cli', model: 'org/model-v2:tag', verification: { 'mps-floor': 70, 'fidelity-floor': 70 } });
+      backend: 'codex-cli', model: 'org/model-v2:tag' });
   } }) });
   assert.equal(seen, true);
   assert.equal(result.status, 'verified');
@@ -80,8 +81,9 @@ test('Aside accepts valid forced CLI JSON, propagates options safely, and keeps 
   assert.equal(result.rewriteHash, hashAsideText(REWRITE));
   assert.equal(result.verification.verified, true);
   assert.equal(result.verification.exitCode, 0);
-  assert.equal(result.verification.mps, null);
-  assert.equal(result.verification.fidelity, null);
+  assert.equal(result.verification.mps, 100);
+  assert.equal(result.verification.fidelity, 100);
+  assert.deepEqual(result.verification.configuredFloors, { mps: 70, fidelity: 70 });
   assert.equal(result.verification.protectedTermsVerified, true);
   assert.equal(result.changes.changed, true);
   assert.ok(result.changes.editCount > 0);
@@ -144,6 +146,105 @@ test('Aside bounds stdout bytes and ignores stderr secrets', async t => {
   }) });
   assert.equal(result.code, 'cli_output_limit');
   await assertNoOutput(f, result);
+});
+
+test('Aside rejects missing or malformed verification evidence despite exit zero and candidate text', async t => {
+  const proofs = [null, {}, [],
+    ...['mps', 'fidelity', 'mpsFloor', 'fidelityFloor'].flatMap(key => [null, '100', Infinity, -1, 101].map(value => ({ ...PROOF, [key]: value }))),
+    { ...PROOF, verified: 'true' }, { ...PROOF, retried: 'false' },
+    { ...PROOF, reason: 'provider-secret' }, { ...PROOF, retried: true },
+  ];
+  for (const verification of proofs) {
+    const f = await fixture(t);
+    const result = await runAsideRewrite({ ...f, tempRoot: f.temporary, spawnImpl: fakeCli({ verification }) });
+    assert.equal(result.status, 'rejected');
+    assert.equal(result.code, 'invalid_cli_verification');
+    await assertNoOutput(f, result);
+    assert.doesNotMatch(JSON.stringify(result), /provider-secret/);
+  }
+  const f = await fixture(t);
+  const result = await runAsideRewrite({ ...f, tempRoot: f.temporary, spawnImpl: fakeCli({
+    stdout: JSON.stringify({ mode: 'rewrite', format: 'json', output: REWRITE, mps: 100, verified: true }),
+  }) });
+  assert.equal(result.code, 'invalid_cli_verification');
+  await assertNoOutput(f, result);
+});
+
+test('Aside requires verified=true and scores at both its own and configured floors', async t => {
+  for (const verification of [
+    { ...PROOF, verified: false, reason: 'floor-not-met', retried: true },
+    { ...PROOF, mps: 69.9, mpsFloor: 0, fidelityFloor: 0 },
+    { ...PROOF, fidelity: 69.9, mpsFloor: 0, fidelityFloor: 0 },
+    { ...PROOF, mps: 90, mpsFloor: 95 },
+    { ...PROOF, fidelity: 90, fidelityFloor: 95 },
+  ]) {
+    const f = await fixture(t);
+    const result = await runAsideRewrite({ ...f, tempRoot: f.temporary, spawnImpl: fakeCli({ verification }) });
+    assert.equal(result.code, 'verification_rejected');
+    assert.equal(result.verification.exitCode, 0);
+    assert.equal(result.verification.mps, verification.mps);
+    assert.equal(result.verification.fidelity, verification.fidelity);
+    await assertNoOutput(f, result);
+  }
+  const f = await fixture(t);
+  const result = await runAsideRewrite({ ...f, tempRoot: f.temporary, spawnImpl: fakeCli({
+    verification: { ...PROOF, mps: 70, fidelity: 70, mpsFloor: 0, fidelityFloor: 0, text: 'provider-secret' },
+  }) });
+  assert.equal(result.status, 'verified');
+  assert.equal(result.verification.mpsFloor, 70);
+  assert.equal(result.verification.fidelityFloor, 70);
+  assert.deepEqual(result.verification.configuredFloors, { mps: 0, fidelity: 0 });
+  assert.doesNotMatch(JSON.stringify(result), /provider-secret/);
+});
+
+test('Aside invocation overrides merge selected options without mutating or persisting saved preferences', async t => {
+  const f = await fixture(t, { settings: { language: 'ko', persona: 'natural-ko', register: 'casual',
+    backend: 'codex-cli', model: 'saved-model', protectedTerms: ['Patina'] } });
+  const before = await readAsideSettings(f.workspace);
+  const settingsPath = join(f.workspace, '.patina', 'aside.json');
+  const beforeBytes = await readFile(settingsPath);
+  const overrides = { language: 'en', documentType: 'technical', persona: null, register: 'professional',
+    backend: 'claude-cli', model: 'one-run-model', protectedTerms: ['12'] };
+  const result = await runAsideRewrite({ ...f, overrides, tempRoot: f.temporary, spawnImpl: fakeCli({ inspect: ({ config }) => {
+    assert.deepEqual(config, { language: 'en', 'document-type': 'technical', persona: null, register: 'professional',
+      backend: 'claude-cli', model: 'one-run-model' });
+    assert.equal(config.verification, undefined);
+  } }) });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.settings, before.settings);
+  assert.equal(result.settingsHash, before.settingsHash);
+  assert.deepEqual(result.effectiveOptions, { version: 1, ...overrides, verify: true, format: 'json' });
+  assert.deepEqual(await readAsideSettings(f.workspace), before);
+  assert.deepEqual(await readFile(settingsPath), beforeBytes);
+  assert.deepEqual(overrides.protectedTerms, ['12']);
+  const next = await runAsideRewrite({ ...f, outputPath: join(f.workspace, 'second.md'), tempRoot: f.temporary,
+    overrides: { documentType: 'technical', register: undefined }, spawnImpl: fakeCli() });
+  assert.equal(next.ok, true);
+  assert.equal(next.effectiveOptions.register, 'casual');
+  assert.equal(next.effectiveOptions.model, 'saved-model');
+});
+
+test('Aside unconfigured invocation overrides stay ephemeral and reject secrets or incompatible combinations', async t => {
+  const f = await fixture(t);
+  const result = await runAsideRewrite({ ...f, overrides: { language: 'en', persona: 'natural-en' },
+    tempRoot: f.temporary, spawnImpl: fakeCli() });
+  assert.equal(result.ok, true);
+  assert.equal(result.effectiveOptions.persona, 'natural-en');
+  assert.equal(result.settings.persona, null);
+  assert.equal(result.configured, false);
+  await assert.rejects(stat(join(f.workspace, '.patina')), { code: 'ENOENT' });
+  for (const overrides of [null, [], 'draft', { apiKey: 'provider-secret' }, { baseURL: 'provider-secret' },
+    { verification: { 'mps-floor': 0 } }, { model: 'model; command' }, { backend: '--audit' },
+    { language: 'auto', persona: 'natural-en' }, { documentType: 'namuwiki' },
+    JSON.parse('{"__proto__": {"model":"provider-secret"}}')]) {
+    const rejected = await runAsideRewrite({ ...f, overrides, outputPath: join(f.workspace, 'rejected.md'),
+      spawnImpl: () => { assert.fail('invalid overrides must not spawn'); } });
+    assert.equal(rejected.status, 'error');
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.outputPath, null);
+    assert.doesNotMatch(JSON.stringify(rejected), /provider-secret/);
+    await assert.rejects(stat(join(f.workspace, 'rejected.md')), { code: 'ENOENT' });
+  }
 });
 
 test('Aside rejects invalid UTF-8 child output while exit 4 still wins over its bytes', async t => {
@@ -293,15 +394,16 @@ test('Aside timeouts are bounded and reject invalid limits', async t => {
   await assertNoOutput(f, result);
 });
 
-test('Aside shipped CLI enforces HARD_FAIL/floors and clears inherited voice while keeping configured backend/model', async t => {
-  for (const scenario of ['pass', 'hard-fail', 'low-mps', 'low-fidelity']) {
+test('Aside shipped CLI retains stricter floors, enforces its own minimum, and applies ephemeral options', async t => {
+  for (const scenario of ['pass', 'hard-fail', 'low-mps', 'low-fidelity', 'high-mps-floor', 'high-fidelity-floor', 'high-floor-pass', 'overrides']) {
     const source = 'The service retains 12 audit logs.';
     const f = await fixture(t, { source });
     const home = join(f.root, 'home');
     await mkdir(home);
+    const floor = scenario.startsWith('high-') ? 95 : 0;
     await writeFile(join(home, '.patina.yaml'), JSON.stringify({
       language: 'ko', 'document-type': 'formal', persona: 'natural-ko', register: 'casual',
-      backend: 'openai-http', model: 'configured-model', verification: { 'mps-floor': 0, 'fidelity-floor': 0 },
+      backend: 'openai-http', model: 'configured-model', verification: { 'mps-floor': floor, 'fidelity-floor': floor },
     }));
     const requests = [];
     const server = createServer(async (request, response) => {
@@ -311,9 +413,10 @@ test('Aside shipped CLI enforces HARD_FAIL/floors and clears inherited voice whi
       requests.push(payload);
       const prompt = payload.messages.map(message => message.content).join('\n');
       let answer = source;
-      if (prompt.includes('Meaning Preservation evaluator')) answer = JSON.stringify(scenario === 'hard-fail' ? highHardFailMps() : mpsResult(scenario === 'low-mps' ? 60 : 100));
+      if (prompt.includes('Meaning Preservation evaluator')) answer = JSON.stringify(scenario === 'hard-fail' ? highHardFailMps()
+        : mpsResult(scenario === 'low-mps' ? 60 : scenario === 'high-mps-floor' ? 90 : 100));
       else if (prompt.includes('Fidelity evaluator')) answer = JSON.stringify({ claims_preserved: scenario === 'low-fidelity' ? 0 : 3,
-        no_fabrication: scenario === 'low-fidelity' ? 0 : 3, audience_register_match: 3 });
+        no_fabrication: scenario === 'low-fidelity' ? 0 : 3, audience_register_match: scenario === 'high-fidelity-floor' ? 2 : 3 });
       response.writeHead(200, { 'content-type': 'application/json' });
       response.end(JSON.stringify({ choices: [{ message: { content: answer } }] }));
     });
@@ -324,15 +427,32 @@ test('Aside shipped CLI enforces HARD_FAIL/floors and clears inherited voice whi
       const env = { ...process.env, HOME: home, USERPROFILE: home, PATINA_API_KEY: 'aside-local-test-key',
         PATINA_API_KEY_FILE: '', PATINA_BASE_URL: '', OPENAI_BASE_URL: '', PATINA_MODEL: '',
         TMPDIR: f.temporary };
-      const result = await runAsideRewrite({ ...f, env, timeoutMs: 20_000, tempRoot: f.temporary });
-      assert.equal(result.status, scenario === 'pass' ? 'verified' : 'rejected', JSON.stringify(result));
-      assert.equal(result.verification.exitCode, scenario === 'pass' ? 0 : 4);
+      const overrides = scenario === 'overrides' ? { language: 'en', documentType: 'technical', persona: 'natural-en', register: 'professional',
+        backend: 'openai-http', model: 'one-run-model' } : {};
+      const result = await runAsideRewrite({ ...f, env, overrides, timeoutMs: 20_000, tempRoot: f.temporary });
+      const success = ['pass', 'high-floor-pass', 'overrides'].includes(scenario);
+      const childFailed = ['hard-fail', 'high-mps-floor', 'high-fidelity-floor'].includes(scenario);
+      assert.equal(result.status, success ? 'verified' : 'rejected', JSON.stringify(result));
+      assert.equal(result.verification.exitCode, childFailed ? 4 : 0);
+      assert.equal(result.verification.cliVerified, !childFailed);
+      assert.deepEqual(result.verification.configuredFloors, { mps: floor, fidelity: floor });
+      assert.equal(result.verification.mpsFloor, Math.max(70, floor));
+      assert.equal(result.verification.fidelityFloor, Math.max(70, floor));
+      assert.equal(result.verification.mps, scenario === 'low-mps' ? 60 : scenario === 'high-mps-floor' ? 90 : scenario === 'hard-fail' ? 95 : 100);
+      assert.equal(result.verification.fidelity, scenario === 'low-fidelity' ? 50 : scenario === 'high-fidelity-floor' ? 91.7 : 100);
       assert.ok(requests.length >= 3);
-      assert.ok(requests.every(request => request.model === 'configured-model'));
+      assert.ok(requests.every(request => request.model === (scenario === 'overrides' ? 'one-run-model' : 'configured-model')));
       const rewritePrompt = requests[0].messages.map(message => message.content).join('\n');
-      assert.match(rewritePrompt, /Persona is omitted: preserve the source voice/);
-      assert.match(rewritePrompt, /Register is omitted: preserve the source/);
-      if (scenario === 'pass') assert.equal(await readFile(f.outputPath, 'utf8'), source);
+      if (scenario === 'overrides') {
+        assert.doesNotMatch(rewritePrompt, /Persona is omitted: preserve the source voice/);
+        assert.match(rewritePrompt, /Register is explicit/);
+        assert.equal(result.effectiveOptions.persona, 'natural-en');
+        assert.equal(result.settings.persona, null);
+      } else {
+        assert.match(rewritePrompt, /Persona is omitted: preserve the source voice/);
+        assert.match(rewritePrompt, /Register is omitted: preserve the source/);
+      }
+      if (success) assert.equal(await readFile(f.outputPath, 'utf8'), source);
       else await assertNoOutput(f, result);
       assert.equal(await readFile(f.inputPath, 'utf8'), source);
       assert.doesNotMatch(JSON.stringify(result), /aside-local-test-key|127\.0\.0\.1/);

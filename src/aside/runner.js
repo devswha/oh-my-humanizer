@@ -8,7 +8,7 @@ import { createTextEdits, isWellFormedText, normalizeProtectedSpans, validatePro
 import { detectLanguage } from '../prose-core.js';
 import { droppedNumbers } from '../verify.js';
 import { MPS_FLOOR, FIDELITY_FLOOR, isWebPersonaAllowed } from '../web-rewrite-contract.js';
-import { AsideError, hashAsideText, readAsideSettings, readAsideUtf8, resolveAsideWorkspace } from './options.js';
+import { AsideError, hashAsideText, normalizeAsideSettings, readAsideSettings, readAsideUtf8, resolveAsideWorkspace } from './options.js';
 
 const CLI_PATH = fileURLToPath(new URL('../../bin/patina.js', import.meta.url));
 const MAX_TEXT_LENGTH = 20_000;
@@ -23,6 +23,28 @@ function checkAbort(signal, deadline) {
 
 function validText(text) {
   return isWellFormedText(text) && text.length <= MAX_TEXT_LENGTH && text.trim().length > 0 && !text.includes('\0');
+}
+
+function mergeOverrides(settings, overrides) {
+  if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)
+    || ![Object.prototype, null].includes(Object.getPrototypeOf(overrides))) throw new AsideError('invalid_overrides');
+  if (Object.keys(overrides).some(key => !Object.hasOwn(settings, key))) throw new AsideError('unknown_setting');
+  // An omitted CLI flag is undefined; it must not reset a saved selection.
+  const selected = Object.fromEntries(Object.entries(overrides).filter(([, value]) => value !== undefined));
+  return normalizeAsideSettings({ ...settings, ...selected });
+}
+
+function cliVerification(value) {
+  const bounded = number => typeof number === 'number' && Number.isFinite(number) && number >= 0 && number <= 100;
+  const reasons = ['passed', 'passed-on-retry', 'floor-not-met', 'retry-error', 'dropped-numbers'];
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || typeof value.verified !== 'boolean' || typeof value.retried !== 'boolean'
+    || !bounded(value.mps) || !bounded(value.fidelity)
+    || !bounded(value.mpsFloor) || !bounded(value.fidelityFloor) || !reasons.includes(value.reason)) return null;
+  if (value.verified && value.reason !== (value.retried ? 'passed-on-retry' : 'passed')) return null;
+  // Whitelist scalar evidence only; never reflect arbitrary child JSON or text.
+  return { verified: value.verified, mps: value.mps, fidelity: value.fidelity,
+    retried: value.retried, reason: value.reason, mpsFloor: value.mpsFloor, fidelityFloor: value.fidelityFloor };
 }
 
 function bindTerms(original, terms) {
@@ -88,8 +110,11 @@ function invokeCli(args, { cwd, env, signal, timeoutMs, spawnImpl }) {
         reject(error);
       } else {
         try {
-          resolveResult({ exitCode, stdout: exitCode === 0 ? new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)) : '' });
-        } catch { reject(new AsideError('invalid_cli_json')); }
+          resolveResult({ exitCode, stdout: exitCode === 0 || exitCode === 4 ? new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)) : '' });
+        } catch {
+          if (exitCode === 4) resolveResult({ exitCode, stdout: '' });
+          else reject(new AsideError('invalid_cli_json'));
+        }
       }
     };
     const onAbort = () => finish(new AsideError('aborted'));
@@ -118,16 +143,18 @@ function invokeCli(args, { cwd, env, signal, timeoutMs, spawnImpl }) {
 /**
  * CLI-first rewrite adapter. All expected failures return a content-free result.
  * `env`, `spawnImpl`, and `tempRoot` are programmatic test seams, not CLI/UI
- * options. Settings always come from workspace/.patina/aside.json.
+ * options. Saved settings come from workspace/.patina/aside.json; `overrides`
+ * accepts the same validated, nonsecret fields for this invocation only.
  *
- * Verification evidence is the forced CLI --verify exit status: the current
- * CLI JSON does not carry its scorer results, so scores remain null. Exit 4
- * always rejects even when stdout contains the CLI's closest candidate.
+ * Forced CLI --verify must supply valid JSON evidence and exit zero. Both
+ * scores must meet the configured floors AND Aside's 70/70 minimum. The
+ * temporary config never lowers an ambient floor. Exit 4 always rejects,
+ * even when stdout contains the CLI's closest candidate.
  * Verified results identify an atomically created output file; they never
  * return drafts or raw backend diagnostics. No existing output is replaced.
  */
 export async function runAsideRewrite({
-  workspace, inputPath, outputPath, signal,
+  workspace, inputPath, outputPath, signal, overrides = {},
   timeoutMs = ASIDE_REWRITE_TIMEOUT_MS, spawnImpl = spawn, env = process.env, tempRoot = tmpdir(),
 } = {}) {
   const result = {
@@ -135,8 +162,9 @@ export async function runAsideRewrite({
     configured: false, settings: null, settingsHash: null,
     inputPath: null, outputPath: null, sourceHash: null, rewriteHash: null,
     effectiveOptions: null, changes: null,
-    verification: { enforced: true, verified: false, evidence: 'cli-verify-exit', exitCode: null,
-      mps: null, fidelity: null, mpsFloor: MPS_FLOOR, fidelityFloor: FIDELITY_FLOOR, protectedTermsVerified: false },
+    verification: { enforced: true, verified: false, evidence: 'cli-verify-json', exitCode: null, cliVerified: null,
+      mps: null, fidelity: null, retried: null, reason: null, configuredFloors: null,
+      mpsFloor: MPS_FLOOR, fidelityFloor: FIDELITY_FLOOR, protectedTermsVerified: false },
   };
   let temporary;
   let staging;
@@ -146,6 +174,7 @@ export async function runAsideRewrite({
     checkAbort(signal, deadline);
     const root = await resolveAsideWorkspace(workspace);
     Object.assign(result, await readAsideSettings(root));
+    const settings = mergeOverrides(result.settings, overrides);
     if (typeof inputPath !== 'string' || !inputPath.trim() || inputPath.includes('\0')) throw new AsideError('invalid_input_path');
     const input = resolve(root, inputPath);
     const original = await readAsideUtf8(input, MAX_TEXT_BYTES, 'invalid_input');
@@ -153,7 +182,6 @@ export async function runAsideRewrite({
     result.inputPath = input;
     result.sourceHash = hashAsideText(original);
     const output = await outputDestination(root, input, outputPath);
-    const { settings } = result;
     const language = detectLanguage('', original, settings.language);
     if (settings.persona !== null && !isWebPersonaAllowed(language, settings.persona)) throw new AsideError('persona_language_mismatch');
     if (settings.documentType === 'namuwiki' && language !== 'ko') throw new AsideError('document_type_language_mismatch');
@@ -170,7 +198,6 @@ export async function runAsideRewrite({
       register: settings.register,
       ...(settings.backend === null ? {} : { backend: settings.backend }),
       ...(settings.model === null ? {} : { model: settings.model }),
-      verification: { 'mps-floor': MPS_FLOOR, 'fidelity-floor': FIDELITY_FLOOR },
     }), { flag: 'wx', mode: 0o600 });
     await writeFile(snapshot, original, { flag: 'wx', mode: 0o600 });
     const args = ['--verify', '--format', 'json', '--quiet', '--no-interactive', '--config', config,
@@ -178,12 +205,25 @@ export async function runAsideRewrite({
     checkAbort(signal, deadline);
     const child = await invokeCli(args, { cwd: root, env, signal, timeoutMs: deadline - Date.now(), spawnImpl });
     result.verification.exitCode = child.exitCode;
-    if (child.exitCode === 4) return { ...result, status: 'rejected', code: 'verification_rejected', exitCode: 4 };
     if (child.exitCode === 130) throw new AsideError('aborted');
-    if (child.exitCode !== 0) throw new AsideError('cli_failed');
+    if (child.exitCode !== 0 && child.exitCode !== 4) throw new AsideError('cli_failed');
     let payload;
-    try { payload = JSON.parse(child.stdout); } catch { throw new AsideError('invalid_cli_json'); }
+    try { payload = JSON.parse(child.stdout); } catch {
+      if (child.exitCode === 4) return { ...result, status: 'rejected', code: 'verification_rejected', exitCode: 4 };
+      throw new AsideError('invalid_cli_json');
+    }
+    const proof = cliVerification(payload?.verification);
+    if (proof) Object.assign(result.verification, {
+      cliVerified: proof.verified, mps: proof.mps, fidelity: proof.fidelity, retried: proof.retried, reason: proof.reason,
+      configuredFloors: { mps: proof.mpsFloor, fidelity: proof.fidelityFloor },
+      mpsFloor: Math.max(MPS_FLOOR, proof.mpsFloor), fidelityFloor: Math.max(FIDELITY_FLOOR, proof.fidelityFloor),
+    });
+    if (child.exitCode === 4) return { ...result, status: 'rejected', code: 'verification_rejected', exitCode: 4 };
     if (!payload || payload.mode !== 'rewrite' || payload.format !== 'json' || !validText(payload.output)) throw new AsideError('invalid_cli_output');
+    if (!proof) throw new AsideError('invalid_cli_verification');
+    if (!proof.verified || proof.mps < result.verification.mpsFloor || proof.fidelity < result.verification.fidelityFloor) {
+      return { ...result, status: 'rejected', code: 'verification_rejected', exitCode: 4 };
+    }
     const rewritten = payload.output;
     if (droppedNumbers(original, rewritten).length) return { ...result, status: 'rejected', code: 'numbers_changed', exitCode: 4 };
     const protectedCheck = validateProtectedText(original, rewritten, spans);
@@ -214,7 +254,7 @@ export async function runAsideRewrite({
     };
   } catch (error) {
     const code = error instanceof AsideError ? error.code : 'rewrite_failed';
-    const rejection = ['input_changed', 'invalid_cli_json', 'invalid_cli_output', 'cli_output_limit'].includes(code);
+    const rejection = ['input_changed', 'invalid_cli_json', 'invalid_cli_output', 'invalid_cli_verification', 'cli_output_limit'].includes(code);
     return { ...result, status: rejection ? 'rejected' : 'error', code,
       exitCode: rejection ? 4 : code.startsWith('invalid_') ? 2 : 1 };
   } finally {

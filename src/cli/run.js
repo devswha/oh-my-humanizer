@@ -229,6 +229,7 @@ export async function runDefault(parsed, logger) {
         if (readError) throw readError;
         if (mode === 'rewrite') warnIfAlreadyHuman({ text, config, repoRoot, logger });
         let result;
+        let verificationReport = null;
 
         result = await invokeBackendChain({
           backends,
@@ -288,6 +289,12 @@ export async function runDefault(parsed, logger) {
               logger,
             });
             result = verification.text;
+            verificationReport = {
+              verified: verification.verified, mps: verification.mps, fidelity: verification.fidelity,
+              retried: verification.retried, reason: verification.reason,
+              mpsFloor: config.verification?.['mps-floor'] ?? 70,
+              fidelityFloor: config.verification?.['fidelity-floor'] ?? 70,
+            };
             logger.info('verify.result', {
               message: `[patina] verify: MPS ${verification.mps ?? 'n/a'}, fidelity ${verification.fidelity}${verification.verified ? ' (passed)' : ' (below floor)'}${verification.retried ? ' [retried]' : ''}`,
             });
@@ -302,6 +309,10 @@ export async function runDefault(parsed, logger) {
           }
           if (droppedNumbers(text, finalText).length > 0) {
             process.exitCode = Math.max(Number(process.exitCode) || 0, 4);
+            if (verificationReport) {
+              verificationReport.verified = false;
+              verificationReport.reason = 'dropped-numbers';
+            }
           }
         }
 
@@ -347,7 +358,7 @@ export async function runDefault(parsed, logger) {
         let output;
         let scoreValidationOutput = null;
         const inspection = mode === 'audit' && parsed.format === 'json' ? inspectAuditSource(text, { language: lang, config, repoRoot }) : null;
-        output = formatOutput(result, mode, parsed, { register: registerResolution, logger, auditBackstop, persona: personaReport, inspection });
+        output = formatOutput(result, mode, parsed, { register: registerResolution, logger, auditBackstop, persona: personaReport, inspection, verification: verificationReport });
         if (mode === 'score') {
           scoreValidationOutput = formatOutput(result, mode, { ...parsed, format: 'markdown' }, { logger });
         }

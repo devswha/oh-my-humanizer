@@ -17,6 +17,7 @@ import { TRANSLATIONESE_RULES } from './features/translationese.js';
  * @param {string} [opts.auditBackstop] Deterministic audit-mode section.
  * @param {object|null} [opts.persona] Persona metadata to append.
  * @param {object|null} [opts.inspection] Source-bound deterministic audit diagnostics.
+ * @param {object|null} [opts.verification] Runtime --verify evidence, never model-emitted metadata.
  * @returns {string} User-facing formatted output.
  * @throws {TypeError} When JSON output carries unserializable values.
  * @example
@@ -35,7 +36,8 @@ export function formatOutput(result, mode, parsed = {}, opts = {}) {
     body += opts.auditBackstop;
   }
   if (format === 'json') {
-    return formatJsonOutput({ result, mode, body, register, gate: parsed.gate, persona, inspection: opts.inspection });
+    return formatJsonOutput({ result, mode, body, register, gate: parsed.gate, persona, inspection: opts.inspection,
+      verification: mode === 'rewrite' && parsed.verify ? opts.verification : null });
   }
   return formatTextOutput(body);
 }
@@ -329,7 +331,7 @@ function formatTextOutput(body) {
   return body.trim();
 }
 
-function formatJsonOutput({ result, mode, body, register, gate, persona, inspection }) {
+function formatJsonOutput({ result, mode, body, register, gate, persona, inspection, verification }) {
   const overall = extractOverall(result, body);
   const scoreDetails = extractScoreDetails(result);
   const payload = {
@@ -347,6 +349,11 @@ function formatJsonOutput({ result, mode, body, register, gate, persona, inspect
     gateResult: buildGateResult(overall, gate),
     persona: persona || null,
     output: body,
+    ...(verification ? { verification: {
+      verified: verification.verified, mps: verification.mps, fidelity: verification.fidelity,
+      retried: verification.retried, reason: verification.reason,
+      mpsFloor: verification.mpsFloor, fidelityFloor: verification.fidelityFloor,
+    } } : {}),
     ...(mode === 'audit' && inspection ? { inspection } : {}),
     ...(scoreDetails ? { scores: scoreDetails } : {}),
   };

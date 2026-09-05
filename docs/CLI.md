@@ -59,6 +59,38 @@ patina --verify --lang ko --backend codex-cli draft.md
 
 Verification checks anchor counts, the weighted Polarity + Negation group, and score arithmetic. Fidelity criteria must be integers from 0 to 3; malformed values are rejected without clamping. Any `HARD_FAIL` prevents verification even when both scores exceed 70. Valid zero-anchor MPS remains 100. If verification still fails after the rewrite retry, stdout keeps the closest candidate and the CLI exits 4.
 
+`--verify --format json` adds runtime evidence under `verification`:
+
+```json
+{
+  "verified": true,
+  "mps": 100,
+  "fidelity": 100,
+  "retried": false,
+  "reason": "passed",
+  "mpsFloor": 95,
+  "fidelityFloor": 95
+}
+```
+
+`mpsFloor` and `fidelityFloor` report the configured thresholds (95 in this
+example). Scores describe the emitted candidate; an unparseable MPS is `null`.
+`reason` is `passed`, `passed-on-retry`, `floor-not-met`, `retry-error`, or
+`dropped-numbers`. The numeric guard sets `verified:false` and
+`reason:"dropped-numbers"` even if the scorers passed. The draft appears only in
+the existing `output` field. Plain output and exit behavior stay the same;
+JSON without `--verify` has no `verification` field. Automation must check exit
+0, `verification.verified === true`, and finite scores meeting its required
+floors. A nonempty `output` or the envelope's legacy `mps` field is not proof.
+
+The Aside adapter requires valid verification metadata and at least 70 for
+both scores. It retains stricter configured floors. Its optional programmatic
+`overrides` object uses the saved settings field names, validates the merged
+selection, and applies it to one rewrite. `settings` and `settingsHash` identify
+the saved preferences; `effectiveOptions` records the merged invocation and
+resolved language. Overrides do not save preferences or accept credentials,
+base URLs, or verification thresholds.
+
 The Node CLI keeps Persona quality and verification separate. `--verify` uses
 `verification.{mps-floor,fidelity-floor}`; `personas.thresholds` contains only
 advisory voice-match and surface-churn thresholds.
