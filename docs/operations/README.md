@@ -47,7 +47,8 @@ live, which is terminal, and which must not be edited.
    2026-09-02 (git history keeps them).
 2. **Cost and margin:** `g002-collector-redesign.md` → `pay-b-cost-v1.md`
    → **`pro-margin-decision-20260729.md`**; `number-safety-failure-rate-20260730.md` (private)
-   is a corrected side measurement whose refund-path item is still open.
+  is a corrected side measurement; its failure-allowance follow-up shipped in
+  8.1.3 (`pro-failure-recovery-20260904.md`).
 3. **Serving engine:** `serving-engine-cost-20260725.md` →
    `register-failure-handoff-20260726.md` (research, closed 2026-07-27) →
    `serving-engine-deepseek-0731-20260803.md` (retracted) →
@@ -65,15 +66,15 @@ live, which is terminal, and which must not be edited.
 ## Known open loops (recorded, not resolved here)
 
 - First healthy `OBS-ALERT-v1` receipt after live-open: no record found.
-  Observed 2026-09-04 (08:31, 08:45, 09:00 KST, three consecutive production
-  deployments including the one before the key rotation): every 15-minute
-  `GET /api/pro-monitor` returns **503 `monitor_unavailable`**, while the
-  synthetic pro `POST /api/rewrite` it issues one second later returns 200.
-  The pro serving path is healthy; the monitor's aggregate/log adapters are
-  not. Pre-existing, not caused by the rotation; owner to inspect the
-  observability adapters (`PATINA_OBSERVABILITY_*`, `PATINA_VERCEL_LOG_QUERY_*`).
-- Refund path for number-safety failures (`src/rewrite-handler.js` still says
-  "no refund path").
+  The recurring 503 incident was repaired through the stable log-query alias
+  and the Discord message envelope fix in 8.1.3. Ordinary production cron
+  returned 200 on 2026-09-05. The formal eligible alert/recovery receipt still
+  needs its own evidence; a successful cron status alone does not establish it.
+  See `pro-monitor-endpoint-repair-20260904.md` and
+  `pro-failure-recovery-20260904.md`.
+- Trusted server-side rewrite failures now restore Pro request/character
+  allowance once (8.1.3). This is usage allowance restoration, not a payment
+  refund. Client cancellations after admission remain charged.
 - Free-tier engine: resolved 2026-09-02 — owner confirmed gemini; no record
   in this directory documents the flip back from deepseek, so the env value on
   the deployment stays the source of truth.
