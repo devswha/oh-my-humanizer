@@ -13,15 +13,17 @@ function bindRequest(receipt, logicalId, index, candidate, promptHash, options =
   if (receipt.schemaVersion !== 1 || receipt.promptHash !== promptHash || receipt.requestHash !== textHash(JSON.stringify(identity))) throw new Error('Parent receipt request or prompt binding differs');
 }
 
-export async function auditParentReceipts({ directory, generations, privateRows, judgments, candidates, protocol, fixtures, hashes }) {
+export async function auditParentReceipts({ directory, generations, privateRows, judgments, candidates, protocol, fixtures, hashes,
+  includeGenerations = true, judgmentProtocolHash, judgeIds }) {
   const expectedGroups = new Map();
   for (const generation of generations) {
     const candidate = candidates.find((candidate) => candidate.id === generation.candidate_id);
     const logical = `${generation.protocol_hash}/${key(generation)}`;
-    expectedGroups.set(textHash(`${logical}/rewrite`), { row: generation, candidate, generation, logicalId: `${logical}/rewrite` });
-    for (const judge of judgeCandidates(candidate, protocol)) {
+    if (includeGenerations) expectedGroups.set(textHash(`${logical}/rewrite`), { row: generation, candidate, generation, logicalId: `${logical}/rewrite` });
+    for (const judge of judgeCandidates(candidate, protocol).filter((judge) => !judgeIds || judgeIds.includes(judge.id))) {
       const row = judgments.find((row) => key(row) === key(generation) && row.judge_id === judge.id);
-      expectedGroups.set(textHash(`${logical}/judge/${judge.id}`), { row, candidate: judge, generation, judge: true, logicalId: `${logical}/judge/${judge.id}` });
+      const judgeLogical = `${judgmentProtocolHash || generation.protocol_hash}/${key(generation)}/judge/${judge.id}`;
+      expectedGroups.set(textHash(judgeLogical), { row, candidate: judge, generation, judge: true, logicalId: judgeLogical });
     }
   }
   const callsRoot = resolve(directory, 'calls');
