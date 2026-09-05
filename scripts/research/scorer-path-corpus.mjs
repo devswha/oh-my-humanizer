@@ -230,7 +230,7 @@ export function freezeShortGenerationPlan(protocol, fixtures) {
   ].join('\n');
   const sources = selected.map((fixture) => {
     const prompt = promptTemplate.replace('{register}', fixture.register).replace('{language}', fixture.language)
-      .replace('{sourceJson}', JSON.stringify(fixture.text));
+      .replace('{sourceJson}', () => JSON.stringify(fixture.text));
     return { fixtureId: fixture.fixture_id, language: fixture.language, register: fixture.register,
       sourceTextHash: sha256(fixture.text), promptHash: sha256(prompt) };
   });

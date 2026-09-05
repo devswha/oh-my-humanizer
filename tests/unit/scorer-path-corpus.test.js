@@ -8,6 +8,7 @@ import { POLICY, sha256, validateGeneration, validateHumanCandidate, selectIntak
   counterfactuals, summarizeIntake, writePrivateCorpus } from '../../scripts/research/scorer-path-corpus.mjs';
 import { safeCallRecord } from '../../scripts/research/study-journal.mjs';
 import { createStudyInputs } from '../../scripts/research/study-inputs.mjs';
+import { rewriteFixtures } from '../../scripts/research/model-rewrite-benchmark.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 // These are synthetic test inputs, never study observations or human labels.
@@ -180,6 +181,33 @@ test('parent-only generation plan freezes 12 calls and exact prompts without pub
   assert.notEqual(freezeShortGenerationPlan(protocol, changed).planHash, plan.planHash);
   assert.throws(() => freezeShortGenerationPlan(protocol, fixtures.slice(1)));
   assert.throws(() => freezeShortGenerationPlan({ candidates: [{ ...protocol.candidates[0], transport: 'direct-api' }] }, fixtures));
+});
+
+test('generation prompts preserve literal replacement-dollar sequences in source text', () => {
+  const protocol = { candidates: [{ id: 'gemini-3.7', provider: 'gemini', transport: 'opencodex', model: 'synthetic-unit-model' }] };
+  for (const sequence of ['$&', '$`', "$'", '$$', '$1', '$<name>']) {
+    const fixtures = ['en', 'ko'].flatMap((language) => ['social', 'marketing'].map((register) => ({
+      fixture_id: `unit-${language}-${register}`, language, register,
+      text: `Synthetic "${sequence}" source.\nKeep ${sequence} literal.`,
+    })));
+    const plan = freezeShortGenerationPlan(protocol, fixtures);
+    for (const fixture of fixtures) {
+      const [before, after] = plan.promptTemplate.replace('{register}', fixture.register)
+        .replace('{language}', fixture.language).split('{sourceJson}');
+      const expectedPrompt = before + JSON.stringify(fixture.text) + after;
+      const source = plan.sources.find((row) => row.fixtureId === fixture.fixture_id);
+      assert.equal(source.sourceTextHash, sha256(fixture.text));
+      assert.equal(source.promptHash, sha256(expectedPrompt), `${fixture.fixture_id}: ${sequence}`);
+    }
+  }
+});
+
+test('existing four source prompt hashes and frozen 12-call plan remain unchanged', () => {
+  const protocol = JSON.parse(readFileSync(resolve(ROOT, 'docs/research/model-evaluation-20260904.json'), 'utf8'));
+  const published = JSON.parse(readFileSync(resolve(ROOT, 'docs/research/scorer-path-corpus-20260905.json'), 'utf8'));
+  const plan = freezeShortGenerationPlan(protocol, rewriteFixtures('full', ROOT));
+  assert.equal(plan.sources.length, 4);
+  assert.deepEqual(plan, published.optionalGenerationPlan);
 });
 
 test('private output uses restrictive permissions, content hashes and refuses to overwrite', () => {
