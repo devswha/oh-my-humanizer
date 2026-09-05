@@ -113,6 +113,8 @@
     "assets/brand/",
     "assets/social/",
     "assets/demo/README.md",
+    "assets/aside/",
+    "integrations/aside/",
     "scripts/benchmark-report.mjs",
     "tests/quality/dogfood.mjs",
     "scripts/lint.mjs",

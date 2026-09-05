@@ -37,8 +37,8 @@ const COPY = {
     personaAuto: '언어 자동 감지에서는 원문 유지를 선택하세요. 현재 스타일을 쓰려면 해당 언어를 선택하세요.',
     personaLanguage: '현재 스타일은 선택한 언어에 없습니다. 원문 유지 또는 이 언어의 스타일을 선택하세요.',
     namuwiki: '나무위키풍은 글 언어가 한국어일 때만 사용할 수 있습니다.',
-    modelInvalid: '모델 ID는 영문·숫자로 시작하며 최대 200자입니다. 영문, 숫자, 점, 밑줄, 콜론, /, @, +, -만 사용할 수 있습니다.',
-    termsLimit: '보호 용어는 최대 20개입니다. 한 줄에 하나씩 입력하세요.', termsInvalid: '보호 용어에서 제어 문자를 제거해 주세요.',
+    modelInvalid: '모델 ID는 영문·숫자로 시작하며 최대 160자입니다. 영문, 숫자, 점, 밑줄, 콜론, /, @, +, -만 사용할 수 있습니다.',
+    termsLimit: '보호 용어는 최대 20개입니다. 한 줄에 하나씩 입력하세요.', termsInvalid: '보호 용어는 중복 없이 256자 이내로 입력하고, 제어 문자는 제거해 주세요.',
   },
   en: {
     uiLanguage: 'Page language', pageTitle: 'Patina · Aside settings', eyebrow: 'ASIDE BLOG WORKFLOW',
@@ -66,8 +66,8 @@ const COPY = {
     personaAuto: 'Auto language requires Preserve source. Choose a matching language to keep the current style.',
     personaLanguage: 'This style is not available for the selected language. Choose Preserve source or a style for this language.',
     namuwiki: 'NamuWiki style requires Korean as the draft language.',
-    modelInvalid: 'Use a model ID up to 200 characters, starting with a letter or number. Allowed: letters, numbers, period, underscore, colon, /, @, +, -.',
-    termsLimit: 'Use at most 20 protected terms, one per line.', termsInvalid: 'Remove control characters from the protected terms.',
+    modelInvalid: 'Use a model ID up to 160 characters, starting with a letter or number. Allowed: letters, numbers, period, underscore, colon, /, @, +, -.',
+    termsLimit: 'Use at most 20 protected terms, one per line.', termsInvalid: 'Use unique protected terms up to 256 characters, without control characters.',
   },
 };
 
@@ -162,11 +162,11 @@ export function validateSettings(settings, choices) {
     else if (errors.persona) errors.persona = 'personaLanguage';
   }
   if (settings.documentType === 'namuwiki' && settings.language !== 'ko') errors.documentType = 'namuwiki';
-  if (settings.model !== null && (settings.model.length > 200 || !MODEL_PATTERN.test(settings.model))) errors.model = 'modelInvalid';
+  if (settings.model !== null && (settings.model.length > 160 || !MODEL_PATTERN.test(settings.model) || /:\/\/|^(?:sk[-_]|AIza|Bearer)/i.test(settings.model))) errors.model = 'modelInvalid';
   if (settings.protectedTerms.length > 20) errors.protectedTerms = 'termsLimit';
   // One term is a literal configuration value, never markup or an instruction.
   // Reject embedded controls; ordinary Unicode names and punctuation are valid.
-  if (settings.protectedTerms.some((term) => [...term].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127))) errors.protectedTerms = 'termsInvalid';
+  if (new Set(settings.protectedTerms).size !== settings.protectedTerms.length || settings.protectedTerms.some((term) => term.length > 256 || [...term].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127))) errors.protectedTerms = 'termsInvalid';
   return errors;
 }
 

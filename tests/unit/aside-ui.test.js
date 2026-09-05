@@ -91,10 +91,10 @@ test('unknown loaded languages, including object property names, stay visible wi
 
 test('model IDs accept provider syntax and reject command-like input, whitespace and excessive length', () => {
   const { choices } = readPayload(payload());
-  for (const model of [null, 'provider/model-v1.0:beta@2026+variant', 'a'.repeat(200)]) {
+  for (const model of [null, 'provider/model-v1.0:beta@2026+variant', 'a'.repeat(160)]) {
     assert.equal(validateSettings({ ...defaults, model }, choices).model, undefined);
   }
-  for (const model of ['-flags', '../path', 'two models', 'x;echo', '$(secret)', 'x\ny', 'a'.repeat(201)]) {
+  for (const model of ['-flags', '../path', 'two models', 'x;echo', '$(secret)', 'x\ny', 'a'.repeat(161)]) {
     assert.equal(validateSettings({ ...defaults, model }, choices).model, 'modelInvalid');
   }
 });

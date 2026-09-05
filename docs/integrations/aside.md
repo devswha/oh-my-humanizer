@@ -129,6 +129,13 @@ the user's preferences. The current options page and installed command define
 the accepted choices. [Rewrite axes](../CLI.md#three-independent-rewrite-axes)
 explains document type, Persona, and register.
 
+For an explicit change to one post, `aside rewrite` accepts `--lang`,
+`--document-type`, `--persona`, `--register`, `--backend`, and `--model`.
+These overrides do not change the saved workspace settings. Use `preserve`
+for Persona/register or `configured` for backend/model to clear a saved choice
+for that invocation. Changing a language may require `--persona preserve` if
+the saved voice belongs to another language. Verification cannot be disabled.
+
 An absent configuration does not block automatic writing: the adapter uses
 its defaults. Open the options page when requested, rather than asking the same
 questions for each post. If a requested save fails, report it; do not present
