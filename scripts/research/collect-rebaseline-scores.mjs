@@ -357,21 +357,37 @@ function savedSnapshot(output) {
 function evidenceHash(output, id) {
   return hash(['calls', 'wire'].flatMap(kind => filesBelow(resolve(output, kind, hash(id)))).sort().map(path => [relative(output, path), hash(fs.readFileSync(path))]));
 }
+function validateNotStarted(receipt, wirePath, isLast) {
+  const fields = new Set(['schemaVersion', 'state', 'requestHash', 'promptHash', 'temperature', 'error', 'durationMs', 'transportAttempts', 'startedAt', 'endedAt', 'notStarted', 'replayed']);
+  if (!isLast || receipt.state !== 'error' || receipt.error !== 'request-timeout' || receipt.startedAt !== null || receipt.durationMs !== 0
+    || !Array.isArray(receipt.transportAttempts) || receipt.transportAttempts.length
+    || typeof receipt.endedAt !== 'string' || !Number.isFinite(Date.parse(receipt.endedAt))
+    || (receipt.replayed !== undefined && typeof receipt.replayed !== 'boolean')
+    || Object.keys(receipt).some(key => !fields.has(key))) fail('invalid zero-dispatch deadline receipt');
+  if (fs.existsSync(wirePath)) fail('zero-dispatch receipt must not have a wire artifact');
+}
 function checkWire(output, id, candidate, record, snapshot, protocolHash) {
   const group = resolve(output, 'calls', hash(id));
   const paths = filesBelow(group);
   if (!paths.length) fail('started evaluation lacks recorded calls');
+  if (paths.length > snapshot.parserInvocationsPerText) fail('receipt sequence exceeds parser bound');
   const receipts = paths.map((_, i) => readJson(resolve(group, `${i + 1}.private.json`)));
+  let dispatched = 0;
   for (const [i, receipt] of receipts.entries()) {
-    if (!['completed', 'error'].includes(receipt.state)) fail('unresolved call; no paid replay');
-    const wire = readJson(resolve(output, 'wire', hash(id), `${i + 1}.private.json`));
+    if (receipt.schemaVersion !== 1 || !['completed', 'error'].includes(receipt.state)) fail('unresolved call; no paid replay');
+    const identity = { logicalId: id, index: i + 1, candidate, promptHash: hash(snapshot.prompts[record.textHash]), temperature: i === 0 ? .1 : 0, responseFormat: null, extraBody: null };
+    if (receipt.promptHash !== identity.promptHash || receipt.temperature !== identity.temperature || receipt.requestHash !== hash(identity)) fail('journal request/prompt/ordinal binding mismatch');
+    const wirePath = resolve(output, 'wire', hash(id), `${i + 1}.private.json`);
+    if (receipt.notStarted === true) { validateNotStarted(receipt, wirePath, i === receipts.length - 1); continue; }
+    dispatched++;
+    const wire = readJson(wirePath);
     if (wire.protocolHash !== protocolHash || wire.preparedHash !== hash(encode(snapshot.inputs.prepared[record.textHash])) || wire.request.prompt !== snapshot.prompts[record.textHash]
       || !['completed', 'error'].includes(wire.state) || wire.requestHash !== receipt.requestHash || hash(wire.request.prompt) !== receipt.promptHash
       || wire.textHash !== record.textHash || hash(wire.request.candidate) !== hash(candidate)) fail('wire/request binding mismatch or unresolved paid call');
     if (receipt.state === 'completed' && encode(wire.response) !== encode(receipt.response)) fail('response receipt mismatch');
     if (receipt.state === 'error' && (wire.error !== receipt.error || encode(wire.errorMetadata ?? null) !== encode(receipt.errorMetadata ?? null))) fail('error receipt mismatch');
   }
-  if (filesBelow(resolve(output, 'wire', hash(id))).length !== receipts.length) fail('extra wire receipts');
+  if (filesBelow(resolve(output, 'wire', hash(id))).length !== dispatched) fail('extra wire receipts');
   return { calls: receipts.map(receipt => safeCallRecord(receipt, candidate)) };
 }
 async function replayOne(output, snapshot, protocolHash, record, stored) {
@@ -386,6 +402,18 @@ async function replayOne(output, snapshot, protocolHash, record, stored) {
           error.studyResult = { ...(error.studyResult || {}), durationMs: receiptRow.calls[ordinal]?.durationMs }; throw error;
         }
       }, preparedInputs: snapshot.inputs.prepared[record.textHash], logicalId: id, timeoutMs: snapshot.timeoutMs }) });
+  // The generic in-memory journal sees the offline receipt reader as a call.
+  // Restore only the two dispatch flags from a strictly validated notStarted
+  // receipt; this neither creates a wire/reservation nor invokes a provider.
+  for (const [i, expectedCall] of receiptRow.calls.entries()) {
+    if (!expectedCall.notStarted) continue;
+    const actual = clone(replay.calls[i]), expected = clone(expectedCall);
+    if (!actual || actual.notStarted !== false || actual.attempts !== null) fail('zero-dispatch replay unexpectedly observed an attempt');
+    actual.notStarted = true; actual.attempts = 0;
+    delete actual.recovered_from_journal; delete expected.recovered_from_journal;
+    if (encode(actual) !== encode(expected)) fail('zero-dispatch replay metadata mismatch');
+    replay.calls[i].notStarted = true; replay.calls[i].attempts = 0;
+  }
   annotateObservation(replay, record, snapshot.inputs.prepared[record.textHash]);
   if (stored && encode(normalizedObservation(stored)) !== encode(normalizedObservation(replay))) fail('observed replay mismatch');
   replay.productionResult = await replayPreparationRow({ directory: output, logicalId: id, row: receiptRow, candidate: snapshot.candidate,

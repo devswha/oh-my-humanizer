@@ -213,6 +213,7 @@ Cancellation cause is explicit in private error metadata:
 | --- | --- | --- |
 | Study-wide cancellation | `study-cancelled`; interruption `operator-cancelled` | Stop further work; retain the call receipt and reservation |
 | Per-request deadline | `request-timeout`; interruption `deadline` | Persist a missing-score/error row and continue within the bound |
+| Logical deadline before dispatch | `request-timeout`; `notStarted: true`, zero attempts | Persist the row and continue; no wire or completion slot exists |
 | Network abort without either control firing | `study-call-failed`; interruption `network` | Persist an error row and continue within the bound |
 
 The name `AbortError` alone never establishes operator cancellation. The deadline
@@ -221,10 +222,26 @@ not cancel the whole cohort. Regression tests exercise active-fetch programmatic
 cancellation, real SIGTERM, already-aborted/listener-installation races, listener
 cleanup, and deadline/network-error rows followed by a successful next text.
 
-The earlier zero-call preparation beginning `c6a599` must remain unchanged. These
+The earlier zero-call preparations beginning `c6a599` and `2ea5edf` must remain
+unchanged. These
 collector/transport code changes require a new prepared snapshot after the fix
 commit, with the same approval bytes, exact texts, and candidate. Turing's
 independent re-review remains required before any live execution.
+
+A parser retry can exhaust its logical deadline after a malformed first response.
+The shared journal then writes a terminal `notStarted: true` receipt without
+calling the collector transport. This is valid zero-dispatch evidence. It must
+have the exact frozen request/prompt/ordinal binding, timeout state, null start,
+zero duration, empty transport-attempt list, and no response, owner, or wire.
+Wire counts therefore follow dispatched calls, not journal-ordinal counts.
+
+Offline replay consumes this receipt at its original ordinal and restores only
+its validated `notStarted` and zero-attempt flags. It creates no wire, completion
+slot, or provider request. Tests advance the logical clock around the real bounded
+HTTP wrapper: the first fixture has one mocked fetch, two journals, and one wire;
+its timeout row persists and the next fixture succeeds. Resume and replay retain
+the receipt set without replacement calls, including recovery after a row-write
+failure. Corrupted or falsely marked zero-dispatch receipts still stop recovery.
 
 Every evaluation is reserved before its first call. Completed receipts can recover
 a row that failed to persist, entirely offline. Missing, extra, altered, or started

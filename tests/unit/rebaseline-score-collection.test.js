@@ -546,3 +546,106 @@ test('ordinary deadlines and network AbortError are recorded errors and the coho
     assert.equal((await replayCollection(options.output)).fullObservedReplay, true);
   }
 });
+
+async function exhaustParserDeadline(options, records, dependencies) {
+  const originalNow = Date.now, originalFetch = globalThis.fetch;
+  let offset = 0, fetches = 0;
+  const byText = new Map();
+  Date.now = () => originalNow() + offset;
+  globalThis.fetch = async (_url, request) => {
+    const prompt = JSON.parse(request.body).messages[0].content;
+    const record = records.find(item => prompt.includes(item.text));
+    assert.ok(record);
+    byText.set(record.textHash, (byText.get(record.textHash) || 0) + 1);
+    fetches++;
+    if (fetches === 1) offset += options.timeoutMs + 50;
+    return new Response(JSON.stringify({ model: candidate.model, usage: { prompt_tokens: 10, completion_tokens: 10 },
+      choices: [{ message: { content: fetches === 1 ? 'malformed score' : valid().text } }] }), { status: 200 });
+  };
+  try { return { report: await collectRebaselineScores(options, dependencies), fetches, byText }; }
+  catch (error) { return { error, fetches, byText }; }
+  finally { Date.now = originalNow; globalThis.fetch = originalFetch; }
+}
+
+test('logical deadline after malformed response records two journals but only one dispatched wire', async t => {
+  const { options, records } = setup(t, 2); options.timeoutMs = 1000;
+  const result = await exhaustParserDeadline(options, records);
+  const snapshot = read(resolve(options.output, 'snapshot.private.json'));
+  const protocolHash = read(resolve(options.output, 'study-protocol.json')).protocolHash;
+  const group = hash(`${protocolHash}/${snapshot.candidate.id}/${records[0].id}/0/score`);
+  const journal = resolve(options.output, 'calls', group), wire = resolve(options.output, 'wire', group);
+  assert.equal(result.byText.get(records[0].textHash), 1);
+  assert.equal(paths(journal).length, 2); assert.equal(paths(wire).length, 1);
+  const zero = read(resolve(journal, '2.private.json'));
+  assert.equal(zero.notStarted, true); assert.equal(zero.error, 'request-timeout');
+  assert.equal(zero.startedAt, null); assert.equal(zero.durationMs, 0); assert.deepEqual(zero.transportAttempts, []);
+  assert.equal(fs.existsSync(resolve(wire, '2.private.json')), false);
+  assert.equal(result.error, undefined);
+  assert.equal(result.fetches, 2, 'the next fixture gets one normal request');
+  assert.equal(result.report.errors, 1); assert.equal(result.report.valid, 1);
+  const row = read(resolve(options.output, 'rows', `${records[0].textHash}.private.json`));
+  assert.equal(row.error, 'request-timeout'); assert.equal(row.overall, null);
+  assert.equal(row.calls[1].notStarted, true); assert.equal(row.calls[1].attempts, 0);
+  assert.equal(read(resolve(options.output, 'rows', `${records[1].textHash}.private.json`)).status, 'ok');
+  const before = Object.fromEntries(paths(options.output).map(path => [path, hash(fs.readFileSync(path))]));
+  const previous = globalThis.fetch; t.after(() => { globalThis.fetch = previous; });
+  globalThis.fetch = async () => assert.fail('no replacement fetch on replay or resume');
+  assert.equal((await replayCollection(options.output)).fullObservedReplay, true);
+  await collectRebaselineScores(resume(options), { complete: async () => assert.fail('no replacement completion') });
+  assert.deepEqual(Object.fromEntries(paths(options.output).map(path => [path, hash(fs.readFileSync(path))])), before);
+});
+
+test('wireless notStarted timeout recovers a missing row without a replacement completion', async t => {
+  const { options, records } = setup(t); options.timeoutMs = 1000;
+  const result = await exhaustParserDeadline(options, records, { persist: (path, value) => {
+    if (path.includes('/rows/')) throw new Error('row persistence interrupted');
+    persistPrivate(path, value);
+  } });
+  assert.match(result.error.message, /persistence/); assert.equal(result.fetches, 1);
+  const recorded = Object.fromEntries(['calls', 'wire'].flatMap(kind => paths(resolve(options.output, kind))).map(path => [path, hash(fs.readFileSync(path))]));
+  const previous = globalThis.fetch; t.after(() => { globalThis.fetch = previous; });
+  globalThis.fetch = async () => assert.fail('recovery cannot fetch');
+  const report = await collectRebaselineScores(resume(options), { complete: async () => assert.fail('recovery cannot dispatch') });
+  assert.equal(report.attempted, 1); assert.equal(report.errors, 1); assert.equal(report.errorClasses['request-timeout'], 1);
+  const row = read(resolve(options.output, 'rows', `${records[0].textHash}.private.json`));
+  assert.equal(row.calls[1].notStarted, true); assert.equal(row.calls[1].attempts, 0);
+  assert.deepEqual(Object.fromEntries(['calls', 'wire'].flatMap(kind => paths(resolve(options.output, kind))).map(path => [path, hash(fs.readFileSync(path))])), recorded);
+  assert.equal((await replayCollection(options.output)).fullObservedReplay, true);
+});
+
+test('zero-dispatch receipts require exact prompt/request/ordinal/state and no dispatch evidence', async t => {
+  const { options, records } = setup(t); options.timeoutMs = 1000;
+  const result = await exhaustParserDeadline(options, records);
+  assert.equal(result.error, undefined);
+  const progressPath = resolve(options.output, 'progress.private.json');
+  const progress = read(progressPath); progress.entries[records[0].textHash] = { state: 'started' }; write(progressPath, progress);
+  fs.unlinkSync(resolve(options.output, 'rows', `${records[0].textHash}.private.json`));
+  const journal = paths(resolve(options.output, 'calls')).find(path => path.endsWith('2.private.json'));
+  const original = fs.readFileSync(journal);
+  const fakeWire = journal.replace('/calls/', '/wire/');
+  const shifted = journal.replace('2.private.json', '3.private.json');
+  for (const variant of ['prompt', 'request', 'temperature', 'state', 'response', 'owner', 'startedAt', 'attempts', 'duration', 'endedAt', 'notStarted', 'wire', 'ordinal']) {
+    const receipt = JSON.parse(original);
+    if (variant === 'prompt') receipt.promptHash = hash('different prompt');
+    if (variant === 'request') receipt.requestHash = hash('different request');
+    if (variant === 'temperature') receipt.temperature = .1;
+    if (variant === 'state') receipt.state = 'completed';
+    if (variant === 'response') receipt.response = valid();
+    if (variant === 'owner') receipt.owner = { pid: 123 };
+    if (variant === 'startedAt') receipt.startedAt = receipt.endedAt;
+    if (variant === 'attempts') receipt.transportAttempts = [{ outcome: 'success' }];
+    if (variant === 'duration') receipt.durationMs = 1;
+    if (variant === 'endedAt') receipt.endedAt = null;
+    if (variant === 'notStarted') receipt.notStarted = false;
+    write(journal, receipt);
+    if (variant === 'wire') write(fakeWire, { state: 'error' });
+    if (variant === 'ordinal') fs.renameSync(journal, shifted);
+    try {
+      await assert.rejects(collectRebaselineScores(resume(options), { complete: async () => assert.fail('invalid receipt cannot authorize dispatch') }), undefined, variant);
+    } finally {
+      if (fs.existsSync(fakeWire)) fs.unlinkSync(fakeWire);
+      if (fs.existsSync(shifted)) fs.unlinkSync(shifted);
+      fs.writeFileSync(journal, original);
+    }
+  }
+});
