@@ -11,6 +11,8 @@ const cancellation = new AbortController();
 const children = new Map();
 let signalsInstalled = false;
 export function assertStudyActive() { if (cancellation.signal.aborted) throw new Error('Study cancelled'); }
+// Consumers may observe cancellation; the controller and abort authority stay here.
+export function getStudyCancellationSignal() { return cancellation.signal; }
 export function abortStudy() {
   cancellation.abort();
   for (const child of children.values()) child.stop(new Error('Study cancelled'));
