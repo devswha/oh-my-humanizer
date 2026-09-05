@@ -11,7 +11,7 @@
 //
 // It is deliberately separate from src/features/* (which stays the deterministic
 // detector layer): this file carries no detector logic and never scores text.
-import { normalizeProtectedSpans } from './edit-controls.js';
+import { normalizeProtectedSpans, isWellFormedText } from './edit-controls.js';
 
 /** Languages the rewrite pipeline supports. */
 export const SUPPORTED_LANGS = Object.freeze(['ko', 'en', 'zh', 'ja']);
@@ -399,7 +399,7 @@ export function normalizeHistory(history) {
     const role = turn.role;
     const content = turn.content;
     if (role !== 'user' && role !== 'assistant') return { ok: false, error: 'history role must be user or assistant' };
-    if (typeof content !== 'string') return { ok: false, error: 'history content must be a string' };
+    if (typeof content !== 'string' || !isWellFormedText(content)) return { ok: false, error: 'history content must be well-formed Unicode text' };
     turns.push({ role, content });
   }
   // Keep the most recent maxTurns, then trim oldest until under the byte cap.
@@ -499,6 +499,9 @@ export function validateRewriteRequest(body, env = {}, options = {}) {
   }
 
   const controls = /** @type {any} */ (body);
+  if (!isWellFormedText(text) || !isWellFormedText(mode === REWRITE_MODES.FIRST ? text : original)) {
+    return { ok: false, status: 400, error: 'text and original must be well-formed Unicode' };
+  }
   if (controls.includeEdits !== undefined && typeof controls.includeEdits !== 'boolean') {
     return { ok: false, status: 400, error: 'includeEdits must be a boolean' };
   }

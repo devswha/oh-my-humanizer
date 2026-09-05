@@ -130,6 +130,13 @@ test('requires usable cryptography and fails closed when hashing fails', async (
   });
 });
 
+test('hash-bound review rejects lone surrogates even when UTF-8 hashes collide', async () => {
+  const original = 'Draft \uD800.', changed = 'Draft \uD801.';
+  assert.equal(hash(original), hash(changed));
+  await assert.rejects(stateFor(input(original, changed, [{ start: 6, end: 7, replacement: '\uD801' }])), /edit_review_invalid_text/);
+  await assert.rejects(stateFor(input('Valid', 'Bad \uDC00', [{ start: 0, end: 5, replacement: 'Bad \uDC00' }])), /edit_review_invalid_text/);
+});
+
 test('edits support insertion, deletion, emoji, CJK, CRLF, and adjacent original offsets', async () => {
   const original = '😀 한국\r\n中文 日本語';
   const rewrite = '😀 좋은 한국\r\n日本語!';
@@ -148,7 +155,7 @@ test('edits support insertion, deletion, emoji, CJK, CRLF, and adjacent original
 });
 
 test('empty and unchanged text have exact equality flags without inferred approval', async () => {
-  for (const original of ['', 'same\r\n', '\ud800']) {
+  for (const original of ['', 'same\r\n', '😀']) {
     const state = await stateFor(input(original, original, []));
     assert.deepEqual(state.selectAll(false), { candidate: original, isAccepted: true, isOriginal: true, baseHash: hash(original) });
   }

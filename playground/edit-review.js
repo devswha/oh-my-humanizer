@@ -1,6 +1,6 @@
 // Browser-only edit review. The parent owns requests, verification results,
 // and copy availability. Text and selection state stay in memory.
-import { applyTextEdits } from '../src/edit-controls.js';
+import { applyTextEdits, isWellFormedText } from '../src/edit-controls.js';
 
 const MAX_TEXT_LENGTH = 20_000;
 const PAGE_SIZE = 50;
@@ -32,6 +32,7 @@ async function textHash(text, crypto) {
  */
 export async function createEditReviewState({ original, rewrite, editReview, initialSelection, crypto = globalThis.crypto }) {
   if (typeof original !== 'string' || typeof rewrite !== 'string'
+    || !isWellFormedText(original) || !isWellFormedText(rewrite)
     || original.length > MAX_TEXT_LENGTH || rewrite.length > MAX_TEXT_LENGTH) {
     throw invalid('edit_review_invalid_text');
   }
@@ -96,7 +97,7 @@ export async function createEditReviewState({ original, rewrite, editReview, ini
 const LABELS = {
   en: {
     title: 'Review changes',
-    note: 'A partial selection needs a new meaning check. The full rewrite’s scores and verification do not apply to changed selections.',
+    note: 'A partial selection needs a new meaning check. The full rewrite’s scores and verification do not apply to changed selections. Each verification counts as one request.',
     before: 'Before', after: 'After', empty: '(empty)',
     change: n => `Apply change ${n}`,
     count: (n, total) => `${n} of ${total} changes selected.`,
@@ -116,7 +117,7 @@ const LABELS = {
   },
   ko: {
     title: '변경 사항 검토',
-    note: '일부 변경만 선택하면 의미 보존을 다시 검증해야 합니다. 전체 수정문의 점수와 검증 결과는 선택을 바꾼 글에 적용되지 않습니다.',
+    note: '일부 변경만 선택하면 의미 보존을 다시 검증해야 합니다. 전체 수정문의 점수와 검증 결과는 선택을 바꾼 글에 적용되지 않습니다. 검증마다 요청 1회가 사용됩니다.',
     before: '변경 전', after: '변경 후', empty: '(없음)',
     change: n => `변경 ${n} 적용`,
     count: (n, total) => `전체 ${total}개 중 ${n}개 변경 선택.`,
@@ -136,7 +137,7 @@ const LABELS = {
   },
   zh: {
     title: '审阅修改',
-    note: '仅选择部分修改时，需要重新验证语义。完整改写的评分和验证结果不适用于更改后的选择。',
+    note: '仅选择部分修改时，需要重新验证语义。完整改写的评分和验证结果不适用于更改后的选择。每次验证计为一次请求。',
     before: '修改前', after: '修改后', empty: '（空）',
     change: n => `采用第 ${n} 处修改`,
     count: (n, total) => `已选择 ${n} 处修改，共 ${total} 处。`,
@@ -156,7 +157,7 @@ const LABELS = {
   },
   ja: {
     title: '変更を確認',
-    note: '一部の変更だけを選ぶ場合は、意味の保持を再検証する必要があります。書き換え全体のスコアと検証結果は、選択を変えた文章には適用されません。',
+    note: '一部の変更だけを選ぶ場合は、意味の保持を再検証する必要があります。書き換え全体のスコアと検証結果は、選択を変えた文章には適用されません。検証ごとに1リクエストを使用します。',
     before: '変更前', after: '変更後', empty: '（空）',
     change: n => `変更 ${n} を適用`,
     count: (n, total) => `${total} 件中 ${n} 件の変更を選択。`,

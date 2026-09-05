@@ -3,6 +3,7 @@
 import { byteLength, QUOTA_REASONS, validateRewriteRequest, WEB_TIERS } from './web-rewrite-contract.js';
 import { extractClientIp } from './rate-limit.js';
 import { extractBearerLicense } from './entitlement.js';
+import { sha256 } from './web-rewrite-receipt.js';
 
 /**
  * Cancellation contract: `runRewrite` receives the raw `req`/`res`. Runtimes
@@ -135,6 +136,11 @@ export function createRewriteHandler({ rateLimiter, runRewrite, env = {}, now = 
       }
 
       const request = validated.value;
+      // Reject a stale source before quota admission or a streaming START, so
+      // JSON and NDJSON callers both receive the same HTTP conflict status.
+      if (request.baseHash !== undefined && request.baseHash !== sha256(request.original)) {
+        return send(res, 409, { code: 'source_changed', error: 'source_changed' });
+      }
       const tier = typeof request.tier === 'string' ? request.tier : '';
       const ip = extractClientIp(req.headers || {});
 

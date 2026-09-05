@@ -782,7 +782,12 @@ function loadIntoPrompt(text) {
 
 // ---------- view switching ----------
 function showLanding() { els.app.setAttribute('data-view', 'landing'); }
-function showChat() { els.app.setAttribute('data-view', 'chat'); }
+function showChat() {
+  els.app.setAttribute('data-view', 'chat');
+  if (globalThis.matchMedia?.('(max-width: 720px)')?.matches) {
+    document.querySelectorAll('.nav__presets').forEach((panel) => panel.removeAttribute('open'));
+  }
+}
 
 // ---------- conversation lifecycle ----------
 function newConvo() {
@@ -1430,19 +1435,24 @@ function addRetry(body, attempt) {
 
 function addRecovery(body, attempt, recovery) {
   const copy = experienceCopy(els.lang.value);
-  const btn = el('button', 'retrybtn', recovery === 'credentials' ? copy.recover : copy.revise);
+  const verification = attempt.reqBody.mode === REWRITE_MODES.VERIFY;
+  const verifyRecovery = { en: 'Review key, then verify the selection', ko: '키 확인 후 선택본 다시 검증', zh: '检查密钥后重新验证所选文本', ja: 'キーを確認して選択文を再検証' };
+  const btn = el('button', 'retrybtn', verification ? (verifyRecovery[els.lang.value] || verifyRecovery.en)
+    : recovery === 'credentials' ? copy.recover : copy.revise);
   btn.type = 'button';
   btn.addEventListener('click', () => {
     if (state.busy || attempt.epoch !== state.sessionEpoch) return;
     selectConvo(attempt.convo);
-    if (!els.input.value.trim()) els.input.value = attempt.clean;
+    // Verification belongs to the review panel. Putting its candidate in the
+    // composer would turn recovery into a generated refine request.
+    if (!verification && !els.input.value.trim()) els.input.value = attempt.clean;
     autoGrow(els.input);
     if (recovery === 'credentials') {
       els.tier.value = String(attempt.reqBody.tier);
       syncTier();
       if (els.tier.value === WEB_TIERS.PRO) openLicenseControls();
       else els.apiKey.focus();
-    } else els.input.focus();
+    } else if (!verification) els.input.focus();
     updateChatSend();
   });
   body.appendChild(btn);

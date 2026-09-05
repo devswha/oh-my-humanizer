@@ -131,11 +131,23 @@ function app({ response, storage = new Map() } = {}) {
     readPresets: () => preferences.readPresets(() => context.localStorage),
     writePresets: (items) => preferences.writePresets(items, () => context.localStorage),
   });
-  vm.runInContext(controller + '\nglobalThis.ui = { state, submit, activeConvo, newConvo, selectConvo, readControls, failureMessage };', context);
+  vm.runInContext(controller + '\nglobalThis.ui = { state, submit, activeConvo, newConvo, selectConvo, readControls, failureMessage, addRecovery };', context);
   return { document, calls, storage, context, ui: context.ui, get: (id) => document.querySelector(`#${id}`) };
 }
 function change(app, id, value) { const node = app.get(id); node.value = value; node.emit('change'); }
 function controls(app) { return JSON.parse(JSON.stringify(app.ui.readControls())); }
+
+test('verification credential recovery does not turn its selection into a composer rewrite', () => {
+  const a = app();
+  const body = a.document.createElement('div');
+  a.ui.addRecovery(body, { convo: a.ui.activeConvo(), epoch: a.ui.state.sessionEpoch,
+    clean: 'Selected draft must not be generated again.', reqBody: { mode: 'verify', tier: 'pro' } }, 'credentials');
+  body.querySelector('.retrybtn').emit('click');
+  assert.equal(a.get('input').value, '');
+  assert.equal(a.calls.length, 0);
+  assert.equal(a.get('license-key').focused, true);
+  assert.equal(a.get('send').disabled, true);
+});
 
 for (const lang of contract.SUPPORTED_LANGS) {
   test(`${lang}: actual Pro controls apply a memory-only key, validate on first request and route existing buyers to it`, async () => {

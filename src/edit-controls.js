@@ -5,6 +5,19 @@
 const MAX_TEXT_LENGTH = 20_000;
 const MAX_PROTECTED_SPANS = 20;
 
+/** UTF-8 source hashes are lossless only for well-formed Unicode strings. */
+export function isWellFormedText(text) {
+  if (typeof text !== 'string') return false;
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (code >= 0xD800 && code <= 0xDBFF) {
+      const next = text.charCodeAt(++i);
+      if (!(next >= 0xDC00 && next <= 0xDFFF)) return false;
+    } else if (code >= 0xDC00 && code <= 0xDFFF) return false;
+  }
+  return true;
+}
+
 /** @typedef {{start: number, end: number, text?: string}} ProtectedSpan */
 /** @typedef {{start: number, end: number, text: string}} BoundSpan */
 /** @typedef {{start: number, end: number, replacement: string}} TextEdit */

@@ -18,7 +18,10 @@ number guard and meaning checks. Each verification consumes one request; Pro
 also meters its submitted characters. Send `baseHash`, formatted as
 `sha256:` followed by the lowercase SHA-256 digest of the original UTF-8 text.
 Conversation history is not accepted in this mode. A stale hash returns `409`
-with code `source_changed` before model calls.
+with code `source_changed` before quota admission or model calls, for both
+JSON and NDJSON requests. Text must be well-formed Unicode: unpaired surrogates
+are rejected rather than replaced during UTF-8 hashing. Invalid input receives
+`400`; an invalid generated output is refused with `output_invalid_unicode`.
 
 Optional controls apply to the canonical original (`text` for a first request,
 `original` for refinement or verification):

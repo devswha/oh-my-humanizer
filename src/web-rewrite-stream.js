@@ -8,7 +8,7 @@ import { buildWebRewritePrompt, loadWebAssets } from './web-rewrite.js';
 import { MPS_FLOOR, FIDELITY_FLOOR, redactSecrets, REWRITE_MODES, STREAM_FRAME_TYPES, WEB_TIERS } from './web-rewrite-contract.js';
 import { evaluateVerification } from './verification-schema.js';
 import { buildWebRewriteReceipt, sha256 } from './web-rewrite-receipt.js';
-import { createTextEdits, normalizeProtectedSpans, validateProtectedText } from './edit-controls.js';
+import { createTextEdits, normalizeProtectedSpans, validateProtectedText, isWellFormedText } from './edit-controls.js';
 import { fenceReferenceText } from './prompt-builder.js';
 import { resolveWebPromptBudget } from './web-prompt-budget.js';
 import {
@@ -353,8 +353,6 @@ async function runWebRewriteStreamUnscoped({
       + fenceReferenceText(JSON.stringify(literals), { label: 'Protected literals' });
   }
 
-  emit({ type: STREAM_FRAME_TYPES.START });
-
   // This metadata is intentionally return-only: NDJSON frames are customer-safe.
   /** @type {{valid: boolean, rewrite: object[], mps: object[], fidelity: object[]}} */
   const attempts = { valid: true, rewrite: [], mps: [], fidelity: [] };
@@ -405,11 +403,17 @@ async function runWebRewriteStreamUnscoped({
    * @returns {number|undefined}
    */
   const stageTimeout = () => (deadline ? deadline.remainingMs() : timeout);
+  if (!isWellFormedText(original) || !isWellFormedText(request.text)) {
+    closeAttempts();
+    emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'invalid_unicode' });
+    return { ok: false, code: 'invalid_unicode', attempts, observed: observeTerminal('terminal_failed', 400) };
+  }
   if (request.baseHash !== undefined && request.baseHash !== sha256(original)) {
     closeAttempts();
     emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'source_changed' });
     return { ok: false, code: 'source_changed', attempts, observed: observeTerminal('terminal_failed', 409) };
   }
+  emit({ type: STREAM_FRAME_TYPES.START });
   if (verifyOnly) {
     // Preserve the reviewed text byte-for-byte: this mode never rewrites it.
     rewrite = String(request.text);
@@ -489,6 +493,11 @@ async function runWebRewriteStreamUnscoped({
     }
   }
 
+  if (!isWellFormedText(rewrite)) {
+    closeAttempts();
+    emit({ type: STREAM_FRAME_TYPES.ERROR, code: 'output_invalid_unicode' });
+    return { ok: false, code: 'output_invalid_unicode', attempts, observed: observeTerminal('terminal_failed', 422) };
+  }
   const protection = protectedSpans.length ? validateProtectedText(original, rewrite, protectedSpans) : { ok: true };
   if (!protection.ok) {
     closeAttempts();

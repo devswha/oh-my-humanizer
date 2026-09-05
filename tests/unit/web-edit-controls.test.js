@@ -115,3 +115,23 @@ test('selective verification has the same numeric and meaning refusal gates', as
   assert.equal(rejected.code, 'floor_failed');
   assert.equal(frames.some((frame) => frame.type === 'done'), false);
 });
+
+test('ill-formed Unicode cannot alias an original hash or produce an approved output', async () => {
+  const old = 'Draft \uD800 stays.', changed = 'Draft \uD801 stays.';
+  assert.equal(sha256(old), sha256(changed), 'UTF-8 replaces both lone surrogates');
+  assert.equal(validateRewriteRequest({ ...source, mode: 'verify', original: changed, baseHash: sha256(old) }, env).ok, false);
+  const frames = [], calls = [];
+  const direct = await runWebRewriteStream({
+    request: { ...request(), mode: 'verify', original: changed, text: source.text, baseHash: sha256(old) },
+    callLLMStream: async () => { throw new Error('unexpected generation'); }, scoreFns: scores(calls), emit: (frame) => frames.push(frame),
+  });
+  assert.equal(direct.code, 'invalid_unicode');
+  assert.deepEqual(frames.map((frame) => frame.type), ['error']);
+  assert.equal(calls.length, 0);
+  const outputFrames = [];
+  const output = await runWebRewriteStream({ request: request({ includeEdits: true }),
+    callLLMStream: async () => ({ text: 'Result \uD800.' }), scoreFns: scores(calls), emit: (frame) => outputFrames.push(frame) });
+  assert.equal(output.code, 'output_invalid_unicode');
+  assert.equal(calls.length, 0);
+  assert.equal(outputFrames.some((frame) => frame.type === 'done'), false);
+});

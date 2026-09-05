@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler, { createObservabilityRestKv, createRestKv, createRewriteApiHandler } from '../../api/rewrite.js';
 import { RESERVE_QUOTA_LUA } from '../../src/quota-reservation.js';
+import { sha256 } from '../../src/web-rewrite-receipt.js';
 
 function makeReq({ body = undefined, method = 'POST', headers = {} } = {}) {
   return {
@@ -191,6 +192,22 @@ test('JSON mode maps safety-gate refusals to 422 and upstream failures to 500', 
     assert.equal(body.ok, false);
     assert.equal(body.code, code, `${code} must carry a stable machine-readable code`);
     assert.equal(typeof body.error, 'string');
+  }
+});
+
+test('stale source returns HTTP 409 before any runner or stream for every response format', async () => {
+  for (const accept of [undefined, 'application/x-ndjson', 'application/json']) {
+    let dispatched = false;
+    const api = createRewriteApiHandler({ env: { NODE_ENV: 'test', PATINA_FREE_API_KEY: 'fixture-key' },
+      runWebRewriteStreamImpl: async () => { dispatched = true; throw new Error('unexpected runner'); } });
+    const res = makeRes();
+    await api(makeReq({ headers: accept ? { accept } : {}, body: {
+      mode: 'verify', lang: 'en', tier: 'free', original: 'Current original.', text: 'Reviewed text.', baseHash: sha256('Previous original.'),
+    } }), res);
+    assert.equal(res.statusCode, 409);
+    assert.equal(dispatched, false);
+    assert.deepEqual(res.events, ['end']);
+    assert.equal(JSON.parse(res.chunks.join('')).code, 'source_changed');
   }
 });
 
