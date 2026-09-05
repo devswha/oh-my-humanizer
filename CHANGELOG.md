@@ -2,6 +2,15 @@
 
 All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 
+## 8.3.0 — 2026-09-05
+
+Semver rationale: minor — adds sentence diagnostics and audit inspection metadata for editor integrations; existing scores and rewrite defaults remain stable.
+
+- **Sentence diagnostics.** Offline inspection localizes lexical evidence to source-aligned sentences. JSON audits include the same deterministic source metadata, so editors can display findings without another model call. Code and HTML masking preserve Unicode offsets.
+- **Editor installation guides.** Documents VS Code 1.1, Obsidian 1.0 and the Gmail extension preview, including local scoring, explicit provider calls and installation requirements. Gmail account testing and store submission remain pending.
+- **Shared browser analysis.** Node and browser callers use the same deterministic analysis core. Regression outputs remain identical across the 49 existing fixtures.
+- **Audited model studies.** Claude response identity is separated from auxiliary usage accounting. Independent judges can evaluate preserved outputs, and result joins validate parent receipts and protocol bindings. Comparative experiments remain in progress; this release makes no model ranking claim.
+
 ## 8.2.1 — 2026-09-05
 
 - **Container startup.** Include the shared scoring scripts required by editor inspection and CLI module loading.

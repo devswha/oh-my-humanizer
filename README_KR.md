@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skill](https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet)](#빠른-시작)
 [![Multi-language](https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green)](https://github.com/devswha/patina)
-[![Version](https://img.shields.io/badge/version-8.2.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-8.3.0-blue)](CHANGELOG.md)
 
 <p align="center">
   <a href="https://patina.vibetip.help/"><b>브라우저에서 바로 써보기 — 설치 없음</b></a>
@@ -17,6 +17,8 @@
 patina는 한국어·영어·중국어·일본어를 위한 결정론적 패턴 기반 휴머나이저입니다. AI가 쓴 듯한 표현을 찾아내고, 원문의 주장·수치·극성·인과관계를 바꾸지 않은 채 문장만 다시 씁니다.
 
 블랙박스형 패러프레이저도, 작성자 판별기도, 탐지기 우회 도구도 아닙니다. patina는 AI 도움을 받아도 되는 상황에서 초안을 다듬으려는 작성자를 위한 도구입니다 — 더 깔끔한 문체, 감사 추적, 그리고 의미 보존 검사를 원하는 경우에 맞춰져 있습니다.
+
+편집기 연동: [VS Code, Obsidian 및 Gmail 미리보기](docs/integrations/editors.md).
 
 ## 데모
 
@@ -100,7 +102,7 @@ patina --batch docs/*.md --outdir cleaned/
 
 ```yaml
 # .patina.default.yaml
-version: "8.2.1"
+version: "8.3.0"
 language: ko              # ko | en | zh | ja
 document-type: default    # 장르·용도 + 패턴 정책
 persona:                  # 선택 사항; 생략하면 원문 보이스 보존

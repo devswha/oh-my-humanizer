@@ -16,6 +16,7 @@ import { TRANSLATIONESE_RULES } from './features/translationese.js';
  * @param {object} [opts.stdout] Stdout-like stream for color decisions.
  * @param {string} [opts.auditBackstop] Deterministic audit-mode section.
  * @param {object|null} [opts.persona] Persona metadata to append.
+ * @param {object|null} [opts.inspection] Source-bound deterministic audit diagnostics.
  * @returns {string} User-facing formatted output.
  * @throws {TypeError} When JSON output carries unserializable values.
  * @example
@@ -34,7 +35,7 @@ export function formatOutput(result, mode, parsed = {}, opts = {}) {
     body += opts.auditBackstop;
   }
   if (format === 'json') {
-    return formatJsonOutput({ result, mode, body, register, gate: parsed.gate, persona });
+    return formatJsonOutput({ result, mode, body, register, gate: parsed.gate, persona, inspection: opts.inspection });
   }
   return formatTextOutput(body);
 }
@@ -328,8 +329,9 @@ function formatTextOutput(body) {
   return body.trim();
 }
 
-function formatJsonOutput({ result, mode, body, register, gate, persona }) {
+function formatJsonOutput({ result, mode, body, register, gate, persona, inspection }) {
   const overall = extractOverall(result, body);
+  const scoreDetails = extractScoreDetails(result);
   const payload = {
     mode,
     format: 'json',
@@ -345,10 +347,9 @@ function formatJsonOutput({ result, mode, body, register, gate, persona }) {
     gateResult: buildGateResult(overall, gate),
     persona: persona || null,
     output: body,
+    ...(mode === 'audit' && inspection ? { inspection } : {}),
+    ...(scoreDetails ? { scores: scoreDetails } : {}),
   };
-
-  const scoreDetails = extractScoreDetails(result);
-  if (scoreDetails) payload.scores = scoreDetails;
 
 
   return JSON.stringify(payload, null, 2);
