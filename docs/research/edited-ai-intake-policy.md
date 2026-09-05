@@ -24,7 +24,9 @@ Illustrative examples (not research rows):
 
 Both policies require preserved claims, quantities, polarity and causation. A
 numeric proxy alone cannot certify that requirement. Record a separate meaning
-review and its evidence. Unreviewed or meaning-loss cases stay in the intake with
+review and its evidence. A completed `meaningReview` must bind `originalHash`
+and `editedHash` to the exact reviewed texts; changing either text requires a
+new review. Unreviewed or meaning-loss cases stay in the intake with
 explicit exclusions; they cannot support performance claims. New external human
 labels and the five-person panel remain separate requirements.
 
