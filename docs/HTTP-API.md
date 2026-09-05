@@ -12,6 +12,33 @@ Free, BYOK, and Pro use the same rewrite pipeline and quality gates. Paid access
 
 ## Request
 
+For a reviewed draft, `mode: "verify"` checks `text` against `original` without
+generating a new rewrite. It uses the same authentication, input limits, quota,
+number guard and meaning checks. Each verification consumes one request; Pro
+also meters its submitted characters. Send `baseHash`, formatted as
+`sha256:` followed by the lowercase SHA-256 digest of the original UTF-8 text.
+Conversation history is not accepted in this mode. A stale hash returns `409`
+with code `source_changed` before model calls.
+
+Optional controls apply to the canonical original (`text` for a first request,
+`original` for refinement or verification):
+
+| Field | Contract |
+|---|---|
+| `protectedSpans` | Up to 20 non-overlapping `{start, end}` ranges in JavaScript UTF-16 offsets. Ranges must not split a surrogate pair. Protected literals retain their exact spelling, occurrence counts and order. |
+| `includeEdits` | Boolean. On success, return `editReview` with `baseHash`, `outputHash`, `offsetEncoding: "utf-16"` and `edits: [{start, end, replacement}]`. Applying every edit reconstructs `rewrite` exactly. |
+| `baseHash` | Optional source binding for rewriting; required for `verify`. |
+
+Edits can cover several sentences when alignment is ambiguous. Selecting only
+some edits creates a new draft: previous scores and receipts do not verify it.
+Submit that exact draft with `mode: "verify"` before treating it as approved.
+Its successful response binds fresh scores and a receipt to those exact bytes.
+Protected text is checked before scoring; violations return `422` with
+`protected_text_failed`. Edit review supports up to 20,000 UTF-16 units per
+text; a generated output beyond this bound returns `edit_output_too_long`
+when edits were requested. Source text and protected literals are not added to
+analytics or persisted by these controls.
+
 Set `Content-Type: application/json` and send this body:
 
 ```json
@@ -30,12 +57,12 @@ Required fields:
 
 | Field | Values |
 | --- | --- |
-| `mode` | `first` or `refine` |
+| `mode` | `first`, `refine`, or `verify` |
 | `lang` | `ko`, `en`, `zh`, or `ja` |
 | `tier` | `free`, `byok`, or `pro` |
 | `text` | Non-empty string |
 
-Optional fields are `documentType`, `persona`, and `register`. `documentType` defaults to `default`; valid values are `default`, `blog`, `academic`, `technical`, `formal`, `social`, `email`, `legal`, `medical`, `marketing`, `narrative`, `instructional`, `casual-conversation`, `code-comment`, `commit-message`, `release-notes`, and `namuwiki` (`namuwiki` is Korean-only). `register` is `casual` or `professional`. A persona must be one offered for the selected language.
+Optional style fields are `documentType`, `persona`, and `register`; edit controls are described above. `documentType` defaults to `default`; valid values are `default`, `blog`, `academic`, `technical`, `formal`, `social`, `email`, `legal`, `medical`, `marketing`, `narrative`, `instructional`, `casual-conversation`, `code-comment`, `commit-message`, `release-notes`, and `namuwiki` (`namuwiki` is Korean-only). `register` is `casual` or `professional`. A persona must be one offered for the selected language.
 
 For `mode: "refine"`, `original` is required and must be the original source text. `history` is optional; it is an array of `{ "role": "user" | "assistant", "content": "..." }` turns. The server retains at most 6 recent turns and 12 KiB of history text. BYOK additionally requires an allowed `provider`, `model`, and non-empty `apiKey`; free and Pro reject a body `apiKey`.
 

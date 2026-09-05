@@ -5,7 +5,7 @@
     surface: new Set(['hero', 'chat', 'pricing', 'quota', 'controls']),
     lang: new Set(['en', 'ko', 'zh', 'ja']),
     tier: new Set(['free', 'pro', 'byok']),
-    mode: new Set(['first', 'refine']),
+    mode: new Set(['first', 'refine', 'verify']),
     inputBucket: new Set(['0-99', '100-499', '500-1999', '2000+']),
     latencyBucket: new Set(['<5s', '5-10s', '10-30s', '30s+']),
     mpsBand: new Set(['failed', '70-79', '80-89', '90-100']),

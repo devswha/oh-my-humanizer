@@ -11,6 +11,7 @@
 //
 // It is deliberately separate from src/features/* (which stays the deterministic
 // detector layer): this file carries no detector logic and never scores text.
+import { normalizeProtectedSpans } from './edit-controls.js';
 
 /** Languages the rewrite pipeline supports. */
 export const SUPPORTED_LANGS = Object.freeze(['ko', 'en', 'zh', 'ja']);
@@ -41,7 +42,7 @@ export function isProductionPosture(env = {}) {
 export const WEB_TIERS = Object.freeze({ FREE: 'free', BYOK: 'byok', PRO: 'pro' });
 
 /** Turn kinds. `first` is the one-shot rewrite; `refine` is a conversational follow-up. */
-export const REWRITE_MODES = Object.freeze({ FIRST: 'first', REFINE: 'refine' });
+export const REWRITE_MODES = Object.freeze({ FIRST: 'first', REFINE: 'refine', VERIFY: 'verify' });
 
 /**
  * Meaning-verification floors, hard-coded at 70/70 to mirror
@@ -428,8 +429,8 @@ export function validateRewriteRequest(body, env = {}, options = {}) {
   }
   const { mode, lang, tier, text, original, history } = /** @type {any} */ (body);
 
-  if (mode !== REWRITE_MODES.FIRST && mode !== REWRITE_MODES.REFINE) {
-    return { ok: false, status: 400, error: 'mode must be "first" or "refine"' };
+  if (mode !== REWRITE_MODES.FIRST && mode !== REWRITE_MODES.REFINE && mode !== REWRITE_MODES.VERIFY) {
+    return { ok: false, status: 400, error: 'mode must be "first", "refine", or "verify"' };
   }
   if (!SUPPORTED_LANGS.includes(lang)) {
     return { ok: false, status: 400, error: `lang must be one of ${SUPPORTED_LANGS.join(', ')}` };
@@ -488,12 +489,32 @@ export function validateRewriteRequest(body, env = {}, options = {}) {
 
   // refine turns must carry the original anchor so meaning preservation is
   // measured against the source, not the latest draft.
-  if (mode === REWRITE_MODES.REFINE) {
+  if (mode === REWRITE_MODES.REFINE || mode === REWRITE_MODES.VERIFY) {
     if (typeof original !== 'string' || original.trim().length === 0) {
-      return { ok: false, status: 400, error: 'refine mode requires the original text' };
+      return { ok: false, status: 400, error: `${mode} mode requires the original text` };
     }
     if (original.length > limits.maxChars) {
       return { ok: false, status: 413, error: `original exceeds ${limits.maxChars} characters for tier ${tier}` };
+    }
+  }
+
+  const controls = /** @type {any} */ (body);
+  if (controls.includeEdits !== undefined && typeof controls.includeEdits !== 'boolean') {
+    return { ok: false, status: 400, error: 'includeEdits must be a boolean' };
+  }
+  if ((controls.baseHash !== undefined || mode === REWRITE_MODES.VERIFY)
+    && (typeof controls.baseHash !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(controls.baseHash))) {
+    return { ok: false, status: 400, error: 'baseHash must identify the original text with SHA-256' };
+  }
+  if (mode === REWRITE_MODES.VERIFY && history != null && (!Array.isArray(history) || history.length > 0)) {
+    return { ok: false, status: 400, error: 'verify mode does not accept conversation history' };
+  }
+  let protectedSpans;
+  if (controls.protectedSpans !== undefined) {
+    try {
+      protectedSpans = normalizeProtectedSpans(mode === REWRITE_MODES.FIRST ? text : original, controls.protectedSpans);
+    } catch {
+      return { ok: false, status: 400, error: 'protectedSpans must contain at most 20 non-overlapping original-text ranges' };
     }
   }
 
@@ -541,7 +562,7 @@ export function validateRewriteRequest(body, env = {}, options = {}) {
       lang,
       tier,
       text,
-      original: mode === REWRITE_MODES.REFINE ? original : text,
+      original: mode === REWRITE_MODES.FIRST ? text : original,
       history: normHistory.value,
       provider: resolved.provider,
       model: resolved.model,
@@ -550,6 +571,9 @@ export function validateRewriteRequest(body, env = {}, options = {}) {
       persona,
       documentType,
       register,
+      ...(controls.includeEdits !== undefined ? { includeEdits: controls.includeEdits } : {}),
+      ...(controls.baseHash !== undefined ? { baseHash: controls.baseHash } : {}),
+      ...(protectedSpans !== undefined ? { protectedSpans } : {}),
     },
   };
 }

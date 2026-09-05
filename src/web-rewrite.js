@@ -111,6 +111,9 @@ export function buildWebRewritePrompt({
   documentSignals = null,
   structureGuidance = 'baseline',
 }) {
+  if (request.mode === 'verify') {
+    throw inputError('Verification does not generate text', 'Use the hosted verification pipeline for a reviewed draft.', 'Send mode "verify" to /api/rewrite.');
+  }
   const baseOptions = {
     config,
     patterns: assets.patterns,
