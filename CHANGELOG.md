@@ -2,6 +2,15 @@
 
 All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 
+## 8.3.1 — 2026-09-05
+
+Semver rationale: patch — fixes research validation and collection reliability, and publishes measured results without changing runtime model defaults or the core skill pipeline.
+
+- **Model evidence.** Publish provider contract research, the six-finalist rewrite confirmation, and a qualified writing/scoring model guide. Recorded routes, model-rated outcomes and shared-load timings retain their limits.
+- **Live scoring diagnostics.** Add 85 approval-bound, unlabelled rebaseline observations with full captured-input replay, alongside the existing 931 fixture observations. No authorship labels or mandatory CI score gate are inferred.
+- **Study correctness.** Include negation in the canonical MPS polarity group, separate upstream judge families from API hosts, and preserve historical evidence during revalidation.
+- **Collection reliability.** Bind private approvals and snapshots, propagate cancellation, retain ordinary deadline failures, replay zero-dispatch receipts, and preserve literal source text in short-form plans.
+
 ## 8.3.0 — 2026-09-05
 
 Semver rationale: minor — adds sentence diagnostics and audit inspection metadata for editor integrations; existing scores and rewrite defaults remain stable.
