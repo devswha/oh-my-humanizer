@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: this is technical documentation explicitly about an AI system where training-data limitations are the subject matter under discussion. The author is not an AI disclosing its own constraints — the author is a human researcher describing GPT-4's known limitations as factual claims supported by a citation (Stanford researchers). Removing these phrases would gut the paragraph's analytical purpose. Pattern 20 targets AI-generated editorial content that inadvertently reveals machine authorship, not academic writing that studies AI systems.
+**Failure (false positive)** — The paragraph discusses an AI system's training-data limits as its subject. That is the technical-documentation exclusion, regardless of who wrote it. Preserve the model description and caution; this review does not validate the dates or unnamed research reference.

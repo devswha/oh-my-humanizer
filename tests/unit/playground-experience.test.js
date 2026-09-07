@@ -13,6 +13,12 @@ import * as contract from '../../src/web-rewrite-contract.js';
 import * as protection from '../../playground/protected-input.js';
 import { createEditReview } from '../../playground/edit-review.js';
 
+// Isolated UI fixtures: native curated copy is validated separately after integration.
+const EXAMPLES = ['ko', 'en', 'zh', 'ja'].flatMap((lang) => Array.from({ length: 3 }, (_, i) => ({
+  id: `${lang}-fixture-${i}`, lang, kind: 'illustrative', label: `${lang} fixture ${i + 1}`,
+  before: `${lang} fixture source ${i + 1}: 70%`, after: `${lang} fixture result ${i + 1}: 70%`, caption: `${lang} fixture caption ${i + 1}`,
+})));
+
 const html = readFileSync(new URL('../../playground/index.html', import.meta.url), 'utf8');
 const controller = readFileSync(new URL('../../playground/chatgpt.js', import.meta.url), 'utf8')
   .replace(/^import\s[\s\S]*?;$/gm, '');
@@ -78,6 +84,7 @@ class Element {
     return event;
   }
   focus() { this.focused = true; }
+  click() { this.emit('click'); }
   matches(selector) {
     const attr = selector.match(/\[([^=\]]+)="([^"]*)"\]/);
     if (attr && (attr[1] === 'value' ? this.value : this.getAttribute(attr[1])) !== attr[2]) return false;
@@ -124,12 +131,15 @@ function documentFixture() {
   return document;
 }
 
-function app({ response, storage = new Map() } = {}) {
+function app({ response, storage = new Map(), languages = [], language, search = '', funnel } = {}) {
   const document = documentFixture();
   const calls = [];
   const reviews = [];
   const context = vm.createContext({
-    ...contract, ...client, ...preferences, ...copy, ...protection,
+    ...contract, ...client, ...preferences, ...copy, ...protection, EXAMPLES,
+    navigator: { languages, language },
+    location: { search },
+    patinaFunnelReady: funnel,
     createEditReview: (options) => {
       const pending = createEditReview({ ...options, document });
       reviews.push(pending);
@@ -643,4 +653,202 @@ test('portal links require an explicit safe Polar customer portal; no checkout-d
     assert.equal(copy.configuredPortalHref(config), '');
   }
   assert.equal(copy.configuredPortalHref({ portalUrl: 'https://polar.sh/configured-org/portal' }), 'https://polar.sh/configured-org/portal');
+});
+
+
+for (const [locale, lang] of [['ko-KR', 'ko'], ['en-US', 'en'], ['zh-Hant-TW', 'zh'], ['ja-JP', 'ja']]) {
+  test(`${locale}: first screen is native and Free can send without setup`, async () => {
+    const a = app({ languages: [locale] });
+    assert.equal(a.get('lang').value, lang);
+    assert.equal(a.document.documentElement.lang, lang);
+    assert.equal(a.get('lang').getAttribute('aria-label'), copy.experienceCopy(lang).labels[0]);
+    assert.equal(a.ui.activeConvo().thread.languageExplicit, false);
+    assert.deepEqual(controls(a), { lang, documentType: 'default', persona: '', register: '' });
+    assert.equal(a.get('tier').value, 'free');
+    assert.equal(a.get('settings-panel').getAttribute('open'), null);
+    assert.equal(a.get('settings-label').textContent, copy.onboardingCopy(lang).settings);
+    assert.equal(a.get('hero-hint').textContent, copy.onboardingCopy(lang).heroHint);
+    assert.equal(a.document.querySelector('.hero__sub').textContent, copy.onboardingCopy(lang).sub);
+    assert.equal(a.get('suggest').children.length, 3);
+    assert.equal(a.get('example-choice').options.length, 3);
+    assert.equal(a.get('example-choice').value, `${lang}-fixture-0`);
+    type(a, 'hero-input', 'Source 70%');
+    assert.equal(a.get('hero-send').disabled, false);
+    a.get('hero-form').emit('submit');
+    await a.settle();
+    assert.equal(a.calls.length, 1);
+    assert.equal(a.calls[0].body.lang, 'en', 'the browser locale must not disable automatic source detection');
+    assert.equal(a.calls[0].body.tier, 'free');
+    assert.equal(a.calls[0].authorization, undefined);
+    assert.equal(a.calls[0].body.apiKey, undefined);
+  });
+}
+
+test('locale fallback uses browser preference order and an explicit selection survives source detection', async () => {
+  const a = app({ languages: ['de-DE', 'ja-JP', 'ko-KR'] });
+  assert.equal(a.get('lang').value, 'ja');
+  change(a, 'lang', 'zh');
+  assert.equal(a.document.documentElement.lang, 'zh');
+  assert.equal(a.ui.activeConvo().thread.languageExplicit, true);
+  await a.ui.submit('English source 70%');
+  assert.equal(a.calls[0].body.lang, 'zh');
+  change(a, 'lang', 'ko');
+  assert.equal(a.get('lang').value, 'zh', 'an anchored conversation cannot change language');
+  assert.equal(a.get('settings-status').textContent, copy.experienceCopy('zh').languageLocked);
+  assert.equal(app({ languages: ['fr-FR'] }).get('lang').value, 'en');
+});
+
+test('a new hero draft can explicitly select a language without modifying the anchored chat', async () => {
+  const a = app({ languages: ['ja-JP'] });
+  await a.ui.submit('Original 70%');
+  const first = a.ui.activeConvo(), original = snapshot(first);
+  a.get('home-link').emit('click');
+  type(a, 'hero-input', '新しい原文 70%');
+  type(a, 'protected-text', '70%');
+  change(a, 'lang', 'ja');
+  assert.equal(a.get('hero-input').value, '新しい原文 70%');
+  assert.equal(a.get('protected-text').value, '70%');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.at(-1).body.lang, 'ja');
+  assert.equal(a.calls.at(-1).body.mode, 'first');
+  assert.deepEqual(snapshot(first), original);
+});
+
+test('all four example tabs have keyboard selection and three independently selectable rows', () => {
+  const a = app({ languages: ['ko-KR'] });
+  const tabs = a.document.querySelectorAll('.editor__tab');
+  assert.equal(tabs.length, 4);
+  assert.deepEqual(tabs.map((tab) => tab.dataset.lang), ['ko', 'en', 'zh', 'ja']);
+  for (const tab of tabs) {
+    tab.emit('click');
+    assert.equal(tab.getAttribute('aria-selected'), 'true');
+    assert.equal(tab.getAttribute('tabindex'), '0');
+    assert.equal(a.get('example-panel').getAttribute('aria-labelledby'), tab.id);
+    assert.equal(a.document.querySelectorAll('.editor__tab').filter((t) => t.getAttribute('aria-selected') === 'true').length, 1);
+    assert.equal(a.get('example-choice').options.length, 3);
+    for (const row of EXAMPLES.filter((row) => row.lang === tab.dataset.lang)) {
+      change(a, 'example-choice', row.id);
+      assert.equal(a.document.querySelector('.editor__seg--before').textContent, row.before);
+      assert.equal(a.document.querySelector('.editor__seg--after').textContent, row.after);
+      assert.equal(a.document.querySelector('.editor__cap').textContent, row.caption);
+    }
+  }
+  tabs[3].emit('keydown', { key: 'ArrowRight' });
+  assert.equal(tabs[0].getAttribute('aria-selected'), 'true');
+  assert.equal(tabs[0].focused, true);
+  tabs[0].emit('keydown', { key: 'End' });
+  assert.equal(tabs[3].getAttribute('aria-selected'), 'true');
+  tabs[3].emit('keydown', { key: 'Home' });
+  tabs[0].emit('keydown', { key: 'ArrowLeft' });
+  assert.equal(tabs[3].getAttribute('aria-selected'), 'true');
+  assert.equal(a.get('lang').value, 'ko', 'browsing example tabs is not a rewrite-language override');
+  assert.equal(a.calls.length, 0, 'curated previews never pretend to run the API');
+});
+
+test('samples load the hero and native preview; using a foreign example keeps the prior conversation intact', async () => {
+  const a = app({ languages: ['zh-CN'] });
+  a.get('suggest').children[2].emit('click');
+  assert.equal(a.get('hero-input').value, EXAMPLES.find((row) => row.id === 'zh-fixture-2').before);
+  assert.equal(a.get('example-choice').value, 'zh-fixture-2');
+  assert.equal(a.get('hero-send').disabled, false);
+  assert.equal(a.calls.length, 0);
+  await a.ui.submit('原来的文章 70%');
+  const first = a.ui.activeConvo(), original = snapshot(first);
+  a.get('home-link').emit('click');
+  a.get('example-tab-ja').emit('click');
+  change(a, 'example-choice', 'ja-fixture-1');
+  a.document.querySelector('.xcard__try').emit('click');
+  assert.equal(a.get('hero-input').value, EXAMPLES.find((row) => row.id === 'ja-fixture-1').before);
+  assert.equal(a.get('lang').value, 'ja');
+  assert.equal(a.get('example-choice').value, 'ja-fixture-1');
+  assert.equal(a.get('protected-text').value, '');
+  assert.deepEqual(snapshot(first), original);
+  assert.equal(a.calls.length, 1, 'choosing an example only fills the prompt');
+});
+
+test('illustrative copy has no guessed scores while approved API scores stay visible', async () => {
+  const a = app({ response: async (options) => {
+    const frame = { type: 'done', rewrite: 'Accepted 70%', mps: 91, fidelity: 87 };
+    options.onDone(frame); return { ok: true, finalFrame: frame };
+  } });
+  assert.equal(a.get('example-note').textContent, copy.onboardingCopy('en').illustrative);
+  assert.doesNotMatch(a.get('example-cards').textContent, /MPS|Fidelity|verified live/i);
+  await a.ui.submit('Source 70%');
+  assert.match(a.get('thread').textContent, /MPS.*91/);
+  assert.match(a.get('thread').textContent, /Fidelity.*87/);
+  assert.equal(a.document.querySelector('.output-status').textContent, 'Approved — checks passed. Actions are enabled.');
+});
+
+test('optional controls open for credentials, close with Escape, and Free restores setup-free sending', () => {
+  const a = app();
+  const panel = a.get('settings-panel');
+  assert.equal(panel.getAttribute('open'), null);
+  assert.equal(panel.querySelector('#lang'), null, 'language is outside the optional disclosure');
+  for (const id of ['document-type', 'persona', 'register', 'tier', 'license-key', 'api-key', 'protected-text']) assert.ok(panel.querySelector(`#${id}`));
+  a.get('pro-existing').emit('click');
+  assert.equal(panel.getAttribute('open'), '');
+  assert.equal(a.get('license-key').focused, true);
+  panel.emit('keydown', { key: 'Escape' });
+  assert.equal(panel.getAttribute('open'), null);
+  assert.equal(a.get('settings-label').focused, true);
+  a.get('price-byok').emit('click');
+  assert.equal(panel.getAttribute('open'), '');
+  assert.equal(a.get('api-key').focused, true);
+  a.get('price-free').emit('click');
+  type(a, 'hero-input', 'Source 70%');
+  assert.equal(a.get('tier').value, 'free');
+  assert.equal(a.get('hero-send').disabled, false);
+});
+
+
+test('funnel arrival runs once after locale/UI initialization and never blocks first use', async () => {
+  const arrivals = [];
+  const a = app({ languages: ['zh-CN'], funnel: (lang) => arrivals.push(lang) });
+  assert.deepEqual(arrivals, ['zh']);
+  change(a, 'lang', 'ja');
+  await a.ui.submit('English source 70%');
+  assert.deepEqual(arrivals, ['zh']);
+  const b = app({ languages: ['ko-KR'], funnel: () => { throw new Error('analytics unavailable'); } });
+  type(b, 'hero-input', 'Source 70%');
+  assert.equal(b.get('hero-send').disabled, false);
+});
+
+
+test('optional settings for a new hero source do not mutate the preceding conversation', async () => {
+  const a = app();
+  await a.ui.submit('Old source 70%');
+  const first = a.ui.activeConvo(), original = snapshot(first);
+  a.get('home-link').emit('click');
+  type(a, 'hero-input', 'New source 70%');
+  change(a, 'document-type', 'email');
+  change(a, 'persona', 'natural-en');
+  change(a, 'register', 'professional');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.at(-1).body.documentType, 'email');
+  assert.equal(a.calls.at(-1).body.persona, 'natural-en');
+  assert.equal(a.calls.at(-1).body.mode, 'first');
+  assert.deepEqual(snapshot(first), original);
+});
+
+
+for (const lang of ['ko', 'en', 'zh', 'ja']) {
+  test(`${lang}: allowlisted URL locale overrides the browser and initializes the funnel`, async () => {
+    const arrivals = [];
+    const a = app({ search: `?lang=${lang}&utm_source=github`, languages: ['ja-JP', 'ko-KR'], funnel: (value) => arrivals.push(value) });
+    assert.equal(a.get('lang').value, lang);
+    assert.equal(a.document.documentElement.lang, lang);
+    assert.deepEqual(arrivals, [lang]);
+    assert.equal(a.get('example-choice').value, `${lang}-fixture-0`);
+    change(a, 'lang', 'ko');
+    await a.ui.submit('English source 70%');
+    assert.equal(a.calls[0].body.lang, 'ko', 'manual selection survives both arrival locale and source detection');
+    assert.deepEqual(arrivals, [lang]);
+  });
+}
+
+test('unsupported URL locale falls back to a supported browser locale, then English', () => {
+  assert.equal(app({ search: '?lang=ja-JP', languages: ['zh-CN'] }).get('lang').value, 'zh');
+  assert.equal(app({ search: '?lang=constructor', languages: ['fr-FR'] }).get('lang').value, 'en');
 });

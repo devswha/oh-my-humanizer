@@ -18,11 +18,9 @@ language: en
 
 ## Expected Output
 
-> The number Bravelark Analytics keeps quoting this quarter is 41.3 percent — that's the jump in weekly active teams using the dashboard. For a product in its third year, that curve is unusual.
+> Weekly active teams using Bravelark Analytics' dashboard increased by 41.3 percent compared to the previous period. Adoption has been strong this quarter, showing the product's growing role in data-driven decision making.
 >
-> Alerting tells a different story. Twelve thousand new alert rules in a month sounds impressive until you learn most of them came from two enterprise customers migrating off a legacy tool.
->
-> Exports doubled. Nobody at the company predicted that one; the integrations team had been considered a maintenance backwater until this quarter.
+> Customers configured over 12,000 new alert rules in the last month alone. The alerting module has gained significant traction, pointing to the importance of proactive monitoring in modern operations. Bravelark's export integrations also gained momentum: connections to third-party warehouses doubled over the quarter, showing the value of interoperability in analytics.
 
 ## Applied Pattern
 
@@ -30,4 +28,4 @@ language: en
 
 ## Judgment
 
-**Success** — The rewrite breaks the template three different ways: paragraph one leads with the statistic, paragraph two undercuts its own number with context, paragraph three drops the significance sentence entirely and ends on an internal anecdote.
+**Success** — The input repeats the same template across dashboard, alerting and export paragraphs. The rewrite leads with usage data and combines the latter two areas. All three growth measures and their stated interpretations remain; no anecdote or negative explanation is supplied.

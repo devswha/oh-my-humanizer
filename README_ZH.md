@@ -6,14 +6,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skill](https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet)](#快速开始)
 [![Multi-language](https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green)](https://github.com/devswha/patina)
-[![Version](https://img.shields.io/badge/version-8.4.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-8.5.0-blue)](CHANGELOG.md)
 
 <p align="center">
   <strong>去掉 AI 味，保留原意。</strong>
 </p>
 
 <p align="center">
-  <a href="https://patina.vibetip.help/"><b>在浏览器中试用 — 无需安装</b></a>
+  <a href="https://patina.vibetip.help/?lang=zh&amp;utm_source=github&amp;utm_campaign=multilingual-20260907"><b>在浏览器中试用 — 无需安装</b></a>
 </p>
 
 patina 是一个面向韩文、英文、中文和日文的确定性、基于模式的人性化改写工具。它会找出听起来像 AI 的表达，并在不改变主张、数字、立场和因果关系的前提下改写。
@@ -24,23 +24,27 @@ patina 是一个面向韩文、英文、中文和日文的确定性、基于模�
 
 ## 效果展示
 
-把听起来像 AI 的文本粘贴进 **[playground](https://patina.vibetip.help/)**，patina 会就地改写。含义下限会校验这次改写（这里是 **MPS 100 / Fidelity 75** —— “30 templates” 这个事实被保留了下来），确定性 AI 信号则在 before → after 之间测量：hot-paragraph 比例从 **100 → 0** 下降，而那些夸张包装（“thrilled to announce”“revolutionize your workflow”“unlock their full potential”）也随之消失。
+下面节选自[中文示例画廊](docs/EXAMPLES_ZH.md)的包装样稿邮件。这是虚构文本的模型编辑示范，不是实时运行记录，也没有实测分数。
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/devswha/patina/main/assets/demo/patina-playground-en.gif" alt="patina playground 动画演示：把一段听起来像 AI 的模板包公告粘贴进网页 playground，在保留 30-templates 事实的前提下改写得更自然，并通过 MPS 100、Fidelity 75 以及确定性 AI 信号从 100 降到 0 的校验" width="820">
-</p>
+**改写前：**
 
-更多例子：[Before/After Gallery](docs/EXAMPLES.md)（[한국어](docs/EXAMPLES_KR.md)） · [CLI transcript](docs/DEMO.md)。
+> 需要说明的是，样品预计在收到确认后3个工作日内寄出。若确认时间推迟，寄出日期也将相应顺延。
+
+**改写后：**
+
+> 样品预计在收到确认后3个工作日内寄出。确认若有推迟，寄出日期也会顺延。
+
+去掉开场套话，保留“预计”、3个工作日和确认推迟时的顺延条件。完整邮件、周报和产品说明见[中文示例画廊](docs/EXAMPLES_ZH.md)。
 
 - **可审计，不是黑箱** — 184 条有名字的模式驱动每一次修改；`--diff` 展示改了什么、为什么改。
-- **含义在网页端经过验证地保留** — playground 用 MPS 和忠实度下限校验每次改写，并拒绝漂移的结果。Node CLI 用 `--verify`、代理技能用 `/patina --strict` 启用同样的检查。
+- **含义保留校验** — playground 检查 MPS 和忠实度，拒绝低于门槛或缺少分数的结果。评分也可能误判，仍需核对原文。Node CLI 用 `--verify`、代理技能用 `/patina --strict` 启用保留校验。
 - **三个相互独立的轴** — Document Type 管体裁，Persona 管声音，Register 管语域；省略的轴保持原文。
-- **全渠道可用** — 代理技能（Claude Code · Codex · Cursor · OpenCode）、Node CLI，以及[浏览器 playground](https://patina.vibetip.help/)。
+- **全渠道可用** — 代理技能（Claude Code · Codex · Cursor · OpenCode）、Node CLI，以及[浏览器 playground](https://patina.vibetip.help/?lang=zh&utm_source=github&utm_campaign=multilingual-20260907)。
 - **对局限诚实** — 分数是编辑信号而非作者判定；我们的[预注册研究](docs/research/2026-rewrite-efficacy-study1.md)把失败之处与成功一并公开。
 
 ## 快速开始
 
-**浏览器 — 无需安装。** 打开 **[patina.vibetip.help](https://patina.vibetip.help/)** 粘贴文本即可。改写与评分在服务端运行；API 模式按请求转发你自己的密钥（不存储、不记录）。
+**浏览器 — 无需安装。** 打开 **[patina.vibetip.help](https://patina.vibetip.help/?lang=zh&utm_source=github&utm_campaign=multilingual-20260907)**，可用入口和额度以页面提示为准。改写与评分在服务端运行；BYOK 模式按请求转发你自己的提供商密钥，不存储、不记录密钥。Pro 使用 Polar 许可证密钥认证，购买入口是否开放以页面为准。
 
 **代理技能 — 把下面这行粘贴给 Claude Code、Codex CLI、Cursor 等任意代理：**
 
@@ -56,14 +60,14 @@ Install patina by following https://raw.githubusercontent.com/devswha/patina/mai
 [在这里粘贴文本]
 ```
 
-**CLI — Node 18 及以上：**
+**CLI — Node 18.1 及以上：**
 
 ```bash
 npx patina-cli --lang zh input.txt          # 改写
 npx patina-cli doctor                       # 检查后端与密钥
 ```
 
-已登录的 `codex`、`claude` 或 `gemini` CLI 无需 API 密钥：加 `--backend codex-cli`。完整安装选项见 [INSTALLATION.md](INSTALLATION.md)。
+已登录本地 CLI 时无需 API 密钥；按对应工具选择 `--backend codex-cli`、`--backend claude-cli` 或 `--backend gemini-cli`。完整安装选项见 [INSTALLATION.md](INSTALLATION.md)。
 
 ## 三个相互独立的轴
 
@@ -102,7 +106,7 @@ patina --batch docs/*.md --outdir cleaned/
 
 ```yaml
 # .patina.default.yaml
-version: "8.4.1"
+version: "8.5.0"
 language: ko              # ko | en | zh | ja
 document-type: default    # 体裁/用途 + 模式策略
 persona:                  # 可选；省略时保留原文声音
@@ -123,7 +127,8 @@ register:                 # casual | professional；省略时保留原文语域
 ## 文档
 
 - [Cookbook](docs/COOKBOOK.md) — 常用配方 · [CLI 契约](docs/CLI.md) — 参数、门槛、退出码
-- [Before/After 画廊](docs/EXAMPLES.md) · [模式目录](docs/PATTERNS.md)
+- [中文改写示例](docs/EXAMPLES_ZH.md) · [中文模式目录](docs/PATTERNS-ZH.md)
+- 历史演示：[英文 playground 动画](assets/demo/patina-playground-en.gif) · [CLI 运行记录](docs/DEMO.md)
 - [架构](docs/ARCHITECTURE.md) · [配置与认证](docs/AUTHENTICATION.md)
 - [基准](docs/benchmarks/latest.md) · [研究](docs/research/2026-rewrite-efficacy-study1.md) · [FAQ](docs/FAQ.md)
 - [贡献指南](CONTRIBUTING.md) · [变更日志](CHANGELOG.md)

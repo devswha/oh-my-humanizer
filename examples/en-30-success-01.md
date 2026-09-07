@@ -18,11 +18,11 @@ language: en
 
 ## Expected Output
 
-> Remote work has measurably boosted productivity. Studies put the average gain at 13% for remote workers, mostly from time saved on commuting and from sustained focus.
+> Studies suggest a 13% average productivity gain for remote workers. The main drivers are time saved on commuting and improved focus.
 >
-> The pushback is real. Some companies are forcing return-to-office because collaboration and culture suffer when no one is in the same room — the casual conversations and accidental idea collisions vanish.
+> Some companies are pushing employees back to the office over concerns about collaboration and culture. Without face-to-face interaction, casual conversation and serendipitous idea exchange become harder.
 >
-> Hybrid is the most likely landing point. That's the consensus among experts now.
+> Most experts now agree on a hybrid model.
 
 ## Applied Pattern
 
@@ -30,4 +30,4 @@ language: en
 
 ## Judgment
 
-**Success** — All trigger conditions are met (interrogative opener + answer in same paragraph + 2+ instances across the document). The rewrite converts each question to a declarative and varies sentence rhythm to avoid creating a new mechanical pattern: a short verdict ("Hybrid is the most likely landing point") sits alongside longer explanatory sentences.
+**Success** — The rewrite removes questions whose answers follow in the same paragraph. It retains the studies' tentative 13% claim, its stated drivers, the collaboration concern and the majority expert view. No uncertain result becomes a proven outcome.

@@ -361,11 +361,9 @@ a { color: inherit; }
 .msg__text { white-space: pre-wrap; word-break: break-word; }
 .msg__text--flagged { opacity: .72; }
 .msg__text--unapproved { border-inline-start: 2px solid var(--warn, #b7791f); padding-inline-start: 8px; }
-/* Screen-reader-only approval live region (role="status"). Sighted users already
-   get the flagged border + floor/error notes; the visible "unapproved/approved"
-   line read as an alarming warning during normal streaming, so it is clipped
-   out visually while staying announced to assistive tech. */
-.output-status { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+/* Keep request evidence visible as well as announced after a rewrite. */
+.output-status { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 8px 0; }
+.output-status[data-output-status="approved"] { color: var(--accent); }
 .msg__text.streaming::after { content: "▍"; color: var(--accent); margin-left: 1px; animation: blink 1s step-start infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
@@ -499,4 +497,72 @@ details.foldout > summary:focus-visible,
   .editor__code { padding: 16px; }
   .editor__gutter { padding: 16px 10px; }
   .bench__cards { grid-template-columns: 1fr; }
+}
+
+/* First use: the language remains visible; all setup is optional. */
+.nav { background: var(--bg); }
+.settings summary, .meaning-info summary { cursor: pointer; color: var(--text-dim); font-size: 14px; }
+.settings summary:focus-visible, .meaning-info summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.settings__panel {
+  position: absolute; top: 100%; right: 24px; z-index: 25;
+  width: min(620px, calc(100vw - 48px)); max-height: min(70dvh, 620px); overflow-y: auto;
+  padding: 20px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .3); text-align: left;
+}
+.settings:not([open]) .settings__panel { display: none; }
+.settings__controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 16px 0; }
+.settings__panel .ctl { flex-wrap: wrap; min-width: 0; }
+.settings__panel .ctl__label { display: block; }
+.settings__panel .ctl__select, .settings__panel .ctl__input { max-width: 100%; }
+.settings__panel .nav__presets { margin-top: 16px; }
+.settings__panel .nav__byok, .settings__panel .nav__pro { justify-content: flex-start; }
+.hero { min-height: calc(100dvh - 80px); padding-top: 36px; }
+.hero__inner { max-width: 1200px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 40px; text-align: left; }
+.hero__title { font-size: clamp(34px, 4.5vw, 56px); line-height: 1.12; }
+.hero__title .grad { white-space: normal; }
+.hero__sub { margin-bottom: 24px; }
+.hero__hint, .suggest__label { color: var(--text-dim); font-size: 13px; line-height: 1.6; margin: 12px 0 0; }
+.suggest__label { margin-top: 20px; }
+.hero .suggest { justify-content: flex-start; margin-top: 8px; }
+.hero .examples { padding: 0; width: 100%; min-width: 0; }
+.hero .sec__head { text-align: left; margin-bottom: 12px; }
+.hero .sec__title { font-size: 22px; }
+.prompt__bar { justify-content: space-between; color: var(--text-dim); font-size: 13px; }
+.editor__bar { padding: 10px; }
+.editor__tabs { flex-wrap: wrap; }
+.editor__tab { padding: 7px 10px; }
+.editor__choice { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px 0; color: var(--text-dim); font-size: 12px; }
+.editor__choice select { min-width: 0; max-width: 100%; }
+.editor__code { padding: 8px 16px 12px; }
+.editor__label { font-size: 12px; color: var(--text-faint); margin: 10px 0 4px; }
+.editor__seg { overflow-wrap: anywhere; word-break: normal; }
+.sec__lede, .hero__sub { overflow-wrap: anywhere; }
+.editor__cap, .editor__note { margin: 0; padding: 4px 16px; font-size: 12px; line-height: 1.6; color: var(--text-dim); }
+.editor__note { padding-top: 12px; }
+.editor__foot { flex-wrap: wrap; justify-content: flex-end; padding: 12px; }
+.how__grid { grid-template-columns: 1fr; }
+.how__steps { display: grid; grid-template-columns: repeat(3, 1fr); }
+.meaning-info { max-width: 720px; }
+.meaning-info p { color: var(--text-dim); }
+@media (max-width: 1020px) {
+  .nav__end { flex-basis: auto; justify-content: flex-end; }
+  .hero__inner { gap: 24px; }
+}
+@media (max-width: 900px) {
+  .nav { gap: 12px; padding: 12px 16px; }
+  .nav__links { order: initial; flex-basis: auto; }
+  .nav__links a { font-size: 12px; }
+  .hero__inner { grid-template-columns: 1fr; max-width: 640px; }
+  .hero { padding: 24px 16px 40px; }
+  .hero__title { font-size: 36px; }
+  .hero__sub { margin-bottom: 16px; }
+  .how__steps { grid-template-columns: 1fr; }
+}
+@media (max-width: 540px) {
+  .nav__links { order: 4; flex-basis: 100%; }
+  .settings__panel { right: 12px; width: calc(100vw - 24px); }
+  .settings__controls { grid-template-columns: 1fr; }
+  .hero__title { font-size: 32px; }
+  .hero__sub { font-size: 16px; }
+  .hero .suggest__pill { font-size: 12px; padding: 8px 12px; }
 }

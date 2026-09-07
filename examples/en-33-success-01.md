@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> People trust a process when it behaves the same way every time. That predictability matters because handoffs go faster once each side knows what to expect.
+> Symmetry underpins trust. Every lasting relationship depends on consistency. Teams move faster when they stop second-guessing each handoff.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The rewrite gate is satisfied because the same inflated "X is the Y of Z" move appears twice in one short passage. The edit keeps the real claim (predictable behavior reduces friction) and removes the decorative metaphor stack.
+**Success** — Two abstract metaphor equations recur. The rewrite simplifies them while keeping symmetry, consistency in every lasting relationship, and the separate handoff claim. It does not invent a causal link between those claims.

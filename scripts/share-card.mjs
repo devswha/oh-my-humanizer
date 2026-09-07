@@ -33,6 +33,13 @@ const FONT_STACK =
   '"Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans CJK SC", ' +
   '"Hiragino Sans", "Microsoft YaHei", Arial, sans-serif';
 
+const ILLUSTRATIVE_COPY = Object.freeze({
+  en: { before: 'Before', after: 'After', tagline: 'Clearer writing. The same facts.', note: 'Illustrative example · not a measured model result' },
+  ko: { before: '수정 전', after: '수정 후', tagline: '문장은 자연스럽게, 사실은 그대로.', note: '설명용 예시 · 모델의 실측 결과가 아닙니다' },
+  zh: { before: '修改前', after: '修改后', tagline: '表达更自然，事实不变。', note: '说明性示例 · 非模型实测结果' },
+  ja: { before: '修正前', after: '修正後', tagline: '文章を自然に。事実はそのまま。', note: '説明用の例 · モデルの実測結果ではありません' },
+});
+
 export function escapeXml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -90,8 +97,8 @@ export function stringColumns(value) {
 // no spaces, so when a single "word" overflows the panel we hard-break it by
 // character. Returns at most MAX_PANEL_LINES lines, the last ending with an
 // ellipsis if clipped.
-export function wrapSnippetLines(value, { wrap = PANEL_WRAP_COLUMNS, maxLines = MAX_PANEL_LINES } = {}) {
-  const text = truncateSnippet(value);
+export function wrapSnippetLines(value, { wrap = PANEL_WRAP_COLUMNS, maxLines = MAX_PANEL_LINES, maxChars = MAX_SNIPPET_CHARS } = {}) {
+  const text = truncateSnippet(value, maxChars);
   if (!text) return [];
   const lines = [];
   let current = '';
@@ -131,9 +138,9 @@ export function wrapSnippetLines(value, { wrap = PANEL_WRAP_COLUMNS, maxLines = 
   return clipped;
 }
 
-function renderTspans(lines, x) {
+function renderTspans(lines, x, lineGap = 38) {
   return lines
-    .map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : 38}">${escapeXml(line)}</tspan>`)
+    .map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : lineGap}">${escapeXml(line)}</tspan>`)
     .join('');
 }
 
@@ -164,6 +171,7 @@ export function formatScoreLine({ aiScore, mps }) {
  * @param {number|null} [card.mps] 0-100 Meaning-Preservation Score (LLM-derived; optional).
  * @param {number|null} [card.beforeScore] Optional 0-100 AI-likeness for "before".
  * @param {string} [card.lang] Language code, for the footer tagline only.
+ * @param {boolean} [card.illustrative] Label a curated example and omit numerical score claims.
  * @returns {string} A standalone, self-describing SVG document string.
  * @example
  * renderShareCard({ before: 'Coffee has emerged…', after: 'Coffee changed…', aiScore: 0 });
@@ -175,17 +183,22 @@ export function renderShareCard({
   mps = null,
   beforeScore = null,
   lang = 'en',
+  illustrative = false,
 } = {}) {
-  const beforeLines = wrapSnippetLines(before);
-  const afterLines = wrapSnippetLines(after);
-  const afterChip = formatScoreLine({ aiScore, mps });
-  const beforeChip = beforeScore === null || beforeScore === undefined
+  const wrapping = illustrative ? { wrap: 44, maxLines: 9, maxChars: 1000 } : {};
+  const beforeLines = wrapSnippetLines(before, wrapping);
+  const afterLines = wrapSnippetLines(after, wrapping);
+  const fontSize = illustrative ? 20 : 25;
+  const lineGap = illustrative ? 26 : 38;
+  const copy = Object.hasOwn(ILLUSTRATIVE_COPY, lang) ? ILLUSTRATIVE_COPY[lang] : ILLUSTRATIVE_COPY.en;
+  const afterChip = illustrative ? null : formatScoreLine({ aiScore, mps });
+  const beforeChip = illustrative || beforeScore === null || beforeScore === undefined
     ? null
     : `AI ${formatScoreValue(beforeScore)}`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_WIDTH}" height="${CARD_HEIGHT}" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}" role="img" aria-labelledby="title desc">
-  <title id="title">patina before and after, with AI-likeness score</title>
-  <desc id="desc">A social card comparing AI-sounding prose before a meaning-preserving rewrite and the cleaner text after, with the deterministic AI-likeness score (lang: ${escapeXml(lang)}).</desc>
+  <title id="title">patina before and after${illustrative ? ', illustrative example' : ', with AI-likeness score'}</title>
+  <desc id="desc">${illustrative ? escapeXml(copy.note) : 'A social card comparing AI-sounding prose before a meaning-preserving rewrite and the cleaner text after, with the deterministic AI-likeness score'} (lang: ${escapeXml(lang)}).</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0b1020"/>
@@ -198,23 +211,23 @@ export function renderShareCard({
   </defs>
   <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="url(#bg)"/>
   <text x="72" y="78" fill="#f9fafb" font-family='${FONT_STACK}' font-size="46" font-weight="800">patina</text>
-  <text x="72" y="118" fill="#a7f3d0" font-family='${FONT_STACK}' font-size="24" font-weight="600">Strip the AI packaging. Keep the meaning.</text>
+  <text x="72" y="118" fill="#a7f3d0" font-family='${FONT_STACK}' font-size="24" font-weight="600">${illustrative ? escapeXml(copy.tagline) : 'Strip the AI packaging. Keep the meaning.'}</text>
 
   <g filter="url(#shadow)">
     <rect x="72" y="158" width="500" height="330" rx="26" fill="#111827" stroke="#374151" stroke-width="2"/>
-    <text x="104" y="210" fill="#fca5a5" font-family='${FONT_STACK}' font-size="24" font-weight="800">Before${beforeChip ? `  ·  ${escapeXml(beforeChip)}` : ''}</text>
-    <text x="104" y="258" fill="#e5e7eb" font-family='${FONT_STACK}' font-size="25">${renderTspans(beforeLines, 104)}</text>
+    <text x="104" y="210" fill="#fca5a5" font-family='${FONT_STACK}' font-size="24" font-weight="800">${illustrative ? escapeXml(copy.before) : 'Before'}${beforeChip ? `  ·  ${escapeXml(beforeChip)}` : ''}</text>
+    <text x="104" y="258" fill="#e5e7eb" font-family='${FONT_STACK}' font-size="${fontSize}">${renderTspans(beforeLines, 104, lineGap)}</text>
   </g>
 
-  <text x="596" y="332" fill="#93c5fd" font-family='${FONT_STACK}' font-size="42" font-weight="800">\u2192</text>
+  <text x="600" y="332" text-anchor="middle" fill="#93c5fd" font-family='${FONT_STACK}' font-size="38" font-weight="800">\u2192</text>
 
   <g filter="url(#shadow)">
     <rect x="628" y="158" width="500" height="330" rx="26" fill="#ecfdf5" stroke="#34d399" stroke-width="2"/>
-    <text x="660" y="210" fill="#047857" font-family='${FONT_STACK}' font-size="24" font-weight="800">After  ·  ${escapeXml(afterChip)}</text>
-    <text x="660" y="258" fill="#064e3b" font-family='${FONT_STACK}' font-size="25">${renderTspans(afterLines, 660)}</text>
+    <text x="660" y="210" fill="#047857" font-family='${FONT_STACK}' font-size="24" font-weight="800">${illustrative ? escapeXml(copy.after) : `After  ·  ${escapeXml(afterChip)}`}</text>
+    <text x="660" y="258" fill="#064e3b" font-family='${FONT_STACK}' font-size="${fontSize}">${renderTspans(afterLines, 660, lineGap)}</text>
   </g>
 
-  <text x="72" y="548" fill="#d1d5db" font-family='${FONT_STACK}' font-size="23">Pattern-based · auditable · KO/EN/ZH/JA · Claude Code · Codex CLI · Cursor · OpenCode · Node CLI</text>
+  <text x="72" y="548" fill="#d1d5db" font-family='${FONT_STACK}' font-size="23">${illustrative ? escapeXml(copy.note) : 'Pattern-based · auditable · KO/EN/ZH/JA · Claude Code · Codex CLI · Cursor · OpenCode · Node CLI'}</text>
   <text x="72" y="586" fill="#93c5fd" font-family='${FONT_STACK}' font-size="22" font-weight="700">github.com/devswha/patina</text>
 </svg>
 `;

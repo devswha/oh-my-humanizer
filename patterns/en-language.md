@@ -41,7 +41,7 @@ dedupe-with:
 > This comprehensive report delves into the multifaceted landscape of renewable energy, leveraging nuanced insights to foster a robust understanding. Moreover, the intricate tapestry of stakeholder interests underscores the pivotal role of policy in this crucial endeavor.
 
 **After:**
-> This report covers renewable energy policy from three angles: cost, grid reliability, and public opinion. Each section uses data from the EIA and interviews with six state utility commissioners.
+> This report examines the many aspects of renewable energy in depth, using careful distinctions to build a sound understanding. The complex mix of stakeholder interests shows how important policy is to this work.
 
 ---
 
@@ -62,7 +62,7 @@ dedupe-with:
 > The library serves as a vital community hub, functioning as both an educational resource and a social gathering space. It also acts as a testament to the city's commitment to public access.
 
 **After:**
-> The library is the neighborhood's main public space. People use it for study groups, ESL classes, and the Saturday morning story hour, which draws about 40 kids a week.
+> The library is an essential community hub, an educational resource, and a social gathering space. It also shows the city's commitment to public access.
 
 ---
 
@@ -83,7 +83,7 @@ dedupe-with:
 > This initiative is not just a policy change but a fundamental reimagining of urban planning. It goes beyond mere infrastructure investment to become a statement about the kind of city residents want to live in.
 
 **After:**
-> The initiative rezones 12 blocks for mixed-use development and adds a bike lane network connecting the east and west sides of the river.
+> This initiative changes policy and fundamentally rethinks urban planning. Its infrastructure investment expresses the kind of city residents want to live in.
 
 ---
 
@@ -103,7 +103,7 @@ dedupe-with:
 > The program fosters creativity, innovation, and collaboration. Participants gain inspiration, practical skills, and lasting connections. The result is a more dynamic, inclusive, and forward-thinking community.
 
 **After:**
-> The program pairs early-career designers with experienced mentors for a 10-week project. Last year's cohort produced two apps that are still in active use.
+> The program encourages creativity and innovation. It also encourages collaboration. Participants gain inspiration and practical skills, along with lasting connections. The community becomes more dynamic and inclusive. It also becomes more forward-thinking.
 
 ---
 
@@ -121,7 +121,7 @@ dedupe-with:
 > Tokyo is the most populous city in Japan. The metropolis is known for its blend of tradition and modernity. The urban center attracts millions of tourists each year. The Japanese capital continues to grow.
 
 **After:**
-> Tokyo is the most populous city in Japan, with about 14 million residents. It draws roughly 20 million foreign tourists a year, a number that has doubled since 2015.
+> Tokyo is Japan's capital and most populous city. It is known for its blend of tradition and modernity, attracts millions of tourists each year, and continues to grow.
 
 ---
 
@@ -142,7 +142,7 @@ dedupe-with:
 > The festival offers something for everyone, from young children to seasoned professionals, spanning everything from traditional folk music to cutting-edge electronic performances.
 
 **After:**
-> The festival has three stages. The main stage books established acts (this year: Yo-Yo Ma, Thundercat). The tent stage is for local bands. There is also a children's area with instrument demos.
+> The festival offers something for everyone, including young children and seasoned professionals. Performances include traditional folk music and cutting-edge electronic music.
 
 ---
 
@@ -165,7 +165,9 @@ dedupe-with:
 > The initiative will enable more specific milestones, more efficient resource allocation, and more comprehensive stakeholder alignment. Moving forward, the team should develop a more strategic framework for more meaningful collaboration.
 
 **After:**
-> The initiative needs dated milestones, named owners, and a budget review. The team also needs one shared plan for partner handoffs, because the current spreadsheet has three conflicting owners for the same launch tasks.
+> The initiative will enable more specific milestones, more efficient resource allocation, and more comprehensive stakeholder alignment. The team should develop a more strategic plan for more meaningful collaboration.
+
+**Example note:** The input promises to enable improvements; it does not promise that those improvements will occur. Keep "will enable" for all three items and "should develop" for the recommendation. The comparisons remain vague because the input gives no baseline.
 
 ---
 
@@ -188,7 +190,9 @@ dedupe-with:
 > Symmetry is the architecture of trust. Cringe is the visible signature of moving along a gradient you chose. Consistency is the currency of every relationship that lasts.
 
 **After:**
-> People trust a process more when it behaves the same way every time, so they can predict it. That predictability is what makes a relationship hold up: you keep doing what you said you would, and the other side stops bracing for surprises.
+> Symmetry underpins trust. Cringe visibly marks movement along a gradient you chose. Every lasting relationship depends on consistency.
+
+**Example note:** The input does not explain its metaphors. This edit stays close to them instead of supplying a new causal theory.
 
 ### 34. False Agency (Inanimate Actors)
 
@@ -213,4 +217,6 @@ dedupe-with:
 > The feedback loop rewarded speed over quality, so the culture shifted within a quarter. Decisions emerged from Slack threads rather than meetings, and the roadmap bent toward whatever the metrics demanded.
 
 **After:**
-> Leadership paid out bonuses on shipping speed, not defect counts, so within a quarter engineers stopped polishing. People started making calls in Slack threads instead of meetings, and the PMs rewrote the roadmap around whatever number the dashboard showed that week.
+> The feedback loop favored speed over quality, so the culture changed within a quarter. Decisions were made in Slack threads rather than meetings, and the roadmap followed the metrics.
+
+**Example note:** The input does not identify the decision-makers. Passive wording preserves that limit; a full agency repair needs source context.

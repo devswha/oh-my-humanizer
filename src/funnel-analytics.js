@@ -2,7 +2,17 @@
 
 export const FUNNEL_SCHEMA_VERSION = 'v1';
 
+// A separate compact projection avoids multiplying the detailed rewrite keys
+// by acquisition dimensions. At most 4 * 5 * 2 * 3 = 120 keys per UTC day.
+export const FUNNEL_PROGRESS_SCHEMA = Object.freeze({
+  lang: Object.freeze(['en', 'ko', 'zh', 'ja']),
+  channel: Object.freeze(['unattributed', 'github', 'blog', 'social', 'community']),
+  campaign: Object.freeze(['none', 'multilingual-20260907']),
+  stage: Object.freeze(['arrival', 'first-success', 'reuse']),
+});
+
 const eventSchemas = Object.freeze({
+  'Funnel Progress': FUNNEL_PROGRESS_SCHEMA,
   'Input Started': Object.freeze({ surface: ['hero', 'chat'], lang: ['en', 'ko', 'zh', 'ja'] }),
   'Rewrite Requested': Object.freeze({ surface: ['hero', 'chat'], lang: ['en', 'ko', 'zh', 'ja'], tier: ['free', 'pro', 'byok'], mode: ['first', 'refine', 'verify'], inputBucket: ['0-99', '100-499', '500-1999', '2000+'] }),
   'Rewrite Completed': Object.freeze({ surface: ['hero', 'chat'], lang: ['en', 'ko', 'zh', 'ja'], tier: ['free', 'pro', 'byok'], mode: ['first', 'refine', 'verify'], inputBucket: ['0-99', '100-499', '500-1999', '2000+'], latencyBucket: ['<5s', '5-10s', '10-30s', '30s+'], mpsBand: ['failed', '70-79', '80-89', '90-100'], fidelityBand: ['failed', '70-79', '80-89', '90-100'] }),
@@ -13,6 +23,7 @@ const eventSchemas = Object.freeze({
 });
 
 const eventSlugs = Object.freeze({
+  'Funnel Progress': 'funnel-progress',
   'Input Started': 'input-started',
   'Rewrite Requested': 'rewrite-requested',
   'Rewrite Completed': 'rewrite-completed',

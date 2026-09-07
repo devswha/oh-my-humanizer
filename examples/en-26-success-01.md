@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> The engineering team assessed the building's structural integrity and found significant deterioration in the load-bearing walls. They recommended immediate repairs. The board approved a $2.4 million budget.
+> The engineering team thoroughly assessed the building's structural integrity. Significant deterioration of the load-bearing walls was found during the inspection. Immediate repairs were recommended to the board, and a $2.4 million budget allocation was approved.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: 4 passive nominalization phrases far exceeds the 2+ threshold. Every sentence buries the actor behind a passive construction. The engineering team conducted, identified, and recommended — but the original text obscures this agency. The corrected version uses active verbs with varied subjects ("the team assessed," "they recommended," "the board approved") and cuts the word count by nearly half.
+**Success** — The rewrite shortens nominalizations and names the engineering team only for the assessment, where the input explicitly identifies it. The recommendation and approval remain passive because the input does not identify their authors. The $2.4 million allocation and immediate-repair recommendation are unchanged.

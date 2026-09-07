@@ -1,7 +1,7 @@
 // @ts-check
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { funnelCounterKey, validateFunnelEvent } from '../../src/funnel-analytics.js';
+import { FUNNEL_PROGRESS_SCHEMA, funnelCounterKey, validateFunnelEvent } from '../../src/funnel-analytics.js';
 import { createFunnelAggregateStore, createFunnelApiHandler } from '../../api/funnel.js';
 
 const validEvent = { name: 'Rewrite Completed', data: { surface: 'hero', lang: 'en', tier: 'free', mode: 'first', inputBucket: '100-499', latencyBucket: '5-10s', mpsBand: '80-89', fidelityBand: '90-100' } };
@@ -35,6 +35,7 @@ function response() {
 
 test('funnel schema accepts every complete categorical event and rejects incomplete or extra shapes', () => {
   const events = [
+    { name: 'Funnel Progress', data: { lang: 'ko', channel: 'github', campaign: 'multilingual-20260907', stage: 'arrival' } },
     { name: 'Input Started', data: { surface: 'chat', lang: 'ko' } },
     { name: 'Rewrite Requested', data: { surface: 'hero', lang: 'zh', tier: 'byok', mode: 'refine', inputBucket: '2000+' } },
     validEvent,
@@ -174,4 +175,111 @@ test('funnel endpoint returns 503 when aggregate storage fails', async () => {
   const limitedResponse = response();
   await limited(request(), limitedResponse);
   assert.equal(limitedResponse.statusCode, 429);
+});
+
+const progressEvent = /** @type {const} */ ({ name: 'Funnel Progress', data: {
+  lang: 'ja', channel: 'community', campaign: 'multilingual-20260907', stage: 'reuse',
+} });
+
+test('milestone schema is exact, immutable and bounded independently of rewrite dimensions', () => {
+  assert.equal(Object.isFrozen(FUNNEL_PROGRESS_SCHEMA), true);
+  let cardinality = 1;
+  for (const [field, allowed] of Object.entries(FUNNEL_PROGRESS_SCHEMA)) {
+    assert.equal(Object.isFrozen(allowed), true);
+    cardinality *= allowed.length;
+    for (const invalid of ['', 'customer-123', 'https://private.test', 'sk_secret', 'user@example.test', 1, null, {}, []]) {
+      assert.equal(validateFunnelEvent({ ...progressEvent, data: { ...progressEvent.data, [field]: invalid } }), false);
+    }
+    const missing = { ...progressEvent.data };
+    delete missing[field];
+    assert.equal(validateFunnelEvent({ ...progressEvent, data: missing }), false);
+  }
+  assert.equal(cardinality, 120);
+  for (const field of ['utm_source', 'utm_campaign', 'utm_medium', 'utm_content', 'text', 'input', 'output', 'ip', 'id', 'session', 'pageId', 'user', 'url', 'referrer', 'token', 'key', 'hash', 'timestamp', 'surface', 'mode', 'tier']) {
+    assert.equal(validateFunnelEvent({ ...progressEvent, data: { ...progressEvent.data, [field]: 'private' } }), false, field);
+    assert.equal(validateFunnelEvent({ ...progressEvent, [field]: 'private' }), false, field);
+  }
+  // Detailed legacy events cannot receive attribution or change their key shape.
+  for (const field of ['channel', 'campaign', 'stage']) {
+    assert.equal(validateFunnelEvent({ ...validEvent, data: { ...validEvent.data, [field]: progressEvent.data[field] } }), false);
+  }
+});
+
+test('milestone intake stores only one categorical UTC-day counter, even with sensitive request headers', async () => {
+  const calls = [];
+  const handler = createFunnelApiHandler({
+    now: () => '2026-09-07T00:00:00+09:00',
+    aggregateStore: { increment(key, options) { calls.push({ key, options }); } },
+  });
+  const res = response();
+  await handler(request({ body: JSON.stringify(progressEvent), headers: {
+    'x-forwarded-for': '192.0.2.42', cookie: 'session=private',
+    authorization: 'Bearer private-license', referer: 'https://private.test/draft?key=secret',
+    'user-agent': 'fingerprint-canary',
+  } }), res);
+  assert.equal(res.statusCode, 204);
+  assert.deepEqual(calls, [{
+    key: 'patina:funnel:v1:2026-09-06:funnel-progress:campaign=multilingual-20260907:channel=community:lang=ja:stage=reuse',
+    options: { ttlSeconds: 35 * 24 * 60 * 60 },
+  }]);
+  assert.deepEqual(res.chunks, []);
+  assert.equal(res.headers.get('cache-control'), 'no-store');
+  assert.doesNotMatch(JSON.stringify(calls), /192\.0\.2|private|secret|fingerprint|cookie|authorization|referer|https?:/);
+});
+
+test('invalid milestone payloads fail before storage and cannot grow aggregate cardinality', async () => {
+  let calls = 0;
+  const handler = createFunnelApiHandler({ aggregateStore: { increment() { calls += 1; } } });
+  for (let i = 0; i < 200; i++) {
+    const res = response();
+    await handler(request({ body: JSON.stringify({ ...progressEvent, data: { ...progressEvent.data, campaign: `customer-${i}` } }) }), res);
+    assert.equal(res.statusCode, 400);
+  }
+  for (const data of [{ ...progressEvent.data, utm_source: 'secret' }, { ...progressEvent.data, channel: 'https://private.test' }]) {
+    const res = response();
+    await handler(request({ body: JSON.stringify({ ...progressEvent, data }) }), res);
+    assert.equal(res.statusCode, 400);
+  }
+  assert.equal(calls, 0);
+});
+
+test('milestones share the existing atomic daily budget, TTL and fail-closed storage behavior', async () => {
+  const env = {
+    PATINA_OBSERVABILITY_REST_API_URL: 'https://example.upstash.io',
+    PATINA_OBSERVABILITY_REST_API_TOKEN: 'fake-secret',
+    PATINA_FUNNEL_EVENTS_PER_DAY: '2',
+  };
+  const commands = [];
+  let now = '2026-09-07T23:59:59Z';
+  const handler = createFunnelApiHandler({ env, now: () => now, fetchImpl: async (_url, options) => {
+    commands.push(JSON.parse(/** @type {string} */ (options.body)));
+    return /** @type {any} */ ({ ok: true, json: async () => ({ result: commands.length > 2 ? -1 : 1 }) });
+  } });
+  for (const [event, status] of [[validEvent, 204], [progressEvent, 204], [progressEvent, 429]]) {
+    const res = response();
+    await handler(request({ body: JSON.stringify(event) }), res);
+    assert.equal(res.statusCode, status);
+    assert.deepEqual(res.chunks, []);
+  }
+  for (const command of commands) {
+    assert.equal(command[0], 'EVAL');
+    assert.deepEqual(command.slice(2, 4), ['2', 'patina:funnel:v1:2026-09-07:budget']);
+    assert.deepEqual(command.slice(5), ['1', String(35 * 24 * 60 * 60 * 1000), '2']);
+  }
+  now = '2026-09-08T00:00:00Z';
+  await handler(request({ body: JSON.stringify(progressEvent) }), response());
+  assert.equal(commands[3][3], 'patina:funnel:v1:2026-09-08:budget');
+  for (const fetchImpl of [
+    async () => { throw new Error('private transport context'); },
+    async () => (/** @type {any} */ ({ ok: false })),
+    async () => (/** @type {any} */ ({ ok: true, json: async () => ({ result: '1' }) })),
+  ]) {
+    const res = response();
+    await createFunnelApiHandler({ env, fetchImpl })(request({ body: JSON.stringify(progressEvent) }), res);
+    assert.equal(res.statusCode, 503);
+    assert.deepEqual(res.chunks, []);
+  }
+  const res = response();
+  await createFunnelApiHandler({ aggregateStore: null })(request({ body: JSON.stringify(progressEvent) }), res);
+  assert.equal(res.statusCode, 503);
 });

@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: "Doctors recommend 150 minutes of moderate exercise per week" is well-established medical consensus published by the WHO, the American Heart Association, and virtually every national health authority. The 150-minute figure is so widely standardized that attributing it to a single named doctor would be misleading — it is not one person's opinion. Pattern 5 targets AI-fabricated authority ("experts say the market will grow"), not broadly uncontroversial public health guidelines. Firing here would force unnecessary citation on a fact that no reasonable reader would question.
+**Failure (false positive)** — The intended control is the general attribution "Doctors recommend" in health guidance. The no-correction result preserves the input, including its quantities and associations. This editorial review does not validate the health recommendations or require replacing general attribution with an invented doctor.

@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> The Korean War lasted from 1950 to 1953 and resulted in the division of the Korean Peninsula along the 38th parallel. The armistice was signed on July 27, 1953, but a formal peace treaty was never concluded. The border remains one of the most heavily militarized zones in the world.
+> The Korean War lasted from 1950 to 1953 and resulted in the division of the Korean Peninsula along the 38th parallel. The armistice was signed on July 27, 1953, but a formal peace treaty was never concluded.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: chatbot conversational phrases appear in content that is not a live interactive conversation. The text is a historical factual summary, not a chat session. The corrected version removes all three conversational artifacts and adds a substantive closing fact instead.
+**Success** — Three chatbot phrases follow the historical summary. The rewrite removes those conversational artifacts and keeps the substantive input sentences unchanged. It adds no closing fact.

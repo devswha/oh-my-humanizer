@@ -32,7 +32,12 @@ test('the served contract artifact is byte-identical to src/web-rewrite-contract
 });
 
 test('every static ESM import in the playground resolves inside the served static root', () => {
-  const files = readdirSync(playground).filter((name) => name.endsWith('.js'));
+  const scripts = (directory, prefix = '') => readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const name = prefix + entry.name;
+    if (entry.isDirectory()) return scripts(join(directory, entry.name), name + '/');
+    return entry.name.endsWith('.js') ? [name] : [];
+  });
+  const files = scripts(playground);
   assert.ok(files.length > 0, 'expected playground JS modules');
   for (const name of files) {
     const source = readFileSync(join(playground, name), 'utf8');

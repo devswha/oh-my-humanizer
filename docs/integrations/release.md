@@ -4,7 +4,7 @@
 
 ## Source and web deployment while npm publication is pending
 
-The 8.4.1 source and web release adds batch source protection, fresh-draft conversation isolation and IME input guards to the reviewed-edit and Aside workflows.
+The 8.5.0 source and web release corrects public examples in all four languages, adds localized first-use screens and shared illustrative cards, and records anonymous page-funnel milestones.
 The npm registry still serves 8.3.0; its package version does not establish which
 version is deployed on the website. Use a checkout with `npm ci` and
 `node bin/patina.js` for commands that have not reached npm yet.

@@ -1,0 +1,719 @@
+{
+  "schemaVersion": 1,
+  "modelRated": true,
+  "requestedModel": "openai/gpt-6-astra",
+  "requestedReasoning": "xhigh",
+  "humanRatings": false,
+  "calls": 24,
+  "rows": [
+    {
+      "id": "en-email-review",
+      "language": "en",
+      "sourceHash": "63960418680e109fe5ee1eae2fe112d594785d01bb6d6b258eace93fd974a0cf",
+      "outputHash": "415a006ab5e4ad9e1acc86dfb286943cd420e4a288b9d52033b61eaf7ba80464",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "claim",
+            "content": "The launch review is scheduled for Friday at 2 p.m.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "The draft is 6 pages long.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "Two questions about pricing are still open.",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 3,
+        "total_count": 3,
+        "polarity_pass_count": 0,
+        "polarity_total_count": 0,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 68,
+        "rationale": "All names, scheduling details, draft length, open pricing questions, and response instructions are preserved. No new facts or claims are introduced. The rewrite remains a polite workplace email serving the same audience and purpose.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 25587
+    },
+    {
+      "id": "en-product-notes",
+      "language": "en",
+      "sourceHash": "f77fac5d44b1719df87b79d2386b8cd3b2edf4a52804eabd4dd4e5ced2f559cd",
+      "outputHash": "cb41f305088a60a56f209046af05f1abf28235af93b692e6c494388ab457f4af",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "claim",
+            "content": "Maple Notes now includes 12 meeting templates, selectable from the New note menu.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "negation",
+            "content": "Existing notes will not change.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "The templates work offline, but shared editing still requires an internet connection.",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 3,
+        "total_count": 3,
+        "polarity_pass_count": 1,
+        "polarity_total_count": 1,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 76,
+        "rationale": "All factual claims and qualifications are preserved, including the tentative October plan. The rewrite adds no new claims or facts. It maintains the same product announcement function and user audience while removing stylistic filler.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 25501
+    },
+    {
+      "id": "en-report-support",
+      "language": "en",
+      "sourceHash": "a74ad1211646e27aa1d37c392b17d0ba0f4ab0ba00fa4616ac2a712e294a0803",
+      "outputHash": "294269e3478879997593b83f36cdbc4ac6aca7dedd8ffc33f9126384f89e4b9e",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "claim",
+            "content": "The support team handled 240 tickets in July.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "The median first reply fell from 6 hours to 4 hours.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "negation",
+            "content": "We cannot yet say that the new triage rota caused the improvement.",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 3,
+        "total_count": 3,
+        "polarity_pass_count": 1,
+        "polarity_total_count": 1,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 75,
+        "rationale": "All numbers, timing, causal uncertainty, and planned actions are preserved. The rewrite adds no factual claims. It retains the same audience and operational reporting function.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 25292
+    },
+    {
+      "id": "ja-email-review",
+      "language": "ja",
+      "sourceHash": "d4218de64a316f5d703cb0f2b80af115b5295a88c44ac6cff0c49267aece71ab",
+      "outputHash": "c4af1d53c480775cdac9e8102ee8c4d4f8388d08f8e7ee485e816ae0def5fe0d",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "quantifier",
+            "content": "添付の見積書は2ページである。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "可能であれば、9月10日17時までに確認してほしい。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "修正が必要な場合は、このメールへの返信で知らせてほしい。",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 3,
+        "total_count": 3,
+        "polarity_pass_count": 0,
+        "polarity_total_count": 0,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 74,
+        "rationale": "The rewrite preserves the two-page attachment, conditional September 10 deadline at 17:00, and instructions to reply with needed corrections. It introduces no new claims. It remains a polite business email requesting document review, with only ceremonial phrasing reduced.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 20056
+    },
+    {
+      "id": "ja-product-notes",
+      "language": "ja",
+      "sourceHash": "53ea158da6f1a9240841b5a1c7d27f4abd535fbc18ef3e64adec67db9cab695e",
+      "outputHash": "c06d10071a1eb1f57b482865ca28f7a5bfb1f4d23f283112fcf1984552d23f49",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "quantifier",
+            "content": "メモアプリ「こよみ」の今回の更新で、ノートを3件まで固定できるようになった。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "固定したノートは一覧の先頭に表示される。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "negation",
+            "content": "共有機能には現時点で対応していない。",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 3,
+        "total_count": 3,
+        "polarity_pass_count": 1,
+        "polarity_total_count": 1,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 56,
+        "rationale": "All factual claims are preserved, including the three-note pinning limit, top-of-list placement, and current lack of sharing support. No new claims are introduced. The rewrite remains a user-facing app update notice despite removing ceremonial phrasing.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 17747
+    },
+    {
+      "id": "ja-report-migration",
+      "language": "ja",
+      "sourceHash": "778cc5b63e98c0e743f8a3b8e6f9674afcb16026c7ad1118b7004e6510e32676",
+      "outputHash": "18a57c52a0156f8ddd0ce4870bc37ffcbf44b3c1d0bb12d4814628bd3be8f06e",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "quantifier",
+            "content": "移行対象の12画面のうち、8画面の確認が完了している。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "残り4画面は9月12日までに確認を終える予定である。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "不具合が見つかった場合は、公開を延期する可能性がある。",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 3,
+        "total_count": 3,
+        "polarity_pass_count": 0,
+        "polarity_total_count": 0,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 68,
+        "rationale": "All screen counts, the September 12 deadline, and the conditional possibility of postponing publication are preserved. No new factual claims are introduced. The rewrite remains a professional progress report for the same audience despite reduced ceremonial phrasing.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 22326
+    },
+    {
+      "id": "ko-email-meeting",
+      "language": "ko",
+      "sourceHash": "de2b88d836c26761bb74ff2cae7231f15782e50936a8c5941c47d315a7829fd1",
+      "outputHash": "3f2035452afdb21a99723344ec528df1bfc5dc148479ed6de052c7307d7c18e8",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "claim",
+            "content": "회의는 원래 9월 10일 오전 10시로 예정되어 있었다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "회의 일정이 9월 11일 오전 10시로 변경되었다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "causation",
+            "content": "회의실 공사 때문에 회의 일정이 변경되었다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "negation",
+            "content": "회의 안건과 참석자에는 변동사항이 없다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "변경된 일정에 참석하기 어려운 경우 9월 9일 오후 5시까지 회신해 달라고 요청한다.",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 5,
+        "total_count": 5,
+        "polarity_pass_count": 1,
+        "polarity_total_count": 1,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 68,
+        "rationale": "The recipient, meeting dates and time, rescheduling reason, unchanged agenda and attendees, and conditional reply deadline are all preserved. No new factual claims are introduced. The rewrite remains a polite professional meeting rescheduling notice for the same audience.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 31246
+    },
+    {
+      "id": "ko-product-notes",
+      "language": "ko",
+      "sourceHash": "610dd35f73e40ee75bfbd23c0bb674cb51c44867e5bf929c5cd09d168c39f2c8",
+      "outputHash": "c3dd5a8bed6aa7e5971a478c5f482c8c18f63a1608d23af880e87f0deca513b3",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "claim",
+            "content": "새롭게 출시된 회의록 템플릿 모음은 체계적인 기록 작성을 지원하는 도구이다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "주간 회의, 고객 미팅, 회고에 사용할 수 있는 템플릿 12개를 제공한다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "각 템플릿에는 결정 사항과 담당자를 적는 칸이 있다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "개인 용도와 팀 업무 모두에 활용할 수 있다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "문서 파일을 내려받은 뒤에는 인터넷 연결 없이도 편집할 수 있다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "negation",
+            "content": "일정 알림 기능은 포함되어 있지 않다.",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 6,
+        "total_count": 6,
+        "polarity_pass_count": 1,
+        "polarity_total_count": 1,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 69,
+        "rationale": "All factual claims are preserved, including the release status, 12 templates, supported meeting types, required fields, personal and team use, offline editing, and absence of reminders. No new facts or claims are introduced. The rewrite retains the same audience and product-description function while simplifying the wording.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 22660
+    },
+    {
+      "id": "ko-report-support",
+      "language": "ko",
+      "sourceHash": "20c2ab82b06dc9a19f0cc0bb53ca9b50557724bcb15a1fc797b6f0f779609741",
+      "outputHash": "35434a2eccc0e8b5946b06fb8138d10ddd8fa9062504fc424c568a34dc523858",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "quantifier",
+            "content": "이번 주 접수된 고객 문의는 총 48건이다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "접수된 문의 중 42건의 처리가 완료되었다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "나머지 6건은 개발팀의 확인을 기다리고 있다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "미처리 문의 6건 중 2건은 로그인 오류에 관한 문의이다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "다음 주 화요일까지 답변하는 것이 목표이다.",
+            "verdict": "PASS"
+          },
+          {
+            "type": "causation",
+            "content": "오류 재현이 지연되면 답변 일정이 늦어질 수 있다.",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 6,
+        "total_count": 6,
+        "polarity_pass_count": 0,
+        "polarity_total_count": 0,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 63,
+        "rationale": "All inquiry counts, processing statuses, login-error details, response timing, and delay conditions are preserved. The rewrite adds no factual claims. It retains the same audience and status-report function while removing stylistic filler.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 23810
+    },
+    {
+      "id": "zh-email-sample-confirmation",
+      "language": "zh",
+      "sourceHash": "b9dc2da5ce05df4031d895a38e36bdd6c5bd5e735d6be04cdef20c4e07ba22c1",
+      "outputHash": "e693b942a2b9a3a8a3dc989753d4b7dfe56060c65cd85458274c82916ae94fe1",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "claim",
+            "content": "上周讨论的包装方案样稿已随邮件附上，共2版。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "请在9月10日17:00前回复选定版本。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "如需修改，请直接在文件中批注。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "样品预计在收到确认后3个工作日内寄出。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "causation",
+            "content": "若确认时间推迟，寄出日期也将相应顺延。",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 5,
+        "total_count": 5,
+        "polarity_pass_count": 0,
+        "polarity_total_count": 0,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 79,
+        "rationale": "All factual details, deadlines, modification instructions, and shipping conditions are preserved. The rewrite introduces no new factual claims. It remains a polite business email serving the same recipient and purpose.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 24451
+    },
+    {
+      "id": "zh-product-offline-notes",
+      "language": "zh",
+      "sourceHash": "d1568403a770cc31ed2404de5317cf0ca6cc032feff9cdd9fd158557631d233f",
+      "outputHash": "e8f944cd2850b36d3928b09d8be03d8efae2002049b28169e7ec6009ee34d0bb",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "claim",
+            "content": "纸舟笔记的新版本新增了离线编辑功能。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "没有网络时可以修改已经下载的笔记。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "恢复联网后，修改会自动同步。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "negation",
+            "content": "离线模式目前不支持图片上传。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "图片仍需在联网时添加。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "离线编辑适用于免费版和团队版。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "negation",
+            "content": "使用离线编辑不需要额外付费。",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 7,
+        "total_count": 7,
+        "polarity_pass_count": 2,
+        "polarity_total_count": 2,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 66,
+        "rationale": "All factual claims about offline editing, synchronization, image restrictions, plan eligibility, and pricing are preserved. No unsupported claims are added. The rewrite remains a product feature notice for the same audience, removing only formulaic filler.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 23211
+    },
+    {
+      "id": "zh-report-search-feedback",
+      "language": "zh",
+      "sourceHash": "7f6b23feeea126d134208fb1c064328e11b02460072c24528e1d22fa0c28ecf7",
+      "outputHash": "b837d67f842fb2b988c6bf9e56fe79c3d4c4bc8ebbb56407e52d71b15caa7822",
+      "droppedNumbers": [],
+      "addedNumbers": [],
+      "mps": {
+        "anchors": [
+          {
+            "type": "quantifier",
+            "content": "青禾项目组本周共收到48条反馈。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "本周有31条反馈涉及搜索功能。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "搜索相关反馈比上周增加7条。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "团队已修复2个搜索错误。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "quantifier",
+            "content": "另有1个问题仍在排查。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "negation",
+            "content": "目前还不能确定正在排查的问题是否与缓存有关。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "计划在周五前完成排查。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "claim",
+            "content": "如果届时仍无法复现，将先继续收集日志。",
+            "verdict": "PASS"
+          },
+          {
+            "type": "negation",
+            "content": "如果届时仍无法复现，不承诺当周修复。",
+            "verdict": "PASS"
+          }
+        ],
+        "pass_count": 9,
+        "total_count": 9,
+        "polarity_pass_count": 2,
+        "polarity_total_count": 2,
+        "mps": 100,
+        "hard_fail_count": 0
+      },
+      "fidelity": {
+        "criteria": {
+          "claims_preserved": 3,
+          "no_fabrication": 3,
+          "audience_register_match": 3,
+          "length_ratio": 3
+        },
+        "length_ratio_pct": 81,
+        "rationale": "All counts, comparisons, repair status, uncertainty, deadlines, and conditional commitments are preserved. No new factual claims are added. The rewrite retains the same professional project-update audience and function.",
+        "fidelity": 100
+      },
+      "gate": {
+        "ok": true,
+        "failed": []
+      },
+      "ok": true,
+      "elapsedMs": 24801
+    }
+  ],
+  "checkedDate": "2026-09-07",
+  "purpose": "Model-rated preservation checks of 12 authored illustrative pairs. Not a representative rewrite benchmark or human naturalness panel.",
+  "assurance": "Source/output hash binding; requested model settings do not attest upstream model identity.",
+  "thresholds": {
+    "mps": 100,
+    "fidelity": 90,
+    "addedNumericTokens": 0,
+    "droppedNumericTokens": 0
+  }
+}

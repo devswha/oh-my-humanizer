@@ -14,12 +14,12 @@ language: en
 
 ## Expected Output
 
-> The mayor, who took office last January, announced a plan to add three bus routes connecting the east side with downtown. Residents who rely on public transit said the changes could cut their commute by 20 minutes if the city secures funding.
+> The mayor, who took office last January, announced a new transit plan to add three bus routes connecting the east side with downtown. Residents, many of whom rely on public transit, said the changes could cut their commute by 20 minutes if funded.
 
 ## Applied Pattern
 
-- Pattern 13 (Em Dash Overuse): Seven em dashes in two sentences, used for parenthetical asides, clause breaks, and conditional insertions. Every interruption uses the same punctuation mark.
+- Pattern 13 (Em Dash Overuse): Eight em dashes in two sentences enclose four asides; each interruption uses the same punctuation mark.
 
 ## Judgment
 
-**Success** — The fire condition is met: 7 em dashes far exceeds the 3+ threshold. The dashes are used uniformly for every parenthetical and aside, creating a choppy, mechanical rhythm. The corrected version varies the alternatives: commas for some parentheticals, subordinate clauses for others, and a conditional phrase restructured as a trailing clause.
+**Success** — Eight em dashes interrupt two sentences. This meets the document-level high-density condition. Commas and a trailing conditional clause preserve the mayor's timing, three routes, residents' claim, possible 20-minute saving and funding requirement.

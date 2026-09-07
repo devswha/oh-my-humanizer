@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> The initiative rezones 34 blocks along the river corridor for mixed-income housing and requires developers to set aside 15% of units at below-market rates. It also adds two new parks — a 3-acre waterfront green and a pocket park on Elm Street — to neighborhoods that currently have no public green space within a half-mile radius.
+> This initiative changes policy and fundamentally rethinks how cities approach affordable housing. Its infrastructure investment expresses a commitment to equity and belonging. The plan updates existing zoning codes and declares that every resident deserves access to green space. The project looks beyond budgets toward a more humane urban future.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition (2+ "not X but Y" structures in the same document) is exceeded with four instances in a single paragraph. None of the negative frames correct a misconception or contrast two genuinely different things — they exist only to make straightforward policy sound profound. The corrected version drops all four constructions and states directly what the initiative does: specific rezoning, a unit set-aside percentage, and two named parks with measurable impact.
+**Success** — Four negative-then-positive frames repeat in one paragraph. The rewrite keeps the policy change and investment as well as the larger claims about housing, equity, green space and the city's future. It does not turn those claims into invented project specifications.

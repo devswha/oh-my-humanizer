@@ -37,11 +37,11 @@ phase: structure
 > Government policy has played a significant supporting role. Tax credits of up to $7,500 are available in the United States, and the EU has mandated a ban on new petrol vehicle sales by 2035. Such regulatory tailwinds are expected to sustain the sector's momentum into the next decade.
 
 **After:**
-> Electric vehicle sales doubled between 2021 and 2023. The main driver isn't policy — it's battery prices, which fell from $140 to $90 per kWh.
+> Electric vehicle sales doubled between 2021 and 2023, driven by falling battery costs and expanded charging infrastructure. This unprecedented growth marks a fundamental change in how consumers relate to personal transportation.
 >
-> The US $7,500 tax credit helps, but it phases out once a manufacturer hits 200,000 vehicles sold. Tesla already passed that cap years ago.
+> Since 2018, battery energy density has increased by 40%, while costs have fallen from $140 to $90 per kWh. Battery technology improved considerably over the same period as the sales growth, making electric vehicles competitive with internal combustion alternatives on total ownership costs.
 >
-> Whether the EU's 2035 petrol ban survives is genuinely unclear. Germany's coalition nearly collapsed over it in 2023, and three major automakers are lobbying for a 2040 date instead.
+> Policy is also an important support: the United States offers tax credits of up to $7,500, and the EU has mandated a ban on new petrol vehicle sales by 2035. These policies are expected to sustain growth into the next decade.
 
 ---
 
@@ -55,7 +55,7 @@ phase: structure
 
 **Burstiness note:** Replace passives with active verbs — but vary the subjects. Avoid making every sentence "We did X." Mix "The team found Y" with "Data showed Z" with bare declaratives that start with the finding itself.
 
-**Problem:** AI chains passive nominalizations that convert active situations into abstract bureaucratic prose. "An analysis was conducted" means "we analyzed." The passive form removes agency and adds syllables without adding meaning.
+**Problem:** AI chains passive nominalizations that convert active situations into abstract bureaucratic prose. "An analysis was conducted" can become "the data were analyzed" when the actor is unknown. The passive form removes agency and adds syllables without adding meaning.
 
 **Semantic Risk:** MEDIUM
 **Preservation Note:** Converting passive to active assigns a specific agent; if the original intentionally omitted the actor (unknown, irrelevant, or sensitive), the active rewrite may introduce an unintended attribution.
@@ -64,7 +64,9 @@ phase: structure
 > An extensive review of the literature was conducted in order to identify key patterns. Consideration was given to a range of methodological approaches, and a decision was made to adopt a mixed-methods design. Data collection was performed over a six-month period, after which an analysis was undertaken to identify recurring themes.
 
 **After:**
-> We reviewed 47 papers published between 2018 and 2024. Most used surveys; we chose interviews instead, since the population was small enough to go deep. Six months of interviews, then we coded the transcripts.
+> The literature was reviewed extensively to identify key patterns. Several methodological approaches were considered before a mixed-methods design was chosen. Data were collected over six months, then analyzed to identify recurring themes.
+
+**Example note:** No actor is named in the input. The rewrite shortens nominalizations while retaining passive voice.
 
 ---
 
@@ -87,7 +89,7 @@ phase: structure
 > The committee made a decision to conduct an analysis of the current situation and to provide a recommendation regarding future strategy. An evaluation of the available options was performed, and after careful consideration was given to each alternative, an agreement was reached on the most viable approach.
 
 **After:**
-> The committee analyzed the situation and agreed on a strategy. They evaluated three options and chose the one with the lowest implementation risk.
+> The committee decided to analyze the current situation and recommend a future strategy. The available options were evaluated, each alternative was carefully considered, and agreement was reached on the most viable approach.
 
 ---
 
@@ -108,7 +110,7 @@ phase: structure
 > The initiative, which was developed in response to increasing concerns about, and growing awareness of, the urgent need to address the challenges facing both urban and rural communities in the context of rapid technological transformation, aims to bridge the gap between innovation and equitable access.
 
 **After:**
-> Rural and urban communities are getting left behind as technology changes fast. The initiative targets that gap directly — access to tools, not just the tools themselves.
+> The initiative aims to bridge the gap between innovation and equitable access. It was developed in response to growing concern and awareness of the urgent need to address challenges facing urban and rural communities as technology changes rapidly.
 
 ---
 
@@ -137,7 +139,7 @@ phase: structure
 **After:**
 > Korean coffee culture grew fast for a surprisingly simple reason: cafés moved beyond being places to buy drinks and became social hubs.
 >
-> The trend is likely to continue. Experts agree.
+> Experts believe the trend will continue.
 
 ---
 

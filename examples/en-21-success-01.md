@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> Inflation erodes purchasing power, so the same salary buys less house over time. Median home prices in the U.S. rose 42% between 2019 and 2024, while median household income rose only 21% over the same period.
+> Inflation erodes purchasing power, so the same salary buys less house over time.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: multiple flattering and servile openers appear before the actual answer begins. None of these phrases add information. The corrected version drops all four filler phrases and leads with the substantive point, adding specific data to replace the empty flattery.
+**Success** — The substantive answer follows several flattering openers. Removing them leaves the original purchasing-power claim and its consequence. No data are added to replace the flattery.

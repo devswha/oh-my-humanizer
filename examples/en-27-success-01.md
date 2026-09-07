@@ -14,12 +14,12 @@ language: en
 
 ## Expected Output
 
-> The committee investigated the matter and recommended three changes to the current system. They evaluated each option, weighing projected costs against expected gains. Cutting overhead spending, they concluded, would do the most for profitability.
+> The committee decided to investigate the matter and recommend improvements to the current system. The available options were evaluated, and each alternative was considered. The team then assessed projected costs and concluded that cutting overhead spending would significantly affect overall profitability.
 
 ## Applied Pattern
 
-- Pattern 27 (Zombie Nouns): Six nominalized verb phrases in two paragraphs — "made a decision," "conduct an investigation," "provide a recommendation," "implementation of improvements," "evaluation of the available options was performed," and "consideration was given." Each converts a simple verb into a bloated noun phrase that adds syllables without adding meaning.
+- Pattern 27 (Zombie Nouns): Repeated phrases in one paragraph include "made a decision," "conduct an investigation," "provide a recommendation," "carried out an assessment" and "reached a conclusion."
 
 ## Judgment
 
-**Success** — The fire condition is met: 6 nominalized verb phrases far exceeds the 3+ threshold. Nearly every clause wraps an action inside an abstract noun — "made a decision" instead of "decided," "conduct an investigation" instead of "investigated," "provide a recommendation" instead of "recommended." The corrected version restores active verbs throughout, cutting word count by roughly 40% while preserving all the original information. One noun form ("profitability") is retained because it carries meaning the verb form cannot.
+**Success** — The passage uses repeated nominalized phrases. Shorter verbs preserve which actions were decided on and which were completed. The team assessed costs and drew a conclusion; the rewrite does not invent a number of recommendations or make overhead cuts the best option.

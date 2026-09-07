@@ -30,7 +30,7 @@ corpus-snapshot:
 > The company's new mobile app represents a groundbreaking paradigm shift in how users interact with grocery delivery services. This transformative, game-changing platform marks an unprecedented milestone in the retail industry.
 
 **After:**
-> The company launched a grocery delivery app. It lets users schedule same-day deliveries and track orders in real time. Downloads hit 2 million in the first month.
+> The company's new mobile app fundamentally changes how users interact with grocery delivery services. It marks a first for the retail industry.
 
 ---
 
@@ -51,7 +51,9 @@ corpus-snapshot:
 > Her artwork has garnered significant attention from critics and audiences alike, and has been widely recognized as a defining voice of her generation. Her exhibitions have attracted widespread interest across the globe.
 
 **After:**
-> The New York Times reviewed her 2023 exhibition, calling her use of recycled materials "quietly radical." The show sold out its three-week run at the Whitechapel Gallery.
+> Her artwork has drawn considerable attention from critics and audiences and is widely recognized as a defining voice of her generation. Her exhibitions have drawn interest worldwide.
+
+**Example note:** The input names no sources. The rewrite keeps its recognition claims; checking them is a separate task.
 
 ---
 
@@ -72,7 +74,7 @@ corpus-snapshot:
 > The festival brings together artists from 30 countries, showcasing the diversity of contemporary dance, highlighting the importance of cross-cultural dialogue, and underscoring the role of the arts in fostering global understanding.
 
 **After:**
-> The festival brings together artists from 30 countries. This year, a butoh troupe from Tokyo collaborated with a hip-hop crew from Lagos — a pairing that would not have happened without the festival's residency program.
+> The festival brings together artists from 30 countries and shows the diversity of contemporary dance. It highlights the importance of cross-cultural dialogue and the role of the arts in building global understanding.
 
 ---
 
@@ -93,7 +95,7 @@ corpus-snapshot:
 > Nestled in the rolling hills of Tuscany, this stunning village boasts breathtaking views, world-class cuisine, and an exquisite charm that makes it a must-visit hidden gem for any discerning traveler.
 
 **After:**
-> The village sits on a hill about 40 minutes south of Florence. It has one restaurant, a weekly market on Thursdays, and a 14th-century church with frescoes that are slowly being restored.
+> This beautiful village in the rolling hills of Tuscany has striking views, exceptional cuisine, and a charm that makes it well worth a visit for discerning travelers.
 
 ---
 
@@ -114,7 +116,9 @@ corpus-snapshot:
 > Experts say that remote work is here to stay. Studies show that productivity increases when employees work from home, and many believe this trend will reshape the commercial real estate market.
 
 **After:**
-> A 2023 Stanford study by Nicholas Bloom found that hybrid workers were 3% more productive than full-time office workers. Kastle Systems data shows U.S. office occupancy has stabilized at about 50% of pre-pandemic levels.
+> Experts say remote work is here to stay. Studies show productivity increases when employees work from home, and many believe the trend will reshape commercial real estate.
+
+**Example note:** The sources are still unnamed. A style edit cannot supply a citation that the input does not contain.
 
 ---
 
@@ -135,4 +139,4 @@ corpus-snapshot:
 > Despite these challenges, the industry remains poised for significant growth. While it remains to be seen how regulations will evolve, the sector stands at a crossroads, and with continued innovation and collaboration, a bright future lies ahead.
 
 **After:**
-> The biggest obstacle is the FDA approval timeline — the average wait is 14 months. Two of the five pending applications were filed before 2022 and still have no decision date. The company says it will shift trials to the EU if U.S. approval is not granted by Q3.
+> The industry faces these challenges but remains set for substantial growth. How regulations will change is still unclear. The sector faces an important choice, and its future looks bright with continued innovation and collaboration.

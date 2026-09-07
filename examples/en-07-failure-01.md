@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — "Robust" appears once in a data-dense empirical summary. The fire condition requires 3+ watch words in a single paragraph. With only one watch-list word and the rest of the text consisting of specific numbers (1,200 participants, six cities, 18 months, 14% reduction), this passage reads as human research writing. "Robust" is a standard adjective in quantitative research to describe statistically stable findings. Flagging it in isolation, surrounded by concrete evidence, would be a false positive. Pattern 7 fires on clusters, not on single legitimate uses.
+**Failure (false positive)** — Only one watch word, "robust," appears. It describes community support networks; it does not assert statistical robustness. The pattern requires a cluster of at least three watch words, so this standalone use remains unchanged. The numbers do not establish authorship.

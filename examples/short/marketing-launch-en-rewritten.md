@@ -1,1 +1,1 @@
-If Notion still starts as a blank page for your team, open this pack first. It includes 30 templates for common workflows. Duplicate one, adjust the fields you need, and use it for a team project or your own planning without starting from scratch.
+The newly released Notion template pack takes a new approach to helping modern teams work as efficiently as possible. It offers 30 templates optimized for a range of workflows, with a design that makes them easy for anyone to use.

@@ -31,11 +31,16 @@ AI 패턴을 피하는 건 절반일 뿐이다. 깨끗하지만 영혼 없는 �
 
 **감정은 원문에 있을 때만 구체적으로.** 원문이 감정을 표현한다면 모호한 관용구로 평탄화하지 않는다. 원문에 없는 감정이나 장면은 추가하지 않는다.
 
-## 수정 전 (깨끗하지만 영혼 없음):
+## 설명용 예시 — 원문의 관점과 사실 유지
+
+다음은 문장 흐름을 다듬는 가상 예시다. 원문에 없는 감정, 작업 시간,
+개발자 비율을 보태지 않는다.
+
+### 수정 전:
 > 이 실험은 흥미로운 결과를 보여주었다. 에이전트가 300만 줄의 코드를 생성했다. 일부 개발자는 긍정적으로 반응했고 일부는 회의적이었다. 시사점은 아직 불분명하다.
 
-## 수정 후 (숨이 느껴짐):
-> 솔직히 이번 건 어떻게 받아들여야 할지 모르겠다. 300만 줄의 코드를 사람들이 자는 동안 만들어냈다. 개발자 절반은 난리가 났고, 나머지 절반은 왜 의미 없는지 설명하느라 바쁘다. 진실은 아마 그 사이 어딘가 지루한 곳에 있겠지만, 밤새 돌아간 에이전트 생각이 자꾸 난다.
+### 수정 후:
+> 에이전트가 코드 300만 줄을 생성했다. 흥미로운 실험 결과지만 개발자들의 반응은 갈렸다. 긍정적으로 보는 이들도, 회의적인 이들도 있었다. 이 결과가 무엇을 뜻하는지는 아직 불분명하다.
 
 ---
 
@@ -66,11 +71,16 @@ The Korean guidance above is the reference — but Japanese voice has its own sp
 
 **文脈上の不完全さを残せ。** 原文の括弧、挿入、方向転換が文書機能と Register に合うなら機械的に均さない。新しい脱線は作らない。
 
-### Before (clean but soulless):
+### Illustrative example — preserve the source's viewpoint and facts
+
+This example changes sentence flow without adding feelings, an overnight run,
+or a numerical split between developers.
+
+#### Before:
 > この実験は注目すべき成果を生んだ。エージェントは300万行のコードを生成した。開発者の反応は肯定的なものと懐疑的なものに分かれた。その影響は現時点では不明である。
 
-### After (has breath):
-> 正直、この結果をどう受け止めればいいかわからない。300万行のコード——みんなが寝てる間に書いたやつだ。開発者は真っ二つ：半分は感心して、もう半分はなぜ意味がないか説明するのに忙しい。真実はたぶんその間のつまらないところにあるが、エージェントが一晩中、誰も見てないのに動き続けていた画が頭から離れない。
+#### After:
+> エージェントが300万行のコードを生成した。注目すべき実験結果だが、開発者の反応は肯定と懐疑に分かれている。この成果がどのような影響をもたらすかは、まだわからない。
 
 ---
 
@@ -101,11 +111,16 @@ The Korean guidance above is the reference — but Chinese voice has its own spe
 
 **保留符合语境的不规则感。** 原文中的括号补充、插入和转折若符合文档功能与 Register，就不要机械抹平；不要新增跑题内容。
 
-### Before (clean but soulless):
+### Illustrative example — preserve the source's viewpoint and facts
+
+The source reports mixed reactions without giving proportions or the
+narrator's feelings. The rewrite keeps those limits.
+
+#### Before:
 > 该实验取得了令人瞩目的成果。智能代理生成了三百万行代码。开发者反应不一，部分表示认可，部分持保留态度。该技术的影响有待进一步观察。
 
-### After (has breath):
-> 说实话，这个结果我也不知道怎么看。三百万行代码——大家睡觉的时候它写的。开发者分成了两派：一半觉得了不起，另一半忙着解释为什么这不算数。真相大概在中间某个无聊的地方，但我总想着那个代理整晚在跑、没人看着的画面。
+#### After:
+> 智能代理生成了三百万行代码，这项实验的成果引人注目。开发者的看法并不一致：有的认可，有的仍持保留态度。该技术会带来什么影响，还需要继续观察。
 
 ---
 
@@ -138,11 +153,15 @@ The Korean guidance above is the reference — but English voice has its own spe
 
 **Use idiom naturally — but not the AI-overused ones.** "The math doesn't add up," "missing the forest for the trees," "a moving target" are fine. Avoid the filler idioms that Pattern #22 covers.
 
-### Before (clean but soulless):
+### Illustrative example — preserve the source's viewpoint and facts
+
+The rewrite keeps the stated code volume, mixed reactions and uncertainty.
+It does not invent personal experience or a schedule.
+
+#### Before:
 > The experiment yielded noteworthy results. The agent generated three million lines of code. Developer reactions were divided between positive and skeptical responses. The implications remain unclear at this time.
 
-### After (has breath):
-> Honestly, I'm not sure what to make of this one. Three million lines of code — generated while everyone was asleep. Developers are split right down the middle: half impressed, half explaining why it doesn't count. The truth is probably somewhere boring in between. But I keep thinking about the agent just running. Overnight. Nobody watching.
+#### After:
+> The agent generated three million lines of code, a noteworthy result. Developers had mixed reactions: some were positive, while others were skeptical. What the result means is still unclear.
 
 ---
-

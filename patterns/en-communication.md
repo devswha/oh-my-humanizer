@@ -29,7 +29,7 @@ corpus-snapshot:
 > The French Revolution began in 1789, driven by fiscal crisis and food shortages. I hope this helps! Let me know if you need more details on any specific aspect of the revolution. Feel free to ask about the key figures involved.
 
 **After:**
-> The French Revolution began in 1789, driven by fiscal crisis and food shortages. The immediate trigger was the near-bankruptcy of the French state and a bread price spike that hit Paris hardest.
+> The French Revolution began in 1789, driven by fiscal crisis and food shortages.
 
 ---
 
@@ -50,7 +50,7 @@ corpus-snapshot:
 > As of my last update in April 2024, the company had around 5,000 employees. I don't have access to real-time data, so please verify this information with current sources.
 
 **After:**
-> The company had about 5,000 employees as of its 2024 annual report.
+> The company had around 5,000 employees as of April 2024. Current figures still need to be checked.
 
 ---
 
@@ -67,10 +67,10 @@ corpus-snapshot:
 **Semantic Risk:** LOW
 
 **Before:**
-> Great question! That's a really fascinating topic. You've raised an excellent point about the economic factors at play. Let me break this down for you.
+> Great question! That's a really fascinating topic. You've raised an excellent point about the economic factors at play. Let me break this down for you. Inflation erodes purchasing power, so the same salary buys less house over time.
 
 **After:**
-> The main economic factor is the gap between housing supply and demand. Building permits in the metro area dropped 18% last year while population grew 2.1%.
+> Inflation erodes purchasing power, so the same salary buys less house over time.
 
 ---
 
@@ -91,4 +91,6 @@ corpus-snapshot:
 > Remote work increases productivity. Actually, it's more nuanced than that — remote work can enhance productivity in certain contexts while presenting challenges in others, and the net effect depends on organizational culture and individual work styles.
 
 **After:**
-> Remote work increases productivity for focused solo tasks — a Stanford study found a 13% gain for call center workers. It hurts spontaneous collaboration, though: Microsoft's 2021 internal data showed cross-team communication dropped 25% after going fully remote.
+> Remote work can increase productivity in some contexts and present challenges in others. Its net effect depends on organizational culture and individual work styles.
+
+**Example note:** The second sentence contains a real qualification. This is a boundary case: removing its transition does not justify deleting the conditions.

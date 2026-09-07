@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> The old warehouse is a weekend market. On Saturdays it draws about 2,000 visitors. The rooftop garden is a lunch spot for office workers from the buildings next door, and the parking lot handles overflow during the annual street festival in September.
+> The old warehouse is a popular weekend market venue. The rooftop garden is a quiet retreat for office workers during lunch hours. The adjacent parking lot provides overflow space for the annual street festival.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: 3 copula-avoidance constructions appear in the same paragraph, and in every case "is" would be shorter and clearer. The warehouse does not hold a formal institutional role — it is simply used as a market. The corrected version uses plain "is" and adds concrete details: visitor count, timing, and the specific festival.
+**Success** — Three phrases describe how places are used. The rewrite shortens them without turning a venue into a market business or adding attendance and dates. The parking lot's overflow function remains explicit.

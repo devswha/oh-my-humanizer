@@ -4,7 +4,9 @@
 // renders via safe DOM APIs.
 import { createRewriteThread, streamRewrite, classifyRewriteError, rewriteRecovery, REWRITE_ERROR_KINDS } from './rewrite-client.js';
 import { normalizePreferences, readPresets, writePresets, saveNamedPreset } from './preferences.js';
-import { EXPERIENCE_COPY, experienceCopy, licenseStatusAfter, configuredPortalHref } from './experience-copy.js';
+import { EXPERIENCE_COPY, experienceCopy, initialLanguage, onboardingCopy, licenseStatusAfter, configuredPortalHref } from './experience-copy.js';
+// @ts-expect-error Served from the same public root in development and production.
+import { EXAMPLES } from '/examples/index.js';
 import { createEditReview } from './edit-review.js';
 import { protectedInputSpans, mergeProtectedSpans, PROTECTED_INPUT_COPY } from './protected-input.js';
 // @ts-expect-error Browser-root generated module is resolved at deployment, not by Node/tsc.
@@ -112,15 +114,9 @@ const LANG_NAME = { ko: '한국어', en: 'English', zh: '中文', ja: '日本語
 // Localized landing copy — the description follows the selected language.
 const I18N = {
   en: {
-    title: ['Make it sound ', 'human', ''],
-    sub: 'Paste AI-sounding text — patina rewrites it naturally. KO·EN·ZH·JA.',
     promptPh: 'Paste the text you want to clean up…',
     howTitle: 'Three steps',
-    steps: [['1 · Paste', 'Drop in your AI-sounding draft. No code, no key.'], ['2 · Rewrite', 'patina clears ~160 patterns and rewrites it naturally.'], ['3 · Verify', 'Check MPS, fidelity, and the AI signal (before → after).']],
     examplesTitle: 'Before and after',
-    xCaption: 'AI packaging, stripped',
-    xReplay: 'Replay',
-    xTry: 'Try this',
     benchTitle: 'Numbers, in the open',
     benchLede: 'A deterministic suspect-zone benchmark on a checked-in fixture corpus — auditable, not an authorship test.',
     benchCards: [['overall accuracy', '95% CI 92.7–100%'], ['fixtures', 'AI vs. natural, labeled'], ['languages', 'KO · EN · ZH · JA'], ['false positives', 'at the 1% FPR budget']],
@@ -131,7 +127,6 @@ const I18N = {
     ctaSub: 'Drop an AI-sounding draft into the box above. No code, no key.',
     ctaBtn: 'Start at the top ↑',
     note: ['Deterministic humanizer —', 'same claim, numbers, voice.'],
-    hint: 'patina changes only the wording — never the claim, numbers, or causation. Rewrites run the real patina pipeline server-side; MPS/fidelity are scored live.',
     chatPh: 'Keep refining…  (Enter to send · Shift+Enter for newline)',
     newchat: 'New chat',
     emptyChat: 'New chat — paste AI-sounding text below and patina cleans it up.',
@@ -155,15 +150,9 @@ const I18N = {
     stopLabel: 'Stop',
   },
   ko: {
-    title: ['AI 티 없이, ', '자연스럽게', ''],
-    sub: 'AI 티 나는 문장을 붙여넣으면 patina가 자연스럽게 다듬어요. KO·EN·ZH·JA.',
     promptPh: '다듬고 싶은 문장을 붙여넣어 보세요…',
     howTitle: '세 단계면 끝',
-    steps: [['1 · 붙여넣기', 'AI 티 나는 초안을 그대로 붙여넣어요. 코드도 키도 필요 없어요.'], ['2 · 다듬기', 'patina가 ~160개 패턴을 걷어내고 자연스럽게 고쳐요.'], ['3 · 검증', 'MPS·fidelity·AI 신호(전→후)로 의미 보존을 확인해요.']],
     examplesTitle: '이런 문장을, 이렇게',
-    xCaption: 'AI 포장을 걷어내요',
-    xReplay: '다시 보기',
-    xTry: '이 문장으로 시작',
     benchTitle: '숨김없는 벤치마크',
     benchLede: '저장소에 포함된 fixture 코퍼스로 측정한 결정론적 의심구간 벤치마크 — 작성자 판별이 아니라, 감사 가능한 회귀 지표예요.',
     benchCards: [['전체 정확도', '95% CI 92.7–100%'], ['fixtures', 'AI·자연 라벨 코퍼스'], ['지원 언어', 'KO · EN · ZH · JA'], ['오탐(FP)', '1% FPR 기준']],
@@ -174,7 +163,6 @@ const I18N = {
     ctaSub: 'AI 티 나는 초안을 위 입력칸에 붙여넣으면 끝. 코드도 키도 필요 없어요.',
     ctaBtn: '맨 위로 가서 시작하기 ↑',
     note: ['의미·숫자·톤을 바꾸지 않는', '결정론적 휴머나이저.'],
-    hint: 'patina는 주장·수치·인과를 바꾸지 않고 표현만 다듬습니다. 리라이트는 실제 patina 파이프라인을 서버에서 실행하며 MPS/fidelity는 실시간으로 채점됩니다.',
     chatPh: '이어서 다듬기…  (Enter 전송 · Shift+Enter 줄바꿈)',
     newchat: '새 대화',
     emptyChat: '새 대화 — 아래에 AI 티 나는 문장을 붙여넣으면 patina가 다듬어요.',
@@ -198,15 +186,9 @@ const I18N = {
     stopLabel: '중단',
   },
   zh: {
-    title: ['让文字更', '像人写的', ''],
-    sub: '粘贴有 AI 味的文字，patina 会自然地改写。支持 KO·EN·ZH·JA。',
     promptPh: '粘贴你想润色的文字…',
     howTitle: '三步搞定',
-    steps: [['1 · 粘贴', '贴入有 AI 味的草稿，无需代码或密钥。'], ['2 · 改写', 'patina 清除约 160 种模式并自然地改写。'], ['3 · 校验', '查看 MPS、fidelity 和 AI 信号（前 → 后）。']],
     examplesTitle: '改写前后',
-    xCaption: '去掉 AI 包装',
-    xReplay: '重播',
-    xTry: '用这句试试',
     benchTitle: '公开的基准',
     benchLede: '基于仓库内 fixture 语料的确定性可疑区间基准 — 可审计，而非作者判定。',
     benchCards: [['总体准确率', '95% CI 92.7–100%'], ['fixtures', 'AI 与自然，已标注'], ['支持语言', 'KO · EN · ZH · JA'], ['误报', '1% FPR 预算下']],
@@ -217,7 +199,6 @@ const I18N = {
     ctaSub: '把有 AI 味的草稿粘到上面的输入框，无需代码或密钥。',
     ctaBtn: '回到顶部开始 ↑',
     note: ['不改变主张·数字·语气的', '确定性人性化工具。'],
-    hint: 'patina 只调整措辞，绝不改变主张、数字或因果。改写在服务器端运行真实的 patina 流程，MPS/fidelity 为实时评分。',
     chatPh: '继续润色…  (Enter 发送 · Shift+Enter 换行)',
     newchat: '新对话',
     emptyChat: '新对话 — 在下方粘贴有 AI 味的文字，patina 帮你润色。',
@@ -241,15 +222,9 @@ const I18N = {
     stopLabel: '停止',
   },
   ja: {
-    title: ['AIっぽさを消して、', '自然に', ''],
-    sub: 'AIっぽい文章を貼り付けると、patinaが自然に書き換えます。KO·EN·ZH·JA対応。',
     promptPh: '整えたい文章を貼り付けてください…',
     howTitle: '3ステップで完了',
-    steps: [['1 · 貼り付け', 'AIっぽい下書きを貼るだけ。コードも鍵も不要。'], ['2 · 書き換え', 'patinaが約160のパターンを取り除き自然に書き換えます。'], ['3 · 検証', 'MPS・fidelity・AIシグナル（前 → 後）で意味の保持を確認。']],
     examplesTitle: 'ビフォー・アフター',
-    xCaption: 'AIの包装を外す',
-    xReplay: 'もう一度',
-    xTry: 'この文で試す',
     benchTitle: '隠さないベンチマーク',
     benchLede: 'リポジトリ同梱の fixture コーパスで測る決定論的サスペクトゾーンのベンチマーク — 監査可能で、作者判定ではありません。',
     benchCards: [['全体精度', '95% CI 92.7–100%'], ['fixtures', 'AI・自然のラベル付き'], ['対応言語', 'KO · EN · ZH · JA'], ['誤検知', '1% FPR 基準']],
@@ -260,7 +235,6 @@ const I18N = {
     ctaSub: 'AIっぽい下書きを上の入力欄に貼るだけ。コードも鍵も不要。',
     ctaBtn: '上に戻って始める ↑',
     note: ['主張・数字・トーンを変えない', '決定論的ヒューマナイザー。'],
-    hint: 'patinaは表現だけを整え、主張・数値・因果は変えません。書き換えは実際のpatinaパイプラインをサーバー側で実行し、MPS/fidelityはリアルタイムで採点されます。',
     chatPh: 'さらに整える…  (Enter送信 · Shift+Enter改行)',
     newchat: '新しいチャット',
     emptyChat: '新しいチャット — 下にAIっぽい文章を貼ると patina が整えます。',
@@ -285,52 +259,6 @@ const I18N = {
   },
 };
 const PRO_I18N = EXPERIENCE_COPY;
-
-// Suggestion pills (label + text the pill loads into the prompt).
-const SAMPLES = {
-  ko: [
-    { t: 'Marketing copy', x: '본 솔루션은 혁신적인 시너지를 활용하여 고객에게 전례 없는 가치를 원활하게 제공합니다.' },
-    { t: 'Report register', x: '결론적으로, 이러한 다각적인 접근 방식은 조직의 역량을 한층 더 제고하는 데 기여할 것으로 사료됩니다.' },
-    { t: 'Announcement', x: '저희는 여러분께 혁신적인 신규 플랫폼을 선보이게 되어 진심으로 기쁘게 생각합니다.' },
-  ],
-  en: [
-    { t: 'Marketing copy', x: 'Our cutting-edge, best-in-class solution leverages synergies to seamlessly deliver world-class value at scale.' },
-    { t: 'Announcement', x: 'We are thrilled to announce that our innovative platform will revolutionize the way you work.' },
-    { t: 'Report register', x: 'In conclusion, this multifaceted approach will further enhance the overall capabilities of the organization.' },
-  ],
-  zh: [
-    { t: 'Marketing copy', x: '本解决方案充分利用前沿协同效应，无缝赋能客户，释放前所未有的价值。' },
-    { t: 'Formal register', x: '综上所述，这种多元化的方法将进一步全面提升组织的核心竞争力。' },
-  ],
-  ja: [
-    { t: 'Marketing copy', x: '本ソリューションは革新的なシナジーを活用し、お客様にかつてない価値をシームレスに提供します。' },
-    { t: 'Report register', x: '結論として、この多角的なアプローチは組織の能力を一層向上させることに寄与すると考えられます。' },
-  ],
-};
-
-// Example cards (illustrative before → after, one per language).
-const EXAMPLES = [
-  {
-    lang: 'ko',
-    before: '오늘날 빠르게 변화하는 디지털 환경 속에서, 본 솔루션은 혁신적인 시너지를 활용하여 고객에게 전례 없는 가치를 원활하게 제공합니다. 이는 단순한 도구가 아니라, 팀의 잠재력을 극대화하는 패러다임의 전환입니다.',
-    after: '이 솔루션은 팀이 이미 쓰는 도구와 함께 작동해, 반복 작업을 줄이고 일을 더 빨리 끝내도록 돕습니다. 거창한 도구가 아니라 실제로 쓸 만한 도구예요.',
-  },
-  {
-    lang: 'en',
-    before: 'In today\'s fast-paced, ever-evolving digital landscape, our cutting-edge platform leverages synergies to seamlessly deliver world-class value at scale. It\'s not just a tool — it\'s a transformative solution that empowers teams to unlock their full potential.',
-    after: 'Our platform helps teams get more done with the tools they already use, and it cuts the busywork so you can ship faster.',
-  },
-  {
-    lang: 'zh',
-    before: '在当今瞬息万变的数字时代，本解决方案充分利用前沿协同效应，无缝赋能客户，释放前所未有的价值。这不仅仅是一个工具，更是一场彻底改变团队潜能的范式革命。',
-    after: '这个方案帮团队用现有的工具把活干得更快，省去重复劳动，真正解决问题。',
-  },
-  {
-    lang: 'ja',
-    before: '目まぐるしく変化する今日のデジタル時代において、本ソリューションは革新的なシナジーを活用し、お客様にかつてない価値をシームレスに提供します。これは単なるツールではなく、チームの潜在能力を最大限に引き出す変革的なソリューションです。',
-    after: 'このソリューションは、チームが今使っているツールのまま、無駄な作業を減らして仕事を速く終わらせるのを助けます。',
-  },
-];
 
 /** @typedef {{role:string,text:string,meta?:any,original?:string,receipt?:any,editReview?:any,protectedSpans?:any[],reviewSelection?:boolean[],reviewCandidate?:string}} ChatMessage */
 /** @typedef {{id:string,title:string,messages:ChatMessage[],thread:ReturnType<typeof createRewriteThread>,protectedInput?:string,reviewPending?:boolean}} Convo */
@@ -544,6 +472,8 @@ function wirePricingCtas() {
   const free = $('#price-free');
   if (free) free.addEventListener('click', () => {
     track('Tier Selected', { tier: 'free', surface: 'pricing' });
+    els.tier.value = WEB_TIERS.FREE; syncTier(); updateHeroSend(); updateChatSend();
+    showLanding();
     globalThis.scrollTo({ top: 0, behavior: 'smooth' }); els.heroInput?.focus();
   });
   const byok = $('#price-byok');
@@ -554,7 +484,7 @@ function wirePricingCtas() {
     updateHeroSend();
     updateChatSend();
     globalThis.scrollTo({ top: 0, behavior: 'smooth' });
-    els.apiKey?.focus();
+    openSettings(); els.apiKey?.focus();
   });
 }
 
@@ -578,7 +508,9 @@ function syncTier() {
   els.licenseKey.disabled = signedIn;
   els.licenseSignIn.hidden = signedIn;
   els.licenseSignOut.hidden = !signedIn;
-  $('#license-status').textContent = experienceCopy(els.lang.value).licenseStates[state.licenseStatus];
+  const copy = experienceCopy(els.lang.value);
+  $('#license-status').textContent = copy.licenseStates[state.licenseStatus];
+  $('#hero-hint').textContent = byok ? copy.byokCost : pro ? copy.licenseStates[state.licenseStatus] : onboardingCopy(els.lang.value).heroHint;
 }
 
 // Populate opt-in voices. The empty option preserves the source voice.
@@ -611,11 +543,11 @@ function populatePersonas() {
 // ---------- landing: suggestions + examples ----------
 function renderSuggest() {
   els.suggest.innerHTML = '';
-  const list = SAMPLES[els.lang.value] || SAMPLES.en;
+  const list = EXAMPLES.filter((example) => example.lang === els.lang.value);
   for (const s of list) {
-    const pill = el('button', 'suggest__pill', s.t);
+    const pill = el('button', 'suggest__pill', s.label);
     pill.type = 'button';
-    pill.addEventListener('click', () => { loadIntoPrompt(s.x); });
+    pill.addEventListener('click', () => { selectExample?.(s, true); loadIntoPrompt(s.before); });
     els.suggest.appendChild(pill);
   }
 }
@@ -674,105 +606,120 @@ function fillLine(node, seq, skip) {
   }
 }
 
+let selectExample = null;
+let exampleSelection = null;
+
 function renderExamples() {
   els.exampleCards.innerHTML = '';
-  const reduce = globalThis.matchMedia && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // editor chrome: window dots + language tabs + state label + copy
+  const ui = onboardingCopy(els.lang.value);
+  const reduce = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const editor = el('div', 'editor');
   const bar = el('div', 'editor__bar');
-  const dots = el('span', 'editor__dots'); dots.setAttribute('aria-hidden', 'true');
-  dots.append(el('i'), el('i'), el('i'));
-  const tabs = el('div', 'editor__tabs'); tabs.setAttribute('role', 'tablist');
-  const actbar = el('div', 'editor__act');
-  const state = el('span', 'editor__state', 'before → after');
-  const copy = el('button', 'editor__btn', 'Copy'); copy.type = 'button'; copy.setAttribute('aria-label', 'Copy the rewritten text');
-  actbar.append(state, copy);
-  bar.append(dots, tabs, actbar);
+  const tabs = el('div', 'editor__tabs');
+  tabs.setAttribute('role', 'tablist');
+  tabs.setAttribute('aria-label', ui.exampleLanguage);
+  bar.appendChild(tabs);
 
-  // body: line-number gutter + persistent before/after diff (both stay visible)
-  const bodyEl = el('div', 'editor__body');
-  const gutter = el('div', 'editor__gutter'); gutter.setAttribute('aria-hidden', 'true');
+  const panel = el('div', 'editor__panel');
+  panel.id = 'example-panel';
+  panel.setAttribute('role', 'tabpanel');
+  const choiceLabel = el('label', 'editor__choice');
+  const choice = el('select', 'ctl__select');
+  choice.id = 'example-choice';
+  choiceLabel.append(el('span', null, ui.exampleChoice), choice);
+  const body = el('div', 'editor__body');
   const code = el('div', 'editor__code');
+  const beforeLabel = el('p', 'editor__label');
+  const afterLabel = el('p', 'editor__label');
   const before = el('div', 'editor__seg editor__seg--before');
-  const arrow = el('div', 'editor__arrow', '↓ patina');
   const after = el('div', 'editor__seg editor__seg--after');
-  code.append(before, arrow, after);
-  bodyEl.append(gutter, code);
-
+  code.append(beforeLabel, before, afterLabel, after);
+  body.appendChild(code);
+  const caption = el('p', 'editor__cap');
+  const note = el('p', 'editor__note', ui.illustrative);
+  note.id = 'example-note';
+  panel.setAttribute('aria-describedby', note.id);
   const foot = el('div', 'editor__foot');
-  const cap = el('span', 'editor__cap');
-  const footact = el('div', 'editor__footact');
-  const replay = el('button', 'xcard__replay'); replay.type = 'button';
-  const tryIt = el('button', 'xcard__try'); tryIt.type = 'button';
-  footact.append(replay, tryIt);
-  foot.append(cap, footact);
+  const copy = el('button', 'editor__btn', ui.copyExample); copy.type = 'button';
+  const replay = el('button', 'xcard__replay', ui.replay); replay.type = 'button';
+  const tryIt = el('button', 'xcard__try', ui.tryExample); tryIt.type = 'button';
+  foot.append(copy, replay, tryIt);
+  panel.append(note, choiceLabel, body, caption, foot);
+  editor.append(bar, panel);
+  els.exampleCards.appendChild(editor);
 
-  editor.append(bar, bodyEl, foot);
-
-  let active = EXAMPLES.find((e) => e.lang === els.lang.value) || EXAMPLES[0];
-
-  // line numbers run continuously: before block, a divider row, then after block.
-  const syncGutter = () => {
-    let lh = parseFloat(globalThis.getComputedStyle(before).lineHeight);
-    if (!Number.isFinite(lh)) lh = 26;
-    const b = Math.max(1, Math.round(before.scrollHeight / lh));
-    const a = Math.max(1, Math.round(after.scrollHeight / lh));
-    gutter.textContent = '';
-    for (let i = 1; i <= b; i++) gutter.appendChild(el('span', null, String(i)));
-    gutter.appendChild(el('span', 'editor__gx', '↓'));
-    for (let i = 1; i <= a; i++) gutter.appendChild(el('span', null, String(b + i)));
-  };
-  // one-shot flourish: the after block fades up; the before block never moves.
+  let active = EXAMPLES.find((example) => example.id === exampleSelection && example.lang === els.lang.value)
+    || EXAMPLES.find((example) => example.lang === els.lang.value) || EXAMPLES[0];
   const reveal = () => {
     if (reduce) return;
     editor.classList.remove('is-reveal');
     void editor.offsetWidth;
     editor.classList.add('is-reveal');
-    globalThis.setTimeout(() => editor.classList.remove('is-reveal'), 800);
   };
-  const setActive = (ex, doReveal) => {
-    active = ex;
-    const seq = diffSeq(tokenizeText(ex.before), tokenizeText(ex.after));
-    fillLine(before, seq, 'add');
-    fillLine(after, seq, 'rm');
-    for (const tab of tabs.children) tab.classList.toggle('is-active', tab.dataset.lang === ex.lang);
-    globalThis.requestAnimationFrame(syncGutter);
-    if (doReveal) reveal();
+  const setActive = (example, animate = false) => {
+    active = example;
+    exampleSelection = example.id;
+    const labels = onboardingCopy(example.lang);
+    beforeLabel.textContent = labels.before;
+    afterLabel.textContent = labels.after;
+    code.setAttribute('lang', example.lang);
+    caption.setAttribute('lang', example.lang);
+    caption.textContent = example.caption;
+    panel.setAttribute('aria-labelledby', `example-tab-${example.lang}`);
+    const seq = diffSeq(tokenizeText(example.before), tokenizeText(example.after));
+    fillLine(before, seq, 'add'); fillLine(after, seq, 'rm');
+    choice.innerHTML = '';
+    for (const row of EXAMPLES.filter((row) => row.lang === example.lang)) choice.appendChild(new Option(row.label, row.id));
+    choice.value = example.id;
+    choice.setAttribute('lang', example.lang);
+    for (const tab of tabs.children) {
+      const selected = tab.dataset.lang === example.lang;
+      tab.classList.toggle('is-active', selected);
+      tab.setAttribute('aria-selected', String(selected));
+      tab.setAttribute('tabindex', selected ? '0' : '-1');
+    }
+    copy.textContent = ui.copyExample;
+    if (animate) reveal();
   };
-
-  for (const ex of EXAMPLES) {
-    const tab = el('button', 'editor__tab', LANG_NAME[ex.lang] || ex.lang);
-    tab.type = 'button'; tab.dataset.lang = ex.lang; tab.setAttribute('role', 'tab');
-    tab.addEventListener('click', () => setActive(ex, true));
+  selectExample = setActive;
+  for (const lang of Object.keys(LANG_NAME)) {
+    const tab = el('button', 'editor__tab', LANG_NAME[lang]);
+    tab.type = 'button'; tab.dataset.lang = lang; tab.id = `example-tab-${lang}`;
+    tab.setAttribute('role', 'tab'); tab.setAttribute('lang', lang);
+    tab.setAttribute('aria-controls', panel.id);
+    tab.addEventListener('click', () => setActive(EXAMPLES.find((example) => example.lang === lang), true));
+    tab.addEventListener('keydown', (event) => {
+      const buttons = Array.from(tabs.children);
+      const index = buttons.indexOf(tab);
+      const next = { ArrowRight: (index + 1) % buttons.length, ArrowLeft: (index + buttons.length - 1) % buttons.length,
+        Home: 0, End: buttons.length - 1 }[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      buttons[next].click(); buttons[next].focus();
+    });
     tabs.appendChild(tab);
   }
+  choice.addEventListener('change', () => setActive(EXAMPLES.find((example) => example.id === choice.value), true));
   replay.addEventListener('click', reveal);
   tryIt.addEventListener('click', () => {
-    stopActive();
+    if (state.busy) return;
+    // Keep the selected row across re-rendering; the old conversation stays intact.
+    const selected = active;
     newConvo();
-    els.lang.value = active.lang; onLangChange();
-    loadIntoPrompt(active.before);
+    els.lang.value = selected.lang; onLangChange();
+    selectExample?.(selected);
+    loadIntoPrompt(selected.before);
     globalThis.scrollTo({ top: 0, behavior: 'smooth' });
   });
   copy.addEventListener('click', async () => {
     try {
       await globalThis.navigator.clipboard.writeText(active.after);
-      copy.textContent = 'Copied'; copy.classList.add('is-ok');
-      globalThis.setTimeout(() => { copy.textContent = 'Copy'; copy.classList.remove('is-ok'); }, 1400);
-    } catch { /* clipboard unavailable */ }
+      copy.textContent = ui.copied;
+    } catch { copy.textContent = ui.copyFailed; }
   });
-
-  els.exampleCards.appendChild(editor);
-  setActive(active, false);
-  globalThis.addEventListener('resize', syncGutter);
-  if (!reduce && ('IntersectionObserver' in globalThis)) {
-    const io = new globalThis.IntersectionObserver((entries, obs) => {
-      for (const en of entries) { if (en.isIntersecting) { reveal(); obs.unobserve(en.target); } }
-    }, { threshold: 0.4 });
-    io.observe(editor);
-  }
+  setActive(active);
 }
+
 function loadIntoPrompt(text) {
   showLanding();
   els.heroInput.value = text;
@@ -1046,9 +993,8 @@ function detectLang(text) {
   return null;
 }
 
-// Start in English. Detection can adjust an unanchored conversation's language
-// until the user explicitly selects a language or applies a preset.
-const DEFAULT_LANG = 'en';
+// Landing locale seeds the UI; only a deliberate control/preset selection locks the source language.
+const DEFAULT_LANG = initialLanguage(globalThis.navigator, globalThis.location?.search);
 
 // ---------- unified submit ----------
 /** In-flight rewrite attempt: { controller, cancelled }. One at a time (busy gate). */
@@ -1099,7 +1045,10 @@ function signInLicense() {
   updateHeroSend(); updateChatSend();
 }
 
+function openSettings() { $('#settings-panel').setAttribute('open', ''); }
+
 function openLicenseControls() {
+  openSettings();
   els.tier.value = WEB_TIERS.PRO;
   syncTier(); updateHeroSend(); updateChatSend();
   globalThis.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1134,14 +1083,14 @@ function preflight(clean, source) {
     els.apiKey.classList.add('is-invalid');
     showInlineError($('#key-error'), t.keyMissing);
     showInlineError(inlineErrorNode(source), t.keyMissing);
-    els.apiKey.focus();
+    openSettings(); els.apiKey.focus();
     return false;
   }
   if (tier === WEB_TIERS.PRO && !state.license) {
     const message = (PRO_I18N[els.lang.value] || PRO_I18N.en).missing;
     showInlineError($('#license-error'), message);
     showInlineError(inlineErrorNode(source), message);
-    els.licenseKey.focus();
+    openSettings(); els.licenseKey.focus();
     return false;
   }
   return true;
@@ -1464,8 +1413,11 @@ function addRecovery(body, attempt, recovery) {
       els.tier.value = String(attempt.reqBody.tier);
       syncTier();
       if (els.tier.value === WEB_TIERS.PRO) openLicenseControls();
-      else els.apiKey.focus();
-    } else if (!verification) els.input.focus();
+      else { openSettings(); els.apiKey.focus(); }
+    } else {
+      openSettings();
+      if (!verification) els.input.focus();
+    }
     updateChatSend();
   });
   body.appendChild(btn);
@@ -1494,7 +1446,7 @@ function scrollDown() { els.thread.scrollTop = els.thread.scrollHeight; }
 function closeMobileSidebar() { els.chat.classList.remove('sidebar-open'); els.toggleSidebar.setAttribute('aria-expanded', 'false'); }
 
 function applyI18n(lang) {
-  const t = I18N[lang] || I18N.en;
+  const t = { ...(I18N[lang] || I18N.en), ...onboardingCopy(lang) };
   const set = (sel, text) => { const n = document.querySelector(sel); if (n) n.textContent = text; };
   const protection = PROTECTED_INPUT_COPY[lang] || PROTECTED_INPUT_COPY.en;
   set('#protected-label', protection.label);
@@ -1523,9 +1475,6 @@ function applyI18n(lang) {
   const stepEls = document.querySelectorAll('.how__steps li');
   t.steps.forEach((s, i) => { const li = stepEls[i]; if (!li) return; const h = li.querySelector('h3'); const p = li.querySelector('p'); if (h) h.textContent = s[0]; if (p) p.textContent = s[1]; });
   set('.examples .sec__title', t.examplesTitle);
-  set('.editor__cap', t.xCaption);
-  set('.xcard__replay', t.xReplay);
-  set('.xcard__try', t.xTry);
   set('.bench .sec__title', t.benchTitle);
   set('.bench .sec__lede', t.benchLede);
   const bcards = document.querySelectorAll('.bench__cards .bstat');
@@ -1538,7 +1487,9 @@ function applyI18n(lang) {
   set('.cta__sub', t.ctaSub);
   set('#cta-start', t.ctaBtn);
   setLines('.sidebar__note', t.note);
-  set('.composer__hint', t.hint);
+  set('.composer__hint', t.resultHint);
+  set('#meaning-hint', t.hint);
+  set('#meaning-label', t.meaningLabel);
   els.input.setAttribute('placeholder', t.chatPh);
   els.input.setAttribute('aria-label', t.chatPh);
   const nc = document.querySelector('#new-chat span:last-child'); if (nc) nc.textContent = t.newchat;
@@ -1549,10 +1500,7 @@ function applyI18n(lang) {
   set('#license-sign-in', pro.signIn);
   set('#license-sign-out', pro.signOut);
   applyExperienceCopy(lang, set);
-  const ex = EXAMPLES.find((e) => e.lang === lang) || EXAMPLES[0];
-  const setPreview = (sel, tag, text) => { const n = document.querySelector(sel); if (!n) return; n.textContent = ''; n.appendChild(el('span', 'hp-tag', tag)); n.appendChild(document.createTextNode(text)); };
-  setPreview('.hp-before', 'before', ex.before);
-  setPreview('.hp-after', 'after', ex.after);
+  renderExamples();
 }
 
 function readControls() {
@@ -1570,6 +1518,11 @@ function restoreControls(convo) {
   renderSuggest(); syncTier(); syncSettingsBusy(); updateHeroSend(); updateChatSend();
 }
 function onLangChange() {
+  if (state.heroDraft) {
+    const selected = els.lang.value;
+    newConvo(state.heroDraft.protectedInput);
+    els.lang.value = selected;
+  }
   const convo = activeConvo();
   if (convo) {
     const accepted = convo.thread.updatePreferences(readControls(), { explicitLanguage: true });
@@ -1580,6 +1533,7 @@ function onLangChange() {
   }
 }
 function onPreferencesChange() {
+  if (state.heroDraft) newConvo(state.heroDraft.protectedInput);
   const convo = activeConvo();
   if (convo) convo.thread.updatePreferences(readControls());
 }
@@ -1631,6 +1585,7 @@ function savePreset() {
 function applyPreset() {
   if (state.busy) return;
   const preset = presets.find((p) => p.name === presetSelect.value);
+  if (preset && state.heroDraft) newConvo(state.heroDraft.protectedInput);
   const convo = activeConvo();
   if (!preset || !convo) return;
   const accepted = convo.thread.updatePreferences(preset.settings, { explicitLanguage: true });
@@ -1645,12 +1600,25 @@ function deletePreset() {
 }
 function applyExperienceCopy(lang, set) {
   const copy = experienceCopy(lang);
+  const intro = onboardingCopy(lang);
+  for (const [id, key] of [['settings-label', 'settings'], ['settings-hint', 'settingsHint'], ['hero-hint', 'heroHint'],
+    ['hero-action', 'heroAction'], ['suggest-label', 'suggestions'], ['price-free', 'freeCta']]) set(`#${id}`, intro[key]);
+  set('.nav__links a[href="#examples"]', intro.navExamples);
+  set('.nav__links a[href="#pricing"]', intro.navPricing);
+  els.homeLink.setAttribute('aria-label', intro.home);
+  $('.nav__links').setAttribute('aria-label', intro.navigation);
+  for (const [id, key] of [['provider', 'provider'], ['model', 'model'], ['api-key', 'apiKey']]) {
+    $(`#${id}`).parentElement.querySelector('.ctl__label').textContent = intro[key];
+  }
+  els.apiKey.setAttribute('placeholder', intro.apiPlaceholder);
+  els.apiKey.setAttribute('aria-label', intro.apiKey);
   const cards = document.querySelectorAll('.price');
   const renderCard = (card, name, features) => {
     if (!card) return;
     card.querySelector('.price__name').textContent = name;
     card.querySelectorAll('.price__feats li').forEach((li, i) => { li.textContent = features[i]; });
   };
+  renderCard(cards[0], intro.freeName, intro.freeFeatures);
   renderCard(cards[1], copy.byokName, copy.byokFeatures);
   renderCard(cards[2], copy.proName, copy.proFeatures);
   if (cards[1]) cards[1].querySelector('.price__cost').textContent = copy.byokCost;
@@ -1658,7 +1626,11 @@ function applyExperienceCopy(lang, set) {
   set('.pricing .sec__title', copy.pricingTitle); set('.pricing .sec__lede', copy.pricingLede);
   set('.pricing__note', copy.pricingNote); set('#price-byok', copy.byokCta);
   set('#pro-existing', copy.already); set('#pro-docs', copy.docs); set('#pro-portal', copy.portal);
-  document.querySelectorAll('.nav__end .ctl__label').forEach((label, i) => { label.textContent = copy.labels[i]; });
+  for (const [i, id] of ['lang', 'document-type', 'persona', 'register', 'tier'].entries()) {
+    const label = $(`#${id}`).parentElement.querySelector('.ctl__label');
+    if (label) label.textContent = copy.labels[i];
+    $(`#${id}`).setAttribute('aria-label', copy.labels[i]);
+  }
   for (const [value, label] of [['', copy.preserve], ['casual', copy.casual], ['professional', copy.professional]]) {
     set(`#register option[value="${value}"]`, label);
   }
@@ -1668,6 +1640,11 @@ function applyExperienceCopy(lang, set) {
 }
 
 // ---------- events ----------
+$('#settings-panel').addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  $('#settings-panel').removeAttribute('open');
+  $('#settings-label').focus();
+});
 const inputStarted = new Set();
 function trackInputStarted(surface, input) {
   if (inputStarted.has(surface) || input.value.length === 0) return;
@@ -1723,13 +1700,13 @@ els.provider.addEventListener('change', populateModels);
 els.lang.value = DEFAULT_LANG;
 populateProviders();
 syncTier();
-renderSuggest();
-renderExamples();
 captureUtm();
 wireProCta();
 wirePricingCtas();
-onLangChange();
 newConvo();
 showLanding();
 updateHeroSend();
 updateChatSend();
+
+// Arrival uses the initialized browser locale; analytics owns success/reuse counting.
+try { globalThis.patinaFunnelReady?.(els.lang.value); } catch { /* optional analytics */ }

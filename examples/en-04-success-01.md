@@ -14,12 +14,12 @@ language: en
 
 ## Expected Output
 
-> The village is about 20 miles northwest of Oxford, off the A40. It has two pubs, a farm shop, and a 12th-century church. The nearest train station is in Charlbury, a 10-minute drive away.
+> This beautiful village in the heart of the Cotswolds offers exceptional dining and striking countryside views. Its blend of old-world charm and modern comfort makes it a little-known destination well worth a visit for any traveler.
 
 ## Applied Pattern
 
-- Pattern 4 (Promotional Language): Six promotional terms — "nestled," "stunning," "boasts," "world-class," "breathtaking," "hidden gem," "exquisite," "must-visit" — applied to what is being described as a small countryside village. Multiple superlatives modify the same subject.
+- Pattern 4 (Promotional Language): Eight terms — "nestled," "stunning," "boasts," "world-class," "breathtaking," "hidden gem," "exquisite," and "must-visit" — describe the same village.
 
 ## Judgment
 
-**Success** — The fire condition is clearly met: well over 2 promotional adjectives modify the same subject, including strong superlatives like "world-class," "breathtaking," and "must-visit" used as descriptive prose rather than quoted marketing copy. The text reads like a tourism brochure. The corrected version replaces the promotional language with neutral, factual description: location, amenities, and access details.
+**Success** — Several promotional terms describe the same village. The rewrite reduces their repetition while retaining the positive assessment, setting, dining, views, charm and comfort. The input supplies no route or amenity details, so none are added.
