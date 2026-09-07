@@ -20,15 +20,19 @@ patina は、韓国語・英語・中国語・日本語向けの、決定的で�
 
 エディター連携：[VS Code、Obsidian、Gmail プレビュー](docs/integrations/editors.md)。
 
-## デモ
+## 日本語の書き換え例
 
-AI っぽいテキストを **[playground](https://patina.vibetip.help/)** に貼り付けると、patina がその場で書き換えます。意味フロアが書き換えを検証し（ここでは **MPS 100 / Fidelity 75** — 「30 templates」という事実は保たれます）、決定的な AI シグナルを before → after で測定します。hot-paragraph 比率は **100 → 0** に下がり、誇張表現（"thrilled to announce"、"revolutionize your workflow"、"unlock their full potential"）は消えています。
+見積書の確認依頼からの短い抜粋です。説明用に作成した例で、実際の実行結果や測定値ではありません。
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/devswha/patina/main/assets/demo/patina-playground-en.gif" alt="patina playground のアニメーションデモ：AI っぽいテンプレートパックの告知文を web playground に貼り付け、30-templates の事実を保ったまま自然に書き換え、MPS 100・Fidelity 75・100 から 0 への決定的な AI シグナル低下で検証する様子" width="820">
-</p>
+**変更前**
 
-ほかの例：[Before/After Gallery](docs/EXAMPLES.md)（[한국어](docs/EXAMPLES_KR.md)）· [CLI transcript](docs/DEMO.md)。
+> 添付の見積書は2ページでございます。可能であれば、9月10日17時までにご確認いただけますと幸いです。
+
+**変更後**
+
+> 添付の見積書は2ページです。可能であれば、9月10日17時までにご確認ください。
+
+ページ数と期限、対応できる場合に確認してほしいという条件を保ち、敬語を短くしました。[日本語の3作例](docs/EXAMPLES_JA.md)には、メール全文、進捗報告、製品案内を掲載しています。自分の文章では **[playground](https://patina.vibetip.help/)** で試せます。
 
 - **ブラックボックスではなく、監査可能** — 名前付きの 184 パターンがすべての編集を決め、`--diff` が何をなぜ変えたかをそのまま示します。
 - **意味はWebで検証されて残る** — playground はすべての書き換えを MPS と忠実度フロアで検証し、逸脱した結果は拒否します。Node CLI は `--verify`、エージェントスキルは `/patina --strict` で同じ検査を有効にします。
@@ -54,14 +58,14 @@ Install patina by following https://raw.githubusercontent.com/devswha/patina/mai
 [ここにテキストを貼り付け]
 ```
 
-**CLI — Node 18 以上：**
+**CLI — Node 18.1 以上：**
 
 ```bash
 npx patina-cli --lang ja input.txt          # 書き換え
 npx patina-cli doctor                       # バックエンドとキーの確認
 ```
 
-ログイン済みの `codex`・`claude`・`gemini` CLI があれば API キーなしで `--backend codex-cli` を使えます。詳細は [INSTALLATION.md](INSTALLATION.md)。
+ログイン済みの CLI は、`codex` なら `--backend codex-cli`、`claude` なら `--backend claude-cli`、`gemini` なら `--backend gemini-cli` で使えます。この場合、patina に API キーを設定する必要はありません。詳細は [INSTALLATION.md](INSTALLATION.md)。
 
 ## 互いに独立した3つの軸
 
@@ -121,7 +125,8 @@ register:                 # casual | professional。省略時は原文レジス�
 ## ドキュメント
 
 - [Cookbook](docs/COOKBOOK.md) — よく使うレシピ · [CLI 契約](docs/CLI.md) — フラグ・ゲート・終了コード
-- [Before/After ギャラリー](docs/EXAMPLES.md) · [パターンカタログ](docs/PATTERNS.md)
+- [日本語の作例ギャラリー](docs/EXAMPLES_JA.md) · [日本語パターン](docs/PATTERNS-JA.md) · [全言語のカタログ](docs/PATTERNS.md)
+- 過去の実行記録：[英語のアニメーション](assets/demo/patina-playground-en.gif) · [CLI transcript](docs/DEMO.md)
 - [アーキテクチャ](docs/ARCHITECTURE.md) · [設定と認証](docs/AUTHENTICATION.md)
 - [ベンチマーク](docs/benchmarks/latest.md) · [研究](docs/research/2026-rewrite-efficacy-study1.md) · [FAQ](docs/FAQ.md)
 - [コントリビュート](CONTRIBUTING.md) · [変更履歴](CHANGELOG.md)
