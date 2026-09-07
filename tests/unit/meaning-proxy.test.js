@@ -16,6 +16,8 @@ test('CJK genitives do not become unsupported fractional numbers', () => {
     ['ja', '日本の資料を3冊読みました。'],
     ['ja', '自分の1ページ目を確認します。'],
     ['ja', '3分の動画を確認します。'],
+    ['ja', '30分の1対1の面談を行います。'],
+    ['ja', '3分の3D動画を確認します。'],
     ['zh', '今年之内提交3份报告。'],
     ['zh', '这部分的2页需要检查。'],
   ]) assert.equal(evaluateNumberSafety(text, text, lang).ok, true, text);
@@ -27,17 +29,26 @@ test('CJK genitives do not become unsupported fractional numbers', () => {
   assert.equal(evaluateNumberSafety(original, rewritten.replace('3件', '数件'), 'ja').ok, false);
 });
 
-test('unsupported CJK fractions remain fail-closed with word or claimed digit neighbors', () => {
+test('unsupported CJK word fractions and signed numerators retain their prior protection', () => {
   for (const [lang, text] of [
-    ['ja', '三分の一'], ['ja', '3分の1'], ['ja', '3 分 の 1'],
+    ['ja', '三分の一'], ['ja', '値は三分の−1です。'],
     ['ja', '百分の一'], ['ja', '三分の百'],
-    ['zh', '三分之一'], ['zh', '3分之1'], ['zh', '3 分 之 1'],
+    ['zh', '三分之一'], ['zh', '三分之-1'],
     ['zh', '百分之三'], ['zh', '三分之百'],
   ]) {
     const result = evaluateNumberSafety(text, text, lang);
     assert.equal(result.ok, false, text);
     assert.equal(result.reason, 'unsupported_word_number', text);
   }
+});
+
+test('word-number counters cannot lose their numeric protection', () => {
+  for (const [lang, original, rewritten] of [
+    ['ja', '三分待ってください。', '四分待ってください。'],
+    ['zh', '得了三分。', '得了四分。'],
+    ['ja', '値は三分の−1です。', '値は四分の−1です。'],
+    ['zh', '三分之-1', '四分之-1'],
+  ]) assert.equal(evaluateNumberSafety(original, rewritten, lang).ok, false, original);
 });
 
 test('meaning-preserving pairs never fail (pass or warn only)', () => {

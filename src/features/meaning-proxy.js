@@ -145,23 +145,14 @@ function hasUnsupportedWordNumberExpression(source, lang, occupied = []) {
       ? /[零〇一二三四五六七八九十两兩壹贰貳叁參肆伍陆陸柒捌玖]/u
       : /[零〇一二三四五六七八九十壱弐参肆伍陸漆捌玖]/u;
     const compoundNumerals = /[零〇一二三四五六七八九十]{2,}/u;
-    // Fraction operators are sequences, not individual characters. Treating
-    // 分の/分之 as character classes misread ordinary genitives such as 今回の.
+    // Fraction endings belong to 分の/分之, not to standalone の/之.
+    // Keep 分's existing counter checks and use the same masked context as
+    // before; raw digits here would misread 30分の1対1 as a fraction.
     const unsupported = lang === 'zh'
-      ? /(?:分\s*之|[两兩壹贰貳叁參肆伍陆陸柒捌玖拾廿卅卌半第百千萬万億亿兆京垓])/gu
-      : /(?:分\s*の|[壱弐参肆伍陸漆捌玖拾半第百千万億兆京垓])/gu;
+      ? /[两兩壹贰貳叁參肆伍陆陸柒捌玖拾廿卅卌半第分百千萬万億亿兆京垓]|(?<=分)之/gu
+      : /[壱弐参肆伍陸漆捌玖拾半第分百千万億兆京垓]|(?<=分)の/gu;
     for (const match of uncoveredSource.matchAll(unsupported)) {
       const index = match.index;
-      if (/^分\s*[の之]$/.test(match[0])) {
-        // Use the original neighbors: digit claims have already been masked.
-        // Both sides must be numeric, so 自分の話 and 3分の動画 are not fractions.
-        const left = source.slice(0, index).trimEnd().at(-1) ?? '';
-        const right = source.slice(index + match[0].length).trimStart()[0] ?? '';
-        const numericEdge = value => DECIMAL_DIGIT_RE.test(value) || numerals.test(value)
-          || /[拾廿卅卌半百千萬万億亿兆京垓]/u.test(value);
-        if (numericEdge(left) && numericEdge(right)) return true;
-        continue;
-      }
       const previous = uncoveredSource[index - 1] ?? '';
       const next = uncoveredSource[index + match[0].length] ?? '';
       if (DECIMAL_DIGIT_RE.test(previous) || DECIMAL_DIGIT_RE.test(next)
