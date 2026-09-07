@@ -157,8 +157,9 @@ function hasUnsupportedWordNumberExpression(source, lang, occupied = []) {
         // Both sides must be numeric, so 自分の話 and 3分の動画 are not fractions.
         const left = source.slice(0, index).trimEnd().at(-1) ?? '';
         const right = source.slice(index + match[0].length).trimStart()[0] ?? '';
-        if ((DECIMAL_DIGIT_RE.test(left) || numerals.test(left))
-          && (DECIMAL_DIGIT_RE.test(right) || numerals.test(right))) return true;
+        const numericEdge = value => DECIMAL_DIGIT_RE.test(value) || numerals.test(value)
+          || /[拾廿卅卌半百千萬万億亿兆京垓]/u.test(value);
+        if (numericEdge(left) && numericEdge(right)) return true;
         continue;
       }
       const previous = uncoveredSource[index - 1] ?? '';

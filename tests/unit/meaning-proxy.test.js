@@ -30,7 +30,9 @@ test('CJK genitives do not become unsupported fractional numbers', () => {
 test('unsupported CJK fractions remain fail-closed with word or claimed digit neighbors', () => {
   for (const [lang, text] of [
     ['ja', '三分の一'], ['ja', '3分の1'], ['ja', '3 分 の 1'],
+    ['ja', '百分の一'], ['ja', '三分の百'],
     ['zh', '三分之一'], ['zh', '3分之1'], ['zh', '3 分 之 1'],
+    ['zh', '百分之三'], ['zh', '三分之百'],
   ]) {
     const result = evaluateNumberSafety(text, text, lang);
     assert.equal(result.ok, false, text);
