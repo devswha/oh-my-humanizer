@@ -1,6 +1,6 @@
 # Before/After Gallery
 
-patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포장은 사라집니다.
+아래는 문체를 다듬을 때 의미를 어디까지 보존해야 하는지 보여 주는 예시입니다. 모델 기반 편집 검토로 정리했으며, 실제 실행 로그나 사람의 평가 점수가 아닙니다. 원문의 사실 여부를 독립적으로 검증한 자료도 아닙니다.
 
 ## English: 부풀린 제품 카피
 
@@ -10,9 +10,9 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 **After**
 
-> AI coding tools are useful for the boring parts: test stubs, config files, small refactors. They do not fix a messy codebase, but they can save time when someone still checks the output.
+> AI coding tools let teams streamline workflows, improve collaboration and reach new levels of productivity across the organization. They mark a major step forward in software development.
 
-**제거한 패턴**: 부풀린 중요도, 기업식 추상어, 세 갈래 장점 나열.
+**편집 설명**: 세 갈래 장점 나열을 문장으로 나눴습니다. 워크플로·협업·조직 전반의 생산성에 대한 원문의 주장은 유지했습니다. 테스트 초안이나 설정 파일 같은 적용 사례를 새로 만들지 않았습니다.
 
 ## Korean: 장점 나열
 
@@ -22,9 +22,9 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 **After**
 
-> 이 도구는 반복 작업을 줄여준다. 문서 정리, 초안 작성, 간단한 협업 흐름처럼 사람이 굳이 매번 손으로 할 필요 없는 일에 잘 맞는다.
+> 이 도구는 사용자의 업무 효율을 최대한 높이고 생산성 향상을 돕습니다. 협업 경험도 더 좋게 만드는 새로운 도구입니다.
 
-**제거한 패턴**: `혁신적인`, `도모`, 추상적인 장점 나열, 딱딱한 명사형 문장.
+**편집 설명**: "본 솔루션", "도모하며"를 풀어썼습니다. 업무 효율·생산성·협업의 세 주장은 남겼으며, 문서 정리나 초안 작성 기능을 추가하지 않았습니다.
 
 ## English: 흐릿한 균형감
 
@@ -34,9 +34,9 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 **After**
 
-> The tool is useful, but only if someone checks the output. Without tests or review, it just makes wrong answers arrive faster.
+> This technology could create meaningful value if implemented thoughtfully, though challenges remain.
 
-**제거한 패턴**: 일반적인 caveat, 흐릿한 upside, 빈 균형감.
+**편집 설명**: 빈 도입어를 줄였습니다. 어려움이 있다는 점, 신중하게 도입할 경우라는 조건, 가치 창출의 가능성은 남겼습니다.
 
 ## Technical: 아키텍처 주장
 
@@ -46,9 +46,9 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 **After**
 
-> The architecture leaves room for new backends without touching the CLI entry point. That is the useful part. The tradeoff is more config surface, so the defaults need to stay boring and safe.
+> This architecture gives teams a solid, scalable base for future improvements. It lets them adapt to changing requirements while keeping operations running well.
 
-**제거한 패턴**: `robust and scalable foundation`, future-proofing 주장, operational-excellence filler.
+**편집 설명**: 기반과 운영에 대한 추상적인 표현을 풀었습니다. 확장성과 요구사항 대응 능력은 유지했고, 백엔드·CLI·설정 구조를 새 사실로 넣지 않았습니다.
 
 ## Korean: instructional / tutorial register
 
@@ -58,11 +58,11 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 **After**
 
-> Git stash로 작업 중인 변경사항을 잠시 보관하세요. 커밋하기 애매한 수정이 있을 때 유용합니다. stash에 넣어두면 변경사항을 잃지 않고 다른 브랜치로 이동할 수 있습니다.
+> Git stash는 작업 중인 변경사항을 잠시 저장하는 데 유용합니다. 이 명령어로 현재 작업 내용을 잃지 않고 다른 브랜치로 빠르게 전환할 수 있습니다.
 
-**제거한 패턴**: `매우 유용한` (ko-content #4 promotional adjective), `본 명령어를 활용함으로써` (ko-style noun-heavy formal connector), `~할 수 있게 됩니다` (ko-structure #25 inflated future-tense). 튜토리얼이 명령을 *언제* 쓰는지 알려 주도록 사용 맥락("커밋하기 애매한 수정이 있을 때")을 추가했습니다.
+**편집 설명**: "본 명령어를 활용함으로써"와 늘어진 종결을 줄였습니다. 임시 저장과 작업 보존, 빠른 브랜치 전환은 그대로입니다. 원문에 없는 사용 상황은 보충하지 않았습니다.
 
-## Korean: 1인칭 회고 — abstract metaphor → sensory detail
+## Korean: 1인칭 회고 — 기억과 감정 보존
 
 **Before**
 
@@ -70,9 +70,9 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 **After**
 
-> 처음 코드 리뷰를 받던 날이 아직도 가끔 떠오른다. 선배가 남긴 피드백은 한 줄씩 읽을 때마다 이상하게 크게 느껴졌다. 모니터 앞에서 댓글을 하나씩 열어보던 장면이 선명하다. 손은 마우스 위에 있었고, 머릿속은 자꾸 하얘졌다. 지금 생각하면 그날은 대단한 사건이라기보다, 내가 처음으로 내 코드를 남의 눈으로 본 날에 가까웠다.
+> 처음 코드 리뷰를 받던 날을 떠올리면 지금도 마음이 묘하다. 선배의 피드백은 한 줄 한 줄 거대한 산처럼 다가왔다. 개발자로 성장하면서 잊을 수 없는 전환점이라 할 만한 날이었다.
 
-**제거한 패턴**: `마치 거대한 산처럼` (ko-content abstract metaphor), `의미 있는 전환점이었다고 표현할 수 있을 것이다` (ko-structure #25 hedge stack + ko-content inflated significance). 구체적인 신체 디테일(`손은 마우스 위에`, `머릿속은 자꾸 하얘졌다`)로 바꿨습니다. narrative Document Type의 정책입니다.
+**편집 설명**: 장황한 감정 설명과 겹친 완화를 줄였습니다. 선배의 피드백과 전환점이라는 평가는 남겼습니다. 회고를 다듬더라도 원문에 없는 신체 감각이나 장면을 만들지는 않습니다.
 
 ## Korean: SNS marketing — viral-hook signals
 
@@ -82,9 +82,9 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 **After**
 
-> GitHub에서 이런 속도는 거의 못 봤다. 60일 만에 별 25만 개. OpenClaw가 만든 기록이다. 광고로 뜬 게 아니다. 개발자들이 새벽 3시에 버그 잡다가 짜증 나던 부분을 정확히 긁었다.
+> GitHub 역사상 이런 속도는 없었다. 단 60일 만에 별 25만 개. OpenClaw라는 도구가 세운 기록임. 광고 한 번 안 하고 전 세계 개발자들이 미친 듯이 달려든 이유가 뭘까.
 
-**제거한 패턴**: `역사상 ... 없었다` (ko-viral-hook #3 source-skipping authority claim), `미친 듯이 달려든` (ko-viral-hook #5 hyperbolic engagement lexicon), `이유가 뭘까` (ko-viral-hook #2 clickbait mystery close → 구체적 설명으로 해결). viral-hook pack은 **score-only**지만, content/style pack이 적용된 regular rewrite에서도 모델이 이런 신호를 다시 잡아냅니다.
+**편집 설명**: 교정 없음: 이 예시는 바이럴 훅 팩의 score-only 동작을 보여 줍니다. 출처 없는 숫자와 기록 주장을 그대로 두고 점수·감사 대상으로 살핍니다. "새벽 3시 버그 수정" 같은 성공 원인을 만들어 질문에 답하지 않습니다. 수치나 기록의 사실 여부를 검증한 자료는 아닙니다.
 
 ## English: chatbot register
 
@@ -94,9 +94,9 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 **After**
 
-> Git stash temporarily saves your in-progress changes so you can switch branches without committing or losing them. It's most useful when a fix or quick task pulls you off the work you're already doing.
+> Git stash is useful for temporarily saving your changes.
 
-**제거한 패턴**: `I'd be happy to help` + `That's a great question` (en-communication #19 chatbot expressions, #21 sycophancy), `very useful` (en-content promotional adjective), `Let me know if you have any other questions` (en-communication closing politeness). chat affect를 걷어내고 실제 답변만 남겼습니다.
+**편집 설명**: 챗봇 도입·칭찬·맺음말을 덜었습니다. 원문이 실제로 설명한 임시 저장 기능만 남겼으며, 브랜치 전환이나 긴급 작업 상황을 덧붙이지 않았습니다.
 
 ## English: viral-hook authority claim
 
@@ -106,17 +106,17 @@ patina는 예시로 보는 편이 가장 쉽습니다. 주장은 남고, AI 포�
 
 **After**
 
-> OpenClaw hit 250K stars in 60 days with no paid promotion. The popularity didn't come from marketing — it came from one shipped command that replaces a few hours of cluster setup. NVIDIA has since picked it up, which makes the timing easier to read.
+> The fastest growth GitHub has ever seen — devs around the world are absolutely losing their minds. Why is everyone flocking to OpenClaw without any marketing?
 
-**제거한 패턴**: `the fastest GitHub has ever seen` (en-viral-hook #3 source-skipping authority claim), `absolutely losing their minds` (en-viral-hook #5 hyperbolic lexicon), `Why is everyone ... without any marketing?` (en-viral-hook #2 clickbait mystery close). 근거 없는 절대 표현을 구체적인 숫자와 확인 가능한 보강 사실로 바꿨습니다. 위 Korean SNS 예시처럼 viral-hook은 score-only이며, rewrite는 인접한 content/style pattern을 통해 이를 줄입니다.
+**편집 설명**: 교정 없음: 영문 바이럴 훅도 점수·감사 전용 대조군으로 보존합니다. 별 개수·기간·명령어 기능·NVIDIA 채택처럼 입력에 없는 근거는 넣지 않습니다. 원문의 기록·인기 주장에 대한 사실 확인은 별도입니다.
 
 ## 갤러리 추가 자료
 
-이 페이지는 표준 짧은 예시를 보여 줍니다. repo에는 복사해서 볼 수 있는 더 긴 fixture와 case study도 있습니다.
+원문·재작성 쌍은 아래 경로에서 볼 수 있습니다. 연구 실행 기록은 당시 결과로 남아 있으며, 현재의 설명용 기대 출력과 구별해야 합니다. 이번 검토에서 본문을 고친 파일도 끝의 과거 톤 메타데이터는 보존했습니다.
 
 - **`examples/short/`** — 네 개의 짧은 Korean fixture(marketing, tutorial, essay, email)와 짝을 이루는 `*-rewritten.md` 파일.
 - **`examples/genres/`** — 세 개의 긴 Korean genre(technical, academic, narrative)와 짝을 이루는 rewrite.
-- **`examples/rewrite-axes/`** — v7 축 fixture. `casual`/`professional`은 Register를, `academic`/`narrative`/`marketing`/`instructional`은 Document Type을 보여 줍니다. 모든 rewrite는 주장의 강도를 보존하고 원문에 없는 사례·인물·장면·성과를 만들지 않습니다.
+- **`examples/rewrite-axes/`** — v7 축 fixture. `casual`/`professional`은 Register를, `academic`/`narrative`/`marketing`/`instructional`은 Document Type을 보여 줍니다. 해당 자료는 별도 검토 범위이며, 이 페이지의 편집 검토가 모든 출력의 의미 보존을 보증하지는 않습니다.
 - **`examples/viral-hook/`** — iterative improvement workflow를 다루는 case study(`case-01`부터 `case-09`): viral-hook detection, codex/claude/gemini comparison, Persona voice, multi-Document-Type validation.
 - **`examples/sample-rewritten-*.md`** — 같은 장문의 Korean SNS marketing post를 Codex / Claude / Gemini-3로 rewrite한 결과. `case-03`에서 cross-model comparison에 사용합니다.
 
