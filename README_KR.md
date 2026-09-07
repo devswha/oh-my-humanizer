@@ -9,7 +9,7 @@
 [![Version](https://img.shields.io/badge/version-8.5.0-blue)](CHANGELOG.md)
 
 <p align="center">
-  <a href="https://patina.vibetip.help/"><b>브라우저에서 바로 써보기 — 설치 없음</b></a>
+  <a href="https://patina.vibetip.help/?lang=ko&amp;utm_source=github&amp;utm_campaign=multilingual-20260907"><b>브라우저에서 바로 써보기 — 설치 없음</b></a>
 </p>
 
 > **AI 포장만 벗기고, 의미는 그대로.**
@@ -36,17 +36,17 @@ patina는 한국어·영어·중국어·일본어를 위한 결정론적 패턴 
 
 안건·참석자와 회신 기한을 남겼습니다. 참석이 어려울 때 답장해 달라는 요청도 그대로입니다.
 
-직접 실행하려면 **[playground](https://patina.vibetip.help/)** 에 글을 붙여 넣으세요. 더 많은 [Before/After 예시](docs/EXAMPLES_KR.md)도 볼 수 있습니다.
+직접 실행하려면 **[playground](https://patina.vibetip.help/?lang=ko&utm_source=github&utm_campaign=multilingual-20260907)** 에 글을 붙여 넣으세요. 더 많은 [Before/After 예시](docs/EXAMPLES_KR.md)도 볼 수 있습니다.
 
 - **블랙박스가 아닌, 감사 가능한 도구** — 184개의 이름 붙은 패턴이 모든 수정을 결정하고, `--diff`가 무엇이 왜 바뀌었는지 그대로 보여줍니다.
 - **의미는 웹에서 검증됩니다** — playground는 모든 재작성을 MPS·충실도 하한으로 검증하고, 어긋난 결과는 거부합니다. Node CLI는 `--verify`, 에이전트 스킬은 `/patina --strict`로 같은 검사를 켭니다.
 - **서로 독립적인 세 축** — Document Type은 장르를, Persona는 목소리를, Register는 전달 방식을 정합니다. 생략한 축은 원문이 유지됩니다.
-- **모든 채널에서** — 에이전트 스킬(Claude Code · Codex · Cursor · OpenCode), Node CLI, [브라우저 playground](https://patina.vibetip.help/).
+- **모든 채널에서** — 에이전트 스킬(Claude Code · Codex · Cursor · OpenCode), Node CLI, [브라우저 playground](https://patina.vibetip.help/?lang=ko&utm_source=github&utm_campaign=multilingual-20260907).
 - **한계에 정직하게** — 점수는 편집 신호이지 작성자 판정이 아니며, [사전 등록 연구](docs/research/2026-rewrite-efficacy-study1.md)에서 실패 지점까지 함께 공개합니다.
 
 ## 빠른 시작
 
-**브라우저 — 설치 없음.** **[patina.vibetip.help](https://patina.vibetip.help/)** 를 열고 붙여넣으면 끝. 재작성과 채점은 서버에서 실행되고, API 모드는 개인 키를 요청 단위로만 전달합니다(저장·로깅 없음).
+**브라우저 — 설치 없음.** **[patina.vibetip.help](https://patina.vibetip.help/?lang=ko&utm_source=github&utm_campaign=multilingual-20260907)** 를 열고 붙여넣으면 끝. 재작성과 채점은 서버에서 실행되고, API 모드는 개인 키를 요청 단위로만 전달합니다(저장·로깅 없음).
 
 [Hosted API (Pro)](docs/HTTP-API.md)
 

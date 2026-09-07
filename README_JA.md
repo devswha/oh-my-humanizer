@@ -11,7 +11,7 @@
 > **AIっぽさだけを落として、意味はそのまま。**
 
 <p align="center">
-  <a href="https://patina.vibetip.help/"><b>ブラウザで試す — インストール不要</b></a>
+  <a href="https://patina.vibetip.help/?lang=ja&amp;utm_source=github&amp;utm_campaign=multilingual-20260907"><b>ブラウザで試す — インストール不要</b></a>
 </p>
 
 patina は、韓国語・英語・中国語・日本語向けの、決定的でパターンベースのヒューマナイザーです。AI っぽく聞こえる表現を見つけ、主張・数値・極性・因果関係を変えずに書き換えます。
@@ -32,17 +32,17 @@ patina は、韓国語・英語・中国語・日本語向けの、決定的で�
 
 > 添付の見積書は2ページです。可能であれば、9月10日17時までにご確認ください。
 
-ページ数と期限、対応できる場合に確認してほしいという条件を保ち、敬語を短くしました。[日本語の3作例](docs/EXAMPLES_JA.md)には、メール全文、進捗報告、製品案内を掲載しています。自分の文章では **[playground](https://patina.vibetip.help/)** で試せます。
+ページ数と期限、対応できる場合に確認してほしいという条件を保ち、敬語を短くしました。[日本語の3作例](docs/EXAMPLES_JA.md)には、メール全文、進捗報告、製品案内を掲載しています。自分の文章では **[playground](https://patina.vibetip.help/?lang=ja&utm_source=github&utm_campaign=multilingual-20260907)** で試せます。
 
 - **ブラックボックスではなく、監査可能** — 名前付きの 184 パターンがすべての編集を決め、`--diff` が何をなぜ変えたかをそのまま示します。
 - **意味はWebで検証されて残る** — playground はすべての書き換えを MPS と忠実度フロアで検証し、逸脱した結果は拒否します。Node CLI は `--verify`、エージェントスキルは `/patina --strict` で同じ検査を有効にします。
 - **互いに独立した3つの軸** — Document Type はジャンル、Persona はボイス、Register は伝え方を担当。省略した軸は原文が保たれます。
-- **あらゆるサーフェスで** — エージェントスキル（Claude Code · Codex · Cursor · OpenCode）、Node CLI、[ブラウザ playground](https://patina.vibetip.help/)。
+- **あらゆるサーフェスで** — エージェントスキル（Claude Code · Codex · Cursor · OpenCode）、Node CLI、[ブラウザ playground](https://patina.vibetip.help/?lang=ja&utm_source=github&utm_campaign=multilingual-20260907)。
 - **限界に正直** — スコアは編集シグナルであり著者判定ではありません。[事前登録研究](docs/research/2026-rewrite-efficacy-study1.md)では失敗点も併せて公開しています。
 
 ## クイックスタート
 
-**ブラウザ — インストール不要。** **[patina.vibetip.help](https://patina.vibetip.help/)** を開いて貼り付けるだけ。書き換えと採点はサーバー側で実行され、API モードは自分のキーをリクエスト単位で転送します（保存・ログなし）。
+**ブラウザ — インストール不要。** **[patina.vibetip.help](https://patina.vibetip.help/?lang=ja&utm_source=github&utm_campaign=multilingual-20260907)** を開いて貼り付けるだけ。書き換えと採点はサーバー側で実行され、API モードは自分のキーをリクエスト単位で転送します（保存・ログなし）。
 
 **エージェントスキル — Claude Code、Codex CLI、Cursor などに貼り付けてください：**
 

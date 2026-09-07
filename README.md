@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://patina.vibetip.help/"><b>Try it in the browser — no install</b></a>
+  <a href="https://patina.vibetip.help/?lang=en&amp;utm_source=github&amp;utm_campaign=multilingual-20260907"><b>Try it in the browser — no install</b></a>
 </p>
 
 **An illustrative email edit**
@@ -44,14 +44,14 @@ patina is a deterministic, pattern-based humanizer for Korean, English, Chinese,
 - **Auditable, not a black box** — 184 named patterns drive every edit; `--diff` shows exactly what changed and why.
 - **Meaning verified on the web** — web gates each rewrite with MPS/fidelity floors, rejecting drift; CLI `--verify` and `/patina --strict` add checks.
 - **Three independent axes** — Document Type owns genre, Persona owns voice, Register owns delivery. Omit any axis to preserve the source.
-- **Every surface** — agent skill (Claude Code · Codex · Cursor · OpenCode), Node CLI, and a [browser playground](https://patina.vibetip.help/).
+- **Every surface** — agent skill (Claude Code · Codex · Cursor · OpenCode), Node CLI, and a [browser playground](https://patina.vibetip.help/?lang=en&utm_source=github&utm_campaign=multilingual-20260907).
 - **Honest about limits** — scores are editing signals, not authorship proof; our own [pre-registered study](docs/research/2026-rewrite-efficacy-study1.md) publishes where rewriting fails alongside where it works.
 
 ## Quick Start
 
 **Source and web version: 8.5.0.** npm publication is pending; the registry currently serves 8.3.0. Use this checkout with `npm ci` and `node bin/patina.js` for the new CLI commands. See [release channels](docs/integrations/release.md).
 
-**Browser — nothing to install.** Open **[patina.vibetip.help](https://patina.vibetip.help/)** and paste text. Rewrites run server-side with the MPS/fidelity gates; API mode forwards your own key per request (never stored or logged).
+**Browser — nothing to install.** Open **[patina.vibetip.help](https://patina.vibetip.help/?lang=en&utm_source=github&utm_campaign=multilingual-20260907)** and paste text. Rewrites run server-side with the MPS/fidelity gates; API mode forwards your own key per request (never stored or logged).
 
 [Hosted API (Pro)](docs/HTTP-API.md)
 

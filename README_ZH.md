@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://patina.vibetip.help/"><b>在浏览器中试用 — 无需安装</b></a>
+  <a href="https://patina.vibetip.help/?lang=zh&amp;utm_source=github&amp;utm_campaign=multilingual-20260907"><b>在浏览器中试用 — 无需安装</b></a>
 </p>
 
 patina 是一个面向韩文、英文、中文和日文的确定性、基于模式的人性化改写工具。它会找出听起来像 AI 的表达，并在不改变主张、数字、立场和因果关系的前提下改写。
@@ -39,12 +39,12 @@ patina 是一个面向韩文、英文、中文和日文的确定性、基于模�
 - **可审计，不是黑箱** — 184 条有名字的模式驱动每一次修改；`--diff` 展示改了什么、为什么改。
 - **含义保留校验** — playground 检查 MPS 和忠实度，拒绝低于门槛或缺少分数的结果。评分也可能误判，仍需核对原文。Node CLI 用 `--verify`、代理技能用 `/patina --strict` 启用保留校验。
 - **三个相互独立的轴** — Document Type 管体裁，Persona 管声音，Register 管语域；省略的轴保持原文。
-- **全渠道可用** — 代理技能（Claude Code · Codex · Cursor · OpenCode）、Node CLI，以及[浏览器 playground](https://patina.vibetip.help/)。
+- **全渠道可用** — 代理技能（Claude Code · Codex · Cursor · OpenCode）、Node CLI，以及[浏览器 playground](https://patina.vibetip.help/?lang=zh&utm_source=github&utm_campaign=multilingual-20260907)。
 - **对局限诚实** — 分数是编辑信号而非作者判定；我们的[预注册研究](docs/research/2026-rewrite-efficacy-study1.md)把失败之处与成功一并公开。
 
 ## 快速开始
 
-**浏览器 — 无需安装。** 打开 **[patina.vibetip.help](https://patina.vibetip.help/)**，可用入口和额度以页面提示为准。改写与评分在服务端运行；BYOK 模式按请求转发你自己的提供商密钥，不存储、不记录密钥。Pro 使用 Polar 许可证密钥认证，购买入口是否开放以页面为准。
+**浏览器 — 无需安装。** 打开 **[patina.vibetip.help](https://patina.vibetip.help/?lang=zh&utm_source=github&utm_campaign=multilingual-20260907)**，可用入口和额度以页面提示为准。改写与评分在服务端运行；BYOK 模式按请求转发你自己的提供商密钥，不存储、不记录密钥。Pro 使用 Polar 许可证密钥认证，购买入口是否开放以页面为准。
 
 **代理技能 — 把下面这行粘贴给 Claude Code、Codex CLI、Cursor 等任意代理：**
 
