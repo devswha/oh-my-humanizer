@@ -9,13 +9,13 @@
 // the three LLM network calls (rewrite + MPS + fidelity). The deterministic
 // signal layer (scoreDeterministicSignals) still runs for real, so the
 // before -> after AI-signal arrow is genuine. MPS/fidelity are fixed preview
-// values — the composer hint already calls them out as preview.
+// fixtures, explicitly marked as preview-only in result frames and receipts.
 //
 // Usage: node scripts/dev-server.mjs [--port 4178] [--host 0.0.0.0]
 // This is a dev/test harness only. Do NOT deploy it.
 
 import http from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,6 +24,7 @@ import { encodeStreamFrame } from '../src/web-rewrite-contract.js';
 import { runWebRewriteStream } from '../src/web-rewrite-stream.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const PUBLIC_ROOT = await realpath(path.join(REPO_ROOT, 'playground'));
 
 // Optional real-LLM mode for experimentation: when PATINA_DEV_LLM_* are set, the
 // dev server runs the REAL patina rewrite via that OpenAI-compatible endpoint
@@ -45,11 +46,14 @@ function parseArgs(argv) {
     if (a === '--port' || a === '-p') out.port = Number(argv[++i]);
     else if (a === '--host' || a === '-h') out.host = String(argv[++i]);
   }
-  if (!Number.isInteger(out.port) || out.port <= 0) out.port = 4178;
+  // Port zero lets runtime tests bind an available port without a reservation race.
+  if (!Number.isInteger(out.port) || out.port < 0 || out.port > 65535) out.port = 4178;
   return out;
 }
 
-// ---------- static: vercel.json rewrites + repo-tree fallback ----------
+// ---------- static: vercel.json's playground output directory ----------
+// Keep explicit aliases, but resolve every other asset under the public root
+// too (including new browser imports and the staged src/ contract modules).
 const REWRITES = new Map([
   ['/', '/playground/index.html'],
   ['/chatgpt.js', '/playground/chatgpt.js'],
@@ -85,36 +89,47 @@ function contentTypeFor(filePath) {
   return CONTENT_TYPES.get(path.extname(filePath).toLowerCase()) || 'application/octet-stream';
 }
 
-async function serveStatic(req, res, urlPath) {
-  // Reject malformed percent-encoding (or an encoded NUL) on the RAW request
-  // path FIRST — before the rewrite/SPA fallback below can mask a garbage
-  // extension-less path (e.g. /%ff, /%E0%A4%A, /%00) with a 200 index page.
-  // Malformed encoding is a client error (400), never an internal 500.
+function requestPath(req, res) {
+  // Inspect the raw path before URL normalization can erase traversal segments
+  // and before the SPA fallback can turn malformed encoding into a 200 page.
+  const rawPath = (req.url || '/').split('?')[0];
+  let decoded;
   try {
-    if (decodeURIComponent(urlPath).includes('\u0000')) {
-      res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('400 Bad Request: malformed path encoding');
-      return;
-    }
+    decoded = decodeURIComponent(rawPath);
+    if (!decoded.startsWith('/') || decoded.startsWith('//') || decoded.includes('\u0000')) throw new Error('malformed path');
   } catch {
     res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('400 Bad Request: malformed path encoding');
     return;
   }
-
-  // Apply vercel.json rewrites; default unknown extension-less paths to "/".
-  let rel = REWRITES.get(urlPath) || urlPath;
-  if (rel === urlPath && !path.extname(urlPath)) rel = REWRITES.get('/'); // SPA-ish fallback
-
-  const decoded = decodeURIComponent(rel);
-  const abs = path.resolve(REPO_ROOT, '.' + decoded);
-  // Path-traversal guard: never serve outside the repo root.
-  if (abs !== REPO_ROOT && !abs.startsWith(REPO_ROOT + path.sep)) {
+  if (decoded.includes('\\') || decoded.split('/').some((part) => part.startsWith('.'))) {
     res.writeHead(403).end('forbidden');
     return;
   }
+  return decoded;
+}
+
+function isPublicFile(filePath) {
+  const relative = path.relative(PUBLIC_ROOT, filePath);
+  return relative !== '' && !path.isAbsolute(relative)
+    && !relative.split(path.sep).some((part) => part.startsWith('.'))
+    && CONTENT_TYPES.has(path.extname(relative).toLowerCase());
+}
+
+async function serveStatic(req, res, urlPath) {
+  let rel = REWRITES.get(urlPath) || `/playground${urlPath}`;
+  if (!path.extname(urlPath)) rel = REWRITES.get('/'); // SPA-ish fallback
+  const abs = path.resolve(REPO_ROOT, '.' + rel);
+  if (!isPublicFile(abs)) {
+    res.writeHead(404).end('not found');
+    return;
+  }
   try {
-    const info = await stat(abs);
-    if (info.isDirectory()) { res.writeHead(403).end('forbidden'); return; }
-    const buf = await readFile(abs);
+    // Symlinks must not publish private repo files, dotfiles, or sibling trees.
+    const file = await realpath(abs);
+    if (!isPublicFile(file)) { res.writeHead(403).end('forbidden'); return; }
+    const info = await stat(file);
+    if (!info.isFile()) { res.writeHead(403).end('forbidden'); return; }
+    const buf = await readFile(file);
     const routeHeaders = STATIC_ROUTE_HEADERS.get(urlPath);
     res.writeHead(200, {
       'Content-Type': routeHeaders?.['Content-Type'] || contentTypeFor(abs),
@@ -269,6 +284,30 @@ function* chunkText(text) {
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Synthetic UI fixtures ONLY, never evidence of semantic preservation. Keep
+// full, internally consistent schemas so the real validators remain in use.
+// Mark both the frame results and their receipt copies explicitly as previews.
+const PREVIEW_SCORE_FNS = {
+  scoreMPS: async () => ({
+    previewOnly: true,
+    verdict: 'preview',
+    anchors: [{ type: 'claim', content: 'Synthetic preview anchor; not extracted from the input.', verdict: 'PASS' }],
+    pass_count: 1,
+    total_count: 1,
+    polarity_pass_count: 0,
+    polarity_total_count: 0,
+    hard_fail_count: 0,
+    mps: 100,
+  }),
+  scoreFidelity: async () => ({
+    previewOnly: true,
+    verdict: 'preview',
+    criteria: { claims_preserved: 3, no_fabrication: 3, audience_register_match: 3, length_ratio: 3 },
+    fidelity: 100,
+  }),
+  // scoreDeterministicSignals intentionally omitted: the real layer runs.
+};
+
 /**
  * Dev /api/rewrite runner.
  * - PATINA_DEV_LLM_* set -> REAL patina rewrite via that endpoint (e.g. DeepSeek
@@ -283,10 +322,7 @@ async function mockRunWebRewriteStream({ request, emit }) {
   // Experimental real LLM (any OpenAI-compatible endpoint), applied to all tiers.
   if (DEV_LLM_ON) {
     const realReq = { ...request, baseURL: DEV_LLM.baseURL, apiKey: DEV_LLM.apiKey, model: DEV_LLM.model };
-    const scoreFns = DEV_LLM.realScore ? undefined : {
-      scoreMPS: async () => ({ mps: 90, verdict: 'preview' }),
-      scoreFidelity: async () => ({ fidelity: 88, verdict: 'preview' }),
-    };
+    const scoreFns = DEV_LLM.realScore ? undefined : PREVIEW_SCORE_FNS;
     return runWebRewriteStream({ request: realReq, repoRoot: REPO_ROOT, ...(scoreFns ? { scoreFns } : {}), emit });
   }
 
@@ -306,18 +342,11 @@ async function mockRunWebRewriteStream({ request, emit }) {
     return { text: humanized };
   };
 
-  /** Stub the two LLM judge calls with fixed passing preview scores. */
-  const scoreFns = {
-    scoreMPS: async () => ({ mps: 92, verdict: 'preview' }),
-    scoreFidelity: async () => ({ fidelity: 88, verdict: 'preview' }),
-    // scoreDeterministicSignals intentionally omitted -> real deterministic layer runs.
-  };
-
   return runWebRewriteStream({
     request,
     repoRoot: REPO_ROOT,
     callLLMStream,
-    scoreFns,
+    scoreFns: PREVIEW_SCORE_FNS,
     emit,
   });
 }
@@ -355,8 +384,8 @@ const rewriteApi = createRewriteHandler({
 const { port, host } = parseArgs(process.argv.slice(2));
 
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url || '/', 'http://localhost');
-  const urlPath = url.pathname;
+  const urlPath = requestPath(req, res);
+  if (urlPath === undefined) return;
 
   if (urlPath === '/api/rewrite') {
     // The fail-closed rate limiter needs a client IP from a trusted header; a
@@ -391,12 +420,13 @@ server.on('error', (err) => {
 
 server.listen(port, host, () => {
   const shown = host === '0.0.0.0' ? 'localhost' : host;
+  const boundPort = /** @type {import('node:net').AddressInfo} */ (server.address()).port;
   console.log('');
   const mode = DEV_LLM_ON
     ? `REAL LLM via ${DEV_LLM.model} @ ${DEV_LLM.baseURL} (scoring ${DEV_LLM.realScore ? 'real' : 'stubbed'})`
     : 'offline humanizer mock (free) / real BYOK';
   console.log('  patina playground dev server');
-  console.log(`  → http://${shown}:${port}/`);
+  console.log(`  → http://${shown}:${boundPort}/`);
   console.log(`  → /api/rewrite: ${mode}`);
   console.log('');
 });

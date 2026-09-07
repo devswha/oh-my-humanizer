@@ -2,6 +2,17 @@
 
 All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 
+## 8.4.1 — 2026-09-07
+
+Semver rationale: patch — protects batch source files after meaning-check failures, fixes fresh-draft and IME input behavior, and corrects diagnostic and local-preview tooling.
+
+- **Batch source protection.** A rewrite that fails meaning checks cannot overwrite its source. Batch failure accounting remains per file; valid later files can still complete.
+- **Fresh drafts and IME.** Home-page submissions start a new conversation before source-anchor checks. Enter does not submit while an IME composition is active.
+- **Scorer diagnostics.** Preserve exact input hashes and document types, retain unknown labels, and exclude them from labeled ranking metrics. The captured analyzer verdict comes from the prepared input.
+- **Local preview.** Serve the current client assets and return complete, explicitly mocked verification evidence for frontend checks.
+- **Work status.** Record completed integrations, deferred human evaluation and dataset publication, and the limits of current payment/monitor evidence.
+- **Availability.** Source and web release only while npm publication is on hold. Both npm packages remain at 8.3.0.
+
 ## 8.4.0 — 2026-09-05
 
 Semver rationale: minor — adds verification of reviewed drafts, protected terms, conversation presets, and a local Aside workflow. Model defaults and the core skill pipeline remain unchanged.

@@ -6,7 +6,7 @@ import {
   resolveBackendMaxRetries,
 } from '../backends/contract.js';
 import { runtimeError } from '../errors.js';
-import { writeFileSync, mkdirSync, renameSync, unlinkSync } from 'node:fs';
+import { writeFileSync, mkdirSync, renameSync, unlinkSync, statSync } from 'node:fs';
 import { resolve, basename, extname, dirname, join } from 'node:path';
 
 export function logBatchSafetyPlan({ jobs, backends, parsed, promptMode, timeoutMs, logger }) {
@@ -143,7 +143,7 @@ function classifyRetryableStorm(err) {
   return null;
 }
 
-export async function writeBatchOutput(parsed, inputPath, output) {
+export async function writeBatchOutput(parsed, inputPath, output, { meaningSafetyError = null } = {}) {
   if (inputPath === '-') {
     console.log(output);
     return;
@@ -154,6 +154,7 @@ export async function writeBatchOutput(parsed, inputPath, output) {
   // can never reach the silent stdout fallback — the two layers agree.
   let outPath;
   if (parsed.inPlace) {
+    if (meaningSafetyError) throw meaningSafetyError;
     outPath = inputPath;
   } else if (parsed.suffix) {
     const ext = extname(inputPath);
@@ -166,6 +167,24 @@ export async function writeBatchOutput(parsed, inputPath, output) {
   } else {
     console.log(output);
     return;
+  }
+
+  if (meaningSafetyError) {
+    // Protect the entire batch, including inputs already processed or still
+    // pending. A separate-looking destination can alias any of their sources.
+    const sourcePaths = new Set([inputPath, ...(parsed.files ?? [])]
+      .filter((path) => path !== '-')
+      .map((path) => resolve(path)));
+    if (sourcePaths.has(resolve(outPath))) throw meaningSafetyError;
+    const destination = statSync(outPath, { throwIfNoEntry: false });
+    if (destination) {
+      for (const sourcePath of sourcePaths) {
+        // Missing inputs retain path protection and their deferred per-file
+        // read errors, but have no file identity to compare with this output.
+        const source = statSync(sourcePath, { throwIfNoEntry: false });
+        if (source?.dev === destination.dev && source?.ino === destination.ino) throw meaningSafetyError;
+      }
+    }
   }
 
   writeFileSync(outPath, output, 'utf8');

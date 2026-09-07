@@ -8,7 +8,7 @@ patina uses stable exit codes so CI and editor integrations can distinguish cont
 | `1` | Runtime/backend failure: API/auth/backend errors, failed doctor blockers, invalid runtime setup, or unexpected exceptions. |
 | `2` | Input/usage failure: unknown flags, missing required option values, empty stdin, or `--no-interactive` with no input. |
 | `3` | Score gate exceeded. `--score --exit-on <n>` completed, but `overall > n`. |
-| `4` | Meaning-safety exit on a rewrite: `--verify` found no candidate above the MPS/fidelity floors, or the dropped-number guard found a source number missing from the rewrite. **The rewrite is still printed to stdout.** |
+| `4` | Meaning-safety failure: verification failed, cleanup changed the verified text, or a source number was dropped. Stdout keeps the candidate for review; unsafe source-file writes are blocked. |
 | `130` | Interrupted (SIGINT / Ctrl-C). |
 
 Codes are merged with `Math.max` when more than one applies, so a run that both
@@ -19,17 +19,25 @@ exceeds a score gate and hits a runtime error reports the stricter code.
 
 ## Meaning-safety exit (exit `4`)
 
-Two deterministic checks in the rewrite path raise exit `4`:
+These checks in the rewrite path raise exit `4`:
 
 | Trigger | Fails when |
 |---|---|
 | `--verify` floor | after the rewrite and one conservative retry, no candidate reaches `verification.mps-floor` / `verification.fidelity-floor` (defaults 70); stderr shows `[patina] verify: MPS …, fidelity … (below floor)` |
+| verified output changed | cleanup changes the text after verification; the scores no longer cover the emitted candidate |
 | dropped-number guard | a number present in the source is missing from the rewrite (`droppedNumbers`), with or without `--verify` |
 
-Exit `4` is **enforcing but non-destructive**: patina prints the rewrite anyway
-and warns on stderr so a human can review it. Automation should treat `4` as
-"output produced, needs review" — not as a runtime failure, and not as clean
-success.
+With stdout output, patina still prints the candidate and warns on stderr for
+review. With `--batch --in-place`, a failed candidate leaves its source file
+unchanged and produces no `Written:` success message. Separate `--suffix` and
+`--outdir` outputs remain available for review, unless the destination refers to
+any batch input (including symbolic or hard links). This protects both pending
+and already processed source files.
+
+Each failed batch item counts against the failure budget, even when its
+candidate is emitted for review. Later valid files can still be written within
+that budget. The batch summary counts failures separately from successes, and
+the run retains exit `4` after later successful files or a batch summary error.
 
 ```bash
 patina --lang ko draft.md; echo "exit=$?"   # exit=4 when a year or figure vanished

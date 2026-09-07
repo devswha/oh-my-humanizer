@@ -9,26 +9,52 @@ review, the full test/lint gate, and integration into `dev`. Human ratings,
 publication, live operation, and model results require their own direct evidence.
 An implementation alone does not close those requirements.
 
+Status checked 2026-09-07. The
+[September 6 scope decision](https://github.com/devswha/patina/issues/643#issuecomment-5559803306)
+defers human evaluation and work requiring owner time. Human acceptance criteria
+stay unmet; they are not active recruitment or annotation tasks.
+
 ## Work ledger
 
 | Item | Required evidence | State |
 |---|---|---|
 | Pro monitor 503 | Diagnose production aggregate/log adapters; verified healthy monitor and recovery receipt | Discord envelope fix shipped in 8.1.3; ordinary cron returned 200; eligible alert/recovery receipt still pending |
 | Failed rewrite allowance | Bounded, idempotent recovery of charged requests/characters; concurrency and storage-failure tests | Shipped in 8.1.3 (#726, #728–729); independent review, real Redis and full gates passed |
-| Model comparison | Available-model inventory, fixed protocol, repeated live runs, cross-family judges, per-provider recommendations | In progress |
-| #412 live scorer benchmark | Run `src/scoring.js` against real fixture/rebaseline texts; distributions by pattern pack, recorded model/usage/errors | Validated first pass: OpenAI 293/294 valid, Gemini 245/245; finalist repeats and cross-family rewrite judging in progress |
-| #643 short-form corpus | Real human/AI sources, human labels, all requested slices and counterfactual pairs, FNR/exact-zero gates | Needs human labels |
-| #159 human evaluation | 30 randomized pairs × 5 actual human raters, agreement and score/rating association | Needs raters |
-| #206 VS Code | Separate repository; status score, diagnostics, selection rewrite with diff confirmation, settings, editor verification | Public repository, independent review and dev integration done; packaging/release awaits the inspect CLI release |
-| #207 Obsidian | Separate repository; note score/audit, selection rewrite, settings/status bar, registry submission | Public repository, reviewed dev integration and isolated host checks done; live backend/release/registry follow-up remains |
-| #211 community packs | Starter-pack repository/schema, install/list/remove CLI, documentation and untrusted-pack tests | Implementation and starter pack under independent review in isolated worktrees |
-| #212 HF dataset | Fixture licensing review, published dataset/card, release upload workflow, links | Tools and reviewed fixture licensing merged into dev (#727); namespace decision, publication and links pending |
-| #284 browser extension | Separate MV3 repository; Gmail badge, local-only scoring, parity/network checks, bundled lexicons, integration docs | Open |
+| Model comparison | Available-model inventory, fixed protocol, repeated live runs, cross-family judges, per-provider recommendations | Six-finalist confirmation and qualified guide published September 5; Kimi and other unconfirmed routes retain the guide's limits |
+| #412 live scorer benchmark | Run `src/scoring.js` against real fixture/rebaseline texts; distributions by pattern pack, recorded model/usage/errors | Complete: 930/931 valid fixture observations plus 85/85 separate rebaseline observations; issue closed September 5 |
+| #643 short-form corpus | Real human/AI sources, human labels, all requested slices and counterfactual pairs, FNR/exact-zero gates | Open; human acceptance deferred. Automation-only runner changes and September 6 diagnostics are recorded below |
+| #159 human evaluation | 30 randomized pairs × 5 actual human raters, agreement and score/rating association | Open but deferred; no rater recruitment or owner annotations in the active stream |
+| #206 VS Code | Separate repository; status score, diagnostics, selection rewrite with diff confirmation, settings, editor verification | Complete: 1.1.0 VSIX and editor guide available; issue closed |
+| #207 Obsidian | Separate repository; note score/audit, selection rewrite, settings/status bar, directory submission | 1.0.0 release and actual host/backend checks complete; actual Community directory submission remains open and does not require a new npm release |
+| #211 community packs | Starter-pack repository/schema, install/list/remove CLI, documentation and untrusted-pack tests | Complete in 8.2.0; issue closed |
+| #212 HF dataset | Fixture licensing review, published dataset/card, release upload workflow, links | Export/licensing tools complete; public upload unverified. Issue closed as not planned on September 5, not as a completed publication |
+| #284 browser extension | Separate MV3 repository; Gmail badge, local-only scoring, parity/network checks, bundled lexicons, integration docs | Preview released; actual signed-in Gmail acceptance remains open. Store publication, Notion and LinkedIn are outside the MVP |
 | Kimi text isolation | Zero-tool/subagent profile, private metadata, cleanup and live admission | Merged into dev (#731); full tests/lint and independent review passed |
-| Branch synchronization | Merge `main` history into `dev`, preserve research commits, delete merged work branches | Main is 8.1.3; dev contains main plus unreleased HF/inspect/Kimi changes; merged-branch cleanup in progress |
-| Public benchmark/docs | Current reports, accurate versions/statuses, source-linked public claims | Open |
+| Branch synchronization | Merge `main` history into `dev`, preserve research commits, delete merged work branches | September 7 baseline: main and dev both at 38423d3; source/web 8.4.0, npm 8.3.0 while publication is on hold |
+| Public benchmark/docs | Current reports, accurate versions/statuses, source-linked public claims | September 5 scorer/rewrite reports are published; this ledger and the roadmap now distinguish completed, unverified and deferred work |
 | GitHub cache removal | Confirm support submission/reply and inaccessible removed objects | Unverified |
 | Paid conversion | Verify provider-confirmed aggregate and first paid sale without exposing customer data | Unverified |
+
+### September 7 read-only operations check
+
+- Production logs returned 12 monitor requests, all HTTP 200, between 04:45:46
+  and 07:30:46 UTC. The durable warning/recovery records could not be read:
+  their credentials are sensitive Vercel values unavailable to the local check.
+  A successful response is not an eligible `OBS-ALERT-v1` receipt.
+- The available webhook-log query returned no rows from August 4 onward, but
+  log retention and completeness are unknown. No usable Polar authorization
+  was available to confirm paid-order counts, amounts or a first-paid date.
+  This result does not establish zero sales. Daily funnel counters expire after
+  35 days and contain counts, not payment amounts (`api/polar-webhook.js`).
+- Both npm packages still serve 8.3.0. Release run `33956693238` failed at
+  `patina-cli@8.3.1` publication with E404 after verification passed. Run
+  `33983046367` passed verification and GHCR publication but skipped npm.
+  September 7 read-only authentication checks returned 401 for the local npm
+  token/session. Usable publishing authorization must be restored before
+  publication resumes; expiry, revocation and token equivalence are unverified.
+
+No payment, synthetic alert, message, credential change or publication was
+performed by this check.
 
 ## Operational evidence
 
@@ -40,21 +66,44 @@ An implementation alone does not close those requirements.
   with the actual minimum-supported `test (18.1.0)`, retaining strict mode,
   all other required checks, and their GitHub Actions app binding. No admin
   merge bypass was used.
-- Model pilot results are ineligible for recommendations after independent
-  review found measurement defects. Corrected tests cover raw schemas, private
-  metadata, fingerprints, concurrency, timeout/shutdown, stdin, and replay.
-- Actual human raters/labels and funded API access remain requested inputs.
-  Kimi's local coding route passed a tool-free live admission probe. The separate
-  coding-model experiment is still pending; API billing results cannot be inferred
-  from a subscription. Hugging Face namespace/publication remains unresolved.
+- Earlier model pilot results were rejected after measurement defects were found.
+  The corrected [confirmation report](../research/model-rewrite-confirmation-20260905.md)
+  and [model guide](../research/model-guide-20260905.md) record the later results
+  and remaining route, judging and billing limits. They do not change defaults.
+- Kimi Code has preliminary results, not a completed confirmation recommendation.
+  Human ratings and manual rights review are deferred under the September 6
+  scope decision. Hugging Face publication remains unverified; its issue was
+  closed as not planned.
 
-The issue ledger contains eight GitHub issues. Provider model comparison and
-operational follow-ups are additional tasks, not extra open issue numbers.
+The September 7 GitHub query returned four open issues: #207, #284, #159 and
+#643. Provider comparison limits and operational follow-ups are separate from
+that count. A closed issue does not by itself prove external publication.
+
+## September 6 automated short-form evidence
+
+The [collection receipt](https://github.com/devswha/patina/issues/643#issuecomment-5559793246)
+records 12/12 completed generation calls, 11 unique outputs and three retained
+numeric-proxy failures. The
+[diagnostic receipt](https://github.com/devswha/patina/issues/643#issuecomment-5560031158)
+records eight valid observations on six unique curated/derived texts, all with
+unknown labels. Exact zeros were 2/8; analyzer/final disagreement at the
+descriptive cutoff of 30 was 3/8. Dash-minus-comma final deltas were +1.43 in
+both social and default pairs. These are model diagnostics, not corpus error
+rates or isolated causal punctuation effects. All eight rows replayed without
+additional provider calls.
+
+That receipt records 2,176 tests passed, two skipped, lint passed, analyzer
+49/49 and scorer 8/8. Those are September 6 results, not a fresh test run by
+this status update. The associated runner changes preserve hashes, explicit
+document types and unknown labels; they do not complete #643's deferred
+human-labeled acceptance criteria.
 
 ## Research sequence carried forward
 
 KO GPT-family miss review and Study 4 are complete. Study 4 did not support
-promotion in either language. The remaining registered sequence is:
+promotion in either language. The historical registered sequence below is
+retained for context; the September 6 scope decision leaves human-dependent
+steps deferred rather than active next actions:
 
 1. Edited-AI policy/schema and corpus.
 2. Human evaluation (#159).
@@ -70,8 +119,8 @@ remains outside this implementation request.
 
 ## Execution boundaries
 
-- Preserve the original checkout and its `research/model-sweep-20260904` commit.
-  Model work uses `bot/model-evaluation-20260905` in its own worktree.
+- Preserve the original checkout and uncommitted scorer work. Each active
+  implementation/review session uses its own worktree and bot branch from dev.
 - API credentials remain outside tracked artifacts and tool output.
 - Never replace missing human labels with model labels or fabricated sources.
 - Treat unavailable provider models and failed runs as measured missingness;
