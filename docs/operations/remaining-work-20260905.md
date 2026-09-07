@@ -35,6 +35,27 @@ stay unmet; they are not active recruitment or annotation tasks.
 | GitHub cache removal | Confirm support submission/reply and inaccessible removed objects | Unverified |
 | Paid conversion | Verify provider-confirmed aggregate and first paid sale without exposing customer data | Unverified |
 
+### September 7 read-only operations check
+
+- Production logs returned 12 monitor requests, all HTTP 200, between 04:45:46
+  and 07:30:46 UTC. The durable warning/recovery records could not be read:
+  their credentials are sensitive Vercel values unavailable to the local check.
+  A successful response is not an eligible `OBS-ALERT-v1` receipt.
+- The available webhook-log query returned no rows from August 4 onward, but
+  log retention and completeness are unknown. No usable Polar authorization
+  was available to confirm paid-order counts, amounts or a first-paid date.
+  This result does not establish zero sales. Daily funnel counters expire after
+  35 days and contain counts, not payment amounts (`api/polar-webhook.js`).
+- Both npm packages still serve 8.3.0. Release run `33956693238` failed at
+  `patina-cli@8.3.1` publication with E404 after verification passed. Run
+  `33983046367` passed verification and GHCR publication but skipped npm.
+  September 7 read-only authentication checks returned 401 for the local npm
+  token/session. Usable publishing authorization must be restored before
+  publication resumes; expiry, revocation and token equivalence are unverified.
+
+No payment, synthetic alert, message, credential change or publication was
+performed by this check.
+
 ## Operational evidence
 
 - PR #723 merged safe monitor diagnostics and restored `main` ancestry in `dev`.
