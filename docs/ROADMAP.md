@@ -171,7 +171,7 @@ Acceptance criteria:
 
 ### Phase 2 — packaging and distribution
 
-Status (2026-09-02): shipped. npm `patina-cli` (8.1.0), GitHub Releases auto-created from the changelog on tag push (`docs/integrations/release.md`), public image `ghcr.io/devswha/patina:latest` published manually (`docs/integrations/docker.md`). Homebrew not started.
+Status (2026-09-07): the source/web release is 8.4.1; npm `patina-cli` and `patina-humanizer` remain at 8.3.0 while publication is on hold. GitHub Releases follow successful npm publication on tag push (`docs/integrations/release.md`). The public image `ghcr.io/devswha/patina:latest` has a separate manual release path (`docs/integrations/docker.md`). Homebrew has not started.
 
 Goal: make patina installable from the channels users expect.
 
@@ -349,14 +349,28 @@ lives, so nobody re-triages from a stale snapshot.
   (α 0.751 en / 0.526 ko); `2026-judge-calibration.md` adds per-judge AUC and
   self-preference.
 
-### Parked ecosystem items
+### Ecosystem status
 
-#206 VS Code extension, #207 Obsidian plugin, #211 pattern marketplace, #212
-HuggingFace dataset, #284 browser extension. Each was parked on a recorded
-blocker (extension scope and auth model; local-file privacy model; governance
-and pack-schema stability; redistributable corpus rows; content-script privacy
-and store policy). They reopen only when the blocker is resolved, not on a
-schedule.
+Checked 2026-09-07 against the issue records and [editor guides](integrations/editors.md):
+
+- #206: VS Code 1.1.0 is available as a VSIX; the issue is complete.
+- #211: community-pack commands and the starter repository shipped in 8.2.0;
+  the issue is complete.
+- #207: Obsidian 1.0.0 and host/backend checks are complete. Actual Community
+  directory submission remains open; npm publication is not its prerequisite.
+- #284: the Gmail preview is released. Signed-in Gmail acceptance remains open;
+  Chrome Web Store, Notion and LinkedIn are outside this MVP.
+- #212: export and licensing tools are implemented, but publication was deferred
+  and the issue was closed as `not_planned`. Closure is not evidence of a public
+  Hugging Face upload.
+- The [Aside integration](integrations/aside.md#validation-boundary) is available
+  in the source checkout. Native macOS/Aside acceptance remains unverified.
+
+The [2026-09-06 scope decision](https://github.com/devswha/patina/issues/643#issuecomment-5559803306)
+excludes human evaluation and owner-time work from the active research stream.
+#159 and the human-labeled acceptance criteria of #643 remain unmet and deferred.
+Automation-only diagnostics keep unknown labels unknown; they do not establish
+human false-positive or false-negative rates.
 
 ### Operating rules
 
