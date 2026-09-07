@@ -123,7 +123,8 @@ test('loopback preview serves the browser dependency graph and completes a real 
         if (target.origin === new URL(base).origin) pending.push(target.pathname);
       }
     }
-    for (const route of ['/preferences.js', '/experience-copy.js', '/edit-review.js', '/protected-input.js', '/edit-review.css', '/src/web-rewrite-contract.js', '/src/edit-controls.js']) {
+    for (const route of ['/preferences.js', '/experience-copy.js', '/edit-review.js', '/protected-input.js', '/edit-review.css', '/src/web-rewrite-contract.js', '/src/edit-controls.js',
+      '/examples/index.js', '/examples/ko.js', '/examples/en.js', '/examples/zh.js', '/examples/ja.js']) {
       assert.ok(loaded.has(route), `${route} must be reachable from the page`);
     }
     const contract = await request(base, '/src/web-rewrite-contract.js');
