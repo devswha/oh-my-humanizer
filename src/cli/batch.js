@@ -170,13 +170,20 @@ export async function writeBatchOutput(parsed, inputPath, output, { meaningSafet
   }
 
   if (meaningSafetyError) {
-    // A nominally separate destination can still overwrite the source through
-    // --outdir, a symlink, or a hard link. Keep those aliases protected too.
-    if (resolve(outPath) === resolve(inputPath)) throw meaningSafetyError;
+    // Protect the entire batch, including inputs already processed or still
+    // pending. A separate-looking destination can alias any of their sources.
+    const sourcePaths = new Set([inputPath, ...(parsed.files ?? [])]
+      .filter((path) => path !== '-')
+      .map((path) => resolve(path)));
+    if (sourcePaths.has(resolve(outPath))) throw meaningSafetyError;
     const destination = statSync(outPath, { throwIfNoEntry: false });
     if (destination) {
-      const source = statSync(inputPath);
-      if (source.dev === destination.dev && source.ino === destination.ino) throw meaningSafetyError;
+      for (const sourcePath of sourcePaths) {
+        // Missing inputs retain path protection and their deferred per-file
+        // read errors, but have no file identity to compare with this output.
+        const source = statSync(sourcePath, { throwIfNoEntry: false });
+        if (source?.dev === destination.dev && source?.ino === destination.ino) throw meaningSafetyError;
+      }
     }
   }
 

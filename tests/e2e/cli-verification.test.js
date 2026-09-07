@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { mkdtempSync, readFileSync, existsSync, writeFileSync, rmSync, linkSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, existsSync, writeFileSync, rmSync, linkSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,11 +20,11 @@ const NESTED_GRADED = 'The service does not store drafts. [BODY]It runs locally.
 // Exercise real CLI children against the same scorer fixtures as the stdout
 // verification tests. Every writable input is disposable, never a repo file.
 async function runMeaningSafetyBatch(scenario, {
-  destination = 'in-place', format = 'text', maxFailures = 3, validLast = true,
+  destination = 'in-place', format = 'text', maxFailures = 3, validLast = true, validFirst = false, stdin = false, missingInput = false,
 } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'patina-meaning-batch-'));
   const first = join(dir, 'first.txt');
-  const second = join(dir, 'second.txt');
+  const second = join(dir, destination === 'other-input' ? 'first.review.txt' : 'second.txt');
   const original = scenario === 'nested-body'
     ? 'The service does not store drafts. It runs locally.\r\n'
     : 'The service retains 12 audit logs.\r\n';
@@ -38,6 +38,13 @@ async function runMeaningSafetyBatch(scenario, {
   if (validLast) writeFileSync(second, validOriginal);
   if (destination === 'hardlink') linkSync(first, join(dir, 'first.review.txt'));
   if (destination === 'symlink') symlinkSync(first, join(dir, 'first.review.txt'));
+  if (destination === 'other-hardlink') linkSync(second, join(dir, 'first.review.txt'));
+  if (destination === 'other-symlink') symlinkSync(second, join(dir, 'first.review.txt'));
+  if (destination === 'outdir-other-hardlink') {
+    mkdirSync(join(dir, 'out'));
+    linkSync(second, join(dir, 'out', 'first.txt'));
+  }
+  if (missingInput) writeFileSync(join(dir, 'first.review.txt'), 'Previous review.\n');
   writeFileSync(join(dir, 'key'), 'test-key');
   writeFileSync(join(dir, 'config.json'), JSON.stringify({ persona: null, register: null,
     verification: { 'mps-floor': 95, 'fidelity-floor': 95 } }));
@@ -63,16 +70,21 @@ async function runMeaningSafetyBatch(scenario, {
   try {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const routing = destination === 'stdout' ? []
-      : ['suffix', 'hardlink', 'symlink'].includes(destination) ? ['--suffix', '.review']
-      : destination === 'outdir' ? ['--outdir', join(dir, 'out')]
+      : ['suffix', 'hardlink', 'symlink', 'other-input', 'other-hardlink', 'other-symlink'].includes(destination) ? ['--suffix', '.review']
+      : ['outdir', 'outdir-other-hardlink'].includes(destination) ? ['--outdir', join(dir, 'out')]
       : destination === 'source-dir' ? ['--outdir', dir] : ['--in-place'];
-    const result = await run(process.execPath, [join(root, 'bin/patina.js'), '--batch', ...routing,
+    const inputs = stdin ? [] : validFirst ? [second, first] : [first, ...(validLast ? [second] : [])];
+    if (missingInput) inputs.push(join(dir, 'missing.txt'));
+    const child = run(process.execPath, [join(root, 'bin/patina.js'), '--batch', ...routing,
       ...(scenario === 'dropped-number-unverified' ? [] : ['--verify']), '--format', format,
       '--max-failures', String(maxFailures), '--max-failure-rate', '1', '--max-retries', '0',
       '--lang', 'en', '--config', join(dir, 'config.json'), '--backend', 'openai-http', '--model', 'test-model',
       '--api-key-file', join(dir, 'key'), '--base-url', `http://127.0.0.1:${server.address().port}/v1`,
-      first, ...(validLast ? [second] : [])],
-    { cwd: dir, timeout: 20000, env: { ...process.env, HOME: dir, USERPROFILE: dir, TMPDIR: dir } })
+      // Mix relative and absolute paths in the direct cross-input collision.
+      ...inputs.map(path => destination === 'other-input' && path === second ? './first.review.txt' : path)],
+    { cwd: dir, timeout: 20000, env: { ...process.env, HOME: dir, USERPROFILE: dir, TMPDIR: dir } });
+    if (stdin) child.child.stdin.end(original);
+    const result = await child
       .then(result => ({ ...result, code: 0 }), error => error);
     const reviewPath = destination === 'suffix' ? join(dir, 'first.review.txt') : join(dir, 'out', 'first.txt');
     return { result, counts, first, second, original, validOriginal, validCandidate,
@@ -150,6 +162,57 @@ for (const destination of ['source-dir', 'hardlink', 'symlink']) {
     assert.equal(counts.second, 1);
   });
 }
+
+for (const destination of ['other-input', 'other-hardlink', 'other-symlink', 'outdir-other-hardlink']) {
+  test(`CLI batch refuses failed output targeting another batch input via ${destination}`, {
+    skip: destination === 'other-symlink' && process.platform === 'win32',
+  }, async () => {
+    for (const validFirst of [false, true]) {
+      const { result, original, firstAfter, validOriginal, secondAfter, counts } =
+        await runMeaningSafetyBatch('hard-fail', { destination, maxFailures: 1, validFirst });
+      assert.equal(result.code, 4, result.stderr);
+      assert.equal(firstAfter, original);
+      assert.equal(secondAfter, validOriginal, 'a failed candidate must not overwrite another batch source');
+      assert.equal(counts.second, validFirst ? 1 : 0);
+      assert.equal(result.stdout.split('Written:').length - 1, validFirst ? 1 : 0);
+      assert.match(result.stderr, validFirst ? /Successes: 1\/2\. Failures: 1\/2\./ : /Successes: 0\/2\. Failures: 1\/2\./);
+    }
+  });
+}
+
+test('CLI batch continues after a blocked cross-input write without poisoning the valid item', async () => {
+  const { result, original, firstAfter, validOriginal, secondAfter, counts, second } =
+    await runMeaningSafetyBatch('dropped-number', { destination: 'other-input' });
+  assert.equal(result.code, 4, result.stderr);
+  assert.equal(firstAfter, original);
+  assert.equal(secondAfter, validOriginal);
+  assert.equal(counts.second, 1);
+  assert.equal(result.stdout.trim(), `Written: ${second.replace(/\.txt$/, '.review.txt')}`);
+  assert.match(result.stderr, /Successes: 1\/2\. Failures: 1\/2\./);
+});
+
+test('CLI batch stdin keeps unsafe diagnostic output without treating stdin as a source file', async () => {
+  const { result, firstAfter, original } = await runMeaningSafetyBatch('dropped-number', {
+    stdin: true, validLast: false, format: 'json',
+  });
+  assert.equal(result.code, 4, result.stderr);
+  assert.equal(firstAfter, original);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.output, 'The service retains the audit logs.');
+  assert.equal(payload.verification.reason, 'dropped-numbers');
+  assert.doesNotMatch(result.stdout, /Written:/);
+});
+
+test('CLI batch keeps separate review output when another batch input is missing', async () => {
+  const { result, firstAfter, original, secondAfter, validOriginal, review } =
+    await runMeaningSafetyBatch('dropped-number', { destination: 'suffix', format: 'json', missingInput: true });
+  assert.equal(result.code, 4, result.stderr);
+  assert.equal(firstAfter, original);
+  assert.equal(secondAfter, validOriginal);
+  assert.equal(JSON.parse(review).verification.reason, 'dropped-numbers');
+  assert.equal(result.stdout.split('Written:').length - 1, 2);
+  assert.match(result.stderr, /Successes: 1\/3\. Failures: 2\/3\./);
+});
 
 test('CLI --verify preserves stdout and exit 4 for semantic failures; normal evidence exits 0', async () => {
   for (const scenario of ['normal', 'hard-fail', 'malformed']) {

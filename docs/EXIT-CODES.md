@@ -31,7 +31,8 @@ With stdout output, patina still prints the candidate and warns on stderr for
 review. With `--batch --in-place`, a failed candidate leaves its source file
 unchanged and produces no `Written:` success message. Separate `--suffix` and
 `--outdir` outputs remain available for review, unless the destination refers to
-the source itself (including symbolic or hard links).
+any batch input (including symbolic or hard links). This protects both pending
+and already processed source files.
 
 Each failed batch item counts against the failure budget, even when its
 candidate is emitted for review. Later valid files can still be written within

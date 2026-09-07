@@ -393,11 +393,11 @@ export async function runDefault(parsed, logger) {
 
         if (parsed.batch) {
           // The run-level exit code may belong to an earlier file. Only this
-          // candidate's evidence decides whether it can replace its source.
+          // candidate's evidence decides whether it can replace a batch source.
           const meaningSafetyError = meaningSafetyReason ? new PatinaCliError({
             what: 'rewrite failed meaning-safety checks',
             why: meaningSafetyReason,
-            action: 'Review the candidate without --in-place; meaning-safety failures cannot overwrite the source.',
+            action: 'Review the candidate on stdout or choose an output path outside the batch inputs.',
             exitCode: 4,
           }) : null;
           await writeBatchOutput(parsed, path, output, { meaningSafetyError });
