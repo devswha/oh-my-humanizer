@@ -122,6 +122,12 @@ of a publisher's authorship or permission.
 
 ## Optional parent generation plan
 
+The plan below describes the September 5 handoff. The
+[September 6 execution receipt](https://github.com/devswha/patina/issues/643#issuecomment-5559793246)
+records all 12 generation calls completed, with 11 unique output hashes and
+three numeric-proxy failures retained. Receipt replay made no further provider
+calls. This closes the collection step, not human-label or meaning acceptance.
+
 The JSON's `optionalGenerationPlan` freezes a small collection to address the
 observed short-size gap. It requests **12 generation calls and zero additional
 score/judge calls**: one source in each EN/KO × social/marketing cell, repeated
@@ -138,7 +144,7 @@ without forcing punctuation tells. Each request gets one transport attempt.
 All 12 outcomes must be retained, including failures, overlength text and
 meaning loss. No quality-based replacement, provider fallback or Gemini API
 key is permitted. The request/response evidence must bind the plan, source,
-prompt, repeat and actual model metadata. This plan is not an executed result
+prompt, repeat and actual model metadata. At handoff this plan was not an executed result
 and cannot fill the missing human evidence.
 
 ## Remaining acceptance requirements

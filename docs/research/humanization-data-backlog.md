@@ -182,6 +182,15 @@ Execution order frozen for the next performance-only cycle (2026-09-01):
 7. **KO register and lexicon calibration.** Use the miss review and real false-positive intake to remine evidence-backed entries and stress high-risk registers without global threshold inflation.
 8. **ZH/JA corpus expansion.** Reach the same per-language class/register evidence gate before making broader claims.
 
-Step 1 is the sole active item. Promotion to the next step requires a reviewed artifact that satisfies its acceptance criteria; implementation changes discovered during review stay deferred to their own branch.
+Step 1 is complete (PR #718). Later steps still require their own acceptance
+evidence; this historical sequence does not activate them automatically.
 
 **Owner decision 2026-09-02:** with step 1 complete (PR #718), the survey's H-4b (specificity-preservation constraint on the plain rewrite) runs ahead of steps 2–8 as rewrite-efficacy **Study 4**, registered in [`2026-rewrite-efficacy-prereg.md`](./2026-rewrite-efficacy-prereg.md) before any data. Steps 2–8 stay in their frozen order behind it.
+
+**Status 2026-09-07:** [Study 4](./2026-rewrite-efficacy-study4.md) is complete
+without promotion in either language. The
+[September 6 scope decision](https://github.com/devswha/patina/issues/643#issuecomment-5559803306)
+defers human ratings, manual labels, contributor confirmations and manual
+rights/counterfactual review. Those requirements remain unmet. Active short-form
+work is limited to automated diagnostics on admissible, hash-bound inputs;
+model scores are not human ratings or validated corpus error-rate gates.
