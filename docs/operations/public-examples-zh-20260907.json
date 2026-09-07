@@ -360,18 +360,18 @@
           {
             "file": "docs/PATTERNS-ZH.md",
             "lang": "zh",
-            "paragraphCount": 111,
+            "paragraphCount": 120,
             "hotCount": 2,
-            "score": 1.8018018018018018,
-            "flooredScore": 1.8018018018018018,
-            "signalScore": 0.9363909363909365,
+            "score": 1.6666666666666667,
+            "flooredScore": 1.6666666666666667,
+            "signalScore": 0.8661616161616162,
             "patternHits": 227,
             "gate": 30,
             "overGate": false,
             "skipped": false,
             "analysisSkipped": false,
             "skipReason": null,
-            "proseLength": 19171,
+            "proseLength": 19943,
             "markupLeakage": {
               "leaked": false,
               "hits": 0
@@ -396,7 +396,7 @@
             "skipped": false,
             "analysisSkipped": false,
             "skipReason": null,
-            "proseLength": 1817,
+            "proseLength": 1823,
             "markupLeakage": {
               "leaked": false,
               "hits": 0
@@ -421,7 +421,7 @@
             "skipped": false,
             "analysisSkipped": false,
             "skipReason": null,
-            "proseLength": 3103,
+            "proseLength": 3112,
             "markupLeakage": {
               "leaked": false,
               "hits": 0
@@ -435,18 +435,18 @@
           {
             "file": "patterns/zh-filler.md",
             "lang": "zh",
-            "paragraphCount": 47,
+            "paragraphCount": 50,
             "hotCount": 4,
-            "score": 8.51063829787234,
-            "flooredScore": 17.307692307692307,
-            "signalScore": 4.8517940563700845,
-            "patternHits": 35,
+            "score": 8,
+            "flooredScore": 16.363636363636363,
+            "signalScore": 4.56068641298788,
+            "patternHits": 36,
             "gate": 30,
             "overGate": false,
             "skipped": false,
             "analysisSkipped": false,
             "skipReason": null,
-            "proseLength": 3192,
+            "proseLength": 3396,
             "markupLeakage": {
               "leaked": false,
               "hits": 0
@@ -460,10 +460,10 @@
           {
             "file": "patterns/zh-language.md",
             "lang": "zh",
-            "paragraphCount": 67,
+            "paragraphCount": 73,
             "hotCount": 0,
             "score": 0,
-            "flooredScore": 9.45945945945946,
+            "flooredScore": 8.75,
             "signalScore": 0,
             "patternHits": 86,
             "gate": 30,
@@ -471,7 +471,7 @@
             "skipped": false,
             "analysisSkipped": false,
             "skipReason": null,
-            "proseLength": 5373,
+            "proseLength": 5864,
             "markupLeakage": {
               "leaked": false,
               "hits": 0
@@ -510,18 +510,18 @@
           {
             "file": "patterns/zh-style.md",
             "lang": "zh",
-            "paragraphCount": 49,
+            "paragraphCount": 50,
             "hotCount": 2,
-            "score": 4.081632653061225,
-            "flooredScore": 14.545454545454545,
-            "signalScore": 2.0820491895647524,
+            "score": 4,
+            "flooredScore": 14.285714285714285,
+            "signalScore": 2.040408205773457,
             "patternHits": 35,
             "gate": 30,
             "overGate": false,
             "skipped": false,
             "analysisSkipped": false,
             "skipReason": null,
-            "proseLength": 3005,
+            "proseLength": 3067,
             "markupLeakage": {
               "leaked": false,
               "hits": 0
@@ -617,6 +617,121 @@
         },
         "preservation": "Exact comparison with 79dd67c confirms each Markdown file differs only by the targeted output clause; all inputs, surrounding instructions and detector rules are unchanged. Ledger coverage remains 201 occurrences.",
         "diffCheck": "git diff --check passed"
+      },
+      "operationalScopeFollowUp": {
+        "date": "2026-09-07",
+        "baseCommit": "0133dd87ab6c6500d2d5d9e727dd84bdd4f8fbb4",
+        "parentCommit": "4ba9a2a671b1c2a43a83f73e1b39335da9a088cd",
+        "decision": "Restore changed general Preservation Note, Burstiness and problem prose to base; preserve corrected inline examples and factual cross-language references; express meaning limits only as notes attached to particular example pairs; no ask-author workflow.",
+        "verbatimOperationalParagraphsRestored": [
+          {
+            "file": "patterns/zh-filler.md",
+            "pattern": 24,
+            "label": "Preservation Note"
+          },
+          {
+            "file": "patterns/zh-filler.md",
+            "pattern": 31,
+            "label": "Preservation Note"
+          },
+          {
+            "file": "patterns/zh-language.md",
+            "pattern": 7,
+            "label": "Preservation Note"
+          },
+          {
+            "file": "patterns/zh-language.md",
+            "pattern": 8,
+            "label": "Burstiness 指引"
+          },
+          {
+            "file": "patterns/zh-language.md",
+            "pattern": 10,
+            "label": "Burstiness 指引"
+          },
+          {
+            "file": "patterns/zh-language.md",
+            "pattern": 32,
+            "label": "Preservation Note"
+          },
+          {
+            "file": "patterns/zh-language.md",
+            "pattern": 32,
+            "label": "Burstiness 指引"
+          },
+          {
+            "file": "patterns/zh-language.md",
+            "pattern": 33,
+            "label": "Preservation Note"
+          },
+          {
+            "file": "patterns/zh-style.md",
+            "pattern": 16,
+            "label": "Burstiness 指引"
+          },
+          {
+            "file": "docs/PATTERNS-ZH.md",
+            "pattern": 33,
+            "label": "Preservation Note"
+          }
+        ],
+        "inlineException": "ZH #12 keeps its base general problem sentence; the already-corrected inline substitution is relocated to its example-specific note so unsafe omission advice is not restored. The corrected ZH #22 替换对照 entries remain unchanged.",
+        "exampleText": "All current before/after blockquote content, standalone cases and the three showcases remain unchanged from 4ba9a2a; the ZH #34 exclusion fix remains intact.",
+        "verification": {
+          "tests": {
+            "command": "node --test tests/unit/pattern-docs.test.js tests/unit/loader.test.js tests/unit/document-type-pattern-policy.test.js",
+            "passed": 39,
+            "failed": 0
+          },
+          "spellcheck": {
+            "command": "npm run spellcheck",
+            "filesChecked": 32,
+            "issues": 0
+          },
+          "prose": {
+            "threshold": 30,
+            "results": [
+              {
+                "file": "patterns/zh-language.md",
+                "score": 0,
+                "overGate": false
+              },
+              {
+                "file": "patterns/zh-filler.md",
+                "score": 8,
+                "overGate": false
+              },
+              {
+                "file": "patterns/zh-style.md",
+                "score": 4,
+                "overGate": false
+              },
+              {
+                "file": "patterns/zh-content.md",
+                "score": 0,
+                "overGate": false
+              },
+              {
+                "file": "patterns/zh-communication.md",
+                "score": 0,
+                "overGate": false
+              },
+              {
+                "file": "docs/PATTERNS-ZH.md",
+                "score": 1.6666666666666667,
+                "overGate": false
+              }
+            ]
+          },
+          "invariants": [
+            "All general Preservation Note, Burstiness and problem prose matches 0133dd8, apart from relocating the corrected #12 inline example while retaining its base general sentence.",
+            "All before/after blockquote lines match 4ba9a2a; standalone examples and showcase files are untouched.",
+            "The corrected #22 replacement table, #34 exclusion, detector rules, numbered IDs and factual English #8 reference are preserved.",
+            "The added meaning notes immediately follow their specific example pairs; no ask-author workflow remains in the edited pattern/reference text.",
+            "The ledger retains 201 cases with the same status counts, and the patch is confined to seven owned files."
+          ],
+          "diffCheck": "git diff --check passed"
+        }
       }
     }
   },
@@ -1702,9 +1817,9 @@
     },
     {
       "file": "patterns/zh-language.md",
-      "section": "12. 问题 / 在数字化转型的背景下→数字化转型中 or omission",
+      "section": "12. 示例说明 / 在数字化转型的背景下→数字化转型中",
       "status": "corrected",
-      "reason": "输入短语和等价缩短方式保留；删除直接省略背景条件的建议，以免丢失语境。"
+      "reason": "原有短语输入和等价缩短方式保留，现作为该例输出后的明确短语对照；不恢复丢弃背景条件的示例，也不据此制定一般改写策略。"
     },
     {
       "file": "patterns/zh-filler.md",
@@ -2586,12 +2701,12 @@
     {
       "file": "patterns/zh-communication.md",
       "section": "19. 示例说明",
-      "reason": "原文没有列出具体历史事件。这里只整理引导语并保留追问邀请，事件正文仍需原作者提供。"
+      "reason": "本例输入没有列出具体历史事件。输出仍是整理引导语和追问邀请，没有扩写事件正文、年份或革命起因。"
     },
     {
       "file": "patterns/zh-content.md",
       "section": "5. 示例说明",
-      "reason": "原文没有专家姓名或报告出处。保留匿名归属与预测，交由作者补证；此例不表示来源问题已经解决。"
+      "reason": "本例输入没有专家姓名或报告出处。输出仍保留匿名归属与五年预测，没有补写来源；这一示例不表示来源问题已经解决。"
     },
     {
       "file": "patterns/zh-content.md",
@@ -2621,7 +2736,7 @@
     {
       "file": "docs/PATTERNS-ZH.md",
       "section": "19. 示例说明",
-      "reason": "原文没有列出具体历史事件。这里只整理引导语并保留追问邀请，事件正文仍需原作者提供。"
+      "reason": "本例输入没有列出具体历史事件。输出仍是整理引导语和追问邀请，没有扩写事件正文、年份或革命起因。"
     },
     {
       "file": "docs/PATTERNS-ZH.md",
@@ -2631,7 +2746,7 @@
     {
       "file": "docs/PATTERNS-ZH.md",
       "section": "5. 示例说明",
-      "reason": "原文没有专家姓名或报告出处。保留匿名归属与预测，交由作者补证；此例不表示来源问题已经解决。"
+      "reason": "本例输入没有专家姓名或报告出处。输出仍保留匿名归属与五年预测，没有补写来源；这一示例不表示来源问题已经解决。"
     },
     {
       "file": "docs/PATTERNS-ZH.md",
@@ -2749,64 +2864,14 @@
       "reason": "在不改输入或期望输出的前提下收紧说明：**失败（误报）** — 原文只交代脱敏结果和法院的要求，没有说是谁执行的。保留被动形式可避免补造施事，不能从隐去证人信息推断出执行者也需要隐匿身份。"
     },
     {
-      "file": "patterns/zh-language.md",
-      "section": "7. Preservation Note",
-      "reason": "修正鼓励补造具体性或丢失限定的示例指导；只允许输入支持的改写，不改变词表、阈值或排除条件。"
-    },
-    {
-      "file": "patterns/zh-language.md",
-      "section": "8. Burstiness 指引",
-      "reason": "修正鼓励补造具体性或丢失限定的示例指导；只允许输入支持的改写，不改变词表、阈值或排除条件。"
-    },
-    {
-      "file": "patterns/zh-language.md",
-      "section": "10. Burstiness 指引",
-      "reason": "修正鼓励补造具体性或丢失限定的示例指导；只允许输入支持的改写，不改变词表、阈值或排除条件。"
-    },
-    {
-      "file": "patterns/zh-language.md",
-      "section": "32. Preservation Note",
-      "reason": "修正鼓励补造具体性或丢失限定的示例指导；只允许输入支持的改写，不改变词表、阈值或排除条件。"
-    },
-    {
-      "file": "patterns/zh-language.md",
-      "section": "32. Burstiness 指引",
-      "reason": "修正鼓励补造具体性或丢失限定的示例指导；只允许输入支持的改写，不改变词表、阈值或排除条件。"
-    },
-    {
-      "file": "patterns/zh-language.md",
-      "section": "33. Preservation Note",
-      "reason": "修正鼓励补造具体性或丢失限定的示例指导；只允许输入支持的改写，不改变词表、阈值或排除条件。"
-    },
-    {
-      "file": "docs/PATTERNS-ZH.md",
-      "section": "33. Preservation Note",
-      "reason": "同步源模式的保留说明；未改变检测规则。"
-    },
-    {
-      "file": "patterns/zh-filler.md",
-      "section": "24. Preservation Note",
-      "reason": "修正鼓励补造具体性或丢失限定的示例指导；只允许输入支持的改写，不改变词表、阈值或排除条件。"
-    },
-    {
-      "file": "patterns/zh-filler.md",
-      "section": "31. Preservation Note",
-      "reason": "修正鼓励补造具体性或丢失限定的示例指导；只允许输入支持的改写，不改变词表、阈值或排除条件。"
-    },
-    {
-      "file": "patterns/zh-style.md",
-      "section": "16. Burstiness 指引",
-      "reason": "修正鼓励补造具体性或丢失限定的示例指导；只允许输入支持的改写，不改变词表、阈值或排除条件。"
-    },
-    {
       "file": "README_ZH.md",
       "section": "效果展示 / verification claim",
       "reason": "依据网页端的分数门槛拒绝行为表述，避免把模型评分写成能拒绝所有含义漂移的保证。"
     },
     {
       "file": "patterns/zh-language.md",
-      "section": "12. 问题 / inline replacement example",
-      "reason": "保留“在数字化转型的背景下”这一输入和等价缩短方式，删除可直接丢弃背景条件的替换建议；检测条件与排除项不变。"
+      "section": "12. 示例说明 / inline replacement example",
+      "reason": "将“在数字化转型的背景下”→“数字化转型中”移入本例输出后的说明，保留背景限定；不恢复不安全的直接省略示例，一般问题描述保留基准原句。"
     },
     {
       "file": "patterns/zh-language.md",
@@ -2817,6 +2882,181 @@
       "file": "docs/PATTERNS-ZH.md",
       "section": "34. P2 negation follow-up after 79dd67c",
       "reason": "模型编辑复核：79dd67c将“奖励速度而非质量”误改为“速度比质量更受奖励”，把排除质量变成程度比较。改回“受奖励的是速度而非质量”；输入、后续因果、一个季度、Slack与指标关系不变。仅修改该示例输出及对应镜像，待澄清的操作性说明不动。"
+    },
+    {
+      "file": "patterns/zh-filler.md",
+      "section": "24. Preservation Note / scope restoration",
+      "reason": "按用户的finding 3范围决定，逐字恢复0133dd8的一般操作段落。该例的含义边界改写为输出后的个案说明；不添加询问作者或暂停改写的流程。"
+    },
+    {
+      "file": "patterns/zh-filler.md",
+      "section": "31. Preservation Note / scope restoration",
+      "reason": "按用户的finding 3范围决定，逐字恢复0133dd8的一般操作段落。该例的含义边界改写为输出后的个案说明；不添加询问作者或暂停改写的流程。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "7. Preservation Note / scope restoration",
+      "reason": "按用户的finding 3范围决定，逐字恢复0133dd8的一般操作段落。该例的含义边界改写为输出后的个案说明；不添加询问作者或暂停改写的流程。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "8. Burstiness 指引 / scope restoration",
+      "reason": "按用户的finding 3范围决定，逐字恢复0133dd8的一般操作段落。该例的含义边界改写为输出后的个案说明；不添加询问作者或暂停改写的流程。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "10. Burstiness 指引 / scope restoration",
+      "reason": "按用户的finding 3范围决定，逐字恢复0133dd8的一般操作段落。该例的含义边界改写为输出后的个案说明；不添加询问作者或暂停改写的流程。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "12. 问题 / inline example relocated",
+      "reason": "恢复基准中的一般问题描述；将已校正的短语对照移到本例输出后的说明，不恢复“甚至直接省略”这一不安全示例，也不增加一般改写规则。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "32. Preservation Note / scope restoration",
+      "reason": "按用户的finding 3范围决定，逐字恢复0133dd8的一般操作段落。该例的含义边界改写为输出后的个案说明；不添加询问作者或暂停改写的流程。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "32. Burstiness 指引 / scope restoration",
+      "reason": "按用户的finding 3范围决定，逐字恢复0133dd8的一般操作段落。该例的含义边界改写为输出后的个案说明；不添加询问作者或暂停改写的流程。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "33. Preservation Note / scope restoration",
+      "reason": "按用户的finding 3范围决定，逐字恢复0133dd8的一般操作段落。该例的含义边界改写为输出后的个案说明；不添加询问作者或暂停改写的流程。"
+    },
+    {
+      "file": "patterns/zh-style.md",
+      "section": "16. Burstiness 指引 / scope restoration",
+      "reason": "按用户的finding 3范围决定，逐字恢复0133dd8的一般操作段落。该例的含义边界改写为输出后的个案说明；不添加询问作者或暂停改写的流程。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "33. Preservation Note / scope restoration",
+      "reason": "按用户的finding 3范围决定，逐字恢复0133dd8的一般操作段落。该例的含义边界改写为输出后的个案说明；不添加询问作者或暂停改写的流程。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "7. 示例说明 / example-only meaning boundary",
+      "reason": "本例仍表达“我们”的AI投入承诺、基础逻辑创新、各行业支持、多层次生态与高质量发展目标。输入没有模型部署业务、客户数量或营收，输出也没有补入这些信息。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "7. 示例说明 / example-only meaning boundary",
+      "reason": "本例仍表达“我们”的AI投入承诺、基础逻辑创新、各行业支持、多层次生态与高质量发展目标。输入没有模型部署业务、客户数量或营收，输出也没有补入这些信息。 对应源模式的公开示例；未添加一般操作规则。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "8. 示例说明 / example-only meaning boundary",
+      "reason": "本例保留全体员工共同努力与业务发展的关系，以及各项指标上升的方向。原文未给增长比例、员工人数或海外业务占比，输出没有将四字格换成这类数据。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "8. 示例说明 / example-only meaning boundary",
+      "reason": "本例保留全体员工共同努力与业务发展的关系，以及各项指标上升的方向。原文未给增长比例、员工人数或海外业务占比，输出没有将四字格换成这类数据。 对应源模式的公开示例；未添加一般操作规则。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "10. 示例说明 / example-only meaning boundary",
+      "reason": "本例的创新驱动、人才优先、开放合作共赢和绿色可持续四项意图都保留了。输出没有把这些意图改成原文未给的招聘人数、预算比例或执行年份。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "10. 示例说明 / example-only meaning boundary",
+      "reason": "本例的创新驱动、人才优先、开放合作共赢和绿色可持续四项意图都保留了。输出没有把这些意图改成原文未给的招聘人数、预算比例或执行年份。 对应源模式的公开示例；未添加一般操作规则。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "12. 示例说明 / example-only meaning boundary",
+      "reason": "短语对照：“在数字化转型的背景下” → “数字化转型中”。这一缩写仍保留背景含义。本例输出仍保留数字化转型背景、政策推动、改革契机、业务升级与核心竞争力目标。输入没有ERP系统、审批层数或订单处理时间，输出未添加这些项目细节。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "12. 示例说明 / example-only meaning boundary",
+      "reason": "本例输出仍保留数字化转型背景、政策推动、改革契机、业务升级与核心竞争力目标。输入没有ERP系统、审批层数或订单处理时间，输出未添加这些项目细节。 对应源模式的公开示例；未添加一般操作规则。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "32. 示例说明 / example-only meaning boundary",
+      "reason": "本例仍是下一阶段的承诺：里程碑、资源配置机制、沟通协同与战略执行框架的改善方向都在。原文没有每周安排、负责人、预算表或会议时长，输出未将这些意图扩写成具体实施计划。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "32. 示例说明 / example-only meaning boundary",
+      "reason": "本例仍是下一阶段的承诺：里程碑、资源配置机制、沟通协同与战略执行框架的改善方向都在。原文没有每周安排、负责人、预算表或会议时长，输出未将这些意图扩写成具体实施计划。 对应源模式的公开示例；未添加一般操作规则。"
+    },
+    {
+      "file": "patterns/zh-language.md",
+      "section": "33. 示例说明 / example-only meaning boundary",
+      "reason": "本例用直述表达对称与信任、一致性与用户体验、留白与高级感这三组关系。输出没有加入按钮投诉数据、改版次数或已经完成验证的说法。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "33. 示例说明 / example-only meaning boundary",
+      "reason": "本例用直述表达对称与信任、一致性与用户体验、留白与高级感这三组关系。输出没有加入按钮投诉数据、改版次数或已经完成验证的说法。 对应源模式的公开示例；未添加一般操作规则。"
+    },
+    {
+      "file": "patterns/zh-filler.md",
+      "section": "24. 示例说明 / example-only meaning boundary",
+      "reason": "本例表达对人工智能前景的积极评价及对惊喜、突破的期待，没有给出公司计划。输出保留这些期待，没有新增城市、数据中心或完工日期。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "24. 示例说明 / example-only meaning boundary",
+      "reason": "本例表达对人工智能前景的积极评价及对惊喜、突破的期待，没有给出公司计划。输出保留这些期待，没有新增城市、数据中心或完工日期。 对应源模式的公开示例；未添加一般操作规则。"
+    },
+    {
+      "file": "patterns/zh-filler.md",
+      "section": "31. 示例说明 / example-only meaning boundary",
+      "reason": "本例输出仍说数字游民已广泛扎根、并将持续发展，也保留了“不是一时潮流”的判断。它只重组这一结论，没有追加整个工作方式已改变等新论断。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "31. 示例说明 / example-only meaning boundary",
+      "reason": "本例输出仍说数字游民已广泛扎根、并将持续发展，也保留了“不是一时潮流”的判断。它只重组这一结论，没有追加整个工作方式已改变等新论断。 对应源模式的公开示例；未添加一般操作规则。"
+    },
+    {
+      "file": "patterns/zh-style.md",
+      "section": "16. 示例说明 / example-only meaning boundary",
+      "reason": "本例输出仍保留积极拓展、不断完善、持续投入和深入转型的含义，没有新增海外办公室数量、产品线数量、投资增幅或技术用途。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "16. 示例说明 / example-only meaning boundary",
+      "reason": "本例输出仍保留积极拓展、不断完善、持续投入和深入转型的含义，没有新增海外办公室数量、产品线数量、投资增幅或技术用途。 对应源模式的公开示例；未添加一般操作规则。"
+    },
+    {
+      "file": "patterns/zh-filler.md",
+      "section": "24. 结尾套话 / example-only meaning boundary",
+      "reason": "这个结尾只表达对该领域的期待和共同见证的邀请。输出没有补入法案、审议或施行日期，也没有把期待改成具体承诺。"
+    },
+    {
+      "file": "patterns/zh-content.md",
+      "section": "5. 示例说明 / no author workflow",
+      "reason": "本例输入没有专家姓名或报告出处。输出仍保留匿名归属与五年预测，没有补写来源；这一示例不表示来源问题已经解决。"
+    },
+    {
+      "file": "patterns/zh-communication.md",
+      "section": "19. 示例说明 / no author workflow",
+      "reason": "本例输入没有列出具体历史事件。输出仍是整理引导语和追问邀请，没有扩写事件正文、年份或革命起因。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "5. 示例说明 / no author workflow",
+      "reason": "本例输入没有专家姓名或报告出处。输出仍保留匿名归属与五年预测，没有补写来源；这一示例不表示来源问题已经解决。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "19. 示例说明 / no author workflow",
+      "reason": "本例输入没有列出具体历史事件。输出仍是整理引导语和追问邀请，没有扩写事件正文、年份或革命起因。"
+    },
+    {
+      "file": "docs/PATTERNS-ZH.md",
+      "section": "29. 示例说明 / placement",
+      "reason": "把已有说明移到远程办公示例输出后、下一分类标题前，明确它只解释该例；文字与示例内容不变。"
     }
   ],
   "showcaseIds": [
@@ -2832,6 +3072,7 @@
     "Score-only viral examples keep their default skip behavior. Manual edits retain claims and promises, so some signals intentionally remain; no unsupported statistics or future promises are certified.",
     "Full-file prose gate remains unresolved for 21 of 85 Markdown files: 19 were already above 30 at base, and two changed examples (zh-13-success-01 and zh-19-success-01) move from 0 to 50 after removing invented material. Eight over-gate files are in this patch; thirteen are untouched controls/success examples. All 21 have analysisSkipped=true because they contain too few prose paragraphs. One rationale-only repair round did not alter these input-driven signals; no further source rewriting or padding was attempted. All seven pattern packs, README, reference and new gallery pass; all three showcase outputs score 0 with analysisSkipped=false.",
     "Expanded spelling inspection flags eight preexisting names/acronyms/terms outside the configured spellcheck scope. The configured npm spellcheck passes with zero issues.",
-    "Parent reports shared LLM verification passed for all 12 showcases; parent owns UI integration and the shared run artifacts. This lane did not change UI, analytics, release metadata, historical artifacts, dependencies or core skill pipeline; no subagent, push, PR, merge or deployment was performed."
+    "Parent reports shared LLM verification passed for all 12 showcases; parent owns UI integration and the shared run artifacts. This lane did not change UI, analytics, release metadata, historical artifacts, dependencies or core skill pipeline; no subagent, push, PR, merge or deployment was performed.",
+    "Finding 3 scope decision: general operational paragraphs are restored to 0133dd8. Meaning limits are attached to individual examples, not a new general rewriting policy. The corrected inline substitution examples remain in scope; #12 is explicitly relocated from the problem paragraph to its example note. No ask-author workflow is introduced."
   ]
 }
