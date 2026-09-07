@@ -6,10 +6,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skill](https://img.shields.io/badge/Skill-Claude%20Code%20%7C%20Codex%20%7C%20Cursor%20%7C%20OpenCode-blueviolet)](#빠른-시작)
 [![Multi-language](https://img.shields.io/badge/Languages-KO%20%7C%20EN%20%7C%20ZH%20%7C%20JA-green)](https://github.com/devswha/patina)
-[![Version](https://img.shields.io/badge/version-8.4.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-8.5.0-blue)](CHANGELOG.md)
 
 <p align="center">
-  <a href="https://patina.vibetip.help/"><b>브라우저에서 바로 써보기 — 설치 없음</b></a>
+  <a href="https://patina.vibetip.help/?lang=ko&amp;utm_source=github&amp;utm_campaign=multilingual-20260907"><b>브라우저에서 바로 써보기 — 설치 없음</b></a>
 </p>
 
 > **AI 포장만 벗기고, 의미는 그대로.**
@@ -24,23 +24,29 @@ patina는 한국어·영어·중국어·일본어를 위한 결정론적 패턴 
 
 ## 데모
 
-AI 티가 나는 글을 **[playground](https://patina.vibetip.help/)** 에 붙여넣으면 patina가 그 자리에서 다시 씁니다. 의미 하한이 재작성을 검증하고(여기서는 **MPS 100 / Fidelity 75** — "30개 템플릿"이라는 사실이 살아남습니다), 결정론적 AI 시그널을 before → after로 측정합니다. 핫 문단 비율은 **100 → 0** 으로 떨어지고, 과장 표현("thrilled to announce", "revolutionize your workflow", "unlock their full potential")은 사라집니다.
+한국어 회의 안내를 다듬은 **설명용 가상 예시**입니다. 실제 실행이나 측정 결과가 아닙니다. [전체 예시](playground/examples/ko.js)의 `ko-email-meeting`에서 발췌했습니다.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/devswha/patina/main/assets/demo/patina-playground-en.gif" alt="patina playground 데모 애니메이션: AI 티가 나는 템플릿 팩 홍보 글을 웹 playground에 붙여넣으면 30개 템플릿이라는 사실은 유지한 채 자연스럽게 다시 쓰이고, MPS 100·Fidelity 75와 결정론적 AI 시그널이 100에서 0으로 떨어지는 것으로 검증됩니다" width="820">
-</p>
+**수정 전**
 
-더 많은 예시: [Before/After 갤러리](docs/EXAMPLES_KR.md) ([English](docs/EXAMPLES.md)) · [CLI transcript](docs/DEMO.md).
+> 회의 안건과 참석자에는 변동사항이 없습니다. 변경된 일정에 참석이 어려우신 경우, 9월 9일 오후 5시까지 회신해 주시면 감사하겠습니다.
+
+**수정 후**
+
+> 안건과 참석자는 그대로입니다. 바뀐 일정에 참석하기 어려우시면 9월 9일 오후 5시까지 답장 부탁드립니다.
+
+안건·참석자와 회신 기한을 남겼습니다. 참석이 어려울 때 답장해 달라는 요청도 그대로입니다.
+
+직접 실행하려면 **[playground](https://patina.vibetip.help/?lang=ko&utm_source=github&utm_campaign=multilingual-20260907)** 에 글을 붙여 넣으세요. 더 많은 [Before/After 예시](docs/EXAMPLES_KR.md)도 볼 수 있습니다.
 
 - **블랙박스가 아닌, 감사 가능한 도구** — 184개의 이름 붙은 패턴이 모든 수정을 결정하고, `--diff`가 무엇이 왜 바뀌었는지 그대로 보여줍니다.
 - **의미는 웹에서 검증됩니다** — playground는 모든 재작성을 MPS·충실도 하한으로 검증하고, 어긋난 결과는 거부합니다. Node CLI는 `--verify`, 에이전트 스킬은 `/patina --strict`로 같은 검사를 켭니다.
 - **서로 독립적인 세 축** — Document Type은 장르를, Persona는 목소리를, Register는 전달 방식을 정합니다. 생략한 축은 원문이 유지됩니다.
-- **모든 채널에서** — 에이전트 스킬(Claude Code · Codex · Cursor · OpenCode), Node CLI, [브라우저 playground](https://patina.vibetip.help/).
+- **모든 채널에서** — 에이전트 스킬(Claude Code · Codex · Cursor · OpenCode), Node CLI, [브라우저 playground](https://patina.vibetip.help/?lang=ko&utm_source=github&utm_campaign=multilingual-20260907).
 - **한계에 정직하게** — 점수는 편집 신호이지 작성자 판정이 아니며, [사전 등록 연구](docs/research/2026-rewrite-efficacy-study1.md)에서 실패 지점까지 함께 공개합니다.
 
 ## 빠른 시작
 
-**브라우저 — 설치 없음.** **[patina.vibetip.help](https://patina.vibetip.help/)** 를 열고 붙여넣으면 끝. 재작성과 채점은 서버에서 실행되고, API 모드는 개인 키를 요청 단위로만 전달합니다(저장·로깅 없음).
+**브라우저 — 설치 없음.** **[patina.vibetip.help](https://patina.vibetip.help/?lang=ko&utm_source=github&utm_campaign=multilingual-20260907)** 를 열고 붙여넣으면 끝. 재작성과 채점은 서버에서 실행되고, API 모드는 개인 키를 요청 단위로만 전달합니다(저장·로깅 없음).
 
 [Hosted API (Pro)](docs/HTTP-API.md)
 
@@ -58,14 +64,14 @@ Install patina by following https://raw.githubusercontent.com/devswha/patina/mai
 [여기에 글을 붙여넣으세요]
 ```
 
-**CLI — Node 18 이상:**
+**CLI — Node 18.1 이상:**
 
 ```bash
 npx patina-cli --lang ko input.txt          # 재작성
 npx patina-cli doctor                       # 백엔드·키 상태 점검
 ```
 
-로그인된 `codex`·`claude`·`gemini` CLI가 있으면 API 키 없이 `--backend codex-cli`로 실행됩니다. 전체 설치 옵션: [INSTALLATION.md](INSTALLATION.md).
+로그인된 CLI가 있으면 API 키 없이 사용할 수 있습니다. 해당 CLI에 맞춰 `--backend codex-cli`, `--backend claude-cli`, `--backend gemini-cli`를 선택하세요. 전체 설치 옵션: [INSTALLATION.md](INSTALLATION.md).
 
 ## 서로 독립적인 세 축
 
@@ -104,7 +110,7 @@ patina --batch docs/*.md --outdir cleaned/
 
 ```yaml
 # .patina.default.yaml
-version: "8.4.1"
+version: "8.5.0"
 language: ko              # ko | en | zh | ja
 document-type: default    # 장르·용도 + 패턴 정책
 persona:                  # 선택 사항; 생략하면 원문 보이스 보존
@@ -127,8 +133,18 @@ register:                 # casual | professional; 생략하면 원문 레지스
 - [Cookbook](docs/COOKBOOK.md) — 자주 쓰는 레시피 · [CLI 계약](docs/CLI.md) — 플래그·게이트·종료 코드
 - [Before/After 갤러리](docs/EXAMPLES_KR.md) ([English](docs/EXAMPLES.md)) · [패턴 카탈로그](docs/PATTERNS.md)
 - [아키텍처](docs/ARCHITECTURE.md) · [설정과 인증](docs/AUTHENTICATION_KR.md) ([English](docs/AUTHENTICATION.md))
+- [CLI 실행 기록](docs/DEMO.md) — 위 가상 예시와 별개의 과거 자료
 - [벤치마크](docs/benchmarks/latest.md) · [연구](docs/research/2026-rewrite-efficacy-study1.md) · [FAQ](docs/FAQ_KR.md) ([English](docs/FAQ.md))
 - [기여 가이드](CONTRIBUTING_KR.md) ([English](CONTRIBUTING.md)) · [체인지로그](CHANGELOG.md)
+
+<details>
+<summary>이전 영문 playground 실행 녹화</summary>
+
+위 한국어 가상 예시와 별개의 과거 실행 기록입니다.
+
+<img src="https://raw.githubusercontent.com/devswha/patina/main/assets/demo/patina-playground-en.gif" alt="과거 영문 playground 실행 녹화. 위 한국어 설명용 예시와는 별개의 기록입니다." width="820">
+
+</details>
 
 ## 라이선스
 

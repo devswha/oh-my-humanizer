@@ -27,83 +27,91 @@
       <div class="nav__end">
         <label class="ctl">
           <span class="ctl__label">Language</span>
-          <select id="lang" class="ctl__select">
+          <select id="lang" class="ctl__select" aria-label="Language">
             <option value="en">English</option>
             <option value="ko">한국어</option>
             <option value="zh">中文</option>
             <option value="ja">日本語</option>
           </select>
         </label>
-        <label class="ctl">
-          <span class="ctl__label">Document Type</span>
-          <select id="document-type" class="ctl__select"></select>
-        </label>
-        <label class="ctl">
-          <span class="ctl__label">Persona</span>
-          <select id="persona" class="ctl__select"></select>
-        </label>
-        <label class="ctl">
-          <span class="ctl__label">Register</span>
-          <select id="register" class="ctl__select">
-            <option value="">Preserve source</option>
-            <option value="casual">Casual</option>
-            <option value="professional">Professional</option>
-          </select>
-        </label>
-        <label class="ctl">
-          <span class="ctl__label">Mode</span>
-          <select id="tier" class="ctl__select">
-            <option value="free">Free</option>
-            <option value="byok">BYOK</option>
-            <option value="pro">Pro</option>
-          </select>
-        </label>
+        <details class="settings" id="settings-panel">
+          <summary id="settings-label">Options</summary>
+          <div class="settings__panel">
+            <p id="settings-hint" class="ctl__status">Optional. Start with Free and keep the source style.</p>
+            <div class="settings__controls">
+              <label class="ctl">
+                <span class="ctl__label">Document Type</span>
+                <select id="document-type" class="ctl__select"></select>
+              </label>
+              <label class="ctl">
+                <span class="ctl__label">Persona</span>
+                <select id="persona" class="ctl__select"></select>
+              </label>
+              <label class="ctl">
+                <span class="ctl__label">Register</span>
+                <select id="register" class="ctl__select">
+                  <option value="">Preserve source</option>
+                  <option value="casual">Casual</option>
+                  <option value="professional">Professional</option>
+                </select>
+              </label>
+              <label class="ctl">
+                <span class="ctl__label">Mode</span>
+                <select id="tier" class="ctl__select">
+                  <option value="free">Free</option>
+                  <option value="byok">BYOK</option>
+                  <option value="pro">Pro</option>
+                </select>
+              </label>
+            </div>
+            <div class="nav__byok" id="byok-row" hidden>
+              <label class="ctl ctl--byok" id="provider-ctl">
+                <span class="ctl__label">Provider</span>
+                <select id="provider" class="ctl__select"></select>
+              </label>
+              <label class="ctl ctl--byok" id="model-ctl">
+                <span class="ctl__label">Model</span>
+                <select id="model" class="ctl__select"></select>
+              </label>
+              <label class="ctl ctl--byok ctl--key" id="key-ctl">
+                <span class="ctl__label">API key</span>
+                <input id="api-key" class="ctl__input" type="password" autocomplete="off" placeholder="sk-… (kept in your browser)" aria-label="API key (kept in your browser)" />
+                <span class="ctl__err" id="key-error" role="alert" hidden></span>
+              </label>
+            </div>
+            <div class="nav__pro" id="pro-row" hidden>
+              <label class="ctl ctl--pro">
+                <span class="ctl__label" id="license-label">License key</span>
+                <input id="license-key" aria-describedby="license-status" class="ctl__input" type="password" autocomplete="off" placeholder="License key (kept in memory)" aria-label="License key (kept in memory)" />
+              </label>
+              <button class="ctl__action" id="license-sign-in" type="button">Apply key</button>
+              <button class="ctl__action" id="license-sign-out" type="button" hidden>Clear key and chats</button>
+              <span class="ctl__status" id="license-status" role="status" aria-live="polite"></span>
+              <a class="ctl__link" id="pro-docs" href="https://github.com/devswha/patina/blob/main/docs/HTTP-API.md" target="_blank" rel="noopener noreferrer">Hosted API docs and limits</a>
+              <a class="ctl__link" id="pro-portal" hidden target="_blank" rel="noopener noreferrer">Manage subscription in Polar</a>
+              <span class="ctl__err" id="license-error" role="alert" hidden></span>
+            </div>
+            <details class="nav__presets" id="presets-panel">
+              <summary id="presets-label">Local presets</summary>
+              <div class="preset-controls">
+                <label class="ctl"><span class="ctl__label" id="preset-select-label">Saved preset</span><select id="preset-select" class="ctl__select"></select></label>
+                <button class="ctl__action" id="preset-apply" type="button">Apply preset</button>
+                <button class="ctl__action" id="preset-delete" type="button">Delete preset</button>
+                <label class="ctl"><span class="ctl__label" id="preset-name-label">Preset name</span><input id="preset-name" class="ctl__input" type="text" maxlength="40" autocomplete="off" aria-describedby="preset-hint" /></label>
+                <button class="ctl__action" id="preset-save" type="button">Save / replace</button>
+                <p class="ctl__status" id="preset-hint">Saved only in this browser: language, document type, persona, and register. Do not put keys or private text in the name. Up to 20 names, 40 characters each.</p>
+                <p class="ctl__status" id="preset-status" role="status" aria-live="polite"></p>
+              </div>
+            </details>
+            <details class="nav__presets protected-controls">
+              <summary id="protected-label">Keep these phrases unchanged</summary>
+              <textarea id="protected-text" class="ctl__input" rows="2" maxlength="4000" aria-labelledby="protected-label" aria-describedby="protected-hint" autocomplete="off" spellcheck="false"></textarea>
+              <p class="ctl__status" id="protected-hint">Optional: one product name, quote or phrase per line. Kept in this conversation only.</p>
+            </details>
+          </div>
+        </details>
       </div>
-      <div class="nav__byok" id="byok-row" hidden>
-        <label class="ctl ctl--byok" id="provider-ctl">
-          <span class="ctl__label">Provider</span>
-          <select id="provider" class="ctl__select"></select>
-        </label>
-        <label class="ctl ctl--byok" id="model-ctl">
-          <span class="ctl__label">Model</span>
-          <select id="model" class="ctl__select"></select>
-        </label>
-        <label class="ctl ctl--byok ctl--key" id="key-ctl">
-          <span class="ctl__label">API key</span>
-          <input id="api-key" class="ctl__input" type="password" autocomplete="off" placeholder="sk-… (kept in your browser)" aria-label="API key (kept in your browser)" />
-          <span class="ctl__err" id="key-error" role="alert" hidden></span>
-        </label>
-      </div>
-      <div class="nav__pro" id="pro-row" hidden>
-        <label class="ctl ctl--pro">
-          <span class="ctl__label" id="license-label">License key</span>
-          <input id="license-key" aria-describedby="license-status" class="ctl__input" type="password" autocomplete="off" placeholder="License key (kept in memory)" aria-label="License key (kept in memory)" />
-        </label>
-        <button class="ctl__action" id="license-sign-in" type="button">Apply key</button>
-        <button class="ctl__action" id="license-sign-out" type="button" hidden>Clear key and chats</button>
-        <span class="ctl__status" id="license-status" role="status" aria-live="polite"></span>
-        <a class="ctl__link" id="pro-docs" href="https://github.com/devswha/patina/blob/main/docs/HTTP-API.md" target="_blank" rel="noopener noreferrer">Hosted API docs and limits</a>
-        <a class="ctl__link" id="pro-portal" hidden target="_blank" rel="noopener noreferrer">Manage subscription in Polar</a>
-        <span class="ctl__err" id="license-error" role="alert" hidden></span>
-      </div>
-      <details class="nav__presets" id="presets-panel">
-        <summary id="presets-label">Local presets</summary>
-        <div class="preset-controls">
-          <label class="ctl"><span class="ctl__label" id="preset-select-label">Saved preset</span><select id="preset-select" class="ctl__select"></select></label>
-          <button class="ctl__action" id="preset-apply" type="button">Apply preset</button>
-          <button class="ctl__action" id="preset-delete" type="button">Delete preset</button>
-          <label class="ctl"><span class="ctl__label" id="preset-name-label">Preset name</span><input id="preset-name" class="ctl__input" type="text" maxlength="40" autocomplete="off" aria-describedby="preset-hint" /></label>
-          <button class="ctl__action" id="preset-save" type="button">Save / replace</button>
-          <p class="ctl__status" id="preset-hint">Saved only in this browser: language, document type, persona, and register. Do not put keys or private text in the name. Up to 20 names, 40 characters each.</p>
-          <p class="ctl__status" id="preset-status" role="status" aria-live="polite"></p>
-        </div>
-      </details>
       <p class="ctl__status" id="settings-status" role="status" aria-live="polite"></p>
-      <details class="nav__presets protected-controls">
-        <summary id="protected-label">Keep these phrases unchanged</summary>
-        <textarea id="protected-text" class="ctl__input" rows="2" maxlength="4000" aria-labelledby="protected-label" aria-describedby="protected-hint" autocomplete="off" spellcheck="false"></textarea>
-        <p class="ctl__status" id="protected-hint">Optional: one product name, quote or phrase per line. Kept in this conversation only.</p>
-      </details>
     </header>
 
     <!-- ───────── landing ───────── -->
@@ -111,21 +119,32 @@
       <section class="hero">
         <div class="hero__sky" aria-hidden="true"></div>
         <div class="hero__inner">
-          <h1 class="hero__title">Make it sound <span class="grad">human</span></h1>
-          <p class="hero__sub">Paste AI-sounding text — patina rewrites it naturally. KO·EN·ZH·JA.</p>
+          <div class="hero__compose">
+            <h1 class="hero__title">Make it sound <span class="grad">natural</span></h1>
+            <p class="hero__sub">Turn a stiff draft into clear, natural writing. Keep your meaning.</p>
 
-          <form class="prompt" id="hero-form">
-            <textarea class="prompt__input" id="hero-input" rows="1" placeholder="Paste the text you want to clean up…" aria-label="Paste the text you want to clean up…" autofocus></textarea>
-            <div class="prompt__bar">
-              <button class="prompt__send" id="hero-send" type="submit" disabled aria-label="Send">
-                <svg class="ic-send" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 4l-7 7h4v7h6v-7h4z"/></svg>
-                <svg class="ic-stop" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
-              </button>
+            <form class="prompt" id="hero-form">
+              <textarea class="prompt__input" id="hero-input" rows="1" placeholder="Paste the text you want to clean up…" aria-label="Paste the text you want to clean up…"></textarea>
+              <div class="prompt__bar">
+                <span id="hero-action">Rewrite my text</span>
+                <button class="prompt__send" id="hero-send" type="submit" disabled aria-label="Send">
+                  <svg class="ic-send" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 4l-7 7h4v7h6v-7h4z"/></svg>
+                  <svg class="ic-stop" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
+                </button>
+              </div>
+              <p class="prompt__error" id="hero-error" role="alert" hidden></p>
+            </form>
+
+            <p class="hero__hint" id="hero-hint">Free · paste and send. No account or key needed.</p>
+            <p class="suggest__label" id="suggest-label">Or start with an example</p>
+            <div class="suggest" id="suggest" role="group" aria-labelledby="suggest-label"></div>
+          </div>
+          <section class="examples" id="examples" aria-labelledby="examples-title">
+            <div class="sec__head">
+              <h2 class="sec__title" id="examples-title">Before and after</h2>
             </div>
-            <p class="prompt__error" id="hero-error" role="alert" hidden></p>
-          </form>
-
-          <div class="suggest" id="suggest"></div>
+            <div id="example-cards"></div>
+          </section>
         </div>
       </section>
 
@@ -135,26 +154,16 @@
           <h2 class="sec__title">Three steps</h2>
         </div>
         <div class="how__grid">
-          <div class="how__preview" aria-hidden="true">
-            <div class="hp-line hp-before"><span class="hp-tag">before</span>Our cutting-edge solution leverages synergies to seamlessly deliver world-class value.</div>
-            <div class="hp-arrow">↓ patina</div>
-            <div class="hp-line hp-after"><span class="hp-tag">after</span>Our solution gives teams something that actually works.</div>
-            <div class="hp-meta"><span>MPS 90</span><span>Fidelity 85</span><span>signal ↓</span></div>
-          </div>
           <ol class="how__steps">
             <li><h3>1 · Paste</h3><p>Drop in your AI-sounding draft. No code, no key.</p></li>
-            <li><h3>2 · Rewrite</h3><p>patina clears ~160 patterns and rewrites it naturally.</p></li>
-            <li><h3>3 · Verify</h3><p>Check MPS, fidelity, and the AI signal (before → after).</p></li>
+            <li><h3>2 · Rewrite</h3><p>Smooth out stiff wording while keeping your meaning.</p></li>
+            <li><h3>3 · Verify</h3><p>Compare the result with your draft, then copy the approved text.</p></li>
           </ol>
+          <details class="meaning-info">
+            <summary id="meaning-label">How meaning checks work</summary>
+            <p id="meaning-hint">Your rewrite is checked for meaning preservation (MPS) and fidelity. Review the actual scores and approval status with each result.</p>
+          </details>
         </div>
-      </section>
-
-      <section class="examples" id="examples">
-        <div class="sec__head">
-          <p class="eyebrow"><span>samples</span></p>
-          <h2 class="sec__title">Before and after</h2>
-        </div>
-        <div id="example-cards"></div>
       </section>
 
       <section class="bench" id="benchmark">
@@ -248,7 +257,7 @@
       </section>
 
       <footer class="foot">
-        <div class="foot__brand"><img class="foot__icon" src="/assets/brand/patina-mark.svg" alt="" width="20" height="20" /> patina <span class="ver-badge">v8.4.1</span></div>
+        <div class="foot__brand"><img class="foot__icon" src="/assets/brand/patina-mark.svg" alt="" width="20" height="20" /> patina <span class="ver-badge">v8.5.0</span></div>
         <nav class="foot__links" aria-label="Footer">
           <a href="https://github.com/devswha/patina">GitHub</a>
           <a href="#pricing">Pricing</a>
@@ -271,7 +280,7 @@
         </div>
         <nav class="sidebar__history" id="history" aria-label="Conversations"></nav>
         <div class="sidebar__foot">
-          <div class="brandmark"><img class="brandmark__icon" src="/assets/brand/patina-mark.svg" alt="" width="22" height="22" /> patina <span class="ver-badge">v8.4.1</span></div>
+          <div class="brandmark"><img class="brandmark__icon" src="/assets/brand/patina-mark.svg" alt="" width="22" height="22" /> patina <span class="ver-badge">v8.5.0</span></div>
           <div class="sidebar__note">Deterministic humanizer —<br />same claim, numbers, voice.</div>
         </div>
       </aside>
@@ -291,7 +300,7 @@
             </button>
           </form>
           <p class="composer__error" id="composer-error" role="alert" hidden></p>
-          <p class="composer__hint">patina changes only the wording — never the claim, numbers, or causation. Rewrites run the real patina pipeline server-side; MPS/fidelity are scored live.</p>
+          <p class="composer__hint">Review the approved text before using it.</p>
         </div>
       </main>
     </div>

@@ -146,3 +146,91 @@ export function configuredPortalHref(config) {
     return url.href;
   } catch { return ''; }
 }
+
+// First-use copy stays separate from safety/error evidence shown after a request.
+export const ONBOARDING_COPY = {
+  en: {
+    title: ['Make it sound ', 'natural', ''],
+    sub: 'Turn a stiff draft into clear, natural writing. Keep your meaning.',
+    steps: [['1 · Paste', 'Start with your own draft or an example. No account or key needed.'], ['2 · Rewrite', 'Smooth out stiff wording while keeping your meaning.'], ['3 · Review', 'Compare the result with your draft, then copy the approved text.']],
+    settings: 'Options', settingsHint: 'Optional. Start with Free and keep the source style.',
+    heroHint: 'Free · paste and send. No account or key needed.', heroAction: 'Rewrite my text', suggestions: 'Or start with an example',
+    before: 'Before', after: 'After', illustrative: 'Illustrative example · prepared in advance, not a live result.',
+    exampleLanguage: 'Example language', exampleChoice: 'Choose an example', tryExample: 'Use this draft',
+    copyExample: 'Copy example', copied: 'Copied', copyFailed: 'Could not copy', replay: 'Replay',
+    meaningLabel: 'How meaning checks work',
+    hint: 'Your rewrite is checked for meaning preservation (MPS) and fidelity. Review the actual scores and approval status with each result.',
+    resultHint: 'Review the approved text before using it.',
+    navExamples: 'Examples', navPricing: 'Pricing', home: 'patina home', navigation: 'Main navigation',
+    provider: 'Provider', model: 'Model', apiKey: 'API key', apiPlaceholder: 'API key (kept in memory)',
+    freeName: 'Free', freeCta: 'Try it now ↑', freeFeatures: ['Browser playground', '20 rewrites / day', 'Up to 4,000 characters', '한국어 · English · 中文 · 日本語'],
+  },
+  ko: {
+    title: ['딱딱한 문장을 ', '자연스럽게', ''],
+    sub: '어색한 표현을 읽기 편하게 다듬어요. 전하려던 뜻은 그대로.',
+    steps: [['1 · 붙여넣기', '내 글이나 예제로 시작해요. 가입도 키도 필요 없어요.'], ['2 · 다듬기', '뜻을 유지하면서 딱딱한 표현을 자연스럽게 고쳐요.'], ['3 · 확인', '원문과 결과를 비교한 뒤 승인된 글을 복사하세요.']],
+    settings: '선택 설정', settingsHint: '필요할 때만 바꾸세요. 기본값은 무료 이용과 원문 문체 유지입니다.',
+    heroHint: '무료 · 붙여넣고 보내세요. 가입이나 키가 필요 없어요.', heroAction: '내 글 다듬기', suggestions: '예제로 시작해도 좋아요',
+    before: '다듬기 전', after: '다듬은 예시', illustrative: '설명용 예시 · 미리 준비한 글이며 실시간 결과가 아닙니다.',
+    exampleLanguage: '예제 언어', exampleChoice: '예제 선택', tryExample: '이 원문으로 시작',
+    copyExample: '예시 복사', copied: '복사했어요', copyFailed: '복사하지 못했어요', replay: '다시 보기',
+    meaningLabel: '의미 보존은 어떻게 확인하나요?',
+    hint: '다듬은 글의 의미 보존(MPS)과 원문 충실도를 검사합니다. 결과에 표시된 실제 점수와 승인 상태를 확인하세요.',
+    resultHint: '승인된 글도 사용하기 전에 읽어 보세요.',
+    navExamples: '예제', navPricing: '요금', home: 'patina 홈', navigation: '주 메뉴',
+    provider: '제공업체', model: '모델', apiKey: 'API 키', apiPlaceholder: 'API 키 (메모리에만 보관)',
+    freeName: '무료', freeCta: '지금 써보기 ↑', freeFeatures: ['브라우저에서 바로 이용', '하루 20회 다듬기', '최대 4,000자', '한국어 · English · 中文 · 日本語'],
+  },
+  zh: {
+    title: ['让生硬的文字', '自然流畅', ''],
+    sub: '把拗口的草稿改得清楚好读，保留你原本想表达的意思。',
+    steps: [['1 · 粘贴', '用自己的草稿或示例开始，无需账号或密钥。'], ['2 · 润色', '调整生硬的措辞，保留原意。'], ['3 · 检查', '对照原文查看结果，再复制已通过检查的文字。']],
+    settings: '可选设置', settingsHint: '需要时再调整。默认免费使用，保留原文风格。',
+    heroHint: '免费 · 粘贴后发送，无需账号或密钥。', heroAction: '润色我的文字', suggestions: '也可以从示例开始',
+    before: '改写前', after: '改写示例', illustrative: '说明示例 · 提前准备的文字，并非实时生成的结果。',
+    exampleLanguage: '示例语言', exampleChoice: '选择示例', tryExample: '使用这段原文',
+    copyExample: '复制示例', copied: '已复制', copyFailed: '复制失败', replay: '再次查看',
+    meaningLabel: '如何检查原意是否保留？',
+    hint: '改写后会检查语义保留（MPS）和原文忠实度。请查看每次结果的实际分数和批准状态。',
+    resultHint: '使用前请再读一遍已通过检查的文字。',
+    navExamples: '示例', navPricing: '价格', home: 'patina 首页', navigation: '主导航',
+    provider: '服务商', model: '模型', apiKey: 'API 密钥', apiPlaceholder: 'API 密钥（仅保存在内存中）',
+    freeName: '免费', freeCta: '立即试用 ↑', freeFeatures: ['在浏览器中使用', '每天改写 20 次', '最多 4,000 字符', '한국어 · English · 中文 · 日本語'],
+  },
+  ja: {
+    title: ['堅い文章を、', '自然な言葉に', ''],
+    sub: '伝えたい意味はそのままに、ぎこちない下書きを読みやすく整えます。',
+    steps: [['1 · 貼り付け', '自分の下書きか例文で始めましょう。登録もキーも不要です。'], ['2 · 整える', '意味を保ちながら、堅い表現を自然な言葉に直します。'], ['3 · 確認', '原文と結果を比べてから、承認された文章をコピーします。']],
+    settings: '任意の設定', settingsHint: '必要なときだけ変更できます。初期設定は無料利用・原文の文体を維持です。',
+    heroHint: '無料 · 貼り付けて送信。登録もキーも不要です。', heroAction: '文章を整える', suggestions: '例文から始めることもできます',
+    before: '整える前', after: '整えた例', illustrative: '説明用の例文 · 事前に用意した文章で、実行結果ではありません。',
+    exampleLanguage: '例文の言語', exampleChoice: '例文を選ぶ', tryExample: 'この原文を使う',
+    copyExample: '例文をコピー', copied: 'コピーしました', copyFailed: 'コピーできませんでした', replay: 'もう一度見る',
+    meaningLabel: '意味の保持をどう確認しますか？',
+    hint: '書き換え後に意味の保持（MPS）と原文への忠実度を検査します。結果ごとの実際のスコアと承認状態を確認してください。',
+    resultHint: '承認された文章も、使う前に読み返してください。',
+    navExamples: '例文', navPricing: '料金', home: 'patina ホーム', navigation: 'メインナビゲーション',
+    provider: '提供元', model: 'モデル', apiKey: 'APIキー', apiPlaceholder: 'APIキー（メモリ内のみ保持）',
+    freeName: '無料', freeCta: '今すぐ試す ↑', freeFeatures: ['ブラウザで利用', '1日20回の書き換え', '最大4,000文字', '한국어 · English · 中文 · 日本語'],
+  },
+};
+
+export function onboardingCopy(lang) { return ONBOARDING_COPY[lang] || ONBOARDING_COPY.en; }
+
+/** Browser preferences seed the UI, but do not lock the source language. */
+export function browserLanguage(browser) {
+  const languages = Array.isArray(browser?.languages) ? browser.languages : [];
+  for (const locale of [...languages, browser?.language]) {
+    if (typeof locale !== 'string') continue;
+    const lang = locale.trim().toLowerCase().split('-')[0];
+    if (Object.hasOwn(ONBOARDING_COPY, lang)) return lang;
+  }
+  return 'en';
+}
+
+
+/** Only the four exact public language values can override browser preferences. */
+export function initialLanguage(browser, search = '') {
+  const requested = new globalThis.URLSearchParams(search).get('lang');
+  return ['ko', 'en', 'zh', 'ja'].includes(requested) ? requested : browserLanguage(browser);
+}

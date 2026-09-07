@@ -94,10 +94,10 @@ test('closed mobile sidebar leaves the tab order (visibility: hidden)', () => {
 test('controller syncs the document language on locale change', () => {
   assert.match(js, /document\.documentElement\.lang = lang/);
 });
-test('controller initializes the public playground in English', () => {
-  assert.match(js, /const DEFAULT_LANG = 'en'/);
+test('controller seeds the UI with the allowed arrival locale without marking it explicit', () => {
+  assert.match(js, /const DEFAULT_LANG = initialLanguage\(globalThis\.navigator, globalThis\.location\?\.search\)/);
   assert.match(js, /els\.lang\.value = DEFAULT_LANG/);
-  assert.doesNotMatch(js, /navigator\.languages?|initialLang\(/);
+  assert.doesNotMatch(js.slice(js.indexOf('// ---------- init ----------')), /onLangChange\(\)/);
 });
 
 test('controller toggles thread aria-busy around streaming', () => {
@@ -137,4 +137,11 @@ test('every root-absolute asset reference resolves inside the served static root
       `${ref} is referenced by the playground but missing under playground/ (would 404 on the live deploy)`,
     );
   }
+});
+
+
+test('actual output approval status remains visible, not only announced', () => {
+  const rule = css.match(/\.output-status \{[^}]*\}/)?.[0];
+  assert.ok(rule);
+  assert.doesNotMatch(rule, /clip|position:\s*absolute|display:\s*none|visibility:\s*hidden/);
 });

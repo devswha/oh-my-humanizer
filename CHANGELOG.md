@@ -2,6 +2,16 @@
 
 All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 
+## 8.5.0 — 2026-09-07
+
+Semver rationale: minor — adds localized first-use screens, shared multilingual examples and anonymous page-funnel milestones, with corrections to existing example text.
+
+- **Public examples.** Audit KO/EN/ZH/JA examples and repair invented facts, changed qualifications, negation and attribution. Keep original controls and historical recordings distinct from current illustrations.
+- **Native first use.** Select the initial language from an allowlisted link or browser preference, show native before/after text, and keep optional controls behind a disclosure. Actual result verification remains visible.
+- **Shared showcase.** Twelve authored examples feed the playground, documentation and four share cards. Cards are labeled illustrative and carry no invented scores; hash-bound model checks are published separately.
+- **Anonymous funnel.** Count initialized pages, first successful rewrites and same-page reuse using finite campaign categories, with no cross-visit identity or raw text collection.
+- **Availability.** Source and web release only while npm publication is on hold. Both npm packages remain at 8.3.0.
+
 ## 8.4.1 — 2026-09-07
 
 Semver rationale: patch — protects batch source files after meaning-check failures, fixes fresh-draft and IME input behavior, and corrects diagnostic and local-preview tooling.

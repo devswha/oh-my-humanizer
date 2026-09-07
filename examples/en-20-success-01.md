@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> Meridian Health Sciences went public in 2022 and has seen rapid growth since. The company was valued at $4.8 billion according to its Q3 2024 SEC filing, up from $3.1 billion at IPO. Revenue grew 35% year-over-year in 2023, driven largely by its diagnostic imaging division and two acquisitions in Southeast Asia.
+> Meridian Health Sciences went public in 2022 and has seen rapid growth since. As of April 2024, its valuation stood at approximately $4.2 billion; the current figure still needs verification. Revenue grew 35% year-over-year in 2023, driven largely by its diagnostic imaging division and two acquisitions in Southeast Asia.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: two training-data caveats appear in analytical content that should not reference AI limitations. "As of my last update" is replaced with a dated source citation (the Q3 2024 SEC filing), and the "please verify" disclaimer is removed entirely. The corrected version reads as normal financial journalism with a traceable source.
+**Success** — The rewrite removes the first-person model references while keeping the date and warning that the valuation may be stale. The $4.2 billion estimate, 35% growth, two acquisitions and stated drivers survive. No later filing or updated valuation is invented.

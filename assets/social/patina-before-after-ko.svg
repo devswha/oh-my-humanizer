@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">patina before and after, illustrative example</title>
+  <desc id="desc">설명용 예시 · 모델의 실측 결과가 아닙니다 (lang: ko).</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="55%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#1f2937"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#f9fafb" font-family='ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans CJK SC", "Hiragino Sans", "Microsoft YaHei", Arial, sans-serif' font-size="46" font-weight="800">patina</text>
+  <text x="72" y="118" fill="#a7f3d0" font-family='ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans CJK SC", "Hiragino Sans", "Microsoft YaHei", Arial, sans-serif' font-size="24" font-weight="600">문장은 자연스럽게, 사실은 그대로.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="72" y="158" width="500" height="330" rx="26" fill="#111827" stroke="#374151" stroke-width="2"/>
+    <text x="104" y="210" fill="#fca5a5" font-family='ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans CJK SC", "Hiragino Sans", "Microsoft YaHei", Arial, sans-serif' font-size="24" font-weight="800">수정 전</text>
+    <text x="104" y="258" fill="#e5e7eb" font-family='ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans CJK SC", "Hiragino Sans", "Microsoft YaHei", Arial, sans-serif' font-size="20"><tspan x="104" dy="0">안녕하세요, 김민서 매니저님. 회의 일정과</tspan><tspan x="104" dy="26">관련하여 안내드리고자 합니다. 9월 10일 오전</tspan><tspan x="104" dy="26">10시로 예정되어 있던 회의를 회의실 공사</tspan><tspan x="104" dy="26">때문에 9월 11일 같은 시간으로 변경하게</tspan><tspan x="104" dy="26">되었습니다. 회의 안건과 참석자에는</tspan><tspan x="104" dy="26">변동사항이 없습니다. 변경된 일정에 참석이</tspan><tspan x="104" dy="26">어려우신 경우, 9월 9일 오후 5시까지 회신해</tspan><tspan x="104" dy="26">주시면 감사하겠습니다.</tspan></text>
+  </g>
+
+  <text x="600" y="332" text-anchor="middle" fill="#93c5fd" font-family='ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans CJK SC", "Hiragino Sans", "Microsoft YaHei", Arial, sans-serif' font-size="38" font-weight="800">→</text>
+
+  <g filter="url(#shadow)">
+    <rect x="628" y="158" width="500" height="330" rx="26" fill="#ecfdf5" stroke="#34d399" stroke-width="2"/>
+    <text x="660" y="210" fill="#047857" font-family='ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans CJK SC", "Hiragino Sans", "Microsoft YaHei", Arial, sans-serif' font-size="24" font-weight="800">수정 후</text>
+    <text x="660" y="258" fill="#064e3b" font-family='ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans CJK SC", "Hiragino Sans", "Microsoft YaHei", Arial, sans-serif' font-size="20"><tspan x="660" dy="0">안녕하세요, 김민서 매니저님. 회의실 공사로</tspan><tspan x="660" dy="26">9월 10일 오전 10시 회의를 9월 11일 같은</tspan><tspan x="660" dy="26">시간으로 옮겼습니다. 안건과 참석자는</tspan><tspan x="660" dy="26">그대로입니다. 바뀐 일정에 참석하기</tspan><tspan x="660" dy="26">어려우시면 9월 9일 오후 5시까지 답장</tspan><tspan x="660" dy="26">부탁드립니다.</tspan></text>
+  </g>
+
+  <text x="72" y="548" fill="#d1d5db" font-family='ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans CJK SC", "Hiragino Sans", "Microsoft YaHei", Arial, sans-serif' font-size="23">설명용 예시 · 모델의 실측 결과가 아닙니다</text>
+  <text x="72" y="586" fill="#93c5fd" font-family='ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans CJK SC", "Hiragino Sans", "Microsoft YaHei", Arial, sans-serif' font-size="22" font-weight="700">github.com/devswha/patina</text>
+</svg>

@@ -64,7 +64,7 @@ The single dash reads as a light AI-polish tell in a promo reply; a period (or c
 > **Machine learning** is a subset of **artificial intelligence** that uses **statistical methods** to enable computers to **learn from data**. The most common approaches include **supervised learning**, **unsupervised learning**, and **reinforcement learning**.
 
 **After:**
-> Machine learning is a subset of artificial intelligence that uses statistical methods to let computers learn from data. The three main approaches are supervised learning, unsupervised learning, and reinforcement learning.
+> Machine learning is a subset of artificial intelligence that uses statistical methods to enable computers to learn from data. The most common approaches include supervised learning, unsupervised learning, and reinforcement learning.
 
 ---
 
@@ -86,7 +86,7 @@ The single dash reads as a light AI-polish tell in a promo reply; a period (or c
 > - **Security:** All data is encrypted end-to-end.
 
 **After:**
-> The platform now supports screen readers and keyboard navigation, load times are down 40%, and all data is encrypted end-to-end.
+> The platform supports screen readers and keyboard navigation. Load times have been reduced by 40%, and all data is encrypted end-to-end.
 
 ---
 
@@ -121,7 +121,7 @@ The single dash reads as a light AI-polish tell in a promo reply; a period (or c
 **Semantic Risk:** LOW
 
 **Before:**
-> Here are five tips for better sleep:
+> 💤 Here are five tips for better sleep:
 > 1. Set a consistent bedtime
 > 2. Avoid screens before bed
 > 3. Keep your room cool
@@ -129,12 +129,12 @@ The single dash reads as a light AI-polish tell in a promo reply; a period (or c
 > 5. Try reading instead of scrolling
 
 **After:**
-> Five tips for better sleep:
-> 1. Set a consistent bedtime.
-> 2. Avoid screens before bed.
-> 3. Keep your room cool.
-> 4. Limit caffeine after noon.
-> 5. Read instead of scrolling.
+> Here are five tips for better sleep:
+> 1. Set a consistent bedtime
+> 2. Avoid screens before bed
+> 3. Keep your room cool
+> 4. Limit caffeine after noon
+> 5. Try reading instead of scrolling
 
 ---
 
@@ -151,9 +151,9 @@ The single dash reads as a light AI-polish tell in a promo reply; a period (or c
 **Semantic Risk:** LOW
 
 **Before:**
-> Set the variable: `name = "hello"`
+> Set the variable: `name = “hello”`
 >
-> In your config file, add: `timeout = '30'`
+> In your config file, add: `timeout = ‘30’`
 
 **After:**
 > Set the variable: `name = "hello"`

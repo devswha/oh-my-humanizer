@@ -10,7 +10,7 @@ language: en
 
 ## Input Text
 
-> ## How Google Cloud Platform Changed Our DevOps Pipeline
+> ## How Google Cloud Platform changed our DevOps pipeline
 >
 > After migrating from on-premise servers to Google Cloud Platform, our team reduced deployment times from four hours to under fifteen minutes. The combination of Cloud Build, Artifact Registry, and GKE made continuous delivery practical for a team of six.
 
@@ -20,8 +20,8 @@ language: en
 
 ## Applied Pattern
 
-- Pattern 16 (Title Case in Headings): Multiple capitalized content words — "Google", "Cloud", "Platform", "Changed", "Our", "DevOps", "Pipeline".
+- Pattern 16 (Title Case in Headings): The internal capitals belong to "Google Cloud Platform" and "DevOps."
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: "Google Cloud Platform" is an official product name that requires capitalization, and "DevOps" is an established industry term consistently written with capital D and O. The only non-proper-noun capitalizations are "Changed", "Our", and "Pipeline", which fall below the 3-content-word threshold once proper nouns are excluded. Lowercasing "Google cloud platform" or "devops" would be factually incorrect. Pattern 16 should not penalize headings where the majority of capitalized words are proper nouns or brand names.
+**Failure (false positive)** — The heading uses sentence case while retaining the product name and DevOps capitalization. Those proper-name capitals must remain. The body and no-correction output are unchanged.

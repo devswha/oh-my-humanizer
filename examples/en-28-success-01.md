@@ -14,12 +14,12 @@ language: en
 
 ## Expected Output
 
-> Rapid technological change is leaving economically disadvantaged communities behind — urban and rural alike. The initiative targets that gap directly. Specifically, it focuses on people who still lack reliable internet access despite repeated government promises.
+> The initiative seeks to close the gap between people who benefit from digital infrastructure and those left without reliable internet access despite repeated government promises. It was developed in response to growing concern and awareness of the challenges urban and rural communities face during rapid technological change, especially in economically disadvantaged regions.
 
 ## Applied Pattern
 
-- Pattern 28 (Stacked Subordinate Clauses): The single sentence contains 5 embedded clauses before the main verb ("seeks") reaches its object — a relative clause ("which was developed in response to..."), a paired prepositional interruption ("about, and increasing awareness of"), an embedded relative clause ("that both urban and rural communities... face"), a parenthetical appositive ("particularly those in economically disadvantaged regions"), and a further relative clause after the object ("those who, despite repeated government promises, have been left without"). The reader must parse 10 commas before understanding the sentence's main claim.
+- Pattern 28 (Stacked Subordinate Clauses): The opening relative clause contains several qualifications before "seeks" reaches its object. More detail is nested in the final access clause.
 
 ## Judgment
 
-**Success** — The fire condition is met: 5 embedded clauses vastly exceeds the 3+ threshold, and 10 commas far exceeds the 4+ comma guideline. The subject ("the initiative") and its main verb ("seeks") are separated by 42 words of nested qualification, making it nearly impossible to track the sentence's core claim on a first read. The corrected version breaks the single sentence into three, leading with the concrete problem rather than the bureaucratic framing. Sentence lengths vary (12, 7, and 16 words) to avoid metronomic rhythm.
+**Success** — Several nested qualifications separate the initiative from its goal. The rewrite states the goal first, then explains why the initiative was developed. It preserves urban and rural scope, the emphasis on disadvantaged regions, and the contrast between digital access and unmet government promises.

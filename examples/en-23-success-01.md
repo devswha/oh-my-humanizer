@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> This approach has clear advantages for small teams: groups under eight people completed projects 26% faster in our pilot. Results varied for larger teams, and we do not yet know why. A follow-up study starting in Q2 will test whether communication overhead is the bottleneck.
+> This approach may offer some advantages, though results might vary depending on factors that may not yet be fully understood. The method may tend to produce somewhat favorable outcomes in certain cases. Further research may eventually clarify the mechanisms involved.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: 8 qualifiers across 3 sentences far exceeds the 3+ threshold for a single claim. The combined hedging evacuates all meaning — the reader cannot determine whether the approach works or not. The corrected version makes a direct claim ("clear advantages for small teams"), quantifies it (26% faster), acknowledges genuine uncertainty in one place (larger teams), and states a concrete next step (Q2 follow-up study).
+**Success** — Several qualifiers repeat around the same claims. The rewrite removes redundant framing while keeping the uncertainty, limited scope and possible value of further research. It does not turn a possible advantage into a measured result or a proposed investigation into a scheduled study.

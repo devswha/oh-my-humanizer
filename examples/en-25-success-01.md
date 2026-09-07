@@ -18,11 +18,11 @@ language: en
 
 ## Expected Output
 
-> Fifty-six percent of U.S. workers now have remote-capable jobs, according to Gallup. That is up from roughly 30% before 2020.
+> A Gallup survey found that 56% of U.S. workers now have jobs that can be done remotely. Remote work has grown rapidly since 2020, marking a fundamental change in workplace culture.
 >
-> Not everyone works from home, though. WeWork memberships rose 30% last year. People want flexibility, but they also want to leave the house.
+> Coworking spaces offer a popular alternative and a new way to balance flexibility with social connection. WeWork reported a 30% increase in memberships last year.
 >
-> The infrastructure held up better than expected. Zoom went from 10 million daily participants in 2019 to 300 million by 2023 — and the reliability complaints that plagued early pandemic calls have mostly disappeared.
+> Video conferencing technology has improved significantly and plays a central role in enabling distributed teams: Zoom's daily meeting participants grew from 10 million in 2019 to over 300 million by 2023.
 
 ## Applied Pattern
 
@@ -30,4 +30,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: 3 consecutive paragraphs follow the same internal template (claim → evidence → significance). Each paragraph opens with a broad topic statement, supports it with one data point, and closes with an interpretive sentence using signal words ("represents," "signals," "underscores"). The corrected version varies paragraph shape: the first leads with the data, the second opens with a counterpoint, and the third starts with an evaluative observation.
+**Success** — The three input paragraphs repeat claim, statistic and significance. The rewrite leads with data, then varies where evidence appears. Gallup and WeWork remain the sources of their figures; the Zoom comparison and all three interpretations stay intact.

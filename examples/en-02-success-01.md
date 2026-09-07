@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> A small bakery on Elm Street sells about 300 sourdough loaves a week, up from 40 when it opened last April. Eater Portland named it one of five new bakeries to watch in its September 2025 roundup. The owner uses a starter culture and flour ratios from her grandmother's notebook, written in the 1960s.
+> A small bakery on Elm Street has attracted considerable attention from food lovers across the region. Its sourdough loaves are widely regarded as among the finest in the state, and the shop has drawn broad interest since opening last spring. The owner credits her grandmother's recipes for its growing reputation.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is clearly met: three separate claims of broad attention and recognition appear without citing a single named source, publication, or measurable figure. A neighborhood bakery does not self-evidently command regional fame; the text needs to show it rather than assert it. The corrected version replaces vague acclaim with verifiable specifics: weekly sales volume, a named publication with a date, and a concrete detail about the recipes.
+**Success** — The input makes three broad recognition claims without naming a source. The edit shortens them and keeps the owner's attribution intact. It does not invent a reviewer, sales figures or recipe history. The recognition claims remain unverified and still need sourcing.

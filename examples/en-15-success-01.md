@@ -19,7 +19,7 @@ language: en
 
 ## Expected Output
 
-> When evaluating a cloud hosting provider, look for low-latency servers near your user base, which keep page loads fast. Reliability matters too: a 99.99% uptime guarantee with automated failover means your application stays available during outages. On the security side, end-to-end encryption, DDoS protection, and regular penetration testing protect both your data and your users' trust. Finally, auto-scaling groups that spin up instances during traffic spikes handle load without manual intervention.
+> When evaluating a cloud hosting provider, consider servers near your user base: low latency ensures fast page loads and responsive interactions. A provider with 99.99% uptime guarantees and automated failover keeps your application available during outages. End-to-end encryption, DDoS protection, and regular penetration testing safeguard your data and your users' trust. Auto-scaling groups that add new instances during traffic spikes prevent slowdowns without manual intervention.
 
 ## Applied Pattern
 
@@ -27,4 +27,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: four bullets with bold-label-colon formatting in a narrative context (an article advising readers on hosting choices). This is not a changelog, API reference, or feature comparison grid. The corrected version weaves the same information into flowing prose, varies sentence structure, and reads as advice rather than a slide deck. Each point retains its substance without the pseudo-heading scaffolding.
+**Success** — Four label-and-description bullets appear in an article-style passage. The rewrite turns them into prose and keeps each stated criterion, benefit and the 99.99% figure. This is a formatting example; it does not independently validate the hosting claims.

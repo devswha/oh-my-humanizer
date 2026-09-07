@@ -14,12 +14,12 @@ language: en
 
 ## Expected Output
 
-> Management bonused teams on ship dates, so PMs stacked the roadmap with quick wins. Engineers stopped debating trade-offs and just did whatever moved the dashboard, and within two quarters nobody was doing quality work anymore.
+> The metrics favored shipping fast, so the roadmap focused on quick wins. Decisions were based on dashboards rather than debate, and over two quarters the culture changed until quality work had quietly disappeared.
 
 ## Applied Pattern
 
-- Pattern 34 (False Agency): four consecutive events — rewarding, bending, emerging, shifting — all performed by inanimate subjects (metrics, roadmap, decisions, culture) while the recoverable human actors (management, PMs, engineers) never appear.
+- Pattern 34 (False Agency): Metrics, roadmap, decisions and culture carry the actions. No specific human actor is recoverable from this standalone input.
 
 ## Judgment
 
-**Success** — Actors are named where the source implies them; no facts were invented.
+**Success (limited wording repair)** — The input does not identify who made the decisions or how speed was rewarded. The edit preserves the sequence and causal link while leaving the decision-makers unnamed. A full agency repair needs more source context; inventing job titles or bonuses would violate preservation.

@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: a single em dash used for a sharp parenthetical or abrupt sentence break is stylistically valid, especially in informal or literary writing. Here the em dash creates a dramatic pause before a blunt enumeration ("no explanation, no appeal process, nothing"), which is a deliberate rhetorical choice. The text contains only 1 em dash, well below the 3+ cluster threshold required to fire.
+**Failure (false positive)** — One intentional em dash marks a pause in narrative prose. The literary-style exclusion applies, and this is not the social/marketing scoring branch. Keep the punctuation and all details about the denied grant unchanged.

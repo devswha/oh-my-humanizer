@@ -50,6 +50,17 @@ test('escapeXml neutralizes markup so embedded prose cannot break the SVG', () =
   assert.ok(svg.includes('&lt;script&gt;'));
 });
 
+test('illustrative cards localize all four languages without numerical score claims', () => {
+  for (const [lang, heading] of [['en', 'Before'], ['ko', '수정 전'], ['zh', '修改前'], ['ja', '修正前']]) {
+    const svg = renderShareCard({ before: 'The meeting starts at 10.', after: 'The meeting starts at 10.',
+      lang, illustrative: true, mps: 99, aiScore: 12, beforeScore: 80 });
+    assert.ok(svg.includes(heading));
+    assert.match(svg, /illustrative example/);
+    assert.doesNotMatch(svg, /MPS 99|AI 12|AI 80|AI-likeness score/);
+    assert.ok(svg.includes('The meeting starts at 10.'));
+  }
+});
+
 test('truncateSnippet caps length, adds an ellipsis, and never leaks full text', () => {
   const long = 'word '.repeat(200).trim();
   const out = truncateSnippet(long);

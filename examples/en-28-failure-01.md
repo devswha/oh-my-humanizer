@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: technical specifications and legal definitions where nested qualification is non-negotiable are explicitly excluded. This is a patent claim written in standard claim format required by patent offices worldwide. The nested structure ("by a processor configured to execute... stored in...") is not an AI artifact — it is the legally mandated way to define the scope of a patent claim. Each qualifying phrase narrows the claim's coverage; removing or splitting them would alter the claim's legal scope and potentially invalidate it. Patent examiners and attorneys expect exactly this structure, and simplifying it would make the claim either broader than intended (risking rejection) or ambiguous (risking litigation).
+**Failure (false positive)** — This passage is framed as a patent claim, with nested qualifications that define the processor, inputs, schema and output. The technical/legal-format exclusion applies. The no-correction result preserves the scope as written; this example makes no claim about legal validity or worldwide drafting requirements.

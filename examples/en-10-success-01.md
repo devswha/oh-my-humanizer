@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> The program pairs early-career designers with senior mentors for an eight-week studio project. Last year's cohort of 24 produced two apps that are still in active use at partner nonprofits, and six participants were hired by mentors' firms within three months of finishing.
+> The program encourages creativity and innovation among early-career professionals. It also encourages collaboration. During eight weeks, participants gain inspiration and practical skills, along with lasting connections beyond the cohort. The resulting community of practice is more dynamic and inclusive, looks ahead, and keeps growing each year.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition (3-item lists appearing 2+ times in the same document) is exceeded with three triads in three sentences. None of the counts are structurally necessary — "creativity" and "innovation" overlap, "dynamic" and "forward-thinking" are near-synonyms, and there is no reason each list must have exactly three elements. The corrected version uses naturally varying counts: one program structure, two concrete outputs, and one hiring statistic, with specific numbers throughout (24 participants, two apps, six hires, three months).
+**Success** — Three successive triads give the passage a repeated rhythm. The rewrite redistributes their content across sentences. It retains all benefits, the eight-week duration and the community's yearly growth without inventing program outcomes.
