@@ -165,9 +165,9 @@ dedupe-with:
 > The initiative will enable more specific milestones, more efficient resource allocation, and more comprehensive stakeholder alignment. Moving forward, the team should develop a more strategic framework for more meaningful collaboration.
 
 **After:**
-> The initiative will make milestones more specific, allocate resources more efficiently, and align stakeholders more fully. The team should develop a more strategic plan for more meaningful collaboration.
+> The initiative will enable more specific milestones, more efficient resource allocation, and more comprehensive stakeholder alignment. The team should develop a more strategic plan for more meaningful collaboration.
 
-**Example note:** Some comparisons remain vague because the input gives no baseline. Replacing them with invented requirements would change the claim.
+**Example note:** The input promises to enable improvements; it does not promise that those improvements will occur. Keep "will enable" for all three items and "should develop" for the recommendation. The comparisons remain vague because the input gives no baseline.
 
 ---
 

@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> The initiative will make milestones more specific, allocate resources more efficiently, and align stakeholders more fully. The team should develop a more strategic plan for more meaningful collaboration across departments.
+> The initiative will enable more specific milestones, more efficient resource allocation, and more comprehensive stakeholder alignment. The team should develop a more strategic plan for more meaningful collaboration across departments.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success (limited wording repair)** — The passage stacks comparisons without baselines. The rewrite shortens the phrasing while retaining the improvement claims and the distinction between what the initiative will enable and what the team should do. It cannot supply a baseline or concrete requirement absent from the input.
+**Success (limited wording repair)** — The passage stacks comparisons without baselines. The rewrite retains "will enable" for milestones, resource allocation and stakeholder alignment. Enablement does not establish that those improvements will occur, and "should develop" remains a recommendation. The input supplies no baseline, so the comparisons stay vague.

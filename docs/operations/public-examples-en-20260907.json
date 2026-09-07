@@ -313,7 +313,7 @@
       "file": "docs/PATTERNS-EN.md",
       "section": "Pattern 32: Comparison Adverb Overuse (\"more\" without target) — Before / After",
       "status": "corrected",
-      "reason": "Source mirror: Keep future enablement, recommendations and improvement claims; remove invented owners, budget review, spreadsheet conflict and handoffs."
+      "reason": "Source mirror: Keep future enablement, recommendations and improvement claims; remove invented owners, budget review, spreadsheet conflict and handoffs. P2 follow-up to fcca1dd: the first audit incorrectly changed \"will enable\" into direct outcomes (\"will make\", \"allocate\", \"align\"). Restore the source's entire enablement clause for all three items. Keep \"should develop\" as a recommendation; neither assert an outcome nor weaken the source's certainty about enablement to \"may\". Original inputs and detector rules remain unchanged."
     },
     {
       "file": "docs/PATTERNS-EN.md",
@@ -925,7 +925,7 @@
       "file": "examples/en-32-success-01.md",
       "section": "Input Text / Expected Output; Applied Pattern and Judgment",
       "status": "corrected",
-      "reason": "Remove invented needs/owners/budget/spreadsheet; retain future enablement, cross-department scope, recommendation and comparative claims."
+      "reason": "Remove invented needs/owners/budget/spreadsheet; retain future enablement, cross-department scope, recommendation and comparative claims. P2 follow-up to fcca1dd: the first audit incorrectly changed \"will enable\" into direct outcomes (\"will make\", \"allocate\", \"align\"). Restore the source's entire enablement clause for all three items. Keep \"should develop\" as a recommendation; neither assert an outcome nor weaken the source's certainty about enablement to \"may\". Original inputs and detector rules remain unchanged."
     },
     {
       "file": "examples/en-33-failure-01.md",
@@ -1165,7 +1165,7 @@
       "file": "patterns/en-language.md",
       "section": "Pattern 32: Comparison Adverb Overuse (\"more\" without target) — Before / After",
       "status": "corrected",
-      "reason": "Keep future enablement, recommendations and improvement claims; remove invented owners, budget review, spreadsheet conflict and handoffs."
+      "reason": "Keep future enablement, recommendations and improvement claims; remove invented owners, budget review, spreadsheet conflict and handoffs. P2 follow-up to fcca1dd: the first audit incorrectly changed \"will enable\" into direct outcomes (\"will make\", \"allocate\", \"align\"). Restore the source's entire enablement clause for all three items. Keep \"should develop\" as a recommendation; neither assert an outcome nor weaken the source's certainty about enablement to \"may\". Original inputs and detector rules remain unchanged."
     },
     {
       "file": "patterns/en-language.md",
@@ -1577,7 +1577,7 @@
     {
       "file": "docs/PATTERNS-EN.md",
       "section": "Pattern 32: Before / After",
-      "reason": "Mirror: Keep future enablement, recommendations and improvement claims; remove invented owners, budget review, spreadsheet conflict and handoffs."
+      "reason": "Mirror: Keep future enablement, recommendations and improvement claims; remove invented owners, budget review, spreadsheet conflict and handoffs. P2 follow-up to fcca1dd: the first audit incorrectly changed \"will enable\" into direct outcomes (\"will make\", \"allocate\", \"align\"). Restore the source's entire enablement clause for all three items. Keep \"should develop\" as a recommendation; neither assert an outcome nor weaken the source's certainty about enablement to \"may\". Original inputs and detector rules remain unchanged."
     },
     {
       "file": "docs/PATTERNS-EN.md",
@@ -1917,7 +1917,7 @@
     {
       "file": "examples/en-32-success-01.md",
       "section": "Input Text / Expected Output; rationale",
-      "reason": "Remove invented needs/owners/budget/spreadsheet; retain future enablement, cross-department scope, recommendation and comparative claims."
+      "reason": "Remove invented needs/owners/budget/spreadsheet; retain future enablement, cross-department scope, recommendation and comparative claims. P2 follow-up to fcca1dd: the first audit incorrectly changed \"will enable\" into direct outcomes (\"will make\", \"allocate\", \"align\"). Restore the source's entire enablement clause for all three items. Keep \"should develop\" as a recommendation; neither assert an outcome nor weaken the source's certainty about enablement to \"may\". Original inputs and detector rules remain unchanged."
     },
     {
       "file": "examples/en-33-success-01.md",
@@ -2042,7 +2042,7 @@
     {
       "file": "patterns/en-language.md",
       "section": "Pattern 32: Before / After",
-      "reason": "Keep future enablement, recommendations and improvement claims; remove invented owners, budget review, spreadsheet conflict and handoffs."
+      "reason": "Keep future enablement, recommendations and improvement claims; remove invented owners, budget review, spreadsheet conflict and handoffs. P2 follow-up to fcca1dd: the first audit incorrectly changed \"will enable\" into direct outcomes (\"will make\", \"allocate\", \"align\"). Restore the source's entire enablement clause for all three items. Keep \"should develop\" as a recommendation; neither assert an outcome nor weaken the source's certainty about enablement to \"may\". Original inputs and detector rules remain unchanged."
     },
     {
       "file": "patterns/en-language.md",
@@ -2158,6 +2158,21 @@
       "file": "playground/examples/en.js",
       "section": "en-report-support",
       "reason": "New synthetic source and conservative expected rewrite; model-based editorial inspection, no measured MPS/fidelity claim."
+    },
+    {
+      "file": "patterns/en-language.md",
+      "section": "Pattern 32: P2 enablement follow-up to fcca1dd",
+      "reason": "P2 follow-up to fcca1dd: the first audit incorrectly changed \"will enable\" into direct outcomes (\"will make\", \"allocate\", \"align\"). Restore the source's entire enablement clause for all three items. Keep \"should develop\" as a recommendation; neither assert an outcome nor weaken the source's certainty about enablement to \"may\". Original inputs and detector rules remain unchanged."
+    },
+    {
+      "file": "examples/en-32-success-01.md",
+      "section": "Pattern 32: P2 enablement follow-up to fcca1dd",
+      "reason": "P2 follow-up to fcca1dd: the first audit incorrectly changed \"will enable\" into direct outcomes (\"will make\", \"allocate\", \"align\"). Restore the source's entire enablement clause for all three items. Keep \"should develop\" as a recommendation; neither assert an outcome nor weaken the source's certainty about enablement to \"may\". Original inputs and detector rules remain unchanged."
+    },
+    {
+      "file": "docs/PATTERNS-EN.md",
+      "section": "Pattern 32: P2 enablement follow-up to fcca1dd",
+      "reason": "P2 follow-up to fcca1dd: the first audit incorrectly changed \"will enable\" into direct outcomes (\"will make\", \"allocate\", \"align\"). Restore the source's entire enablement clause for all three items. Keep \"should develop\" as a recommendation; neither assert an outcome nor weaken the source's certainty about enablement to \"may\". Original inputs and detector rules remain unchanged."
     }
   ],
   "showcaseIds": [
@@ -2374,7 +2389,7 @@
           },
           {
             "file": "examples/en-32-success-01.md",
-            "score": 50
+            "score": 100
           },
           {
             "file": "examples/en-34-failure-01.md",
@@ -2418,6 +2433,40 @@
         "newFilesOverGate": 8,
         "previousFailuresResolved": 6,
         "unresolved": "52 of 88 whole-file checks exceed 30 (baseline: 50). Eight newly exceed the gate and six previous failures pass. The gate includes deliberately patterned inputs and controls, often with only two analyzed paragraphs; corrected outputs and revised rationales also change this ratio. No mass source/control rewrite or padding was attempted; these failures are reported as unresolved."
+      }
+    },
+    {
+      "en32FollowUp": {
+        "date": "2026-09-07",
+        "baseCommit": "fcca1dd911057c1cb4c0a57a4138309fa32b157a",
+        "finding": "Independent review P2: EN #32 enablement was incorrectly rewritten as an outcome.",
+        "resolution": "Restore the complete source will-enable clause in the pattern, standalone expected output and catalog; clarify notes and ledger reasons. Keep should-develop modality, source inputs and detector rules unchanged.",
+        "checks": {
+          "patternDocsTests": "13 passed",
+          "spelling": "patterns/en-language.md: zero issues",
+          "focusedContract": "All three outputs retain the exact source enablement clause and recommendation; standalone cross-department scope, source inputs, frontmatter, detector rules, unrelated pattern/catalog sections and exact catalog mirror preserved.",
+          "ledger": "217 review units, 153 change records; only the four EN #32 follow-up files changed.",
+          "prose": [
+            {
+              "file": "patterns/en-language.md",
+              "before": 20.8955223880597,
+              "after": 22.388059701492537
+            },
+            {
+              "file": "examples/en-32-success-01.md",
+              "before": 50,
+              "after": 100
+            },
+            {
+              "file": "docs/PATTERNS-EN.md",
+              "before": 17.117117117117118,
+              "after": 17.117117117117118
+            }
+          ],
+          "proseLimit": "The existing standalone over-gate case rises from 50 to 100 after restoring source comparisons. Pack and catalog pass <=30. Overall over-gate file count remains 52/88. No source/control edit or padding was used to lower the score.",
+          "llm": "No LLM rerun; parent owns shared showcase verification.",
+          "whitespace": "git diff --check passed"
+        }
       }
     }
   ]
