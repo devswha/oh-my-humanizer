@@ -231,6 +231,7 @@ export async function runDefault(parsed, logger) {
         if (mode === 'rewrite') warnIfAlreadyHuman({ text, config, repoRoot, logger });
         let result;
         let verificationReport = null;
+        let meaningSafetyReason = null;
 
         result = await invokeBackendChain({
           backends,
@@ -301,7 +302,7 @@ export async function runDefault(parsed, logger) {
               message: `[patina] verify: MPS ${verification.mps ?? 'n/a'}, fidelity ${verification.fidelity}${verification.verified ? ' (passed)' : ' (below floor)'}${verification.retried ? ' [retried]' : ''}`,
             });
             if (!verification.verified) {
-              process.exitCode = Math.max(Number(process.exitCode) || 0, 4);
+              meaningSafetyReason = verification.reason;
             }
           }
 
@@ -309,7 +310,7 @@ export async function runDefault(parsed, logger) {
           if (verificationReport?.verified && finalText !== result) {
             verificationReport.verified = false;
             verificationReport.reason = 'output-changed';
-            process.exitCode = Math.max(Number(process.exitCode) || 0, 4);
+            meaningSafetyReason = 'output-changed';
             logger.warn('verify.output_changed', {
               message: '[patina] verify: cleanup changed the graded text; verification does not cover the emitted output.',
             });
@@ -318,11 +319,14 @@ export async function runDefault(parsed, logger) {
             logger.warn('rewrite.meaning_guard', { message: `[patina] ${warning}` });
           }
           if (droppedNumbers(text, finalText).length > 0) {
-            process.exitCode = Math.max(Number(process.exitCode) || 0, 4);
+            meaningSafetyReason = 'dropped-numbers';
             if (verificationReport) {
               verificationReport.verified = false;
               verificationReport.reason = 'dropped-numbers';
             }
+          }
+          if (meaningSafetyReason) {
+            process.exitCode = Math.max(Number(process.exitCode) || 0, 4);
           }
         }
 
@@ -388,7 +392,18 @@ export async function runDefault(parsed, logger) {
         }
 
         if (parsed.batch) {
-          await writeBatchOutput(parsed, path, output);
+          // The run-level exit code may belong to an earlier file. Only this
+          // candidate's evidence decides whether it can replace its source.
+          const meaningSafetyError = meaningSafetyReason ? new PatinaCliError({
+            what: 'rewrite failed meaning-safety checks',
+            why: meaningSafetyReason,
+            action: 'Review the candidate without --in-place; meaning-safety failures cannot overwrite the source.',
+            exitCode: 4,
+          }) : null;
+          await writeBatchOutput(parsed, path, output, { meaningSafetyError });
+          // Keep stdout/separate-file review output, but never count an unsafe
+          // candidate as a success or let it bypass the batch failure budget.
+          if (meaningSafetyError) throw meaningSafetyError;
         } else {
           console.log(output);
         }
