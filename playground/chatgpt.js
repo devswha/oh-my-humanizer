@@ -338,6 +338,7 @@ const EXAMPLES = [
 const state = {
   /** @type {Convo[]} */ convos: [],
   /** @type {string|null} */ activeId: null,
+  /** @type {{protectedInput:string}|null} */ heroDraft: null,
   busy: false,
   license: '',
   licenseStatus: 'empty',
@@ -781,19 +782,26 @@ function loadIntoPrompt(text) {
 }
 
 // ---------- view switching ----------
-function showLanding() { els.app.setAttribute('data-view', 'landing'); }
+function showLanding() {
+  // A fresh source has its own constraints, even while the old chat stays active.
+  if (activeConvo()?.messages.length && !state.heroDraft) state.heroDraft = { protectedInput: '' };
+  els.app.setAttribute('data-view', 'landing');
+  renderProtectedInput(); syncSettingsBusy();
+}
 function showChat() {
   els.app.setAttribute('data-view', 'chat');
+  renderProtectedInput(); syncSettingsBusy();
   if (globalThis.matchMedia?.('(max-width: 720px)')?.matches) {
     document.querySelectorAll('.nav__presets').forEach((panel) => panel.removeAttribute('open'));
   }
 }
 
 // ---------- conversation lifecycle ----------
-function newConvo() {
+function newConvo(protectedInput = '') {
   const settings = readControls();
   const languageExplicit = activeConvo()?.thread.languageExplicit || false;
-  const convo = { id: uid(), title: 'New chat', messages: [], thread: createRewriteThread({ ...settings, languageExplicit }) };
+  const convo = { id: uid(), title: 'New chat', messages: [], protectedInput, thread: createRewriteThread({ ...settings, languageExplicit }) };
+  state.heroDraft = null;
   state.convos.unshift(convo);
   state.activeId = convo.id;
   restoreControls(convo);
@@ -818,7 +826,7 @@ function renderSidebar() {
 function renderThread() {
   clearReviewControllers();
   const convo = activeConvo();
-  els.protectedInput.value = convo?.protectedInput || '';
+  renderProtectedInput();
   els.thread.innerHTML = '';
   const inner = el('div', 'thread__inner');
   if (convo && convo.messages.length) {
@@ -1146,7 +1154,7 @@ async function submit(text, source = 'hero') {
 
   // Hero text starts a new source. Detach before checking review/protected
   // anchors; keep an empty conversation so failed preflight retries reuse it.
-  if (source === 'hero' && activeConvo()?.messages.length) newConvo();
+  if (source === 'hero' && (state.heroDraft || activeConvo()?.messages.length)) newConvo(state.heroDraft?.protectedInput || '');
   if (activeConvo()?.reviewPending) return;
 
   clearInlineErrors();
@@ -1575,12 +1583,19 @@ function onPreferencesChange() {
   const convo = activeConvo();
   if (convo) convo.thread.updatePreferences(readControls());
 }
+/** @returns {{protectedInput?:string,reviewPending?:boolean}|null} */
+function protectedInputOwner() {
+  return (els.app.getAttribute('data-view') === 'landing' && state.heroDraft) || activeConvo();
+}
+function renderProtectedInput() {
+  els.protectedInput.value = protectedInputOwner()?.protectedInput || '';
+}
 function syncSettingsBusy() {
   for (const control of [els.lang, els.persona, els.documentType, els.register, $('#preset-apply')]) {
     control.toggleAttribute('disabled', state.busy);
   }
   syncPresetButtons();
-  els.protectedInput.disabled = state.busy || Boolean(activeConvo()?.reviewPending);
+  els.protectedInput.disabled = state.busy || Boolean(protectedInputOwner()?.reviewPending);
 }
 
 const storedPresets = readPresets();
@@ -1589,8 +1604,8 @@ let presetStatus = ({ unavailable: 'storageUnavailable', invalid: 'storageInvali
 const presetSelect = /** @type {HTMLSelectElement} */ ($('#preset-select'));
 const presetName = /** @type {HTMLInputElement} */ ($('#preset-name'));
 els.protectedInput.addEventListener('input', () => {
-  const convo = activeConvo();
-  if (convo && !state.busy && !convo.reviewPending) convo.protectedInput = els.protectedInput.value;
+  const owner = protectedInputOwner();
+  if (owner && !state.busy && !owner.reviewPending) owner.protectedInput = els.protectedInput.value;
 });
 function renderPresets(selected = presetSelect.value) {
   presetSelect.innerHTML = '';

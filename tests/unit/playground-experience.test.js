@@ -232,6 +232,88 @@ test('fresh hero input drops old protected anchors and can detect a new language
   assert.equal(a.get('protected-text').value, 'Missing old phrase');
 });
 
+test('fresh hero protection survives the first submit without editing the prior conversation', async () => {
+  const a = app();
+  type(a, 'protected-text', 'Old product');
+  await a.ui.submit('Old product costs $20.');
+  const first = a.ui.activeConvo(), before = snapshot(first);
+  a.get('home-link').emit('click');
+  type(a, 'hero-input', 'New product costs $10.');
+  type(a, 'protected-text', 'New product');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.length, 2);
+  assert.equal(a.calls[1].body.mode, 'first');
+  assert.deepEqual(JSON.parse(JSON.stringify(a.calls[1].body.protectedSpans)), [{ start: 0, end: 11 }]);
+  assert.equal(a.ui.activeConvo().protectedInput, 'New product');
+  assert.equal(a.get('protected-text').value, 'New product');
+  assert.deepEqual(snapshot(first), before);
+  a.get('home-link').emit('click');
+  assert.equal(a.get('protected-text').value, '', 'a submitted draft must not leak its constraints into the next source');
+  a.ui.selectConvo(first);
+  assert.equal(a.get('protected-text').value, 'Old product');
+  assert.deepEqual(snapshot(first), before);
+});
+
+test('unmatched fresh hero protection fails the first preflight and remains editable for retry', async () => {
+  const a = app();
+  type(a, 'protected-text', 'Old product');
+  await a.ui.submit('Old product costs $20.');
+  const first = a.ui.activeConvo(), before = snapshot(first);
+  a.get('home-link').emit('click');
+  type(a, 'hero-input', 'New product costs $10.');
+  type(a, 'protected-text', 'Missing product');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.length, 1, 'an unmatched fresh constraint must block the request');
+  assert.equal(a.get('hero-error').hidden, false);
+  assert.equal(a.get('hero-error').textContent, protection.PROTECTED_INPUT_COPY.en.invalid);
+  assert.equal(a.get('hero-input').value, 'New product costs $10.');
+  assert.equal(a.get('protected-text').value, 'Missing product');
+  assert.equal(a.get('protected-text').disabled, false);
+  assert.equal(a.get('app').getAttribute('data-view'), 'landing');
+  assert.deepEqual(snapshot(first), before);
+  const fresh = a.ui.activeConvo();
+  assert.notEqual(fresh, first);
+  assert.equal(fresh.messages.length, 0);
+  type(a, 'protected-text', 'New product');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.length, 2);
+  assert.equal(a.ui.activeConvo(), fresh);
+  assert.deepEqual(JSON.parse(JSON.stringify(a.calls[1].body.protectedSpans)), [{ start: 0, end: 11 }]);
+  a.ui.selectConvo(first);
+  assert.equal(a.get('protected-text').value, 'Old product');
+  assert.deepEqual(snapshot(first), before);
+});
+
+test('pending hero protection stays separate across repeated Home clicks and visits to the old conversation', async () => {
+  const a = app();
+  const empty = a.ui.activeConvo();
+  a.get('new-chat').emit('click');
+  type(a, 'protected-text', 'Old product');
+  await a.ui.submit('Old product costs $20.');
+  const first = a.ui.activeConvo(), before = snapshot(first);
+  a.get('home-link').emit('click');
+  assert.equal(a.get('protected-text').value, '', 'old constraints must not appear as fresh draft constraints');
+  type(a, 'protected-text', 'New product');
+  type(a, 'hero-input', 'New product costs $10.');
+  assert.deepEqual(snapshot(first), before, 'typing a fresh constraint must not mutate the old conversation');
+  a.get('home-link').emit('click');
+  assert.equal(a.get('protected-text').value, 'New product');
+  a.ui.selectConvo(first);
+  assert.equal(a.get('protected-text').value, 'Old product');
+  a.ui.selectConvo(empty);
+  assert.equal(a.get('protected-text').value, '');
+  a.get('home-link').emit('click');
+  assert.equal(a.get('protected-text').value, 'New product');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.deepEqual(JSON.parse(JSON.stringify(a.calls[1].body.protectedSpans)), [{ start: 0, end: 11 }]);
+  assert.equal(empty.protectedInput, '', 'visiting an unrelated empty conversation cannot claim the hero draft');
+  assert.deepEqual(snapshot(first), before);
+});
+
 test('hero preflight failures keep the new draft and reuse its empty conversation on retry', async () => {
   const a = app();
   change(a, 'document-type', 'email'); change(a, 'register', 'casual');
@@ -291,6 +373,7 @@ test('a pending edit review blocks its composer but does not block a fresh hero 
     options.onDone(frame);
     return { ok: true, finalFrame: frame };
   } });
+  type(a, 'protected-text', 'cat');
   await a.ui.submit(original);
   await a.settle();
   const first = a.ui.activeConvo();
@@ -306,12 +389,16 @@ test('a pending edit review blocks its composer but does not block a fresh hero 
   await a.settle();
   assert.equal(a.calls.length, 1);
   a.get('home-link').emit('click');
-  type(a, 'hero-input', 'A completely new draft');
+  assert.equal(a.get('protected-text').disabled, false, 'the old pending review must not lock fresh constraints');
+  type(a, 'hero-input', 'New product costs $10.');
+  type(a, 'protected-text', 'New product');
+  assert.deepEqual(snapshot(first), before);
   assert.equal(a.get('hero-send').disabled, false, 'pending review belongs only to its own composer');
   a.get('hero-form').emit('submit');
   await a.settle();
   assert.equal(a.calls.length, 2);
   assert.equal(a.calls[1].body.mode, 'first');
+  assert.deepEqual(JSON.parse(JSON.stringify(a.calls[1].body.protectedSpans)), [{ start: 0, end: 11 }]);
   assert.notEqual(a.ui.activeConvo(), first);
   assert.deepEqual(snapshot(first), before);
   assert.equal(a.get('protected-text').disabled, false);
@@ -323,6 +410,8 @@ test('a pending edit review blocks its composer but does not block a fresh hero 
   await a.settle();
   assert.equal(first.reviewPending, true);
   assert.equal(a.document.querySelector('.edit-review__checkbox').checked, false);
+  assert.equal(a.get('protected-text').value, 'cat');
+  assert.equal(a.get('protected-text').disabled, true);
   type(a, 'input', 'Still pending');
   assert.equal(a.get('send').disabled, true);
 });
@@ -335,10 +424,14 @@ test('Home and hero Enter leave a running rewrite isolated until it completes', 
       options.onDone(frame); resolve({ ok: true, finalFrame: frame });
     };
   }) });
+  type(a, 'protected-text', 'Running');
   const pending = a.ui.submit('Running source');
   const first = a.ui.activeConvo();
   try {
     a.get('home-link').emit('click');
+    assert.equal(a.get('protected-text').disabled, true);
+    // Even a forced input event on the disabled field cannot mutate either owner.
+    type(a, 'protected-text', 'Blocked edit');
     type(a, 'hero-input', 'Next source');
     a.get('hero-input').emit('keydown', { key: 'Enter' });
     await a.ui.submit('Next source', 'hero');
@@ -347,14 +440,19 @@ test('Home and hero Enter leave a running rewrite isolated until it completes', 
     assert.equal(a.ui.state.convos.length, 1);
     assert.equal(a.calls.length, 1);
     assert.equal(a.calls[0].signal.aborted, false, 'Enter must not cancel a running attempt');
+    assert.equal(first.protectedInput, 'Running');
     assert.equal(a.get('hero-input').value, 'Next source');
   } finally { finish(); await pending; }
   assert.equal(first.thread.original, 'Running source');
   assert.equal(a.ui.state.busy, false);
+  assert.equal(a.get('protected-text').disabled, false);
+  type(a, 'protected-text', 'Next');
   const freshPending = a.ui.submit(a.get('hero-input').value, 'hero');
   try {
     assert.equal(a.calls.length, 2);
     assert.equal(a.calls[1].body.mode, 'first');
+    assert.deepEqual(JSON.parse(JSON.stringify(a.calls[1].body.protectedSpans)), [{ start: 0, end: 4 }]);
+    assert.equal(first.protectedInput, 'Running');
     assert.notEqual(a.ui.activeConvo(), first);
   } finally { finish(); await freshPending; }
 });
