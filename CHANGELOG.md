@@ -2,6 +2,14 @@
 
 All notable changes to patina. Dates are release dates (YYYY-MM-DD).
 
+## 8.5.1 — 2026-09-07
+
+Semver rationale: patch — fixes a CJK numeric-parser false positive found during the multilingual production checks.
+
+- **CJK numeric safety.** Read fraction operators as sequences so ordinary genitives such as Japanese `今回の` are not rejected as numbers. Explicit unsupported fractions remain rejected, including digit neighbors already claimed by the parser.
+- **Showcase admission.** Check all prepared pairs against the production numeric gate, in addition to the existing digit-token and recorded meaning checks.
+- **Availability.** Source and web release only; npm remains at 8.3.0 while publication is on hold.
+
 ## 8.5.0 — 2026-09-07
 
 Semver rationale: minor — adds localized first-use screens, shared multilingual examples and anonymous page-funnel milestones, with corrections to existing example text.
