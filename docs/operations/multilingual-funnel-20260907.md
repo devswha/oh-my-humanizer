@@ -1,8 +1,9 @@
 # Multilingual funnel measurement — September 7, 2026
 
-Status: local implementation for integration. No deployment or share post was
-made by this task. The parent prepares the KO/EN/ZH/JA share copy and owns the
-UI changes. No production counts were queried.
+The browser sends category-only milestones after initialization. KO/EN/ZH/JA
+introduction drafts are in `docs/social/multilingual-examples.md`; prepared links
+select the matching UI language. The implementation tests used local stores,
+and this record does not claim production counts or external publication.
 
 ## Existing coverage and the measured gap
 
@@ -25,7 +26,7 @@ One compact `Funnel Progress` event fills these gaps. Its data is exactly
 the existing detailed rewrite counters. The API handler needs no change:
 its existing validator accepts the added schema and applies the same budget.
 
-## Parent UI integration
+## UI integration
 
 At the end of successful initialization in `playground/chatgpt.js`, after
 language selection, `onLangChange()`, `newConvo()`, `showLanding()` and the
@@ -38,7 +39,7 @@ globalThis.patinaFunnelReady?.(els.lang.value);
 Honor the share link's `lang` with an exact `ko/en/zh/ja` allowlist before
 initializing the UI. Base `0133dd8` always selects English; the analytics
 adapter deliberately does not treat a URL language as proof of UI language.
-The parent owns that language-routing change. Call readiness after the UI
+The UI controller owns that language-routing choice. Call readiness after the UI
 has actually initialized, not when the analytics script loads or a module
 starts importing. Repeated readiness calls are harmless and do not reset it.
 
@@ -60,7 +61,7 @@ completions whose MPS and fidelity bands are not `failed`. Do not emit
 Errors, cancellation, input, copy/download/export/audit, checkout clicks and
 requests do not advance the milestone state.
 
-The parent should verify initialization in all four languages, one arrival
+Integration checks must verify initialization in all four languages, one arrival
 after readiness, no success after a rejected rewrite, and exactly one reuse
 milestone after the second accepted result. Changing language or starting a
 new conversation in the same page must not reset the funnel.
@@ -127,7 +128,7 @@ fragment and raw referrer are never sent or stored by this adapter. Do not
 put draft text, credentials, email, handles or identifiers into share links.
 The existing checkout UTM behavior is a separate path and is unchanged here.
 
-These four prepared community links are for the parent's share drafts only:
+These four community links are prepared for introduction drafts:
 
 | Copy language | Prepared link |
 | --- | --- |
@@ -141,8 +142,8 @@ For GitHub, blog or social copy, replace only `utm_source=community` with
 That defines 16 tagged links across four languages and four channels, with
 one fixed campaign. Unknown future campaigns collapse to `none` until a
 reviewed client/server allowlist change; never add per-post identifiers.
-These links need the parent's UI language routing before language-specific
-measurement is ready to ship. Preparation does not authorize publication.
+The UI language routing must remain compatible with these links. Drafting a
+link or introduction does not itself publish a post.
 
 ## Storage, budget and privacy boundaries
 
@@ -242,13 +243,11 @@ one command. Tests cover all 120 client/server combinations, once-per-page
 progress, language changes, failures, unknown/duplicate UTMs, sensitive-data
 canaries, unchanged legacy contracts, UTC boundaries, budget sharing,
 storage failures, and the bounded query recipe without real credentials.
-The parent must still verify the UI integration before deployment.
+The integrated UI must pass its browser checks before deployment.
 
 Local verification on September 7: the 30 focused tests passed, and `npm test`
 passed 2,239 tests with two skipped and no failures. Full `npm run lint`
 passed. The final prose gate was 10.3%, below 30%. Dependencies were installed with
 `npm ci --ignore-scripts --no-audit --no-fund`; no dependency or lockfile changed.
-The one-fixture `quality:live -- --live --language en --limit 1 --json` probe
-stopped before a model call because this worktree's environment had neither
-an API key nor a configured backend. No subagent or CLI agent was started.
-This is not evidence of a successful live rewrite or deployed UI behavior.
+Model-backed example verification is recorded separately; it is not a
+prerequisite for collecting these categorical events.

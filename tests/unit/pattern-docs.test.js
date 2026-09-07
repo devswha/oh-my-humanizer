@@ -335,7 +335,7 @@ test('CJK translationese patterns require clause-level punctuation rewrites', ()
       source: resolve(PATTERN_DIR, 'ja-structure.md'),
       doc: resolve(DOCS_DIR, 'PATTERNS-JA.md'),
       guard: /記号だけを置き換えない/,
-      example: /TUIなしで完全自律インストール/,
+      example: /TUIなしで完全自律の設定/,
     },
   ];
 

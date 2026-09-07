@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
@@ -45,48 +45,24 @@ function extractLocalImageRefs(markdown) {
   return refs.filter((ref) => !/^(?:https?:|#)/.test(ref));
 }
 
-function extractDemoHero(file) {
-  const markdown = readFileSync(resolve(REPO_ROOT, file), 'utf8');
-  const match = markdown.match(/<img\b[^>]*\bsrc="([^"]*assets\/demo\/[^"]+)"[^>]*\balt="([^"]+)"/);
-  assert.ok(match, `${file}: missing demo hero image`);
-  return { src: match[1], localSrc: localizeDemoSrc(match[1]), alt: match[2] };
-}
-
-function localizeDemoSrc(src) {
-  const match = src.match(/assets\/demo\/[^"?]+/);
-  assert.ok(match, `unexpected demo hero path: ${src}`);
-  return match[0];
-}
-
-test('localized READMEs point at a demo hero GIF that exists', () => {
-  // The English README (the launch-facing one) leads with the live, production-
-  // hosted capture; the localized KR/ZH/JA READMEs keep the playground demo hero.
-  const liveGif = 'https://raw.githubusercontent.com/devswha/patina/main/assets/demo/patina-demo-live-en.gif';
-  const playgroundGif = 'https://raw.githubusercontent.com/devswha/patina/main/assets/demo/patina-playground-en.gif';
-  const expected = {
-    'README.md': liveGif,
-    'README_KR.md': playgroundGif,
-    'README_ZH.md': playgroundGif,
-    'README_JA.md': playgroundGif,
-  };
-
-  for (const file of README_FILES) {
-    const { src, localSrc } = extractDemoHero(file);
-    assert.equal(src, expected[file], `${file}: unexpected demo hero`);
-    assert.ok(existsSync(resolve(REPO_ROOT, localSrc)), `${file}: missing ${localSrc}`);
+test('localized README hero excerpts come from the matching language showcase', async () => {
+  const normalize = text => text.replace(/\s+/g, ' ').trim();
+  const languages = { 'README.md': 'en', 'README_KR.md': 'ko', 'README_ZH.md': 'zh', 'README_JA.md': 'ja' };
+  for (const [file, lang] of Object.entries(languages)) {
+    const hero = readFileSync(resolve(REPO_ROOT, file), 'utf8').split(/^```/m)[0];
+    const quotes = [...hero.matchAll(/^>[^\n]*(?:\n>[^\n]*)*/gm)].map(match => normalize(match[0].replace(/^>\s?/gm, '')));
+    assert.ok(quotes.length >= 2, `${file}: expected a before/after hero pair before setup commands`);
+    const { default: rows } = await import(pathToFileURL(resolve(REPO_ROOT, `playground/examples/${lang}.js`)));
+    assert.ok(quotes.some((before, index) => quotes[index + 1] && rows.some(row => normalize(row.before).includes(before) && normalize(row.after).includes(quotes[index + 1]))), `${file}: excerpts must match one native source pair`);
   }
 });
 
-test('English demo hero copy does not describe a Korean recording', () => {
-  const koreanTerms = /Korean|한국|韓国|韩文|韓文/u;
-  const english = extractDemoHero('README.md');
-  assert.doesNotMatch(english.alt, koreanTerms);
-  assert.doesNotMatch(english.alt, /[\u3130-\u318f\uac00-\ud7af]/u);
-
-  for (const file of ['README_ZH.md', 'README_JA.md']) {
-    const { localSrc, alt } = extractDemoHero(file);
-    assert.equal(localSrc, 'assets/demo/patina-playground-en.gif');
-    assert.doesNotMatch(alt, koreanTerms, `${file}: preview alt should not describe a Korean recording`);
+test('prepared README examples are labeled and do not claim recorded quality scores', () => {
+  for (const file of README_FILES) {
+    const hero = readFileSync(resolve(REPO_ROOT, file), 'utf8').split(/^```/m)[0];
+    assert.match(hero, /illustrative|설명용|虚构|说明性|説明用/iu, `${file}: missing illustrative label`);
+    assert.doesNotMatch(hero, /(?:MPS|Fidelity)\s*[:：]?\s*\d/i, `${file}: prepared examples cannot claim measured scores`);
+    assert.doesNotMatch(hero, /<img\b[^>]*assets\/demo\//, `${file}: a historical recording must not substitute for the native example`);
   }
 });
 

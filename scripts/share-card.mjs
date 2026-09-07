@@ -97,8 +97,8 @@ export function stringColumns(value) {
 // no spaces, so when a single "word" overflows the panel we hard-break it by
 // character. Returns at most MAX_PANEL_LINES lines, the last ending with an
 // ellipsis if clipped.
-export function wrapSnippetLines(value, { wrap = PANEL_WRAP_COLUMNS, maxLines = MAX_PANEL_LINES } = {}) {
-  const text = truncateSnippet(value);
+export function wrapSnippetLines(value, { wrap = PANEL_WRAP_COLUMNS, maxLines = MAX_PANEL_LINES, maxChars = MAX_SNIPPET_CHARS } = {}) {
+  const text = truncateSnippet(value, maxChars);
   if (!text) return [];
   const lines = [];
   let current = '';
@@ -138,9 +138,9 @@ export function wrapSnippetLines(value, { wrap = PANEL_WRAP_COLUMNS, maxLines = 
   return clipped;
 }
 
-function renderTspans(lines, x) {
+function renderTspans(lines, x, lineGap = 38) {
   return lines
-    .map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : 38}">${escapeXml(line)}</tspan>`)
+    .map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : lineGap}">${escapeXml(line)}</tspan>`)
     .join('');
 }
 
@@ -185,9 +185,12 @@ export function renderShareCard({
   lang = 'en',
   illustrative = false,
 } = {}) {
-  const beforeLines = wrapSnippetLines(before);
-  const afterLines = wrapSnippetLines(after);
-  const copy = ILLUSTRATIVE_COPY[lang] || ILLUSTRATIVE_COPY.en;
+  const wrapping = illustrative ? { wrap: 44, maxLines: 9, maxChars: 1000 } : {};
+  const beforeLines = wrapSnippetLines(before, wrapping);
+  const afterLines = wrapSnippetLines(after, wrapping);
+  const fontSize = illustrative ? 20 : 25;
+  const lineGap = illustrative ? 26 : 38;
+  const copy = Object.hasOwn(ILLUSTRATIVE_COPY, lang) ? ILLUSTRATIVE_COPY[lang] : ILLUSTRATIVE_COPY.en;
   const afterChip = illustrative ? null : formatScoreLine({ aiScore, mps });
   const beforeChip = illustrative || beforeScore === null || beforeScore === undefined
     ? null
@@ -213,15 +216,15 @@ export function renderShareCard({
   <g filter="url(#shadow)">
     <rect x="72" y="158" width="500" height="330" rx="26" fill="#111827" stroke="#374151" stroke-width="2"/>
     <text x="104" y="210" fill="#fca5a5" font-family='${FONT_STACK}' font-size="24" font-weight="800">${illustrative ? escapeXml(copy.before) : 'Before'}${beforeChip ? `  ·  ${escapeXml(beforeChip)}` : ''}</text>
-    <text x="104" y="258" fill="#e5e7eb" font-family='${FONT_STACK}' font-size="25">${renderTspans(beforeLines, 104)}</text>
+    <text x="104" y="258" fill="#e5e7eb" font-family='${FONT_STACK}' font-size="${fontSize}">${renderTspans(beforeLines, 104, lineGap)}</text>
   </g>
 
-  <text x="596" y="332" fill="#93c5fd" font-family='${FONT_STACK}' font-size="42" font-weight="800">\u2192</text>
+  <text x="600" y="332" text-anchor="middle" fill="#93c5fd" font-family='${FONT_STACK}' font-size="38" font-weight="800">\u2192</text>
 
   <g filter="url(#shadow)">
     <rect x="628" y="158" width="500" height="330" rx="26" fill="#ecfdf5" stroke="#34d399" stroke-width="2"/>
     <text x="660" y="210" fill="#047857" font-family='${FONT_STACK}' font-size="24" font-weight="800">${illustrative ? escapeXml(copy.after) : `After  ·  ${escapeXml(afterChip)}`}</text>
-    <text x="660" y="258" fill="#064e3b" font-family='${FONT_STACK}' font-size="25">${renderTspans(afterLines, 660)}</text>
+    <text x="660" y="258" fill="#064e3b" font-family='${FONT_STACK}' font-size="${fontSize}">${renderTspans(afterLines, 660, lineGap)}</text>
   </g>
 
   <text x="72" y="548" fill="#d1d5db" font-family='${FONT_STACK}' font-size="23">${illustrative ? escapeXml(copy.note) : 'Pattern-based · auditable · KO/EN/ZH/JA · Claude Code · Codex CLI · Cursor · OpenCode · Node CLI'}</text>

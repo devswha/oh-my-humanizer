@@ -116,6 +116,8 @@
     "assets/aside/",
     "integrations/aside/",
     "scripts/benchmark-report.mjs",
+    "scripts/public-showcase.mjs",
+    "scripts/share-card.mjs",
     "tests/quality/dogfood.mjs",
     "scripts/lint.mjs",
     "tests/quality/benchmark.mjs",
