@@ -48,10 +48,18 @@ export function createStudyInputs(repoRoot, { config: supplied, env = process.en
       const settings = clone(config); settings.language = fixture.language;
       if (fixture.documentType) settings.documentType = fixture.documentType;
       const packs = clone(patterns[fixture.language]);
+      // Capture the exact analyzer result used by deterministic scoring. Only
+      // its document-level hot bit leaves preparation; raw analysis stays out
+      // of the public scorer row.
+      let analysis = null;
       const deterministicScore = scoreDeterministicSignals({ text: fixture.text, config: settings, patterns: packs, repoRoot,
-        logger: { warn() {} }, analyzer: (text, options) => analyzeText(text, { ...options,
-          structuralModel: clone(models[fixture.language]), lexicon: options.lexicon ?? clone(lexicons[fixture.language]) }) });
-      return { config: settings, patterns: packs, deterministicScore };
+        logger: { warn() {} }, analyzer: (text, options) => {
+          analysis = analyzeText(text, { ...options,
+            structuralModel: clone(models[fixture.language]), lexicon: options.lexicon ?? clone(lexicons[fixture.language]) });
+          return analysis;
+        } });
+      return { config: settings, patterns: packs, deterministicScore,
+        analyzerHot: typeof analysis?.hot === 'boolean' ? analysis.hot : null };
     },
   };
 }

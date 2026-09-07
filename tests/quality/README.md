@@ -380,6 +380,19 @@ JSON file for another environment. `--manifest FILE --texts FILE` scores a
 hash-bound rebaseline manifest against its local source texts; neither source
 texts nor raw model responses enter the scorer report.
 
+Manifest `text_hash` values accept SHA-256 hex with or without the `sha256:`
+prefix and must match the exact supplied text. Declare `documentType` explicitly
+for social or marketing diagnostics; dataset genre does not override the
+configured delivery register or imply a document type. An absent or null
+`expected_hot` remains unknown, participates in score distributions, and is
+excluded from labeled comparisons and ranking metrics. These labels describe
+editing hotspots, not authenticated authorship or human preference.
+
+Automation-only short-form diagnostics do not require human ratings. Use inputs
+whose intended processing is permitted; unknown rights are not permission.
+Exact-zero counts and punctuation-pair deltas are descriptive observations,
+not false-negative rates, human false-positive rates, or validated CI gates.
+
 Completed rows are appended to `scorer-rows.jsonl`. Re-running the exact command
 continues from the first unrecorded row. Changes to the corpus, candidate set,
 or repeat count require a new output directory. Keep each worker's output
