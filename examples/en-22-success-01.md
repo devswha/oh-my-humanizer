@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> To reduce emissions, cities need better public transit. Car ownership is rising in suburban areas, and highway expansion alone will not solve congestion. Mixed-use zoning is the more effective lever — Portland's 2010 rezoning cut car trips in affected neighborhoods by 18%.
+> To reduce emissions, cities need better public transit. Because car ownership is rising in suburban areas, highway expansion alone will not solve congestion. Urban planning should focus on mixed-use zoning.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: 6 filler phrases far exceeds the 2+ threshold. Every one of them adds length but no meaning. "In order to" becomes "to," "due to the fact that" becomes a direct clause, and the rest are deleted entirely. The corrected version is shorter, clearer, and adds a concrete statistic.
+**Success** — Six filler phrases delay the main points. The rewrite shortens them while preserving the emissions goal, rising suburban car ownership as the stated reason, the limit of highway expansion and the zoning recommendation.

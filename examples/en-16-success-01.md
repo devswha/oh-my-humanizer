@@ -26,4 +26,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is clearly met: ten words are capitalized beyond the first word, including prepositions and conjunctions ("Of", "On", "And") that would not even be capitalized under standard title-case rules. No word in the heading is a proper noun, brand name, or acronym, so every capitalization beyond the first word is purely an AI formatting artifact. The corrected version uses sentence case, matching modern style-guide conventions (AP, APA, Google developer docs) while preserving readability.
+**Success** — The heading capitalizes ordinary words that do not require capitals. The expected output applies sentence case and leaves the entire body unchanged. The example tests the configured style preference, not authorship.

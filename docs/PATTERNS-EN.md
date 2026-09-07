@@ -2,9 +2,11 @@
 
 This page expands the English pattern packs into a browsable reference. It is generated from `patterns/en-*.md`, so the numbers, names, watch words, fire conditions, and examples mirror the source pattern files.
 
-- Rewrite-capable patterns: 33
+- Rewrite-capable patterns: 37
 - Score/audit-only viral-hook patterns: 9
 - Main selector: [PATTERNS.md](PATTERNS.md)
+
+The examples are illustrative editing cases, not verified accounts or recorded model results. Claims left vague by an input stay vague unless source evidence is supplied. Linked success and failure files are independent cases; failure files preserve intentional no-correction behavior.
 
 ## Pattern Index
 
@@ -73,7 +75,7 @@ Example before:
 
 Example after:
 
-> The company launched a grocery delivery app. It lets users schedule same-day deliveries and track orders in real time. Downloads hit 2 million in the first month.
+> The company's new mobile app fundamentally changes how users interact with grocery delivery services. It marks a first for the retail industry.
 
 ### 2. Undue Emphasis on Notability/Media
 
@@ -89,7 +91,9 @@ Example before:
 
 Example after:
 
-> The New York Times reviewed her 2023 exhibition, calling her use of recycled materials "quietly radical." The show sold out its three-week run at the Whitechapel Gallery.
+> Her artwork has drawn considerable attention from critics and audiences and is widely recognized as a defining voice of her generation. Her exhibitions have drawn interest worldwide.
+
+Example note: The input names no sources. The rewrite keeps its recognition claims; checking them is a separate task.
 
 ### 3. Superficial -ing Analyses
 
@@ -105,7 +109,7 @@ Example before:
 
 Example after:
 
-> The festival brings together artists from 30 countries. This year, a butoh troupe from Tokyo collaborated with a hip-hop crew from Lagos — a pairing that would not have happened without the festival's residency program.
+> The festival brings together artists from 30 countries and shows the diversity of contemporary dance. It highlights the importance of cross-cultural dialogue and the role of the arts in building global understanding.
 
 ### 4. Promotional Language
 
@@ -121,7 +125,7 @@ Example before:
 
 Example after:
 
-> The village sits on a hill about 40 minutes south of Florence. It has one restaurant, a weekly market on Thursdays, and a 14th-century church with frescoes that are slowly being restored.
+> This beautiful village in the rolling hills of Tuscany has striking views, exceptional cuisine, and a charm that makes it well worth a visit for discerning travelers.
 
 ### 5. Vague Attributions
 
@@ -137,7 +141,9 @@ Example before:
 
 Example after:
 
-> A 2023 Stanford study by Nicholas Bloom found that hybrid workers were 3% more productive than full-time office workers. Kastle Systems data shows U.S. office occupancy has stabilized at about 50% of pre-pandemic levels.
+> Experts say remote work is here to stay. Studies show productivity increases when employees work from home, and many believe the trend will reshape commercial real estate.
+
+Example note: The sources are still unnamed. A style edit cannot supply a citation that the input does not contain.
 
 ### 6. Formulaic "Challenges and Prospects"
 
@@ -153,7 +159,7 @@ Example before:
 
 Example after:
 
-> The biggest obstacle is the FDA approval timeline — the average wait is 14 months. Two of the five pending applications were filed before 2022 and still have no decision date. The company says it will shift trials to the EU if U.S. approval is not granted by Q3.
+> The industry faces these challenges but remains set for substantial growth. How regulations will change is still unclear. The sector faces an important choice, and its future looks bright with continued innovation and collaboration.
 
 ## Language Patterns
 
@@ -171,7 +177,7 @@ Example before:
 
 Example after:
 
-> This report covers renewable energy policy from three angles: cost, grid reliability, and public opinion. Each section uses data from the EIA and interviews with six state utility commissioners.
+> This report examines the many aspects of renewable energy in depth, using careful distinctions to build a sound understanding. The complex mix of stakeholder interests shows how important policy is to this work.
 
 ### 8. Copula Avoidance ("serves as")
 
@@ -187,7 +193,7 @@ Example before:
 
 Example after:
 
-> The library is the neighborhood's main public space. People use it for study groups, ESL classes, and the Saturday morning story hour, which draws about 40 kids a week.
+> The library is an essential community hub, an educational resource, and a social gathering space. It also shows the city's commitment to public access.
 
 ### 9. Negative Parallelisms
 
@@ -203,7 +209,7 @@ Example before:
 
 Example after:
 
-> The initiative rezones 12 blocks for mixed-use development and adds a bike lane network connecting the east and west sides of the river.
+> This initiative changes policy and fundamentally rethinks urban planning. Its infrastructure investment expresses the kind of city residents want to live in.
 
 ### 10. Rule of Three Overuse
 
@@ -219,7 +225,7 @@ Example before:
 
 Example after:
 
-> The program pairs early-career designers with experienced mentors for a 10-week project. Last year's cohort produced two apps that are still in active use.
+> The program encourages creativity and innovation. It also encourages collaboration. Participants gain inspiration and practical skills, along with lasting connections. The community becomes more dynamic and inclusive. It also becomes more forward-thinking.
 
 ### 11. Elegant Variation (Synonym Cycling)
 
@@ -235,7 +241,7 @@ Example before:
 
 Example after:
 
-> Tokyo is the most populous city in Japan, with about 14 million residents. It draws roughly 20 million foreign tourists a year, a number that has doubled since 2015.
+> Tokyo is Japan's capital and most populous city. It is known for its blend of tradition and modernity, attracts millions of tourists each year, and continues to grow.
 
 ### 12. False Ranges
 
@@ -251,7 +257,7 @@ Example before:
 
 Example after:
 
-> The festival has three stages. The main stage books established acts (this year: Yo-Yo Ma, Thundercat). The tent stage is for local bands. There is also a children's area with instrument demos.
+> The festival offers something for everyone, including young children and seasoned professionals. Performances include traditional folk music and cutting-edge electronic music.
 
 ### 32. Comparison Adverb Overuse ("more" without target)
 
@@ -267,7 +273,9 @@ Example before:
 
 Example after:
 
-> The initiative needs dated milestones, named owners, and a budget review. The team also needs one shared plan for partner handoffs, because the current spreadsheet has three conflicting owners for the same launch tasks.
+> The initiative will make milestones more specific, allocate resources more efficiently, and align stakeholders more fully. The team should develop a more strategic plan for more meaningful collaboration.
+
+Example note: Some comparisons remain vague because the input gives no baseline. Replacing them with invented requirements would change the claim.
 
 ### 33. Definitional-Metaphor Equation ("X is the architecture of Z")
 
@@ -292,7 +300,9 @@ Example after:
 > Symmetry is the architecture of trust. Cringe is the visible signature of moving along a gradient you chose. Consistency is the currency of every relationship that lasts.
 
 **After:**
-> People trust a process more when it behaves the same way every time, so they can predict it. That predictability is what makes a relationship hold up: you keep doing what you said you would, and the other side stops bracing for surprises.
+> Symmetry underpins trust. Cringe visibly marks movement along a gradient you chose. Every lasting relationship depends on consistency.
+
+Example note: The input does not explain its metaphors. This edit stays close to them instead of supplying a new causal theory.
 
 ---
 
@@ -324,7 +334,9 @@ Example after:
 > The feedback loop rewarded speed over quality, so the culture shifted within a quarter. Decisions emerged from Slack threads rather than meetings, and the roadmap bent toward whatever the metrics demanded.
 
 **After:**
-> Leadership paid out bonuses on shipping speed, not defect counts, so within a quarter engineers stopped polishing. People started making calls in Slack threads instead of meetings, and the PMs rewrote the roadmap around whatever number the dashboard showed that week.
+> The feedback loop favored speed over quality, so the culture changed within a quarter. Decisions were made in Slack threads rather than meetings, and the roadmap followed the metrics.
+
+Example note: The input does not identify the decision-makers. Passive wording preserves that limit; a full agency repair needs source context.
 
 ### 13. Em Dash Overuse
 
@@ -364,7 +376,7 @@ Example before:
 
 Example after:
 
-> Machine learning is a subset of artificial intelligence that uses statistical methods to let computers learn from data. The three main approaches are supervised learning, unsupervised learning, and reinforcement learning.
+> Machine learning is a subset of artificial intelligence that uses statistical methods to enable computers to learn from data. The most common approaches include supervised learning, unsupervised learning, and reinforcement learning.
 
 ### 15. Inline-Header Vertical Lists
 
@@ -382,7 +394,7 @@ Example before:
 
 Example after:
 
-> The platform now supports screen readers and keyboard navigation, load times are down 40%, and all data is encrypted end-to-end.
+> The platform supports screen readers and keyboard navigation. Load times have been reduced by 40%, and all data is encrypted end-to-end.
 
 ### 16. Title Case in Headings
 
@@ -410,7 +422,7 @@ Example after:
 
 Example before:
 
-> Here are five tips for better sleep:
+> 💤 Here are five tips for better sleep:
 > 1. Set a consistent bedtime
 > 2. Avoid screens before bed
 > 3. Keep your room cool
@@ -419,12 +431,12 @@ Example before:
 
 Example after:
 
-> Five tips for better sleep:
-> 1. Set a consistent bedtime.
-> 2. Avoid screens before bed.
-> 3. Keep your room cool.
-> 4. Limit caffeine after noon.
-> 5. Read instead of scrolling.
+> Here are five tips for better sleep:
+> 1. Set a consistent bedtime
+> 2. Avoid screens before bed
+> 3. Keep your room cool
+> 4. Limit caffeine after noon
+> 5. Try reading instead of scrolling
 
 ### 18. Curly Quotation Marks
 
@@ -436,9 +448,9 @@ Example after:
 
 Example before:
 
-> Set the variable: `name = "hello"`
+> Set the variable: `name = “hello”`
 >
-> In your config file, add: `timeout = '30'`
+> In your config file, add: `timeout = ‘30’`
 
 Example after:
 
@@ -478,7 +490,7 @@ Example before:
 
 Example after:
 
-> The French Revolution began in 1789, driven by fiscal crisis and food shortages. The immediate trigger was the near-bankruptcy of the French state and a bread price spike that hit Paris hardest.
+> The French Revolution began in 1789, driven by fiscal crisis and food shortages.
 
 ### 20. Knowledge-Cutoff Disclaimers
 
@@ -494,7 +506,7 @@ Example before:
 
 Example after:
 
-> The company had about 5,000 employees as of its 2024 annual report.
+> The company had around 5,000 employees as of April 2024. Current figures still need to be checked.
 
 ### 21. Sycophantic/Servile Tone
 
@@ -506,11 +518,11 @@ Example after:
 
 Example before:
 
-> Great question! That's a really fascinating topic. You've raised an excellent point about the economic factors at play. Let me break this down for you.
+> Great question! That's a really fascinating topic. You've raised an excellent point about the economic factors at play. Let me break this down for you. Inflation erodes purchasing power, so the same salary buys less house over time.
 
 Example after:
 
-> The main economic factor is the gap between housing supply and demand. Building permits in the metro area dropped 18% last year while population grew 2.1%.
+> Inflation erodes purchasing power, so the same salary buys less house over time.
 
 ### 29. False Nuance (Retroactive Reframing)
 
@@ -525,7 +537,9 @@ Example before:
 
 Example after:
 
-> Remote work increases productivity for focused solo tasks — a Stanford study found a 13% gain for call center workers. It hurts spontaneous collaboration, though: Microsoft's 2021 internal data showed cross-team communication dropped 25% after going fully remote.
+> Remote work can increase productivity in some contexts and present challenges in others. Its net effect depends on organizational culture and individual work styles.
+
+Example note: The second sentence contains a real qualification. This is a boundary case: removing its transition does not justify deleting the conditions.
 
 ## Filler & Hedging Patterns
 
@@ -543,7 +557,7 @@ Example before:
 
 Example after:
 
-> Companies that want to grow need to invest in R&D. Competition for talent is rising just as fast — Gartner reports that tech attrition hit 20% last year.
+> To achieve sustainable growth, companies need to invest in R&D. Because competition is increasing, firms must also focus on retaining talent. Innovation is key to long-term success.
 
 ### 23. Excessive Hedging
 
@@ -559,7 +573,7 @@ Example before:
 
 Example after:
 
-> This approach has advantages, but results vary. The biggest variable is team size: teams under five people saw a 30% improvement, while larger teams saw little change.
+> This approach may offer some advantages in certain cases. Results might vary depending on factors that may not yet be fully understood.
 
 ### 24. Generic Positive Conclusions
 
@@ -575,7 +589,7 @@ Example before:
 
 Example after:
 
-> The company plans to open two more locations by June and is hiring 15 engineers for its new climate-tech division.
+> The company is entering an exciting new phase with limitless possibilities. Its talented team and innovative vision point to a bright future, with its best days still ahead.
 
 ### 31. Conclusion Signal Words
 
@@ -591,7 +605,7 @@ Example before:
 
 Example after:
 
-> Work-life balance isn't optional. Without it, the rest of the structure cracks.
+> Work-life balance is necessary for lasting personal and professional success.
 
 ### 35. Throat-Clearing Openers
 
@@ -623,7 +637,7 @@ Example before:
 
 Example after:
 
-> Warm intros matter more than the deck. Of the 40 founders in our batch, every one who raised had an intro from a portfolio founder; none raised from a cold deck alone.
+> Warm intros matter more than the deck. Most people get this wrong.
 
 ## Structure Patterns
 
@@ -645,11 +659,11 @@ Example before:
 
 Example after:
 
-> Electric vehicle sales doubled between 2021 and 2023. The main driver isn't policy — it's battery prices, which fell from $140 to $90 per kWh.
+> Electric vehicle sales doubled between 2021 and 2023, driven by falling battery costs and expanded charging infrastructure. This unprecedented growth marks a fundamental change in how consumers relate to personal transportation.
 >
-> The US $7,500 tax credit helps, but it phases out once a manufacturer hits 200,000 vehicles sold. Tesla already passed that cap years ago.
+> Since 2018, battery energy density has increased by 40%, while costs have fallen from $140 to $90 per kWh. Battery technology improved considerably over the same period as the sales growth, making electric vehicles competitive with internal combustion alternatives on total ownership costs.
 >
-> Whether the EU's 2035 petrol ban survives is genuinely unclear. Germany's coalition nearly collapsed over it in 2023, and three major automakers are lobbying for a 2040 date instead.
+> Policy is also an important support: the United States offers tax credits of up to $7,500, and the EU has mandated a ban on new petrol vehicle sales by 2035. These policies are expected to sustain growth into the next decade.
 
 ### 26. Passive Nominalization Chains
 
@@ -665,7 +679,9 @@ Example before:
 
 Example after:
 
-> We reviewed 47 papers published between 2018 and 2024. Most used surveys; we chose interviews instead, since the population was small enough to go deep. Six months of interviews, then we coded the transcripts.
+> The literature was reviewed extensively to identify key patterns. Several methodological approaches were considered before a mixed-methods design was chosen. Data were collected over six months, then analyzed to identify recurring themes.
+
+Example note: No actor is named in the input. The rewrite shortens nominalizations while retaining passive voice.
 
 ### 27. Zombie Nouns (Excessive Nominalization)
 
@@ -681,7 +697,7 @@ Example before:
 
 Example after:
 
-> The committee analyzed the situation and agreed on a strategy. They evaluated three options and chose the one with the lowest implementation risk.
+> The committee decided to analyze the current situation and recommend a future strategy. The available options were evaluated, each alternative was carefully considered, and agreement was reached on the most viable approach.
 
 ### 28. Stacked Subordinate Clauses
 
@@ -697,7 +713,7 @@ Example before:
 
 Example after:
 
-> Rural and urban communities are getting left behind as technology changes fast. The initiative targets that gap directly — access to tools, not just the tools themselves.
+> The initiative aims to bridge the gap between innovation and equitable access. It was developed in response to growing concern and awareness of the urgent need to address challenges facing urban and rural communities as technology changes rapidly.
 
 ### 30. Rhetorical Question Openers
 
@@ -717,7 +733,7 @@ Example after:
 
 > Korean coffee culture grew fast for a surprisingly simple reason: cafés moved beyond being places to buy drinks and became social hubs.
 >
-> The trend is likely to continue. Experts agree.
+> Experts believe the trend will continue.
 
 ## Viral Hook Patterns (score-only)
 
@@ -804,7 +820,9 @@ Before / after example:
 
 > Before: Studies show 73% of founders lose money because they ignore this one habit.
 >
-> After: I do not have a source for that percentage, but weekly cash reviews can catch losses earlier.
+> After: Studies show 73% of founders lose money because they ignore this one habit.
+
+Example note: No correction is shown here. The percentage, cause and unnamed studies need checking; a rewrite cannot replace them with a new claim.
 
 ### Viral 7. Manufactured Authority Stacking
 
@@ -818,7 +836,7 @@ Before / after example:
 
 > Before: A Stanford-trained, Y Combinator-backed serial founder says this one workflow will 10x your growth.
 >
-> After: A founder shared the workflow they use for weekly growth reviews; test it on your own numbers before adopting it.
+> After: A serial founder trained at Stanford and backed by Y Combinator says this workflow will multiply your growth by 10.
 
 ### Viral 8. Future-Self / Parasocial Promise
 
@@ -832,7 +850,7 @@ Before / after example:
 
 > Before: Listen, friend — your future self will thank you for saving this.
 >
-> After: Save this if you need a checklist for next month's planning.
+> After: You will thank yourself later for saving this.
 
 ### Viral 9. Aphoristic Punchline / Standalone Declarative
 
@@ -867,4 +885,4 @@ Before / after example:
 >
 > Constraints are a gift.
 >
-> After: We rebuilt the onboarding flow over two sprints, and matching every screen to the old layout slowed us down — chasing visual symmetry became a trap. The team learned to ship smaller pieces, and the tight scope each sprint actually helped more than it hurt.
+> After: We rebuilt the onboarding flow over two sprints. Symmetry becomes a trap. The team learned to ship smaller. Constraints are a gift.

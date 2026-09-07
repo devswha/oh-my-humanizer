@@ -14,13 +14,12 @@ language: en
 
 ## Expected Output
 
-> The initiative needs dated milestones, named owners, and a budget review. The team also needs one shared plan for partner handoffs, because the current spreadsheet has three conflicting owners for the same launch tasks.
+> The initiative will make milestones more specific, allocate resources more efficiently, and align stakeholders more fully. The team should develop a more strategic plan for more meaningful collaboration across departments.
 
 ## Applied Pattern
 
-- Pattern 32 (Comparison Adverb Overuse): five vague comparative phrases appear in one paragraph — "more specific", "more efficient", "more comprehensive", "more strategic", and "more meaningful" — without a target, baseline, or metric.
-- Pattern 7 (AI Vocabulary Words): co-fires lightly on "comprehensive" and "stakeholder" phrasing, which reinforces the formal AI register.
+- Pattern 32 (Comparison Adverb Overuse): Five comparative phrases lack a stated target, baseline or metric. Pattern 7's vocabulary-cluster threshold is not established by this case.
 
 ## Judgment
 
-**Success** — The fire condition is met because the paragraph uses repeated "more + adjective" claims while never saying what the new plan is more specific, efficient, or strategic than. The rewrite preserves the intended needs — milestones, budget, alignment, and collaboration — but replaces decorative comparison with concrete actions, named ownership, and the actual coordination problem.
+**Success (limited wording repair)** — The passage stacks comparisons without baselines. The rewrite shortens the phrasing while retaining the improvement claims and the distinction between what the initiative will enable and what the team should do. It cannot supply a baseline or concrete requirement absent from the input.

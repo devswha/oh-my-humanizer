@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: this is a specific optimistic statement backed by concrete evidence (Phase III data with a quantified outcome), a named timeline (Q3 2025), a named facility (Research Triangle Park), and a concrete operational plan (60-day shipping window). Pattern 24 targets conclusions that are entirely optimism filler with no specific claim. Here every positive assertion is anchored to verifiable facts. Firing would penalize well-supported forward-looking statements.
+**Failure (false positive)** — The optimistic claim is tied to a trial result, a quarter, a manufacturing location and a conditional shipping window in the input. This is the intended specific-outlook control. Preserve "looks likely," "expects" and "within 60 days of approval"; the supplied trial and business claims are not independently verified.

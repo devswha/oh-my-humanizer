@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: "serves as" is acceptable when the subject has a formally designated role function. The ethics committee has an institutional role defined by a governance charter — "serves as an independent advisory board" describes a formal designation, not a decorative usage. The sentence also appears only once in the paragraph, not meeting the 2+ threshold. Replacing it with "is" would lose the nuance that the board's advisory role is an assigned institutional function.
+**Failure (false positive)** — "Serves as" describes the ethics committee's formally assigned advisory role under a governance charter. That role distinction is why the exclusion applies. The no-correction result preserves the $50 million threshold and the committee's stated powers.

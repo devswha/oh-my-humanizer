@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> The new urban farm initiative delivers fresh produce to three neighborhoods that previously had no grocery store within a mile. In its first season, the farm distributed 4,000 pounds of vegetables through a weekly pickup program at the Elm Street community center.
+> The new urban farm initiative brings fresh produce to three underserved neighborhoods. It shows the potential of local agriculture and the importance of food access. It also highlights community organizations' role in public health and a growing movement toward urban sustainability.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: 4 present-participle phrases chained in consecutive clauses, all functioning as vague analytical filler. None of them explain *why* the initiative matters or provide any concrete detail. The corrected version replaces the -ing chain with specific facts: which neighborhoods, what the farm actually produced, and how distribution works.
+**Success** — Four participle phrases follow the main claim in one sentence. The rewrite splits that chain while keeping the three-neighborhood scope and each interpretive point. No distribution figures or new account of the farm's work are supplied.

@@ -1,6 +1,10 @@
 # Before/After Gallery
 
-patina is easiest to understand with examples: the claims stay, the AI packaging goes.
+These curated examples illustrate wording edits; they are not recorded model runs or measured fidelity results. Inputs may contain unverified claims. Each output is constrained by its own input.
+
+The English [email, report and product showcases](../playground/examples/en.js) use newly authored synthetic inputs. The [short English launch source](../examples/short/marketing-launch-en.md) and its [curated expected rewrite](../examples/short/marketing-launch-en-rewritten.md) are also illustrative; they are separate from the historical demo recording.
+
+The `examples/en-*-success-*.md` and `examples/en-*-failure-*.md` files are standalone cases. A failure file is a no-correction control, not the input for a success file.
 
 ## English: inflated product copy
 
@@ -10,9 +14,9 @@ patina is easiest to understand with examples: the claims stay, the AI packaging
 
 **After**
 
-> AI coding tools are useful for the boring parts: test stubs, config files, small refactors. They do not fix a messy codebase, but they can save time when someone still checks the output.
+> AI coding tools change software development by helping teams simplify workflows, collaborate better, and reach levels of productivity not seen before across the organization.
 
-**Patterns removed**: inflated stakes, corporate abstractions, three-part benefit stack.
+**Edit note**: Wording simplified: inflated framing and stacked benefits. The claims about workflows, collaboration and productivity remain; no specific tasks or limitations are invented.
 
 ## Korean: benefit stacking
 
@@ -22,9 +26,9 @@ patina is easiest to understand with examples: the claims stay, the AI packaging
 
 **After**
 
-> 이 도구는 반복 작업을 줄여준다. 문서 정리, 초안 작성, 간단한 협업 흐름처럼 사람이 굳이 매번 손으로 할 필요 없는 일에 잘 맞는다.
+> 이 도구는 사용자의 업무 효율을 극대화하고 생산성을 높이며 더 나은 협업 경험을 제공하는 새로운 도구입니다.
 
-**Patterns removed**: `혁신적인`, `도모`, abstract benefit stacking, stiff noun-heavy phrasing.
+**Edit note**: Wording simplified: `도모`, stiff noun phrases. The efficiency, productivity and collaboration claims remain; no task examples are added.
 
 ## English: vague balance
 
@@ -34,9 +38,9 @@ patina is easiest to understand with examples: the claims stay, the AI packaging
 
 **After**
 
-> The tool is useful, but only if someone checks the output. Without tests or review, it just makes wrong answers arrive faster.
+> This technology has challenges, but thoughtful implementation could create meaningful value.
 
-**Patterns removed**: generic caveat, vague upside, empty balance.
+**Edit note**: Wording simplified: filler around the caveat and potential benefit. Both the challenge and the conditional possibility remain.
 
 ## Technical: architecture claims
 
@@ -46,9 +50,9 @@ patina is easiest to understand with examples: the claims stay, the AI packaging
 
 **After**
 
-> The architecture leaves room for new backends without touching the CLI entry point. That is the useful part. The tradeoff is more config surface, so the defaults need to stay boring and safe.
+> This architecture gives future enhancements a strong, scalable base. Teams can adapt to changing requirements while maintaining high operational standards.
 
-**Patterns removed**: `robust and scalable foundation`, future-proofing claims, operational-excellence filler.
+**Edit note**: Wording simplified: formal phrasing. The architecture, scalability, adaptability and operational-quality claims remain; no backend, CLI or configuration details are added.
 
 ## Korean: instructional / tutorial register
 
@@ -58,11 +62,11 @@ patina is easiest to understand with examples: the claims stay, the AI packaging
 
 **After**
 
-> Git stash로 작업 중인 변경사항을 잠시 보관하세요. 커밋하기 애매한 수정이 있을 때 유용합니다. stash에 넣어두면 변경사항을 잃지 않고 다른 브랜치로 이동할 수 있습니다.
+> Git stash는 작업 중인 변경사항을 임시로 저장하는 유용한 기능입니다. 이 명령어를 쓰면 현재 작업 내용을 잃지 않고 다른 브랜치로 빠르게 전환할 수 있습니다.
 
-**Patterns removed**: `매우 유용한` (ko-content #4 promotional adjective), `본 명령어를 활용함으로써` (ko-style noun-heavy formal connector), `~할 수 있게 됩니다` (ko-structure #25 inflated future-tense). Use-context ("커밋하기 애매한 수정이 있을 때") added so the tutorial actually teaches *when* to use the command.
+**Edit note**: Wording simplified: `본 명령어를 활용함으로써`, `전환할 수 있게 됩니다`. Temporary storage, retained changes and quick branch switching stay; no new use case is added.
 
-## Korean: 1인칭 회고 — abstract metaphor → sensory detail
+## Korean: 1인칭 회고 — preserving the memory
 
 **Before**
 
@@ -70,9 +74,9 @@ patina is easiest to understand with examples: the claims stay, the AI packaging
 
 **After**
 
-> 처음 코드 리뷰를 받던 날이 아직도 가끔 떠오른다. 선배가 남긴 피드백은 한 줄씩 읽을 때마다 이상하게 크게 느껴졌다. 모니터 앞에서 댓글을 하나씩 열어보던 장면이 선명하다. 손은 마우스 위에 있었고, 머릿속은 자꾸 하얘졌다. 지금 생각하면 그날은 대단한 사건이라기보다, 내가 처음으로 내 코드를 남의 눈으로 본 날에 가까웠다.
+> 처음 코드 리뷰를 받았던 날을 떠올리면 여전히 마음 한구석이 묘하다. 선배의 피드백은 한 줄 한 줄이 거대한 산처럼 느껴졌다. 개발자로 성장하는 데 그날이 잊을 수 없는 의미 있는 전환점이었다고 말할 수 있을 것 같다.
 
-**Patterns removed**: `마치 거대한 산처럼` (ko-content abstract metaphor), `의미 있는 전환점이었다고 표현할 수 있을 것이다` (ko-structure #25 hedge stack + ko-content inflated significance). Replaced with concrete physical detail (`손은 마우스 위에`, `머릿속은 자꾸 하얘졌다`) — the narrative Document Type's policy.
+**Edit note**: Wording simplified: indirect phrasing. The memory, feeling, metaphor, significance and tentative assessment remain. No scene, physical reaction or revised interpretation is invented.
 
 ## Korean: SNS marketing — viral-hook signals
 
@@ -82,9 +86,9 @@ patina is easiest to understand with examples: the claims stay, the AI packaging
 
 **After**
 
-> GitHub에서 이런 속도는 거의 못 봤다. 60일 만에 별 25만 개. OpenClaw가 만든 기록이다. 광고로 뜬 게 아니다. 개발자들이 새벽 3시에 버그 잡다가 짜증 나던 부분을 정확히 긁었다.
+> GitHub에서 전례 없는 속도로 OpenClaw가 60일 만에 별 25만 개를 기록했다. 광고 한 번 없이 전 세계 개발자들이 몰려든 이유가 뭘까.
 
-**Patterns removed**: `역사상 ... 없었다` (ko-viral-hook #3 source-skipping authority claim), `미친 듯이 달려든` (ko-viral-hook #5 hyperbolic engagement lexicon), `이유가 뭘까` (ko-viral-hook #2 clickbait mystery close → resolved into concrete explanation). The viral-hook pack is **score-only**, but the model still re-frames these signals during a regular rewrite once the content/style packs are applied.
+**Edit note**: Illustrative manual wording edit. The speed claim, 60 days, 250K stars, tool name and no-advertising claim remain, and the unanswered question stays unanswered. These claims are not independently verified. The viral-hook pack is score/audit-only; this is not an automatic rewrite result.
 
 ## English: chatbot register
 
@@ -94,9 +98,9 @@ patina is easiest to understand with examples: the claims stay, the AI packaging
 
 **After**
 
-> Git stash temporarily saves your in-progress changes so you can switch branches without committing or losing them. It's most useful when a fix or quick task pulls you off the work you're already doing.
+> Git stash is a useful command that lets you temporarily save your changes.
 
-**Patterns removed**: `I'd be happy to help` + `That's a great question` (en-communication #19 chatbot expressions, #21 sycophancy), `very useful` (en-content promotional adjective), `Let me know if you have any other questions` (en-communication closing politeness). Replaces the chat affect with the actual answer.
+**Edit note**: Chatbot framing removed: the offer to help, flattery and closing invitation. The source answer stays; no branch-switching or interrupted-work scenario is added.
 
 ## English: viral-hook authority claim
 
@@ -106,19 +110,19 @@ patina is easiest to understand with examples: the claims stay, the AI packaging
 
 **After**
 
-> OpenClaw hit 250K stars in 60 days with no paid promotion. The popularity didn't come from marketing — it came from one shipped command that replaces a few hours of cluster setup. NVIDIA has since picked it up, which makes the timing easier to read.
+> OpenClaw has the fastest growth GitHub has ever seen, and developers around the world are excited about it. Why are they flocking to it without any marketing?
 
-**Patterns removed**: `the fastest GitHub has ever seen` (en-viral-hook #3 source-skipping authority claim), `absolutely losing their minds` (en-viral-hook #5 hyperbolic lexicon), `Why is everyone ... without any marketing?` (en-viral-hook #2 clickbait mystery close). Concrete numbers + a verifiable corroborating fact replace the unsupported absolutes. Like the Korean SNS example above, viral-hook is score-only — the rewrite drives this through neighboring content/style patterns.
+**Edit note**: Illustrative manual wording edit. The ranking, global interest, absent marketing and unresolved question remain unverified source claims. No star count, setup savings, shipped command or corporate adoption is invented. The viral-hook pack is score/audit-only; this is not an automatic rewrite result.
 
 ## More gallery material
 
-This page shows the canonical short examples. The repo also ships longer fixtures and full case studies you can copy from:
+This page shows the canonical short examples. The repo also contains longer examples and historical case studies:
 
 - **`examples/short/`** — four short Korean fixtures (marketing, tutorial, essay, email) with paired `*-rewritten.md` files.
 - **`examples/genres/`** — three longer Korean genres (technical, academic, narrative) with paired rewrites.
-- **`examples/rewrite-axes/`** — v7 axis fixtures. `casual`/`professional` demonstrate Register; `academic`/`narrative`/`marketing`/`instructional` demonstrate Document Type. Every rewrite preserves claim strength and avoids invented examples, people, scenes, or results.
-- **`examples/viral-hook/`** — case studies (`case-01` through `case-09`) covering the iterative improvement workflow: viral-hook detection, codex/claude/gemini comparisons, Persona voice, and multi-Document-Type validation.
-- **`examples/sample-rewritten-*.md`** — the same long-form Korean SNS marketing post rewritten by Codex / Claude / Gemini-3, used in `case-03` for cross-model comparison.
+- **`examples/rewrite-axes/`** — v7 axis fixtures. `casual`/`professional` demonstrate Register; `academic`/`narrative`/`marketing`/`instructional` demonstrate Document Type. Their outputs should be checked against their own inputs; this English-lane review does not validate every linked file.
+- **`examples/viral-hook/`** — historical case studies (`case-01` through `case-09`) recording the iterative improvement workflow: viral-hook detection, codex/claude/gemini comparisons, Persona voice, and multi-Document-Type validation.
+- **`examples/sample-rewritten-*.md`** — historical model outputs for the same long-form Korean SNS marketing post, used in `case-03` for cross-model comparison. These records are not curated expected rewrites.
 
 ## What patina is checking
 

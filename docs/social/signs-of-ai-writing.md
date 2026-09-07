@@ -1,26 +1,24 @@
 # 10 signs of AI writing
 
-Use this as a shareable editing checklist, not an authorship test. Each item below comes from Patina's pattern catalog and cites the real before/after fixture it uses.
+Use this as an editing checklist, not an authorship test. The excerpts below come from curated standalone examples, not measured model results.
 
-Keep it next to a draft while editing.
+Each case link contains its own input and expected output. The control links point to separate texts that should be left alone; a control is never the “before” of a success case.
 
-Copy one row into a social card if you want a short post.
-
-If a row feels wrong, open the cited example before changing the rule.
-
-| # | Tell | Real before → after | Trace |
+| # | Tell | Illustrative before → after excerpt | Case and separate control |
 |---:|---|---|---|
-| 1 | Ordinary events get inflated into “groundbreaking” or “transformative” milestones. | “groundbreaking paradigm shift” → “launched a grocery delivery app” | Pattern 1, `patterns/en-content.md`; examples: [`en-01-failure`](../../examples/en-01-failure-01.md) → [`en-01-success`](../../examples/en-01-success-01.md) |
-| 3 | A sentence chains `showcasing`, `highlighting`, and `underscoring` without explaining cause. | “showcasing the diversity… highlighting… underscoring…” → a concrete Tokyo/Lagos residency example | Pattern 3, `patterns/en-content.md`; examples: [`en-03-failure`](../../examples/en-03-failure-01.md) → [`en-03-success`](../../examples/en-03-success-01.md) |
-| 7 | The paragraph leans on AI-favorite vocabulary: `delve`, `tapestry`, `multifaceted`, `pivotal`. | “delves into the multifaceted landscape” → “covers renewable energy policy from three angles” | Pattern 7, `patterns/en-language.md`; examples: [`en-07-failure`](../../examples/en-07-failure-01.md) → [`en-07-success`](../../examples/en-07-success-01.md) |
-| 8 | Simple `is` sentences turn into `serves as`, `functions as`, or `acts as`. | “serves as a vital community hub” → “is the neighborhood's main public space” | Pattern 8, `patterns/en-language.md`; examples: [`en-08-failure`](../../examples/en-08-failure-01.md) → [`en-08-success`](../../examples/en-08-success-01.md) |
-| 9 | The claim uses `not just X but Y` when a direct statement would do. | “not just a policy change” → “rezones 12 blocks” | Pattern 9, `patterns/en-language.md`; examples: [`en-09-failure`](../../examples/en-09-failure-01.md) → [`en-09-success`](../../examples/en-09-success-01.md) |
-| 10 | Three-part lists appear because three sounds tidy, not because the evidence has three parts. | “creativity, innovation, and collaboration” → a 10-week mentor project with outcomes | Pattern 10, `patterns/en-language.md`; examples: [`en-10-failure`](../../examples/en-10-failure-01.md) → [`en-10-success`](../../examples/en-10-success-01.md) |
-| 13 | Em dashes carry every aside until the sentence feels stitched together. | “policy — announced last Tuesday — aims…” → shorter sentences with commas and attribution | Pattern 13, `patterns/en-style.md`; examples: [`en-13-failure`](../../examples/en-13-failure-01.md) → [`en-13-success`](../../examples/en-13-success-01.md) |
-| 15 | Bold inline headers make a paragraph look like a slide deck. | “**Accessibility:** The platform supports…” → one sentence that groups the actual changes | Pattern 15, `patterns/en-style.md`; examples: [`en-15-failure`](../../examples/en-15-failure-01.md) → [`en-15-success`](../../examples/en-15-success-01.md) |
-| 22 | Filler phrases delay the point: `it's important to note`, `in order to`, `at the end of the day`. | “It's important to note that…” → “To reduce emissions…” | Pattern 22, `patterns/en-filler.md`; examples: [`en-22-failure`](../../examples/en-22-failure-01.md) → [`en-22-success`](../../examples/en-22-success-01.md) |
-| 23 | Hedge stacks make the claim impossible to hold: `could potentially`, `to some extent`, `might vary`. | “It could potentially be argued…” → “This approach has advantages, but results vary.” | Pattern 23, `patterns/en-filler.md`; examples: [`en-23-failure`](../../examples/en-23-failure-01.md) → [`en-23-success`](../../examples/en-23-success-01.md) |
+| 1 | Repeated significance claims | “represents a groundbreaking paradigm shift” → “fundamentally changes” | [Case](../../examples/en-01-success-01.md) · [Control](../../examples/en-01-failure-01.md) |
+| 3 | Chained participles | “showcasing the potential of local agriculture” → “It shows the potential of local agriculture” | [Case](../../examples/en-03-success-01.md) · [Control](../../examples/en-03-failure-01.md) |
+| 7 | Clustered formal vocabulary | “This comprehensive report delves into the multifaceted landscape of renewable energy policy” → “This report examines renewable energy policy in depth” | [Case](../../examples/en-07-success-01.md) · [Control](../../examples/en-07-failure-01.md) |
+| 8 | Long phrases for simple roles | “The old warehouse serves as a popular weekend market venue.” → “The old warehouse is a popular weekend market venue.” | [Case](../../examples/en-08-success-01.md) · [Control](../../examples/en-08-failure-01.md) |
+| 9 | Repeated negative-then-positive framing | “not just a policy change but a fundamental reimagining” → “changes policy and fundamentally rethinks” | [Case](../../examples/en-09-success-01.md) · [Control](../../examples/en-09-failure-01.md) |
+| 10 | Repeated three-part lists | “fosters creativity, innovation, and collaboration” → “encourages creativity and innovation” | [Case](../../examples/en-10-success-01.md) · [Control](../../examples/en-10-failure-01.md) |
+| 13 | Dashes around every aside | “The mayor — who took office last January — announced” → “The mayor, who took office last January, announced” | [Case](../../examples/en-13-success-01.md) · [Control](../../examples/en-13-failure-01.md) |
+| 15 | Bold labels in article prose | “**Speed:** Low-latency servers located near your user base” → “consider servers near your user base” | [Case](../../examples/en-15-success-01.md) · [Control](../../examples/en-15-failure-01.md) |
+| 22 | Filler before the point | “It's important to note that, in order to reduce emissions” → “To reduce emissions” | [Case](../../examples/en-22-success-01.md) · [Control](../../examples/en-22-failure-01.md) |
+| 23 | Stacked uncertainty | “It could potentially be argued that this approach may, to some extent, offer certain advantages” → “This approach may offer some advantages” | [Case](../../examples/en-23-success-01.md) · [Control](../../examples/en-23-failure-01.md) |
+
+Keep claims, uncertainty and attribution when editing. A source may still need evidence after the wording improves.
 
 ## Use it
 
-Paste a draft into the hosted playground, then run Patina locally when you want a rewrite: <https://patina.vibetip.help/>. Source and install notes live at <https://github.com/devswha/patina>.
+Try a draft in the [hosted playground](https://patina.vibetip.help/), or use the [CLI and agent skill](../../README.md#quick-start). The [English showcase set](../../playground/examples/en.js) provides illustrative email, report and product examples for sharing.

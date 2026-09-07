@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> The platform has three tiers. The free tier covers task lists and a shared calendar. The Pro tier ($12/month) adds time tracking, invoicing, and a client portal. The Enterprise tier includes SSO, audit logs, and a dedicated account manager. About 60% of paying users are freelancers; the rest are teams of 5 to 20 people.
+> The platform serves everyone, including busy executives and stay-at-home parents. It covers project management and personal wellness, and its tools adapt to the workflows of seasoned entrepreneurs and first-time freelancers alike. Features include simple task tracking and advanced AI-driven analytics, making it suitable for individuals and teams.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met: three "from X to Y" constructions appear, and in each case the two poles do not meaningfully bound a spectrum. "Busy executives" and "stay-at-home parents" are not opposite ends of a user scale — they are two arbitrarily chosen personas. "Project management" and "personal wellness" are unrelated categories, not a continuum. The corrected version replaces all three decorative ranges with concrete product tiers, specific features, pricing, and an actual user breakdown with a real numeric range (teams of 5 to 20) that does bound a meaningful spectrum.
+**Success** — The passage uses several ranges to describe audiences and features. The rewrite names those groups and features directly while preserving the claim of broad coverage. Product tiers, prices and customer statistics cannot be inferred from this input.

@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> This report covers renewable energy policy from three angles: cost, grid reliability, and permitting delays. Each section draws on EIA data and interviews with six state utility commissioners. The main finding: federal incentives are not reaching small municipal utilities.
+> This report examines renewable energy policy in depth, using careful distinctions to build a sound understanding of its many challenges. The complex mix of stakeholder interests shows how important collaborative governance must be to this work.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition (3+ watch words per paragraph) is exceeded many times over. The two-sentence excerpt contains 15 AI-vocabulary fingerprint words with no concrete information: no data, no named sources, no specific finding. The corrected version names the three topics covered, identifies the data source and interview subjects, and states the actual finding — all in the same word count.
+**Success** — The input contains a dense cluster of watch words. The output simplifies the vocabulary while retaining the report's scope and the importance assigned to collaborative governance. It supplies no data source, interview or finding absent from the input.

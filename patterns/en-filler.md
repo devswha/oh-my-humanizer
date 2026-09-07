@@ -38,7 +38,7 @@ corpus-snapshot:
 > It's important to note that, in order to achieve sustainable growth, companies need to invest in R&D. Due to the fact that competition is increasing, it's worth mentioning that firms must also focus on talent retention. At the end of the day, when it comes to long-term success, innovation is key.
 
 **After:**
-> Companies that want to grow need to invest in R&D. Competition for talent is rising just as fast — Gartner reports that tech attrition hit 20% last year.
+> To achieve sustainable growth, companies need to invest in R&D. Because competition is increasing, firms must also focus on retaining talent. Innovation is key to long-term success.
 
 ---
 
@@ -59,7 +59,7 @@ corpus-snapshot:
 > It could potentially be argued that this approach may, to some extent, offer certain advantages in some cases, though it is possible that the results might vary depending on a number of factors that arguably remain to be fully understood.
 
 **After:**
-> This approach has advantages, but results vary. The biggest variable is team size: teams under five people saw a 30% improvement, while larger teams saw little change.
+> This approach may offer some advantages in certain cases. Results might vary depending on factors that may not yet be fully understood.
 
 ---
 
@@ -79,13 +79,13 @@ corpus-snapshot:
 > As the company enters this exciting new chapter, the possibilities are truly endless. With its talented team and innovative vision, a bright future undoubtedly lies ahead. The best is yet to come.
 
 **After:**
-> The company plans to open two more locations by June and is hiring 15 engineers for its new climate-tech division.
+> The company is entering an exciting new phase with limitless possibilities. Its talented team and innovative vision point to a bright future, with its best days still ahead.
 
 **Closing formula before:**
 > In conclusion, this topic is one that will continue to generate discussion and debate for years to come. One thing is certain: the future of this field is full of promise and potential.
 
 **Closing formula after:**
-> The bill goes to committee vote on March 12. If it passes, the new rules take effect in January.
+> This topic will keep generating discussion and debate for years. The future of the field is full of promise and potential.
 
 **Not this pattern:** The "challenges, but bright future" two-step structure --> Pattern 6 (Formulaic "Challenges and Prospects," en-content.md) handles that.
 
@@ -113,7 +113,7 @@ corpus-snapshot:
 > In conclusion, work-life balance is not a luxury but a necessity. It is a critical foundation upon which sustainable success — both personal and professional — must be built.
 
 **After:**
-> Work-life balance isn't optional. Without it, the rest of the structure cracks.
+> Work-life balance is necessary for lasting personal and professional success.
 
 **Not this pattern:** When the *content* of the conclusion is vague optimism --> Pattern 24 (Generic Positive Conclusions) handles that. Pattern 31 is about the signal *word itself* regardless of what follows.
 
@@ -157,6 +157,6 @@ corpus-snapshot:
 > What nobody tells you about fundraising: warm intros matter more than the deck. Most people get this wrong.
 
 **After:**
-> Warm intros matter more than the deck. Of the 40 founders in our batch, every one who raised had an intro from a portfolio founder; none raised from a cold deck alone.
+> Warm intros matter more than the deck. Most people get this wrong.
 
 **Not this pattern:** An unresolved teaser at the *end* of the piece --> en-viral-hook #2 (Clickbait Mystery Close). Unsourced authority claims ("experts agree") --> Pattern 5 (Vague Attributions). Pattern 36 is the *lone-insider frame* placed before a claim.

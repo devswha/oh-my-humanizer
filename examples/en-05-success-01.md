@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> A 2024 study led by Terry Hughes at James Cook University found that mass bleaching events hit the Great Barrier Reef in 2016, 2017, 2020, 2022, and 2024 — five times in nine years, compared to twice in the previous two decades. The NOAA Coral Reef Watch program estimates that 54% of the world's reef area experienced bleaching-level heat stress in 2023. The International Coral Reef Initiative's 2024 budget report put global conservation spending at $680 million, roughly a third of what its own models say is needed.
+> Experts say rising ocean temperatures pose the greatest long-term threat to coral reef ecosystems. Studies show bleaching events have doubled in frequency over the past two decades. Research indicates some species may not recover without immediate intervention, and many believe current conservation funding is inadequate for the scale of the problem.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is met four times in one paragraph: every sentence appeals to unnamed authority. "Experts say" names no expert. "Studies show" names no study. "Research indicates" names no researcher or institution. "Many believe" names no one at all. The corrected version replaces each vague attribution with a named source, a date, and a specific finding, turning unverifiable gestures at authority into concrete, checkable claims.
+**Success** — The paragraph contains four unnamed authority claims. The rewrite makes them easier to follow but keeps them attributed and preserves the possible failure to recover. Identifying real sources requires more information; invented citations would not fix this example.

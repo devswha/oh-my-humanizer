@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> Berlin has emerged as one of Europe's most popular destinations for digital nomads. It offers affordable coworking spaces in Kreuzberg and Neukölln, and its U-Bahn and S-Bahn network makes car ownership unnecessary. For many remote workers, Berlin is a rare case: a capital city where a freelancer can rent a one-bedroom apartment for under 900 euros a month.
+> Berlin, the German capital, has emerged as one of Europe's most exciting destinations for digital nomads. It offers affordable coworking spaces in neighborhoods like Kreuzberg and Neukölln. Its extensive public transit network makes car ownership unnecessary. For many remote workers, Berlin combines a low cost of living with a high quality of life, a rare combination.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition (same entity referred to by 3+ different names in a single paragraph) is met with four variants. None of the synonyms add information that "Berlin" or "it" would not convey — "the German capital" does not disambiguate from another Berlin, and "the metropolis" and "the urban center" are generic labels that could describe any large city. The corrected version uses "Berlin" twice and "it/its" for the remaining references, which reads naturally. It also replaces the vague closing claim with a concrete rent figure.
+**Success** — The same city has four labels in one paragraph. The edit uses Berlin and pronouns, retaining its identity as the German capital and the stated benefits for remote workers. No rent figure or transit detail is added.

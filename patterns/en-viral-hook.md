@@ -155,10 +155,12 @@ A hit here does not mean the text is AI-generated. Humans use these patterns too
 
 **Semantic Risk:** LOW — score-only.
 **Preservation Note:** Score-only by default; if the user asks to lower the hook, preserve real numbers and either cite, hedge, or remove the fake research frame. Do not invent a source.
-**Before / after examples (manual lower-signal rewrite):**
+**Before / after example (no-correction control):**
 > Before: Studies show 73% of founders lose money because they ignore this one habit.
 >
-> After: I do not have a source for that percentage, but weekly cash reviews can catch losses earlier.
+> After: Studies show 73% of founders lose money because they ignore this one habit.
+
+**Example note:** No correction is shown here. The percentage, cause and unnamed studies need checking; a rewrite cannot replace them with a new claim.
 
 ---
 
@@ -185,7 +187,7 @@ A hit here does not mean the text is AI-generated. Humans use these patterns too
 **Before / after examples (manual lower-signal rewrite):**
 > Before: A Stanford-trained, Y Combinator-backed serial founder says this one workflow will 10x your growth.
 >
-> After: A founder shared the workflow they use for weekly growth reviews; test it on your own numbers before adopting it.
+> After: A serial founder trained at Stanford and backed by Y Combinator says this workflow will multiply your growth by 10.
 
 ---
 
@@ -213,7 +215,7 @@ A hit here does not mean the text is AI-generated. Humans use these patterns too
 **Before / after examples (manual lower-signal rewrite):**
 > Before: Listen, friend — your future self will thank you for saving this.
 >
-> After: Save this if you need a checklist for next month's planning.
+> After: You will thank yourself later for saving this.
 
 ---
 
@@ -248,4 +250,4 @@ A hit here does not mean the text is AI-generated. Humans use these patterns too
 >
 > Constraints are a gift.
 >
-> After: We rebuilt the onboarding flow over two sprints, and matching every screen to the old layout slowed us down — chasing visual symmetry became a trap. The team learned to ship smaller pieces, and the tight scope each sprint actually helped more than it hurt.
+> After: We rebuilt the onboarding flow over two sprints. Symmetry becomes a trap. The team learned to ship smaller. Constraints are a gift.

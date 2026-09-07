@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: the piece documents what the common view is (naming where it appears), then rebuts it with specific statutory citations. The setup is doing real argumentative work — identifying a genuinely widespread misreading before correcting it with evidence — not flattering the writer as a lone insider.
+**Failure (false positive)** — The passage states a view, identifies where the writer encountered it, and supplies statutory references in response. The setup therefore has an argumentative role beyond insider posture. The no-correction control preserves those references; it does not verify the legal interpretation or how widely the view is held.

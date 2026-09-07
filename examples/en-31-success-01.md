@@ -18,17 +18,16 @@ language: en
 
 ## Expected Output
 
-> Work-life balance is what most professionals quietly worry about now. It isn't just a personal-wellness issue — it shapes whether anyone can actually keep working at the pace modern jobs demand.
+> In today's rapidly evolving digital world, work-life balance has become one of the most pressing issues for modern professionals. It is a fundamental challenge as well as a matter of personal well-being.
 >
-> Real balance isn't about hours. It's about whether your work feels like work you'd choose, whether you're rested enough to think clearly, and whether the rest of your life still fits around the job.
+> Work-life balance requires an approach that combines meaningful work, sufficient rest and freedom to pursue personal interests outside work.
 >
-> Work-life balance isn't optional. Without it, the rest of the structure cracks.
+> Work-life balance is necessary for lasting personal and professional success.
 
 ## Applied Pattern
 
-- Pattern 31 (Conclusion Signal Words): The final paragraph opens with "Ultimately".
-- Pattern 24 (Generic Positive Conclusions): co-fires on "sustainable success" / "critical foundation" — the meta-elevation in the same sentence.
+- Pattern 31 (Conclusion Signal Words): The final paragraph opens with "Ultimately."
 
 ## Judgment
 
-**Success** — Trigger condition is met (final paragraph opens with a conclusion signal word). The rewrite doesn't just delete "Ultimately" and leave the same sentence — it rewrites the conclusion itself to land harder ("Work-life balance isn't optional. Without it, the rest of the structure cracks."). The paragraph still reads as a conclusion without the marker. Sentence rhythm is varied (short verdict + brief consequence) instead of substituting one mechanical opener for another.
+**Success** — The final paragraph opens with Ultimately. The rewrite removes that signal and states the same conclusion: work-life balance is necessary for lasting personal and professional success. Earlier paragraphs keep their original claims and requirements.

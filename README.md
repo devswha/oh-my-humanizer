@@ -27,12 +27,17 @@
   <a href="https://patina.vibetip.help/"><b>Try it in the browser — no install</b></a>
 </p>
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/devswha/patina/main/assets/demo/patina-demo-live-en.gif" alt="Live screen capture of the hosted patina playground at patina.vibetip.help: an AI-sounding English announcement is typed in, rewritten naturally by the real server-side pipeline while the facts survive, and verified with MPS 100 and Fidelity 75 plus a deterministic AI-signal drop from 100 to 0" width="960">
-</p>
+**An illustrative email edit**
 
-<p align="center"><em>Paste AI-sounding text → patina rewrites it in place, keeps the facts (the "30 templates" number survives), and drops the deterministic AI signal 100 → 0 (MPS 100 / Fidelity 75).</em></p>
+**Before**
 
+> I'm writing to let you know that the launch review is scheduled for Friday at 2 p.m. The draft is 6 pages long, and two questions about pricing are still open.
+
+**After**
+
+> The launch review is Friday at 2 p.m. The draft has 6 pages and two open pricing questions.
+
+A curated excerpt from [the English email showcase](playground/examples/en.js). This is a synthetic example, not a live run or a measured score.
 
 patina is a deterministic, pattern-based humanizer for Korean, English, Chinese, and Japanese. It finds AI-sounding phrasing and rewrites it **without changing the claim, numbers, polarity, or causation** — built for allowed AI-assisted drafting, not for evading detectors.
 
@@ -129,6 +134,8 @@ register:                 # casual | professional; omit to preserve source
 Scores are editing signals with false positives and false negatives, not proof of authorship. See [Ethics](docs/ETHICS.md).
 
 ## Documentation
+
+[Historical English playground recording](https://raw.githubusercontent.com/devswha/patina/main/assets/demo/patina-demo-live-en.gif) · [recording context](assets/demo/README.md). The recording is an earlier run, separate from the curated examples above.
 
 - [Cookbook](docs/COOKBOOK.md) — common recipes · [CLI contract](docs/CLI.md) — flags, gates, exit codes
 - [Before/After gallery](docs/EXAMPLES.md) ([한국어](docs/EXAMPLES_KR.md)) · [Pattern catalog](docs/PATTERNS.md)

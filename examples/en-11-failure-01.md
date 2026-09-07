@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: these are three distinct legal entities, not synonyms for the same thing. Alphabet is the parent holding company, Google is its largest subsidiary (with its own revenue line), and DeepMind is a separate research lab that Alphabet acquired. The text uses each name precisely where it is needed — Alphabet for consolidated revenue, Google for advertising revenue, DeepMind for research output. Replacing all three with a single term would be factually wrong: Google's ad revenue is not the same as Alphabet's total revenue, and DeepMind's paper count is not attributable to Google. This is legitimate disambiguation, not synonym cycling.
+**Failure (false positive)** — Alphabet, Google and DeepMind have distinct referents in this passage: consolidated revenue, advertising revenue and research output. They are not interchangeable labels for one subject. The no-correction control preserves those distinctions; its company-history and financial claims have not been fact-checked.

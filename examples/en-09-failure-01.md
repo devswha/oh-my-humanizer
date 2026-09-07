@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: this is a genuine contrastive clarification correcting a specific misconception. The sentence distinguishes a workshop from a conference and immediately explains the concrete difference — no keynotes, hands-on sessions only, 90-minute length. The negative frame is doing real informational work: people who expect a conference format (keynote talks, passive audience) need to know this event operates differently. Only one instance appears, below the 2+ threshold, and the rest of the paragraph is packed with specifics (group size, facilitator role, 80% satisfaction figure). Flagging this would strip a useful distinction.
+**Failure (false positive)** — The negative frame distinguishes a workshop from a conference and explains the difference: no keynotes and only hands-on sessions. It carries content, so the exclusion applies even though some single instances can trigger the pattern elsewhere. Preserve the session length, group size and attributed 80% result.

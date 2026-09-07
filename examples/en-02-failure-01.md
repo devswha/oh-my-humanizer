@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Failure (false positive)** — The exclusion condition applies: every claim of notability is backed by specific, verifiable detail. The citation count names the platform (Google Scholar) and gives a number (3,000). The media mention names the publication (Nature) and the date (March 2023). The Nobel reference specifies the document type and month. Pattern 2 targets vague, unsourced acclaim — not attributed statements with named outlets, dates, and figures. Firing here would penalize precisely the kind of sourced writing that pattern 2 is designed to encourage.
+**Failure (false positive)** — The passage illustrates attribution with outlet names, dates and a citation count. Pattern 2 is concerned with vague acclaim, so those references remain intact. The final funding-rank claim lacks a source, and none of the named references has been independently verified here. This control tests editing behavior, not factual accuracy.

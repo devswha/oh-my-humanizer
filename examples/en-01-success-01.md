@@ -14,7 +14,7 @@ language: en
 
 ## Expected Output
 
-> The company added a shared task board to its project management tool. Teams can now assign subtasks, set due dates, and leave comments in one view. The feature launched in beta with 200 enterprise customers in Q2.
+> The company's new project management feature fundamentally changes how teams collaborate on everyday tasks. This update marks a first for workplace productivity software and changes how modern organizations operate.
 
 ## Applied Pattern
 
@@ -22,4 +22,4 @@ language: en
 
 ## Judgment
 
-**Success** — The fire condition is clearly met: four superlative emphasis words ("groundbreaking", "revolutionary", "game-changing", "unprecedented") applied to an ordinary task-board feature. None of the language is proportionate to the actual scope of the change. The corrected version replaces inflation with specifics: what the feature does, how it works, and who is using it.
+**Success** — The paragraph clusters emphasis terms around a project management update. The rewrite reduces the repeated superlatives while retaining the claimed scale of change. The input gives no feature details or evidence for that scale, so the output adds neither. This illustrates wording repair, not factual validation.
