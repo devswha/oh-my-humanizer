@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { droppedNumbers } from '../src/verify.js';
+import { evaluateNumberSafety } from '../src/features/meaning-proxy.js';
 import { renderShareCard, wrapSnippetLines } from './share-card.mjs';
 
 export const SHOWCASE_LANGUAGES = ['ko', 'en', 'zh', 'ja'];
@@ -35,6 +36,7 @@ export function validateShowcase(rows) {
     ids.add(row.id);
     if (['mps', 'fidelity', 'score', 'aiScore', 'beforeScore'].some(key => Object.hasOwn(row, key))) throw new Error('Illustrative examples cannot carry measured-score claims');
     if (droppedNumbers(row.before, row.after).length || droppedNumbers(row.after, row.before).length) throw new Error(`${row.id}: numeric tokens changed`);
+    if (!evaluateNumberSafety(row.before, row.after, row.lang).ok) throw new Error(`${row.id}: production numeric gate rejects the example pair`);
   }
   for (const lang of SHOWCASE_LANGUAGES) {
     if (rows.filter(row => row.lang === lang).length !== 3) throw new Error(`Expected three ${lang} examples`);

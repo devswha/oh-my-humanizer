@@ -145,6 +145,9 @@ function hasUnsupportedWordNumberExpression(source, lang, occupied = []) {
       ? /[零〇一二三四五六七八九十两兩壹贰貳叁參肆伍陆陸柒捌玖]/u
       : /[零〇一二三四五六七八九十壱弐参肆伍陸漆捌玖]/u;
     const compoundNumerals = /[零〇一二三四五六七八九十]{2,}/u;
+    // A bare genitive の/之 next to a counter character is not a fraction:
+    // 今回の, 日本の, and 今年之内 must not fail on unchanged input. Keep all
+    // existing numeral contexts and 分の/分之 checks on the masked source.
     const unsupported = lang === 'zh'
       ? /[两兩壹贰貳叁參肆伍陆陸柒捌玖拾廿卅卌半第分之百千萬万億亿兆京垓]/gu
       : /[壱弐参肆伍陸漆捌玖拾半第分の百千万億兆京垓]/gu;
@@ -152,8 +155,10 @@ function hasUnsupportedWordNumberExpression(source, lang, occupied = []) {
       const index = match.index;
       const previous = uncoveredSource[index - 1] ?? '';
       const next = uncoveredSource[index + match[0].length] ?? '';
-      if (DECIMAL_DIGIT_RE.test(previous) || DECIMAL_DIGIT_RE.test(next)
-        || numerals.test(previous) || numerals.test(next) || counters.test(previous) || counters.test(next)) return true;
+      const numeralContext = DECIMAL_DIGIT_RE.test(previous) || DECIMAL_DIGIT_RE.test(next)
+        || numerals.test(previous) || numerals.test(next);
+      const bareGenitive = (match[0] === 'の' || match[0] === '之') && previous !== '分';
+      if (numeralContext || (!bareGenitive && (counters.test(previous) || counters.test(next)))) return true;
     }
     return compoundNumerals.test(uncoveredSource);
   }
