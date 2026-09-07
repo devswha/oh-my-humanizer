@@ -171,7 +171,7 @@ Acceptance criteria:
 
 ### Phase 2 — packaging and distribution
 
-Status (2026-09-07): source and web 8.4.0 are deployed; npm `patina-cli` and `patina-humanizer` remain at 8.3.0 while publication is on hold. GitHub Releases follow successful npm publication on tag push (`docs/integrations/release.md`). The public image `ghcr.io/devswha/patina:latest` has a separate manual release path (`docs/integrations/docker.md`). Homebrew has not started.
+Status (2026-09-07): the source/web release is 8.4.1; npm `patina-cli` and `patina-humanizer` remain at 8.3.0 while publication is on hold. GitHub Releases follow successful npm publication on tag push (`docs/integrations/release.md`). The public image `ghcr.io/devswha/patina:latest` has a separate manual release path (`docs/integrations/docker.md`). Homebrew has not started.
 
 Goal: make patina installable from the channels users expect.
 
