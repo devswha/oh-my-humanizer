@@ -3,6 +3,8 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
+import { createHash, webcrypto } from 'node:crypto';
+import { setImmediate as nextTurn } from 'node:timers/promises';
 import vm from 'node:vm';
 import * as client from '../../playground/rewrite-client.js';
 import * as preferences from '../../playground/preferences.js';
@@ -47,8 +49,9 @@ class Element {
   }
   set value(value) { this._value = value; }
   get textContent() { return this._text + this.children.map((c) => c.textContent).join(''); }
-  set textContent(value) { this.children = []; this._text = String(value ?? ''); }
-  set innerHTML(value) { assert.equal(value, ''); this.children = []; this._text = ''; this._value = undefined; }
+  set textContent(value) { this.replaceChildren(); this._text = String(value ?? ''); }
+  set innerHTML(value) { assert.equal(value, ''); this.replaceChildren(); this._value = undefined; }
+  get isConnected() { return this.tagName === 'document' || Boolean(this.parentElement?.isConnected); }
   get disabled() { return 'disabled' in this.attributes; }
   set disabled(value) { this.toggleAttribute('disabled', value); }
   get hidden() { return 'hidden' in this.attributes; }
@@ -59,9 +62,21 @@ class Element {
   toggleAttribute(name, force) { if (force) this.attributes[name] = ''; else delete this.attributes[name]; }
   appendChild(child) { child.parentElement = this; this.children.push(child); return child; }
   append(...children) { children.forEach((c) => this.appendChild(c)); }
+  replaceChildren(...children) {
+    for (const child of this.children) child.parentElement = null;
+    this.children = []; this._text = ''; this.append(...children);
+  }
   remove() { if (this.parentElement) this.parentElement.children = this.parentElement.children.filter((c) => c !== this); this.parentElement = null; }
   addEventListener(name, listener) { (this.listeners[name] ||= []).push(listener); }
-  emit(name, extra = {}) { if (name === 'click' && this.disabled) return; for (const fn of this.listeners[name] || []) fn({ preventDefault() {}, ...extra }); }
+  removeEventListener(name, listener) { this.listeners[name] = (this.listeners[name] || []).filter((fn) => fn !== listener); }
+  emit(name, extra = {}) {
+    const event = { target: this, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...extra };
+    if (name === 'click' && this.disabled) return event;
+    for (let node = this; node; node = node.parentElement) {
+      for (const fn of node.listeners[name] || []) fn(event);
+    }
+    return event;
+  }
   focus() { this.focused = true; }
   matches(selector) {
     const attr = selector.match(/\[([^=\]]+)="([^"]*)"\]/);
@@ -103,6 +118,7 @@ function documentFixture() {
     if (!['meta', 'link', 'img', 'input', 'br', 'hr'].includes(tag) && !token.endsWith('/>')) stack.push(node);
   }
   document.documentElement = document.querySelector('html');
+  document.defaultView = { crypto: webcrypto };
   document.createElement = (tag) => new Element(tag);
   document.createTextNode = (text) => { const node = new Element('#text'); node.textContent = text; return node; };
   return document;
@@ -111,8 +127,14 @@ function documentFixture() {
 function app({ response, storage = new Map() } = {}) {
   const document = documentFixture();
   const calls = [];
+  const reviews = [];
   const context = vm.createContext({
-    ...contract, ...client, ...preferences, ...copy, ...protection, createEditReview,
+    ...contract, ...client, ...preferences, ...copy, ...protection,
+    createEditReview: (options) => {
+      const pending = createEditReview({ ...options, document });
+      reviews.push(pending);
+      return pending;
+    },
     launchConfig: { schemaVersion: 1, enabled: false },
     document,
     Option: class extends Element { constructor(label, value) { super('option'); this.textContent = label; this.value = value; } },
@@ -132,10 +154,239 @@ function app({ response, storage = new Map() } = {}) {
     writePresets: (items) => preferences.writePresets(items, () => context.localStorage),
   });
   vm.runInContext(controller + '\nglobalThis.ui = { state, submit, activeConvo, newConvo, selectConvo, readControls, failureMessage, addRecovery };', context);
-  return { document, calls, storage, context, ui: context.ui, get: (id) => document.querySelector(`#${id}`) };
+  return {
+    document, calls, storage, context, ui: context.ui, get: (id) => document.querySelector(`#${id}`),
+    async settle() { await nextTurn(); await Promise.all(reviews); await nextTurn(); },
+  };
 }
 function change(app, id, value) { const node = app.get(id); node.value = value; node.emit('change'); }
 function controls(app) { return JSON.parse(JSON.stringify(app.ui.readControls())); }
+function type(app, id, value) { const node = app.get(id); node.value = value; node.emit('input'); }
+function snapshot(convo) {
+  return JSON.parse(JSON.stringify({
+    messages: convo.messages, original: convo.thread.original, turns: convo.thread.turns,
+    currentDraft: convo.thread.currentDraft, settings: convo.thread.preferences,
+    protectedInput: convo.protectedInput, reviewPending: convo.reviewPending,
+  }));
+}
+
+test('Home then hero submit starts a first turn, retains selected settings, and leaves the prior conversation intact', async () => {
+  const a = app();
+  change(a, 'lang', 'ko'); change(a, 'document-type', 'namuwiki');
+  change(a, 'persona', 'soft-professional'); change(a, 'register', 'professional');
+  a.get('pro-existing').emit('click');
+  a.get('license-key').value = 'private-license'; a.get('license-sign-in').emit('click');
+  await a.ui.submit('첫 원문 70%');
+  const first = a.ui.activeConvo(), before = snapshot(first), settings = controls(a);
+  assert.equal(a.ui.state.convos.length, 1, 'initial hero reuses the empty conversation');
+  a.get('home-link').emit('click');
+  type(a, 'hero-input', 'A fresh source 70%');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.at(-1).body.mode, 'first');
+  assert.equal(a.calls.at(-1).body.text, 'A fresh source 70%');
+  assert.equal('original' in a.calls.at(-1).body, false);
+  assert.equal('history' in a.calls.at(-1).body, false);
+  assert.equal(a.calls.at(-1).body.lang, 'ko', 'an explicitly selected language survives new source detection');
+  assert.equal(a.calls.at(-1).body.documentType, 'namuwiki');
+  assert.equal(a.calls.at(-1).body.persona, 'soft-professional');
+  assert.equal(a.calls.at(-1).body.register, 'professional');
+  assert.equal(a.calls.at(-1).authorization, 'Bearer private-license');
+  assert.deepEqual(controls(a), settings);
+  const second = a.ui.activeConvo();
+  assert.notEqual(second, first);
+  assert.equal(a.ui.state.convos.length, 2);
+  assert.equal(second.thread.original, 'A fresh source 70%');
+  assert.deepEqual(snapshot(first), before);
+  type(a, 'input', 'Make it shorter');
+  a.get('composer').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.at(-1).body.mode, 'refine');
+  assert.equal(a.calls.at(-1).body.original, 'A fresh source 70%');
+  a.get('history').children[1].emit('click');
+  assert.equal(a.ui.activeConvo(), first);
+  assert.deepEqual(snapshot(first), before);
+});
+
+test('fresh hero input drops old protected anchors and can detect a new language', async () => {
+  const a = app();
+  type(a, 'protected-text', 'ACME');
+  await a.ui.submit('ACME source 70%');
+  const first = a.ui.activeConvo(), before = snapshot(first);
+  // Even an invalid constraint edited after completion belongs to that old source.
+  type(a, 'protected-text', 'Missing old phrase');
+  const edited = snapshot(first);
+  a.get('home-link').emit('click');
+  type(a, 'hero-input', '한국어 새 원문 70%');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.length, 2, 'old protected-input validation must not block a fresh hero source');
+  assert.equal(a.calls[1].body.mode, 'first');
+  assert.equal(a.calls[1].body.lang, 'ko');
+  assert.deepEqual(JSON.parse(JSON.stringify(a.calls[1].body.protectedSpans)), []);
+  assert.equal(a.get('protected-text').value, '');
+  assert.equal(a.ui.activeConvo().thread.languageExplicit, false);
+  assert.deepEqual(snapshot(first), edited);
+  assert.equal(before.original, 'ACME source 70%');
+  a.ui.selectConvo(first);
+  assert.equal(a.get('protected-text').value, 'Missing old phrase');
+});
+
+test('hero preflight failures keep the new draft and reuse its empty conversation on retry', async () => {
+  const a = app();
+  change(a, 'document-type', 'email'); change(a, 'register', 'casual');
+  await a.ui.submit('Earlier source');
+  const first = a.ui.activeConvo(), before = snapshot(first);
+  a.get('home-link').emit('click');
+  type(a, 'hero-input', '  \n ');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.ui.state.convos.length, 1, 'whitespace must not create an empty history entry');
+  const oversized = 'x'.repeat(contract.TIER_LIMITS.free.maxChars + 1);
+  type(a, 'hero-input', oversized);
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  const fresh = a.ui.activeConvo();
+  assert.notEqual(fresh, first, 'preflight runs against an independent new conversation');
+  assert.equal(a.get('hero-error').hidden, false);
+  assert.equal(a.get('hero-input').value, oversized);
+  assert.equal(a.get('app').getAttribute('data-view'), 'landing');
+  assert.equal(fresh.messages.length, 0);
+  assert.equal(fresh.thread.original, undefined);
+  assert.deepEqual(controls(a), before.settings);
+  change(a, 'tier', 'byok');
+  type(a, 'hero-input', 'New product 70%');
+  type(a, 'protected-text', 'New product');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.get('key-error').hidden, false, 'fresh protection validates against the fresh source, before missing-key recovery');
+  assert.equal(a.get('hero-input').value, 'New product 70%');
+  assert.equal(a.ui.activeConvo(), fresh);
+  assert.equal(a.ui.state.convos.length, 2, 'failed retries reuse the empty conversation');
+  assert.equal(a.calls.length, 1);
+  type(a, 'api-key', 'private-provider-key');
+  const provider = a.get('provider').value, model = a.get('model').value;
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.length, 2);
+  assert.equal(a.calls[1].body.mode, 'first');
+  assert.equal(a.calls[1].body.provider, provider);
+  assert.equal(a.calls[1].body.model, model);
+  assert.equal(a.calls[1].body.apiKey, 'private-provider-key');
+  assert.deepEqual(JSON.parse(JSON.stringify(a.calls[1].body.protectedSpans)), [{ start: 0, end: 11 }]);
+  assert.equal(a.ui.activeConvo(), fresh);
+  assert.equal(a.get('hero-input').value, '');
+  assert.deepEqual(snapshot(first), before);
+});
+
+test('a pending edit review blocks its composer but does not block a fresh hero conversation', async () => {
+  const hash = (text) => `sha256:${createHash('sha256').update(text).digest('hex')}`;
+  const original = 'A cat sat.', rewrite = 'The cat slept.';
+  const a = app({ response(options) {
+    const frame = { type: 'done', rewrite, mps: 100, fidelity: 100 };
+    if (options.body.text === original) frame.editReview = {
+      schemaVersion: 1, offsetEncoding: 'utf-16', baseHash: hash(original), outputHash: hash(rewrite),
+      edits: [{ start: 0, end: 1, replacement: 'The' }, { start: 6, end: 9, replacement: 'slept' }],
+    };
+    options.onDone(frame);
+    return { ok: true, finalFrame: frame };
+  } });
+  await a.ui.submit(original);
+  await a.settle();
+  const first = a.ui.activeConvo();
+  const checkbox = a.document.querySelector('.edit-review__checkbox');
+  assert.ok(checkbox, 'the actual review component must be mounted');
+  checkbox.checked = false; checkbox.emit('change');
+  await a.settle();
+  assert.equal(first.reviewPending, true);
+  const before = snapshot(first);
+  type(a, 'input', 'Shorten it');
+  assert.equal(a.get('send').disabled, true);
+  a.get('composer').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.length, 1);
+  a.get('home-link').emit('click');
+  type(a, 'hero-input', 'A completely new draft');
+  assert.equal(a.get('hero-send').disabled, false, 'pending review belongs only to its own composer');
+  a.get('hero-form').emit('submit');
+  await a.settle();
+  assert.equal(a.calls.length, 2);
+  assert.equal(a.calls[1].body.mode, 'first');
+  assert.notEqual(a.ui.activeConvo(), first);
+  assert.deepEqual(snapshot(first), before);
+  assert.equal(a.get('protected-text').disabled, false);
+  // Detached review controls cannot change either conversation.
+  checkbox.checked = true; checkbox.emit('change');
+  await a.settle();
+  assert.deepEqual(snapshot(first), before);
+  a.ui.selectConvo(first);
+  await a.settle();
+  assert.equal(first.reviewPending, true);
+  assert.equal(a.document.querySelector('.edit-review__checkbox').checked, false);
+  type(a, 'input', 'Still pending');
+  assert.equal(a.get('send').disabled, true);
+});
+
+test('Home and hero Enter leave a running rewrite isolated until it completes', async () => {
+  let finish;
+  const a = app({ response: (options) => new Promise((resolve) => {
+    finish = () => {
+      const frame = { type: 'done', rewrite: 'Finished source', mps: 100, fidelity: 100 };
+      options.onDone(frame); resolve({ ok: true, finalFrame: frame });
+    };
+  }) });
+  const pending = a.ui.submit('Running source');
+  const first = a.ui.activeConvo();
+  try {
+    a.get('home-link').emit('click');
+    type(a, 'hero-input', 'Next source');
+    a.get('hero-input').emit('keydown', { key: 'Enter' });
+    await a.ui.submit('Next source', 'hero');
+    assert.equal(a.ui.state.busy, true);
+    assert.equal(a.ui.activeConvo(), first);
+    assert.equal(a.ui.state.convos.length, 1);
+    assert.equal(a.calls.length, 1);
+    assert.equal(a.calls[0].signal.aborted, false, 'Enter must not cancel a running attempt');
+    assert.equal(a.get('hero-input').value, 'Next source');
+  } finally { finish(); await pending; }
+  assert.equal(first.thread.original, 'Running source');
+  assert.equal(a.ui.state.busy, false);
+  const freshPending = a.ui.submit(a.get('hero-input').value, 'hero');
+  try {
+    assert.equal(a.calls.length, 2);
+    assert.equal(a.calls[1].body.mode, 'first');
+    assert.notEqual(a.ui.activeConvo(), first);
+  } finally { finish(); await freshPending; }
+});
+
+for (const [source, id] of [['hero', 'hero-input'], ['chat', 'input']]) {
+  for (const [label, event] of [
+    ['active composition', { key: 'Enter', isComposing: true, keyCode: 13 }],
+    ['IME boundary keyCode', { key: 'Enter', isComposing: false, keyCode: 229 }],
+    ['Shift+Enter', { key: 'Enter', shiftKey: true, isComposing: false, keyCode: 13 }],
+    ['ordinary character', { key: 'a', isComposing: false, keyCode: 65 }],
+  ]) {
+    test(`${source}: ${label} does not submit, prevent the input event, or clear draft text`, async () => {
+      const a = app();
+      if (source === 'chat') { await a.ui.submit('Original source'); }
+      const before = snapshot(a.ui.activeConvo()), count = a.calls.length;
+      type(a, id, '한글 中文 日本語');
+      const dispatched = a.get(id).emit('keydown', event);
+      await a.settle();
+      assert.equal(a.calls.length, count);
+      assert.equal(dispatched.defaultPrevented, false);
+      assert.equal(a.get(id).value, '한글 中文 日本語');
+      assert.deepEqual(snapshot(a.ui.activeConvo()), before);
+      const enter = a.get(id).emit('keydown', { key: 'Enter', shiftKey: false, isComposing: false, keyCode: 13 });
+      await a.settle();
+      assert.equal(enter.defaultPrevented, true);
+      assert.equal(a.calls.length, count + 1, 'normal Enter still submits exactly once');
+      assert.equal(a.calls.at(-1).body.mode, source === 'chat' ? 'refine' : 'first');
+      assert.equal(a.calls.at(-1).body.text, '한글 中文 日本語');
+      assert.equal(a.get(id).value, '');
+    });
+  }
+}
 
 test('verification credential recovery does not turn its selection into a composer rewrite', () => {
   const a = app();

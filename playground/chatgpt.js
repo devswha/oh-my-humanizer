@@ -1140,9 +1140,14 @@ function preflight(clean, source) {
 }
 
 async function submit(text, source = 'hero') {
-  if (state.busy || activeConvo()?.reviewPending) return;
+  if (state.busy) return;
   const clean = String(text || '').trim();
   if (!clean) return;
+
+  // Hero text starts a new source. Detach before checking review/protected
+  // anchors; keep an empty conversation so failed preflight retries reuse it.
+  if (source === 'hero' && activeConvo()?.messages.length) newConvo();
+  if (activeConvo()?.reviewPending) return;
 
   clearInlineErrors();
   const currentConvo = activeConvo();
@@ -1464,19 +1469,19 @@ function addRecovery(body, attempt, recovery) {
 
 // ---------- composer UX ----------
 function autoGrow(node) { node.style.height = 'auto'; node.style.height = Math.min(node.scrollHeight, 200) + 'px'; }
-function tierBlocked() {
-  return Boolean(activeConvo()?.reviewPending)
+function tierBlocked(source) {
+  return (source === 'chat' && Boolean(activeConvo()?.reviewPending))
     || (els.tier.value === WEB_TIERS.BYOK && els.apiKey.value.trim().length === 0)
     || (els.tier.value === WEB_TIERS.PRO && !state.license);
 }
 // While streaming, the send buttons become enabled Stop controls (is-stop).
-function syncSendButton(btn, input) {
+function syncSendButton(btn, input, source) {
   btn.classList.toggle('is-stop', state.busy);
   btn.setAttribute('aria-label', state.busy ? i18n().stopLabel : experienceCopy(els.lang.value).send);
-  btn.disabled = state.busy ? false : (input.value.trim().length === 0 || tierBlocked());
+  btn.disabled = state.busy ? false : (input.value.trim().length === 0 || tierBlocked(source));
 }
-function updateHeroSend() { syncSendButton(els.heroSend, els.heroInput); }
-function updateChatSend() { syncSendButton(els.send, els.input); }
+function updateHeroSend() { syncSendButton(els.heroSend, els.heroInput, 'hero'); }
+function updateChatSend() { syncSendButton(els.send, els.input, 'chat'); }
 function scrollDown() { els.thread.scrollTop = els.thread.scrollHeight; }
 function closeMobileSidebar() { els.chat.classList.remove('sidebar-open'); els.toggleSidebar.setAttribute('aria-expanded', 'false'); }
 
@@ -1655,13 +1660,20 @@ function trackInputStarted(surface, input) {
   track('Input Started', { surface, lang: els.lang.value });
 }
 
+function submitOnEnter(e, input, source) {
+  // 229 also covers IME boundary keydowns whose isComposing flag is false.
+  if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
+  e.preventDefault();
+  if (!state.busy) submit(input.value, source);
+}
+
 els.heroForm.addEventListener('submit', (e) => { e.preventDefault(); if (state.busy) { stopActive(); return; } submit(els.heroInput.value, 'hero'); });
 els.heroInput.addEventListener('input', () => { trackInputStarted('hero', els.heroInput); autoGrow(els.heroInput); updateHeroSend(); });
-els.heroInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!state.busy) submit(els.heroInput.value, 'hero'); } });
+els.heroInput.addEventListener('keydown', (e) => submitOnEnter(e, els.heroInput, 'hero'));
 
 els.composer.addEventListener('submit', (e) => { e.preventDefault(); if (state.busy) { stopActive(); return; } submit(els.input.value, 'chat'); });
 els.input.addEventListener('input', () => { trackInputStarted('chat', els.input); autoGrow(els.input); updateChatSend(); });
-els.input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!state.busy) submit(els.input.value, 'chat'); } });
+els.input.addEventListener('keydown', (e) => submitOnEnter(e, els.input, 'chat'));
 
 els.newChat.addEventListener('click', () => { if (state.busy) stopActive(); newConvo(); showChat(); els.input.value = ''; autoGrow(els.input); updateChatSend(); closeMobileSidebar(); els.input.focus(); });
 els.toggleSidebar.addEventListener('click', () => {
