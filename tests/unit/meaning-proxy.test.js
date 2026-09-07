@@ -9,6 +9,35 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
 const fixtures = JSON.parse(readFileSync(resolve(REPO_ROOT, 'tests/fixtures/meaning-proxy/pairs.json'), 'utf8'));
 
+test('CJK genitives do not become unsupported fractional numbers', () => {
+  for (const [lang, text] of [
+    ['ja', '今回の更新でノートを3件まで固定できます。'],
+    ['ja', '今年の資料は2ページです。'],
+    ['ja', '日本の資料を3冊読みました。'],
+    ['ja', '自分の1ページ目を確認します。'],
+    ['ja', '3分の動画を確認します。'],
+    ['zh', '今年之内提交3份报告。'],
+    ['zh', '这部分的2页需要检查。'],
+  ]) assert.equal(evaluateNumberSafety(text, text, lang).ok, true, text);
+
+  const original = '今回の更新では、ノートを3件まで固定することが可能となりました。';
+  const rewritten = '今回の更新で、ノートを3件まで固定できるようになりました。';
+  assert.equal(evaluateNumberSafety(original, rewritten, 'ja').ok, true);
+  assert.equal(evaluateNumberSafety(original, rewritten.replace('3件', '4件'), 'ja').reason, 'numeric_claim_changed');
+  assert.equal(evaluateNumberSafety(original, rewritten.replace('3件', '数件'), 'ja').ok, false);
+});
+
+test('unsupported CJK fractions remain fail-closed with word or claimed digit neighbors', () => {
+  for (const [lang, text] of [
+    ['ja', '三分の一'], ['ja', '3分の1'], ['ja', '3 分 の 1'],
+    ['zh', '三分之一'], ['zh', '3分之1'], ['zh', '3 分 之 1'],
+  ]) {
+    const result = evaluateNumberSafety(text, text, lang);
+    assert.equal(result.ok, false, text);
+    assert.equal(result.reason, 'unsupported_word_number', text);
+  }
+});
+
 test('meaning-preserving pairs never fail (pass or warn only)', () => {
   for (const f of fixtures.preserving) {
     const r = evaluateMeaningProxy(f);
