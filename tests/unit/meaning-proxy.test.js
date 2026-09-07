@@ -48,6 +48,7 @@ test('word-number counters cannot lose their numeric protection', () => {
     ['zh', '得了三分。', '得了四分。'],
     ['ja', '値は三分の−1です。', '値は四分の−1です。'],
     ['zh', '三分之-1', '四分之-1'],
+    ['ja', '三の四乗です。', '四の三乗です。'],
   ]) assert.equal(evaluateNumberSafety(original, rewritten, lang).ok, false, original);
 });
 
