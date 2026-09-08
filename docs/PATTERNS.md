@@ -11,7 +11,7 @@ Patina ships 184 pattern entries across four languages. The language-specific re
 
 ## Notes
 
-- Rewrite-capable patterns are applied by the rewrite modes (default rewrite, `--verify`, and the skill-only `/patina --strict` multi-pass flow) and `--diff`, according to their pack metadata and runtime mode.
+- Rewrite-capable patterns are applied by the rewrite modes (default rewrite, `--verify`, and the explicit skill-only `/patina --instruction-only --strict` multi-pass flow) and `--diff`, according to their pack metadata and runtime mode. Default `/patina` and ordinary `/patina --strict` return verified CLI output; the host-agent multi-pass flow is opt-in, not an inline fallback for CLI failure.
 - Viral-hook patterns are score/audit-only SNS-marketing signals. They affect `--score` and `--audit`, but rewrite modes skip them because the rhetoric may be intentional.
 - Pattern packs are auto-discovered from `patterns/{lang}-*.md`. To add a language or custom pack, follow [CONTRIBUTING.md](../CONTRIBUTING.md) and the frontmatter format used in the existing packs.
 
