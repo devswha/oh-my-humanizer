@@ -415,7 +415,10 @@ test('Aside cancellation before spawn and during a real child is bounded and con
       spawnImpl: (...args) => {
         const child = spawnImpl(...args);
         pid = child.pid;
-        closed = once(child, 'close', { signal: globalThis.AbortSignal.timeout(5000) });
+        // invokeCli unrefs the killed child, so the close deadline must keep the loop alive.
+        const closeController = new AbortController();
+        const closeTimer = setTimeout(() => closeController.abort(), 5000);
+        closed = once(child, 'close', { signal: closeController.signal }).finally(() => clearTimeout(closeTimer));
         child.stdout.once('data', () => controller.abort(new Error('provider-secret')));
         return child;
       } });
