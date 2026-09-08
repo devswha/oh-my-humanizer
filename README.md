@@ -108,7 +108,7 @@ patina --batch docs/*.md --outdir cleaned/
 
 `patina --help` prints the full flag list. CI wrapper for GitHub Actions: [devswha/patina-action](https://github.com/devswha/patina-action) — plus [pre-commit, static-site, Docker, and release integrations](docs/integrations/pre-commit.md).
 
-Editor clients: [VS Code, Obsidian and the Gmail preview](docs/integrations/editors.md).
+Editor clients: the VS Code, Obsidian and Gmail preview clients are retired. See the [historical record](docs/integrations/editors.md).
 
 Model evidence: [writing/scoring guide (Korean)](docs/research/model-guide-20260905.md), [rewrite confirmation](docs/research/model-rewrite-confirmation-20260905.md), and [live scoring diagnostics](docs/benchmarks/live-rebaseline-20260905.md).
 
