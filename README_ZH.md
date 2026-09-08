@@ -20,7 +20,7 @@ patina 是一个面向韩文、英文、中文和日文的确定性、基于模�
 
 它不是黑盒式改写器，也不是作者身份检测器或用来绕过检测器的工具。patina 面向允许使用 AI 辅助起草的场景：作者希望获得更干净的语气、可审计的轨迹，以及保留原意的校验。
 
-编辑器集成：[VS Code、Obsidian 和 Gmail 预览版](docs/integrations/editors.md)。
+编辑器集成：VS Code、Obsidian 和 Gmail 预览版客户端已停止支持。详见[停用记录](docs/integrations/editors.md)。
 
 ## 效果展示
 
