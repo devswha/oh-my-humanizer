@@ -304,7 +304,7 @@ Do not lead with “bypass AI detectors.” Lead with:
 
 ## 5. Current state and next actions
 
-Last refreshed: 2026-09-02. GitHub issues are the source of truth for open
+Last refreshed: 2026-09-08. GitHub issues are the source of truth for open
 work; this section records only standing decisions and where their evidence
 lives, so nobody re-triages from a stale snapshot.
 
@@ -334,12 +334,17 @@ lives, so nobody re-triages from a stale snapshot.
 ### Research programme
 
 - Performance-only order frozen 2026-09-01 in
-  `docs/research/humanization-data-backlog.md`; step 1 (KO GPT-family
-  miss-review manifest) is the sole active item; its session handoff is
+  `docs/research/humanization-data-backlog.md`. Step 1 (KO GPT-family
+  miss-review manifest) is complete per the September 7 ledger
+  (`docs/operations/remaining-work-20260905.md`); its session handoff stays
   maintainer-private (`docs/internal/ko-gpt-miss-review-handoff-20260902.md`).
+  The remaining steps are human-dependent and deferred under the September 6
+  scope decision, so no research item is active.
 - Rewrite-efficacy study series: `2026-rewrite-efficacy-study1.md` (EN doc
   −23.4, KO doc −6.0), `study2.md` / `study3.md` (structure pack and plan-step
-  both failed; nothing shipped). Judge panel: `2026-judge-calibration.md`,
+  both failed; nothing shipped), `2026-rewrite-efficacy-study4.md` (complete;
+  the specificity constraint was not supported in either language, nothing
+  shipped). Judge panel: `2026-judge-calibration.md`,
   `2026-panel-v2-design.md`. Korean program verdict:
   `ko-confirmatory-verdict-20260901.md`. External literature survey:
   `humanization-literature-2026-09.md`.
@@ -351,15 +356,20 @@ lives, so nobody re-triages from a stale snapshot.
 
 ### Ecosystem status
 
-Checked 2026-09-07 against the issue records and [editor guides](integrations/editors.md):
+Checked 2026-09-08 against the issue records and the [editor client record](integrations/editors.md):
 
-- #206: VS Code 1.1.0 is available as a VSIX; the issue is complete.
+- #206: VS Code 1.1.0 shipped as a VSIX and the issue is complete. The client
+  was retired on 2026-09-08 with the other first-party editor clients.
 - #211: community-pack commands and the starter repository shipped in 8.2.0;
-  the issue is complete.
-- #207: Obsidian 1.0.0 and host/backend checks are complete. Actual Community
-  directory submission remains open; npm publication is not its prerequisite.
-- #284: the Gmail preview is released. Signed-in Gmail acceptance remains open;
-  Chrome Web Store, Notion and LinkedIn are outside this MVP.
+  the issue is complete. The starter repository was archived and its local
+  copy deleted on 2026-09-08; retiring the optional community-pattern CLI
+  commands is being integrated separately.
+- #207: Obsidian 1.0.0 and host/backend checks are complete; the client was
+  retired on 2026-09-08. Community directory submission is classified not
+  planned. The issue remains open; no closure command has been recorded.
+- #284: the Gmail preview was released and retired on 2026-09-08. Signed-in
+  Gmail acceptance, Chrome Web Store, Notion and LinkedIn are classified not
+  planned. The issue remains open; no closure command has been recorded.
 - #212: export and licensing tools are implemented, but publication was deferred
   and the issue was closed as `not_planned`. Closure is not evidence of a public
   Hugging Face upload.
