@@ -777,9 +777,6 @@ COMMANDS
   patina persona rm <id>   Remove a custom Persona (built-ins are protected)
   patina pack list         List licensed pro packs (needs PATINA_LICENSE_KEY)
   patina pack install <id> Install a pro pack into custom/
-  patina pattern install <name|URL> Install an unsigned community pattern pack
-  patina pattern list     List installed community pattern packs
-  patina pattern remove <name> Remove an unchanged community pattern pack
 
 MODES
   --diff                  Show changes pattern by pattern
