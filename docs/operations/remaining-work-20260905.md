@@ -9,7 +9,12 @@ review, the full test/lint gate, and integration into `dev`. Human ratings,
 publication, live operation, and model results require their own direct evidence.
 An implementation alone does not close those requirements.
 
-Status checked 2026-09-07. The
+Research disposition updated 2026-09-08: the owner cancelled the previously
+deferred #159 human panel and #643 human-labeled short-form corpus. Both are
+closed `not_planned`, not pending work or completed studies. Existing evidence
+is retained; resuming either study requires a new explicit request.
+
+The earlier status check was 2026-09-07. The
 [September 6 scope decision](https://github.com/devswha/patina/issues/643#issuecomment-5559803306)
 defers human evaluation and work requiring owner time. Human acceptance criteria
 stay unmet; they are not active recruitment or annotation tasks.
@@ -22,8 +27,8 @@ stay unmet; they are not active recruitment or annotation tasks.
 | Failed rewrite allowance | Bounded, idempotent recovery of charged requests/characters; concurrency and storage-failure tests | Shipped in 8.1.3 (#726, #728–729); independent review, real Redis and full gates passed |
 | Model comparison | Available-model inventory, fixed protocol, repeated live runs, cross-family judges, per-provider recommendations | Six-finalist confirmation and qualified guide published September 5; Kimi and other unconfirmed routes retain the guide's limits |
 | #412 live scorer benchmark | Run `src/scoring.js` against real fixture/rebaseline texts; distributions by pattern pack, recorded model/usage/errors | Complete: 930/931 valid fixture observations plus 85/85 separate rebaseline observations; issue closed September 5 |
-| #643 short-form corpus | Real human/AI sources, human labels, all requested slices and counterfactual pairs, FNR/exact-zero gates | Open; human acceptance deferred. Automation-only runner changes and September 6 diagnostics are recorded below |
-| #159 human evaluation | 30 randomized pairs × 5 actual human raters, agreement and score/rating association | Open but deferred; no rater recruitment or owner annotations in the active stream |
+| #643 short-form corpus | Real human/AI sources, human labels, all requested slices and counterfactual pairs, FNR/exact-zero gates | Cancelled by owner September 8; closed `not_planned`. Human acceptance remains unmet; existing automation and diagnostics are retained as evidence, not a remaining task |
+| #159 human evaluation | 30 randomized pairs × 5 actual human raters, agreement and score/rating association | Cancelled by owner September 8; closed `not_planned`. The panel was not run and is no longer queued |
 | #206 VS Code | Separate repository; status score, diagnostics, selection rewrite with diff confirmation, settings, editor verification | Complete: 1.1.0 VSIX and editor guide available; issue closed. Client retired September 8; local repository deleted, remote repository left unchanged |
 | #207 Obsidian | Separate repository; note score/audit, selection rewrite, settings/status bar, directory submission | 1.0.0 release and actual host/backend checks complete; client retired September 8 (local repository deleted, remote left unchanged). Community directory submission classified not planned; issue closed as not planned on September 8 (06:29:20Z) |
 | #211 community packs | Starter-pack repository/schema, install/list/remove CLI, documentation and untrusted-pack tests | Complete in 8.2.0; issue closed. Starter repository archived and local copy deleted September 8; optional community-pattern CLI commands removed in source commit 31ae86e |
@@ -132,18 +137,19 @@ additional provider calls.
 That receipt records 2,176 tests passed, two skipped, lint passed, analyzer
 49/49 and scorer 8/8. Those are September 6 results, not a fresh test run by
 this status update. The associated runner changes preserve hashes, explicit
-document types and unknown labels; they do not complete #643's deferred
-human-labeled acceptance criteria.
+document types and unknown labels; they do not establish the human evidence
+requested by #643. The remaining study was cancelled September 8.
 
 ## Research sequence carried forward
 
 KO GPT-family miss review and Study 4 are complete. Study 4 did not support
 promotion in either language. The historical registered sequence below is
-retained for context; the September 6 scope decision leaves human-dependent
-steps deferred rather than active next actions:
+retained for context, not as an execution queue. The September 8 decision
+cancelled #159 and #643; it does not authorize other research or waive any
+evidence requirements:
 
 1. Edited-AI policy/schema and corpus.
-2. Human evaluation (#159).
+2. Human evaluation (#159; cancelled September 8).
 3. Bounded deterministic merge/split and seam-only infill (H-4a).
 4. Selective Korean treatment.
 5. Independent meaning-proxy calibration and metamorphic checks.

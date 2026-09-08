@@ -6,6 +6,10 @@ and support messages are excluded. This record publishes aggregate and
 status facts only: no tokens, no customer data, no private drafts and no raw
 hashes of removed private objects.
 
+Later research decision, 2026-09-08: the owner cancelled #159 and #643 and both
+were closed `not_planned`. This supersedes their earlier deferral; the recorded
+pre-merge inventories below remain historical observations.
+
 ## Evidence-based ideal state
 
 - The four root READMEs, `docs/integrations/editors.md`, `docs/ROADMAP.md`
@@ -17,8 +21,8 @@ hashes of removed private objects.
 - The Aside integration and the core skills/CLI stay documented as active.
 - The npm publication gap stays explicit: source/web 8.5.1, npm 8.3.0.
 - Research records show the KO GPT-family miss review and Study 4 complete,
-  with human evaluation (#159) and the human-labeled corpus criteria of #643
-  deferred, not active.
+  with the previously deferred human evaluation (#159) and human-labeled
+  short-form corpus (#643) cancelled, not pending.
 - The recorded pre-merge issue inventory listed #772 (CLI-first skill execution)
   as the active open item, #207/#284 as retired and closed, and #159/#643 as deferred.
 
@@ -38,9 +42,10 @@ hashes of removed private objects.
 3. **#207 and #284 are closed.** Both were classified retired/not planned
    and were closed as not planned on 2026-09-08, at 06:29:20Z and 06:29:21Z,
    without comments.
-4. **#159 and #643 stay deferred.** Their human acceptance criteria remain
-   unmet under the 2026-09-06 scope decision; automation-only diagnostics do
-   not substitute for human labels.
+4. **#159 and #643 are cancelled.** The owner cancelled both studies on
+   2026-09-08 and the issues were closed `not_planned`. Their human acceptance
+   criteria remain unmet; retained diagnostics are not human labels. Neither
+   study is queued for resumption without a new explicit request.
 5. **Research completion stands.** The KO GPT-family miss review and Study 4
    are complete per the September 7 ledger; Study 4 supported promotion in
    neither language. Records must not regress to claiming active unfinished
@@ -122,5 +127,3 @@ hashes of removed private objects.
    later acceptance and integration evidence.
 5. **npm publication.** Requires restored npm authorization; excluded from
    this stream.
-6. **Human criteria of #159/#643.** Require human raters and labels under
-   the deferred scope decision; no automation substitute is accepted.
