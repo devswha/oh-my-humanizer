@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mpsResult } from '../fixtures/verification-results.js';
+import { DEFAULT_BEST_MODELS } from '../../src/model-defaults.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const HELPER = join(ROOT, 'bin/patina-skill.js');
@@ -115,6 +116,85 @@ test('real helper -> shipped CLI -> loopback provider accepts exact bytes with p
   assert.ok(r.flags.includes('<private-config>'));
 });
 
+test('captured config remains authoritative through the real CLI after ambient mutation', async t => {
+  const f = await fixture(t, { blocklist: ['project-term'], 'skip-patterns': ['en-filler'] });
+  const originalRequests = await provider(t, f);
+  const homePath = join(f.home, '.patina.yaml');
+  const originalURL = JSON.parse(await readFile(homePath, 'utf8')).baseURL;
+  const changedRequests = await provider(t, f);
+  const changedURL = JSON.parse(await readFile(homePath, 'utf8')).baseURL;
+  // No model, provider, or endpoint in the captured config. Keep the native
+  // implicit model, with an inherited loopback endpoint instead of the network.
+  f.env.PATINA_API_BASE = originalURL;
+  await writeFile(homePath, JSON.stringify({ backend: 'openai-http', blocklist: ['home-term'] }));
+  const capturedPath = join(f.root, 'captured.json');
+  const envelopePath = join(f.root, 'child-envelope.json');
+  const result = await command(f, [], { program: `
+    import { runSkill } from ${JSON.stringify(HELPER)};
+    import { spawn } from 'node:child_process';
+    import { readFileSync, writeFileSync } from 'node:fs';
+    const result = await runSkill(${JSON.stringify(['--input', f.input])}, { spawnImpl(command, argv, options) {
+      if (argv.includes('--version')) return spawn(command, argv, options);
+      const configFlag = argv.includes('--config-snapshot') ? '--config-snapshot' : '--config';
+      writeFileSync(${JSON.stringify(capturedPath)}, readFileSync(argv[argv.indexOf(configFlag) + 1]));
+      // This synchronous seam is the gate: snapshot capture has completed and
+      // the actual CLI process has not started, let alone consumed config.
+      writeFileSync(${JSON.stringify(homePath)}, JSON.stringify({
+        backend: 'openai-http', model: 'changed-home-model', provider: 'openai',
+        baseURL: ${JSON.stringify(changedURL)}, blocklist: ['changed-home-term'],
+        allowlist: ['changed-home-safe'], 'skip-patterns': ['en-style']
+      }));
+      writeFileSync(${JSON.stringify(join(f.root, '.patina.yaml'))}, JSON.stringify({
+        language: 'en', model: 'changed-project-model', provider: 'openai',
+        baseURL: ${JSON.stringify(changedURL)}, persona: 'natural-en',
+        blocklist: ['changed-project-term'], allowlist: ['changed-project-safe'],
+        'skip-patterns': ['en-content']
+      }));
+      // No substitute executable, mocked loader, or synthetic CLI receipt.
+      const child = spawn(command, argv, options);
+      let stdout = '';
+      child.stdout.on('data', chunk => { stdout += chunk; });
+      child.once('close', () => writeFileSync(${JSON.stringify(envelopePath)}, stdout));
+      return child;
+    } });
+    console.log(JSON.stringify(result)); process.exitCode = result.exitCode;
+  ` }).done;
+  assert.equal(result.exitCode, 0, result.stdout);
+  const r = await privateArtifacts(result, ['receipt.json', 'output.txt']);
+  const captured = JSON.parse(await readFile(capturedPath, 'utf8'));
+  const envelope = JSON.parse(await readFile(envelopePath, 'utf8'));
+  t.diagnostic(JSON.stringify({ originalRequests: originalRequests.length, changedRequests: changedRequests.length,
+    requestModels: [...new Set([...originalRequests, ...changedRequests].map(request => request.model))],
+    selection: r.selection, status: r.status, outputHash: r.outputHash }));
+  for (const key of ['model', 'baseURL', 'provider']) assert.equal(Object.hasOwn(captured, key), false);
+  assert.deepEqual(captured.blocklist, ['home-term', 'project-term']);
+  assert.deepEqual(captured.allowlist, []);
+  assert.deepEqual(captured['skip-patterns'], ['en-filler']);
+  assert.equal(envelope.persona, null);
+  assert.equal(envelope.verification.verified, true);
+  assert.equal(r.status, 'verified');
+  assert.equal(r.cliExitCode, 0);
+  assert.equal(r.invocationStarted, true);
+  assert.equal(r.selection.backend, 'openai-http');
+  assert.equal(r.selection.backendSource, 'config');
+  assert.equal(r.selection.requestedModel, null);
+  assert.equal(r.selection.modelSource, 'default');
+  assert.equal(r.selection.model, DEFAULT_BEST_MODELS.openai);
+  assert.equal(r.flags.includes('--model'), false);
+  assert.equal(await readFile(f.input, 'utf8'), SOURCE);
+  assert.equal(await readFile(result.summary.outputPath, 'utf8'), envelope.output);
+  assert.equal(envelope.output, SOURCE);
+  assert.equal(r.sourceHash, hash(SOURCE));
+  assert.equal(result.summary.sourceHash, r.sourceHash);
+  assert.equal(r.outputHash, hash(envelope.output));
+  assert.equal(result.summary.outputHash, r.outputHash);
+  assert.equal(r.verification.outputHash, r.outputHash);
+  assert.equal(envelope.verification.outputHash, r.outputHash);
+  assert.equal(changedRequests.length, 0, 'live ambient endpoint must receive no draft or verification request');
+  assert.ok(originalRequests.length >= 3);
+  assert.ok(originalRequests.every(request => request.model === r.selection.model));
+});
+
 test('real CLI and adapter floors reject closest candidates without publishing output', async t => {
   for (const scenario of [
     { mps: 60, floor: 70, child: 4 },
@@ -183,7 +263,7 @@ function seam(f, { output = SOURCE, verification, stdout, script, inspect = '', 
     import assert from 'node:assert/strict';
     const result = await runSkill(${JSON.stringify(['--input', f.input, ...args])}, { spawnImpl(command, argv, options) {
       if (argv.includes('--version')) return spawn(command, argv, options);
-      const configPath = argv[argv.indexOf('--config') + 1];
+      const configPath = argv[argv.indexOf('--config-snapshot') + 1];
       const snapshot = JSON.parse(readFileSync(configPath, 'utf8'));
       const input = readFileSync(argv.at(-1));
       assert.equal(options.shell, false);

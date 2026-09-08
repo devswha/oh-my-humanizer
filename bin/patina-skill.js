@@ -228,7 +228,8 @@ export async function runSkill(argv, { spawnImpl = spawn, signal } = {}) {
     if (Object.values(floors).some(value => typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 100)) fail('invalid_config');
     if (selected.mode === 'rewrite') receipt.floors = { mps: Math.max(70, floors.mps), fidelity: Math.max(70, floors.fidelity) };
     // Snapshot the merged config, not provider resolution: default models must
-    // stay implicit so each local CLI retains its existing model policy.
+    // stay implicit so each local CLI retains its existing model policy. The
+    // child loads only this snapshot, including absent keys and exact arrays.
     const snapshot = { ...config, 'document-type': selected['document-type'] ?? config.documentType, backend: backend.name };
     delete snapshot.documentType;
     for (const [flag, key] of [['lang', 'language'], ['persona', 'persona'], ['register', 'register'], ['model', 'model'], ['provider', 'provider']]) {
@@ -240,7 +241,7 @@ export async function runSkill(argv, { spawnImpl = spawn, signal } = {}) {
     await privateFile(input, bytes);
     await privateFile(configPath, JSON.stringify(snapshot));
     const args = [selected.mode === 'rewrite' ? '--verify' : `--${selected.mode}`, '--format', 'json', '--quiet', '--no-interactive',
-      '--config', configPath, '--timeout-ms', String(remaining()), '--max-retries', '0'];
+      '--config-snapshot', configPath, '--timeout-ms', String(remaining()), '--max-retries', '0'];
     if (selected['api-key-file']) args.push('--api-key-file', resolve(selected['api-key-file']));
     args.push('--', input);
     receipt.flags = args.map((arg, index) => arg === input ? '<private-input>' : arg === configPath ? '<private-config>'
