@@ -30,11 +30,11 @@ allowed-tools:
 실행 절차:
 
 1. 설치된 `SKILL.md`의 실제 부모 디렉터리를 스킬 디렉터리로 정한다. 호스트가 스킬을 심볼릭 링크로 연결한 경우에도 링크 위치가 아니라 실제 설치 위치를 기준으로 한다.
-2. 호스트의 파일 도구로 원문을 비공개 임시 파일에 기록한다. 원문을 명령행 인자로 전달하지 않는다. 처리가 끝나면 이 임시 파일을 지운다.
+2. 기존 입력 파일은 실제 사용자 원본 경로를 그대로 헬퍼의 `--input`에 전달한다. 미리 복사하지 않는다. 헬퍼가 비공개 스냅샷을 만들고 실행 후 원본 파일의 변경 여부를 직접 확인한다. 붙여 넣은 텍스트만 호스트의 파일 도구로 비공개 임시 파일에 기록하고, 처리가 끝나면 그 임시 파일을 지운다. 원문 내용을 명령행 인자로 전달하지 않는다.
 3. 호스트의 명령 실행 도구로 헬퍼를 실행한다.
 
 ```sh
-node <skill-directory>/bin/patina-skill.js --input <private-file> [--lang ko] [--backend codex-cli]
+node <skill-directory>/bin/patina-skill.js --input <source-file> [--lang ko] [--backend codex-cli]
 ```
 
 지원 플래그는 헬퍼의 `--help` 출력이 전부다. `--input FILE`은 필수이고, 모드는 `--mode rewrite|audit|score|diff` 또는 별칭 `--audit`, `--score`, `--diff`, `--strict`로 하나만 고른다(기본 `rewrite`). 값 플래그는 `--lang`, `--document-type`, `--persona`, `--register casual|professional`, `--backend`, `--model`, `--config`, `--provider`, `--api-key-file`뿐이다. 모드 플래그를 겹쳐 쓰면 사용법 오류로 거부된다. 여기 없는 옵션은 존재하지 않으므로 새로 만들어 내지 않는다.
@@ -49,7 +49,8 @@ node <skill-directory>/bin/patina-skill.js --input <private-file> [--lang ko] [-
 
 결과 해석과 인수 규칙:
 
-- `ok: true`이고 `status: "verified"`일 때만 `outputPath` 파일의 바이트를 그대로 최종 본문으로 전달한다. 수락된 출력을 다듬거나 덧붙이지 않는다. 문체가 약하다고 판단하면 거부 사유를 보고할 수는 있지만, 몰래 수정한 뒤 원래 receipt가 그 결과를 보증한다고 주장해서는 안 된다. 실행 중이거나 미완성인 receipt는 검증이 아니며, 종료 상태가 `verified`인 receipt만 출력 복사를 허가한다.
+- 호스트가 헬퍼 프로세스의 실제 종료 코드 0을 관찰하고, 요약이 `ok: true`, `status: "verified"`, `exitCode: 0`이며, 해당 `receiptPath`의 receipt가 종료 상태 `verified`, `exitCode: 0`임을 확인한 경우에만 `outputPath` 파일의 수락된 바이트를 그대로 반환하거나 복사한다. 요약의 `exitCode`만으로 실제 프로세스 종료를 대신 확인하지 않는다. 수락된 출력을 다듬거나 덧붙이지 않는다. 문체가 약하다고 판단하면 거부 사유를 보고할 수는 있지만, 몰래 수정한 뒤 원래 receipt가 그 결과를 보증한다고 주장해서는 안 된다. 실행 중이거나 미완성인 receipt는 검증이 아니다.
+- 기본적으로 출력은 원본과 별도로 유지하고 원본을 덮어쓰지 않는다. 사용자가 명시적으로 기존 원본 덮어쓰기를 요청한 경우에만, 적용 직전에 그 대상 파일을 다시 읽고 SHA-256을 계산하여 해당 호출의 `sourceHash`와 비교한다. 일치하지 않거나 다시 읽을 수 없으면 변경된 입력으로 거부하고 덮어쓰지 않는다. 일치할 때만 수락된 출력 바이트를 그대로 적용한다.
 - audit/score/diff는 보고서 모드다. 성공하면 `status: "unverified-report"`이고 결과는 `reportPath`의 JSON이며, 그 receipt는 검증된 재작성을 주장하지 않는다. 보고서를 재작성 결과처럼 제시하지 않는다.
 - 실패(`ok: false`)면 원문은 보존된 채다. 종료 코드와 안정 `code`를 보고하고 멈춘다. exit 1은 설정·런타임·백엔드·저장소 실패, 2는 인자·설정·입력 오류, 4는 검증 거부, 130은 취소다. 실패한 요청을 아래 지시문 파이프라인이나 자체 재작성으로 대체하지 않는다.
 

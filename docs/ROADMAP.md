@@ -376,8 +376,12 @@ Checked 2026-09-08 against the issue records and the [editor client record](inte
   Hugging Face upload.
 - The [Aside integration](integrations/aside.md#validation-boundary) is available
   in the source checkout. Native macOS/Aside acceptance remains unverified.
-- #772 (CLI-first skill execution with execution evidence) is the active open
-  implementation item, tracked separately from the retired ecosystem clients.
+- #772 (CLI-first skill execution with execution evidence) has source
+  implementation present in this non-npm change, including the helper,
+  installer runtime checks and default skill routing. Existing targeted tests
+  passed; real CLI/agent acceptance and final PR review/integration gates
+  remain distinct and pending. The issue remains open pending integration;
+  no final PR merge, deployment or npm release has happened in this change.
 
 The [2026-09-06 scope decision](https://github.com/devswha/patina/issues/643#issuecomment-5559803306)
 excludes human evaluation and owner-time work from the active research stream.

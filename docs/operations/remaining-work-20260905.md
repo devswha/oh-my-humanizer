@@ -106,7 +106,13 @@ The September 7 GitHub query returned four open issues and missed #772
 #207/#284 retired. On September 8, #207 and #284 were closed as not planned
 (06:29:20Z and 06:29:21Z); #772, #159 and #643 remain open. Provider
 comparison limits and operational follow-ups are separate from that count. A
-closed issue does not by itself prove external publication.
+closed issue does not by itself prove external publication. #772 source
+implementation is present in this non-npm change (helper, installer runtime
+checks and default skill routing), with existing targeted tests passed.
+Real CLI/agent acceptance and final PR review/integration gates remain
+pending, separate from source implementation. #772 remains open pending
+integration; no final PR merge, deployment or npm release has happened in
+this change.
 
 ## September 6 automated short-form evidence
 

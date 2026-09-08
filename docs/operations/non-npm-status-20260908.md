@@ -45,9 +45,12 @@ hashes of removed private objects.
    are complete per the September 7 ledger; Study 4 supported promotion in
    neither language. Records must not regress to claiming active unfinished
    research.
-6. **#772 stays active.** CLI-first skill execution with execution evidence
-   remains the active open item in its own track; no merged PR or deployed
-   CLI-first behavior is claimed here.
+6. **#772 source implementation is present.** This non-npm change includes
+   the CLI-first helper, installer runtime checks and default skill routing.
+   Existing targeted tests passed; real CLI/agent acceptance and final PR
+   review/integration gates remain distinct and pending. The issue remains
+   open pending integration; no final PR merge, deployment or npm release
+   has happened in this change.
 
 ## Current operations evidence
 
@@ -107,8 +110,11 @@ hashes of removed private objects.
    Unverified is not zero sales.
 3. **GitHub cache removal.** Requires the support ticket receipt and the
    removed-object identifiers; neither is recorded.
-4. **#772 CLI-first implementation.** Remains open and active in its own
-   track; no merge or deployed CLI-first behavior is claimed here.
+4. **#772 acceptance and integration.** Source implementation is present in
+   this non-npm change and existing targeted tests passed. Real CLI/agent
+   acceptance and final PR review/integration gates remain pending, not the
+   source implementation itself. The issue remains open; no final PR merge,
+   deployment or npm release has happened in this change.
 5. **npm publication.** Requires restored npm authorization; excluded from
    this stream.
 6. **Human criteria of #159/#643.** Require human raters and labels under
