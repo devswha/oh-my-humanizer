@@ -338,9 +338,10 @@ lives, so nobody re-triages from a stale snapshot.
   miss-review manifest) is complete per the September 7 ledger
   (`docs/operations/remaining-work-20260905.md`); its session handoff stays
   maintainer-private (`docs/internal/ko-gpt-miss-review-handoff-20260902.md`).
-  The registered downstream sequence stays deferred under the September 6
-  scope decision; only the specific human acceptance criteria (#159 ratings,
-  #643 human labels) necessarily require people. No research item is active.
+  The registered downstream sequence is not an active execution queue.
+  The owner cancelled the previously deferred human panel (#159) and
+  human-labeled short-form corpus (#643) on 2026-09-08. Both issues are closed
+  `not_planned`; their cancellation does not activate other research.
 - Rewrite-efficacy study series: `2026-rewrite-efficacy-study1.md` (EN doc
   −23.4, KO doc −6.0), `study2.md` / `study3.md` (structure pack and plan-step
   both failed; nothing shipped), `2026-rewrite-efficacy-study4.md` (complete;
@@ -349,7 +350,8 @@ lives, so nobody re-triages from a stale snapshot.
   `2026-panel-v2-design.md`. Korean program verdict:
   `ko-confirmatory-verdict-20260901.md`. External literature survey:
   `humanization-literature-2026-09.md`.
-- #159 blinded human panel = step 3 of the frozen order
+- #159 blinded human panel, formerly step 3 of the frozen order, was cancelled
+  without running the panel. Its design is retained as history
   (`docs/research/human-eval-panel.md`). #158 cross-judge matrix was closed
   2026-07-12 as answered by Study 1's cross-family panel agreement
   (α 0.751 en / 0.526 ko); `2026-judge-calibration.md` adds per-judge AUC and
@@ -385,11 +387,12 @@ Checked 2026-09-08 against the issue records and the [editor client record](inte
   in this change at that checkpoint. See #772, its associated PR and CI for
   later acceptance and integration evidence.
 
-The [2026-09-06 scope decision](https://github.com/devswha/patina/issues/643#issuecomment-5559803306)
-excludes human evaluation and owner-time work from the active research stream.
-#159 and the human-labeled acceptance criteria of #643 remain unmet and deferred.
-Automation-only diagnostics keep unknown labels unknown; they do not establish
-human false-positive or false-negative rates.
+The owner's 2026-09-08 cancellation of #159 and #643 supersedes their
+[September 6 deferral](https://github.com/devswha/patina/issues/643#issuecomment-5559803306).
+They are not pending work and require a new explicit request before resuming.
+Their human acceptance criteria remain unmet. Retained automation-only
+diagnostics keep unknown labels unknown; cancellation does not establish human
+false-positive or false-negative rates.
 
 ### Operating rules
 
