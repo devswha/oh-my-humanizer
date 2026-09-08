@@ -19,6 +19,8 @@ hashes of removed private objects.
 - Research records show the KO GPT-family miss review and Study 4 complete,
   with human evaluation (#159) and the human-labeled corpus criteria of #643
   deferred, not active.
+- The issue inventory records #772 (CLI-first skill execution) as the active
+  open item, #207/#284 as retired and closed, and #159/#643 as deferred.
 
 ## Decision points
 
@@ -30,11 +32,12 @@ hashes of removed private objects.
    do not break.
 2. **Community packs.** The starter repository
    `devswha/patina-community-packs` is archived (verified 2026-09-08) and its
-   local copy deleted. Removal of the optional community-pattern CLI commands
-   is being integrated separately from this documentation work; licensed Pro
-   `patina pack` delivery is unaffected.
-3. **#207 and #284 stay open.** Both are classified retired/not planned. No
-   closure is claimed here because no closure command has been recorded.
+   local copy deleted. The optional community-pattern CLI commands were
+   removed in source commit 31ae86e, which preserves built-in/custom pattern
+   loading and licensed Pro `patina pack` delivery.
+3. **#207 and #284 are closed.** Both were classified retired/not planned
+   and were closed as not planned on 2026-09-08, at 06:29:20Z and 06:29:21Z,
+   without comments.
 4. **#159 and #643 stay deferred.** Their human acceptance criteria remain
    unmet under the 2026-09-06 scope decision; automation-only diagnostics do
    not substitute for human labels.
@@ -42,6 +45,9 @@ hashes of removed private objects.
    are complete per the September 7 ledger; Study 4 supported promotion in
    neither language. Records must not regress to claiming active unfinished
    research.
+6. **#772 stays active.** CLI-first skill execution with execution evidence
+   remains the active open item in its own track; no merged PR or deployed
+   CLI-first behavior is claimed here.
 
 ## Current operations evidence
 
@@ -81,9 +87,11 @@ hashes of removed private objects.
   401. Usable publishing authorization is unverified.
 - **GitHub cache removal.** No support submission receipt and no
   removed-object identifiers have been identified. Unverified.
-- **Open issues (verified 2026-09-08).** #207, #284, #159 and #643 are open.
-  #207 and #284 are classified retired/not planned; #159 and #643 remain
-  deferred.
+- **Issue inventory (verified 2026-09-08).** The full open inventory was
+  five issues: #772 (CLI-first skill execution, active), #643 and #159
+  (deferred human criteria), and #207/#284 (retired editor clients). #207
+  and #284 were closed as not planned on 2026-09-08, at 06:29:20Z and
+  06:29:21Z. #772, #643 and #159 remain open.
 
 ## Exact unresolved prerequisites
 
@@ -99,8 +107,8 @@ hashes of removed private objects.
    Unverified is not zero sales.
 3. **GitHub cache removal.** Requires the support ticket receipt and the
    removed-object identifiers; neither is recorded.
-4. **Issue closure for #207/#284.** Requires an explicit closure command
-   (owner action); none has been run or recorded.
+4. **#772 CLI-first implementation.** Remains open and active in its own
+   track; no merge or deployed CLI-first behavior is claimed here.
 5. **npm publication.** Requires restored npm authorization; excluded from
    this stream.
 6. **Human criteria of #159/#643.** Require human raters and labels under
