@@ -25,10 +25,10 @@ stay unmet; they are not active recruitment or annotation tasks.
 | #643 short-form corpus | Real human/AI sources, human labels, all requested slices and counterfactual pairs, FNR/exact-zero gates | Open; human acceptance deferred. Automation-only runner changes and September 6 diagnostics are recorded below |
 | #159 human evaluation | 30 randomized pairs × 5 actual human raters, agreement and score/rating association | Open but deferred; no rater recruitment or owner annotations in the active stream |
 | #206 VS Code | Separate repository; status score, diagnostics, selection rewrite with diff confirmation, settings, editor verification | Complete: 1.1.0 VSIX and editor guide available; issue closed. Client retired September 8; local repository deleted, remote repository left unchanged |
-| #207 Obsidian | Separate repository; note score/audit, selection rewrite, settings/status bar, directory submission | 1.0.0 release and actual host/backend checks complete; client retired September 8 (local repository deleted, remote left unchanged). Community directory submission classified not planned; the issue remains open and no closure command has been recorded |
-| #211 community packs | Starter-pack repository/schema, install/list/remove CLI, documentation and untrusted-pack tests | Complete in 8.2.0; issue closed. Starter repository archived and local copy deleted September 8; removal of the optional community-pattern CLI commands is being integrated separately |
+| #207 Obsidian | Separate repository; note score/audit, selection rewrite, settings/status bar, directory submission | 1.0.0 release and actual host/backend checks complete; client retired September 8 (local repository deleted, remote left unchanged). Community directory submission classified not planned; issue closed as not planned on September 8 (06:29:20Z) |
+| #211 community packs | Starter-pack repository/schema, install/list/remove CLI, documentation and untrusted-pack tests | Complete in 8.2.0; issue closed. Starter repository archived and local copy deleted September 8; optional community-pattern CLI commands removed in source commit 31ae86e |
 | #212 HF dataset | Fixture licensing review, published dataset/card, release upload workflow, links | Export/licensing tools complete; public upload unverified. Issue closed as not planned on September 5, not as a completed publication |
-| #284 browser extension | Separate MV3 repository; Gmail badge, local-only scoring, parity/network checks, bundled lexicons, integration docs | Preview released; client retired September 8 (local repository deleted, remote left unchanged). Signed-in Gmail acceptance, store publication, Notion and LinkedIn classified not planned; the issue remains open and no closure command has been recorded |
+| #284 browser extension | Separate MV3 repository; Gmail badge, local-only scoring, parity/network checks, bundled lexicons, integration docs | Preview released; client retired September 8 (local repository deleted, remote left unchanged). Signed-in Gmail acceptance, store publication, Notion and LinkedIn classified not planned; issue closed as not planned on September 8 (06:29:21Z) |
 | Kimi text isolation | Zero-tool/subagent profile, private metadata, cleanup and live admission | Merged into dev (#731); full tests/lint and independent review passed |
 | Branch synchronization | Merge `main` history into `dev`, preserve research commits, delete merged work branches | September 7 baseline: main and dev both at 38423d3; source/web 8.4.0, npm 8.3.0 while publication is on hold |
 | Public benchmark/docs | Current reports, accurate versions/statuses, source-linked public claims | September 5 scorer/rewrite reports are published; this ledger and the roadmap now distinguish completed, unverified and deferred work |
@@ -69,8 +69,9 @@ requires no takedown.
 
 The community starter-pack repository `devswha/patina-community-packs` was
 verified archived on September 8, and its local copy was deleted. Removal of
-the optional community-pattern CLI commands is being integrated separately;
-licensed Pro `patina pack` delivery is unaffected.
+the optional community-pattern CLI commands landed in source commit 31ae86e,
+which preserves built-in/custom loading and licensed Pro `patina pack`
+delivery.
 
 `docs/integrations/editors.md` is now a short historical record instead of an
 installation guide, so existing inbound links keep resolving without
@@ -99,13 +100,13 @@ prerequisites are recorded in
   scope decision. Hugging Face publication remains unverified; its issue was
   closed as not planned.
 
-The September 7 GitHub query returned four open issues: #207, #284, #159 and
-#643. A September 8 re-check returned the same four. #207 and #284 are now
-classified retired/not planned after the editor-client retirement; they stay
-open until an explicit closure command is recorded. #159 and #643 remain
-deferred. Provider comparison limits and operational follow-ups are separate
-from that count. A closed issue does not by itself prove external
-publication.
+The September 7 GitHub query returned four open issues and missed #772
+(created September 7): the full open inventory was five, with #772
+(CLI-first skill execution) the active item, #159/#643 deferred and
+#207/#284 retired. On September 8, #207 and #284 were closed as not planned
+(06:29:20Z and 06:29:21Z); #772, #159 and #643 remain open. Provider
+comparison limits and operational follow-ups are separate from that count. A
+closed issue does not by itself prove external publication.
 
 ## September 6 automated short-form evidence
 

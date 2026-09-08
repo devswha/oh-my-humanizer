@@ -338,8 +338,9 @@ lives, so nobody re-triages from a stale snapshot.
   miss-review manifest) is complete per the September 7 ledger
   (`docs/operations/remaining-work-20260905.md`); its session handoff stays
   maintainer-private (`docs/internal/ko-gpt-miss-review-handoff-20260902.md`).
-  The remaining steps are human-dependent and deferred under the September 6
-  scope decision, so no research item is active.
+  The registered downstream sequence stays deferred under the September 6
+  scope decision; only the specific human acceptance criteria (#159 ratings,
+  #643 human labels) necessarily require people. No research item is active.
 - Rewrite-efficacy study series: `2026-rewrite-efficacy-study1.md` (EN doc
   −23.4, KO doc −6.0), `study2.md` / `study3.md` (structure pack and plan-step
   both failed; nothing shipped), `2026-rewrite-efficacy-study4.md` (complete;
@@ -362,19 +363,21 @@ Checked 2026-09-08 against the issue records and the [editor client record](inte
   was retired on 2026-09-08 with the other first-party editor clients.
 - #211: community-pack commands and the starter repository shipped in 8.2.0;
   the issue is complete. The starter repository was archived and its local
-  copy deleted on 2026-09-08; retiring the optional community-pattern CLI
-  commands is being integrated separately.
+  copy deleted on 2026-09-08; the optional community-pattern CLI commands
+  were removed in source commit 31ae86e.
 - #207: Obsidian 1.0.0 and host/backend checks are complete; the client was
   retired on 2026-09-08. Community directory submission is classified not
-  planned. The issue remains open; no closure command has been recorded.
+  planned, and the issue was closed as not planned on 2026-09-08.
 - #284: the Gmail preview was released and retired on 2026-09-08. Signed-in
   Gmail acceptance, Chrome Web Store, Notion and LinkedIn are classified not
-  planned. The issue remains open; no closure command has been recorded.
+  planned, and the issue was closed as not planned on 2026-09-08.
 - #212: export and licensing tools are implemented, but publication was deferred
   and the issue was closed as `not_planned`. Closure is not evidence of a public
   Hugging Face upload.
 - The [Aside integration](integrations/aside.md#validation-boundary) is available
   in the source checkout. Native macOS/Aside acceptance remains unverified.
+- #772 (CLI-first skill execution with execution evidence) is the active open
+  implementation item, tracked separately from the retired ecosystem clients.
 
 The [2026-09-06 scope decision](https://github.com/devswha/patina/issues/643#issuecomment-5559803306)
 excludes human evaluation and owner-time work from the active research stream.
