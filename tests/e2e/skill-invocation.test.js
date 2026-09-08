@@ -73,9 +73,10 @@ async function provider(t, f, { mps = 100, fidelity = 3, onRequest, output = SOU
     response.writeHead(200, { 'content-type': 'application/json' });
     response.end(JSON.stringify({ choices: [{ message: { content: answer } }] }));
   });
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
   t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  const listening = once(server, 'listening', { signal: globalThis.AbortSignal.timeout(5000) });
+  server.listen(0, '127.0.0.1');
+  await listening;
   await writeFile(join(f.home, '.patina.yaml'), JSON.stringify({ backend: 'openai-http', model: 'fixture-model',
     baseURL: `http://127.0.0.1:${server.address().port}/v1` }));
   return requests;
