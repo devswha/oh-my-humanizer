@@ -39,6 +39,8 @@ node <skill-directory>/bin/patina-skill.js --input <private-file> [--lang ko] [-
 
 지원 플래그는 헬퍼의 `--help` 출력이 전부다. `--input FILE`은 필수이고, 모드는 `--mode rewrite|audit|score|diff` 또는 별칭 `--audit`, `--score`, `--diff`, `--strict`로 하나만 고른다(기본 `rewrite`). 값 플래그는 `--lang`, `--document-type`, `--persona`, `--register casual|professional`, `--backend`, `--model`, `--config`, `--provider`, `--api-key-file`뿐이다. 모드 플래그를 겹쳐 쓰면 사용법 오류로 거부된다. 여기 없는 옵션은 존재하지 않으므로 새로 만들어 내지 않는다.
 
+플래그는 모두 선택적 오버라이드다. 생략된 값은 헬퍼가 기존 설정 선택 규칙(배포 기본값 → `~/.patina.yaml` → 프로젝트 `.patina.yaml`, `--config`가 있으면 그 파일)으로 정하므로, 사용자가 요청하지 않은 플래그를 임의로 붙이지 않는다. 어느 설정도 백엔드를 고르지 않으면 기존 기본값(HTTP)이 그대로 적용된다.
+
 헬퍼는 내용 없는 JSON 한 줄을 stdout에 반환한다.
 
 ```json
@@ -53,7 +55,7 @@ node <skill-directory>/bin/patina-skill.js --input <private-file> [--lang ko] [-
 
 백엔드와 한계:
 
-- 헬퍼는 선택된 백엔드 하나의 준비 상태만 검사한다. `patina doctor`가 다른 백엔드를 통과시킨 사실은 선택된 백엔드의 준비 증거가 아니고, 백엔드 대체 체인도 없다. 명시적으로 선택된 `kimi-cli`는 `backend_argv_exposes_input`으로 거부된다.
+- 헬퍼는 선택된 백엔드 하나의 준비 상태만 검사한다. 선택은 플래그나 설정 파일 어디서든 올 수 있다. `patina doctor`가 다른 백엔드를 통과시킨 사실은 선택된 백엔드의 준비 증거가 아니고, 백엔드 대체 체인도 없다. 선택된 백엔드가 실패하면 다른 백엔드로 몰래 바꾸지 않고 실패로 보고한다. 명시적으로 선택된 `kimi-cli`는 `backend_argv_exposes_input`으로 거부된다.
 - 입력은 20,000자·80,000바이트 상한이고, 설정과 실행을 합한 전체 예산은 180초다.
 - 파일이 여러 개면 파일마다 헬퍼를 따로 호출한다. 실패한 파일은 코드를 기록하고 원본을 바꾸지 않은 채 다음 파일로 넘어간다. 실패한 파일을 인라인으로 재작성하지 않는다.
 

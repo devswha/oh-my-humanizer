@@ -210,7 +210,7 @@ printf '%s\n' 'Coffee has emerged as a pivotal cultural phenomenon.' \
 
 The Docker image intentionally does not bake in codex/claude/gemini CLI binaries or logins. Use API-backed providers inside the container, or mount your own authenticated tooling explicitly.
 
-Free tier: when [`codex`](https://github.com/openai/codex) is installed and logged in, patina works **without** an API key. The default `/patina` route and the standalone CLI both reach it with an explicit `--backend codex-cli` (auto-fallback was removed in v3.9 to keep agent backends opt-in). Only the explicit `--instruction-only` route uses the host agent's own model, and that route has no CLI verification.
+Free tier: when [`codex`](https://github.com/openai/codex) is installed and logged in, patina works **without** an API key. The default `/patina` route and the standalone CLI both reach it when `codex-cli` is selected explicitly, by `--backend codex-cli` or by `backend: codex-cli` in `.patina.yaml` (auto-fallback was removed in v3.9 to keep agent backends opt-in). Only the explicit `--instruction-only` route uses the host agent's own model, and that route has no CLI verification.
 
 Other backends: a logged-in `gemini` or `claude` CLI works with `--backend gemini-cli` / `--backend claude-cli` (`GEMINI_API_KEY` also works for gemini-cli); any OpenAI-compatible HTTP API works with `PATINA_API_KEY` and `--backend openai-http`. `patina --list-backends` shows what is available.
 
@@ -245,7 +245,7 @@ npm unlink -g patina-cli 2>/dev/null || true
 | Standalone `patina` command not found after `npm link` | `npm` global bin not on `PATH` | Tell the user to run `npm prefix -g` and add its `bin/` subdirectory to `PATH`. |
 | install.sh stops with `Runtime not ready: ...` | Node.js >= 18.1.0 missing, npm missing while dependency preparation was needed, or `npm ci` failed | Install Node.js/npm or resolve the npm error, then rerun the installer. Exit 1 means no readiness was claimed. |
 | Helper exits 1 with `backend_unavailable` or `backend_auth_missing` | The selected backend is not installed or not logged in | Log in to the backend you selected (yourself; nothing installs or logs in for you), or use `openai-http` with `--api-key-file` / `PATINA_API_KEY`. |
-| `patina doctor` passes but the helper reports the backend unavailable | doctor accepts any usable backend; the helper requires the selected one | Pass `--backend <name>` for a backend that is actually ready, or fix the selected backend. |
+| `patina doctor` passes but the helper reports the backend unavailable | doctor accepts any usable backend; the helper requires the selected one | Select a backend that is actually ready (`--backend <name>` or `backend:` in config), or fix the selected backend. |
 
 ---
 
