@@ -22,9 +22,10 @@ was ever claimed, so retirement requires no takedown. Real signed-in Gmail
 validation never happened; Notion and LinkedIn stayed outside the preview.
 
 On the patina tracker, #207 (Obsidian directory submission) and #284
-(signed-in Gmail acceptance) remain open and are classified retired/not
-planned; no closure has been recorded. #206 (VS Code) was closed when the
-1.1.0 VSIX shipped.
+(signed-in Gmail acceptance) were closed as `not_planned` on 2026-09-08.
+These closures record retirement, not completion of directory submission or
+signed-in Gmail acceptance. #206 (VS Code) was closed when the 1.1.0 VSIX
+shipped.
 
 ## What remains supported
 
