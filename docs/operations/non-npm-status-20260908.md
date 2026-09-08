@@ -19,8 +19,8 @@ hashes of removed private objects.
 - Research records show the KO GPT-family miss review and Study 4 complete,
   with human evaluation (#159) and the human-labeled corpus criteria of #643
   deferred, not active.
-- The issue inventory records #772 (CLI-first skill execution) as the active
-  open item, #207/#284 as retired and closed, and #159/#643 as deferred.
+- The recorded pre-merge issue inventory listed #772 (CLI-first skill execution)
+  as the active open item, #207/#284 as retired and closed, and #159/#643 as deferred.
 
 ## Decision points
 
@@ -47,10 +47,12 @@ hashes of removed private objects.
    research.
 6. **#772 source implementation is present.** This non-npm change includes
    the CLI-first helper, installer runtime checks and default skill routing.
-   Existing targeted tests passed; real CLI/agent acceptance and final PR
-   review/integration gates remain distinct and pending. The issue remains
-   open pending integration; no final PR merge, deployment or npm release
-   has happened in this change.
+   At the September 8 pre-acceptance/pre-merge checkpoint, existing targeted
+   tests had passed; real CLI/agent acceptance and final PR review/integration
+   gates were still pending. The issue was open pending integration; no final
+   PR merge, deployment or npm release had happened in this change at that
+   checkpoint. See #772, its associated PR and CI for later acceptance and
+   integration evidence.
 
 ## Current operations evidence
 
@@ -90,11 +92,12 @@ hashes of removed private objects.
   401. Usable publishing authorization is unverified.
 - **GitHub cache removal.** No support submission receipt and no
   removed-object identifiers have been identified. Unverified.
-- **Issue inventory (verified 2026-09-08).** The full open inventory was
+- **Issue inventory (recorded pre-merge check, 2026-09-08).** The full open inventory was
   five issues: #772 (CLI-first skill execution, active), #643 and #159
   (deferred human criteria), and #207/#284 (retired editor clients). #207
   and #284 were closed as not planned on 2026-09-08, at 06:29:20Z and
-  06:29:21Z. #772, #643 and #159 remain open.
+  06:29:21Z. #772, #643 and #159 were still open at that check; this is not
+  a live issue count. See #772, its associated PR and CI for later integration evidence.
 
 ## Exact unresolved prerequisites
 
@@ -111,10 +114,12 @@ hashes of removed private objects.
 3. **GitHub cache removal.** Requires the support ticket receipt and the
    removed-object identifiers; neither is recorded.
 4. **#772 acceptance and integration.** Source implementation is present in
-   this non-npm change and existing targeted tests passed. Real CLI/agent
-   acceptance and final PR review/integration gates remain pending, not the
-   source implementation itself. The issue remains open; no final PR merge,
-   deployment or npm release has happened in this change.
+   this non-npm change. At the September 8 pre-acceptance/pre-merge checkpoint,
+   existing targeted tests had passed; real CLI/agent acceptance and final PR
+   review/integration gates were pending, not the source implementation itself.
+   The issue was open; no final PR merge, deployment or npm release had happened
+   in this change at that checkpoint. See #772, its associated PR and CI for
+   later acceptance and integration evidence.
 5. **npm publication.** Requires restored npm authorization; excluded from
    this stream.
 6. **Human criteria of #159/#643.** Require human raters and labels under

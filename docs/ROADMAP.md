@@ -379,9 +379,11 @@ Checked 2026-09-08 against the issue records and the [editor client record](inte
 - #772 (CLI-first skill execution with execution evidence) has source
   implementation present in this non-npm change, including the helper,
   installer runtime checks and default skill routing. Existing targeted tests
-  passed; real CLI/agent acceptance and final PR review/integration gates
-  remain distinct and pending. The issue remains open pending integration;
-  no final PR merge, deployment or npm release has happened in this change.
+  had passed at the September 8 pre-acceptance/pre-merge checkpoint; real
+  CLI/agent acceptance and final PR review/integration gates were still pending.
+  The issue was open; no final PR merge, deployment or npm release had happened
+  in this change at that checkpoint. See #772, its associated PR and CI for
+  later acceptance and integration evidence.
 
 The [2026-09-06 scope decision](https://github.com/devswha/patina/issues/643#issuecomment-5559803306)
 excludes human evaluation and owner-time work from the active research stream.

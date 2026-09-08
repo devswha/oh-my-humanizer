@@ -104,15 +104,17 @@ The September 7 GitHub query returned four open issues and missed #772
 (created September 7): the full open inventory was five, with #772
 (CLI-first skill execution) the active item, #159/#643 deferred and
 #207/#284 retired. On September 8, #207 and #284 were closed as not planned
-(06:29:20Z and 06:29:21Z); #772, #159 and #643 remain open. Provider
+(06:29:20Z and 06:29:21Z); #772, #159 and #643 were still open at the
+recorded pre-merge check, not a live issue count. Provider
 comparison limits and operational follow-ups are separate from that count. A
 closed issue does not by itself prove external publication. #772 source
 implementation is present in this non-npm change (helper, installer runtime
-checks and default skill routing), with existing targeted tests passed.
-Real CLI/agent acceptance and final PR review/integration gates remain
-pending, separate from source implementation. #772 remains open pending
-integration; no final PR merge, deployment or npm release has happened in
-this change.
+checks and default skill routing). At the September 8 pre-acceptance/pre-merge
+checkpoint, existing targeted tests had passed; real CLI/agent acceptance and
+final PR review/integration gates were pending, separate from source
+implementation. #772 was open pending integration; no final PR merge,
+deployment or npm release had happened in this change at that checkpoint.
+See #772, its associated PR and CI for later acceptance and integration evidence.
 
 ## September 6 automated short-form evidence
 
